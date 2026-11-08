@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#080808">
   <title>Konfirmasi Deposit | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
+  <link rel="stylesheet" href="css/style.css?v=mps-v470-20261108">
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
@@ -38,72 +38,18 @@
       <p style="margin:8px 0 0">Dilarang memberikan password MT5, password investor, kode OTP, PIN, atau kode verifikasi kepada siapa pun, termasuk admin maupun seluruh tim MPS. <strong>MPS tidak pernah meminta informasi tersebut.</strong> Kami hanya memerlukan nomor login MT5 dan jenis akun untuk verifikasi keterkaitan akun dengan IB MPS. Jangan pernah memberikan akses jarak jauh atau akses masuk ke akun trading Anda.</p>
     </div>
 
-    <form class="form-card mt-4" id="depositForm">
-      <h2>1. Data member</h2>
-      <div class="field">
-        <label for="memberName">Nama member *</label>
-        <input id="memberName" name="memberName" required maxlength="80" autocomplete="name" placeholder="Nama sesuai data pendaftaran MPS">
-      </div>
-      <div class="field">
-        <label for="telegram">Username Telegram *</label>
-        <input id="telegram" name="telegram" required maxlength="40" autocomplete="off" placeholder="Contoh: @username">
-        <small class="muted">Gunakan username Telegram yang bisa dihubungi admin.</small>
-      </div>
-
-      <h2 class="mt-4">2. Informasi identifikasi akun trading</h2>
-      <p class="muted">Formulir ini tidak meminta seluruh data atau akses akun MT5. Cukup isi informasi identifikasi yang tercantum di bawah.</p>
-      <div class="field">
-        <label for="mt5Login">Nomor login MT5 *</label>
-        <input id="mt5Login" name="mt5Login" type="text" required inputmode="numeric" pattern="[0-9]{4,20}" maxlength="20" autocomplete="off" placeholder="Contoh: 12345678">
-        <small class="muted">Cukup masukkan nomor login MT5 untuk identifikasi akun. Ini bukan password dan tidak dapat digunakan untuk masuk ke akun.</small>
-      </div>
-      <div class="field">
-        <label for="accountType">Jenis akun trading *</label>
-        <select id="accountType" name="accountType" required>
-          <option value="">Pilih jenis akun</option>
-          <option value="Standard">Standard</option>
-          <option value="Standard Cent">Standard Cent</option>
-          <option value="Pro">Pro</option>
-          <option value="Raw Spread">Raw Spread</option>
-          <option value="Zero">Zero</option>
-          <option value="Lainnya">Lainnya</option>
-        </select>
-      </div>
-      <div class="field" id="otherAccountField" hidden>
-        <label for="otherAccountType">Sebutkan jenis akun *</label>
-        <input id="otherAccountType" name="otherAccountType" type="text" maxlength="40" autocomplete="off" placeholder="Tulis jenis akun">
-      </div>
-
-      <h2 class="mt-4">3. Bukti deposit setelah terhubung ke IB MPS</h2><div class="notice"><strong>Minimum deposit: Rp1.000.000.</strong> Deposit harus dilakukan setelah akun terhubung di bawah IB MPS. Dana masuk ke akun trading Exness milik Anda, bukan kepada MPS. Dana tersebut tetap memiliki risiko trading.</div>
-      <div class="field">
-        <label for="depositAmount">Nominal deposit setelah terhubung ke IB MPS (IDR) *</label>
-        <input id="depositAmount" name="depositAmount" type="text" required inputmode="numeric" autocomplete="off" maxlength="19" placeholder="Minimal 1.000.000" aria-describedby="depositAmountHelp">
-        <small class="muted" id="depositAmountHelp">Ketik angka saja. Titik pemisah ribuan akan muncul otomatis. Nominal wajib minimal Rp1.000.000.</small>
-      </div>
-      <div class="field">
-        <label for="depositDate">Tanggal deposit setelah akun terhubung ke IB MPS *</label>
-        <input id="depositDate" name="depositDate" type="date" required>
-      </div>
-      <div class="field">
-        <label for="proof">Bukti deposit (JPG, PNG, atau WEBP; maksimal 5 MB) *</label>
-        <input id="proof" name="proof" type="file" accept="image/jpeg,image/png,image/webp" required aria-describedby="proofHelp">
-        <small class="muted" id="proofHelp">Unggah gambar bukti transaksi deposit yang relevan. Tutupi informasi pribadi yang tidak diperlukan sebelum mengunggah.</small>
-      </div>
-
-      <div class="field" aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden">
-        <label for="website">Jangan isi kolom ini</label>
-        <input id="website" name="website" tabindex="-1" autocomplete="off">
-      </div>
-
-      <label class="checkline">
-        <input type="checkbox" id="consent" required>
-        <span>Saya menyatakan data yang dikirim benar, telah membaca dan menyetujui seluruh <a href="terms.html" target="_blank" rel="noopener">Syarat &amp; Ketentuan MPS</a>, serta mengizinkan MPS menggunakan data ini untuk verifikasi pendaftaran, deposit, dan akun MT5. Saya memahami bahwa MPS tidak meminta password, OTP, atau akses ke akun trading saya. Saya juga telah membaca <a href="privacy.html" target="_blank" rel="noopener">Kebijakan Privasi</a>.</span>
-      </label>
-
-      <button class="btn btn-gold mt-3" type="submit" id="submitDeposit">Kirim untuk Verifikasi Admin</button>
-      <div class="form-message" id="depositMessage" role="status" aria-live="polite"></div>
-      <div role="alert" style="margin-top:16px;padding:14px;border:1px solid #dc2626;border-left:5px solid #ef4444;border-radius:10px;background:#2a1010;color:#fff1f2;font-size:13px"><strong style="color:#fca5a5">🔺 INGAT: PASSWORD &amp; OTP BERSIFAT RAHASIA.</strong><p style="margin:6px 0 0">Jangan tulis atau kirim password MT5, password investor, OTP, PIN, atau kode verifikasi di formulir, chat, maupun kepada siapa pun. Termasuk kepada tim MPS. MPS tidak pernah meminta dan tidak membutuhkan informasi tersebut.</p></div>
-    </form>
+    <div class="form-card mt-4">
+  <h2>Konfirmasi Deposit &amp; Verifikasi Akun</h2>
+  <p>Untuk menghindari pengiriman data ke endpoint yang belum dikonfirmasi, seluruh proses konfirmasi deposit dilakukan melalui Portal Member resmi MPS.</p>
+  <ol>
+    <li>Siapkan Application Ref dari proses pendaftaran.</li>
+    <li>Pastikan akun trading sudah sesuai persyaratan IB MPS.</li>
+    <li>Masukkan informasi akun dan bukti deposit melalui portal.</li>
+    <li>Hubungkan Telegram dan tunggu pemeriksaan admin.</li>
+  </ol>
+  <div class="notice"><strong>Keamanan:</strong> MPS hanya memerlukan nomor login MT5 dan jenis akun untuk identifikasi. Jangan pernah mengirim password, OTP, PIN, atau akses akun trading.</div>
+  <a class="btn btn-gold mt-3" href="member-portal.html">Buka Portal Member MPS</a>
+</div>
   </div>
 </section>
 
@@ -121,6 +67,5 @@
 </footer>
 <script src="config.js"></script>
 <script src="js/main.js"></script>
-<script src="js/deposit.js?v=5"></script>
 </body>
 </html>
