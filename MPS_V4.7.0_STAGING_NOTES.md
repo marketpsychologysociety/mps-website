@@ -7,6 +7,7 @@ This branch stages website-facing changes for the MPS v4.7.0 backend workflow. I
 ## Included
 - Homepage image loading optimization: below-the-fold imagery uses lazy loading and async decoding.
 - Member Portal wording aligned to Application Ref → deposit/Telegram verification → admin approval → Member ID → PIN activation.
+- Member Portal deep links now target the corresponding Apps Script panels (registration, learning, dashboard, heatmap, and admin); the companion v4.7.0 backend/frontend route patch is supplied separately and must be installed before these links are considered live.
 - Join and deposit pages no longer submit legacy HTML forms or load the old join/deposit form scripts; they direct applicants to the official Member Portal.
 - Privacy policy updated to describe separate pending applications/deposit records, post-approval Member ID issuance, PIN activation, and public ticker privacy boundaries.
 
@@ -20,6 +21,7 @@ This branch stages website-facing changes for the MPS v4.7.0 backend workflow. I
 2. Deploy and runtime-test backend v4.7.0 before publishing website text that describes its new workflow.
 3. Test registration, separate deposit application storage, Telegram identity linking, admin approval, Member ID issuance, PIN delivery retry, and final activation against a controlled test environment.
 4. Confirm that all Portal links resolve to the verified deployment URL.
+5. Install the companion Code.gs / Index.html route patch so `?page=` deep links open the requested panel; then verify every route in the deployed Web App.
 
 ## Static staging checks
 - All five changed HTML files have no HTML `<form>` elements.
