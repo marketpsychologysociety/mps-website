@@ -20,7 +20,7 @@ This branch stages website-facing changes for the MPS v4.7.0 backend workflow. I
 1. Verify the canonical Web App URL in Apps Script → Deploy → Manage deployments. The URL currently in public `config.js` differs by character order from the deployment URL noted in the MPS project handoff. Do not replace or publish an endpoint based only on a remembered/copied string.
 2. Deploy and runtime-test backend v4.7.0 before publishing website text that describes its new workflow.
 3. Test registration, separate deposit application storage, Telegram identity linking, admin approval, Member ID issuance, PIN delivery retry, and final activation against a controlled test environment.
-4. Confirm that all Portal links resolve to the verified deployment URL.
+4. The supplied URL string matches the Portal/backend endpoint currently staged; verify the active deployment/version and perform live route checks before release.
 5. Install the companion Code.gs / Index.html route patch so `?page=` deep links open the requested panel; then verify every route in the deployed Web App.
 
 ## Static staging checks
