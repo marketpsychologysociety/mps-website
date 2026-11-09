@@ -246,6 +246,44 @@ try {
   await mobilePage.waitForFunction(() => document.getElementById('installMpsApp')?.hidden === true);
   const androidPromptCalled = await mobilePage.evaluate(() => window.__mpsInstallPromptCalled === true);
   if (!androidPromptCalled) failures.push('Android install button did not invoke the native install prompt handler');
+
+  // Exercise the actual mobile navigation on every page that uses the shared
+  // hamburger menu. Pages with a deliberately different navigation layout
+  // (for example the standalone Market Pulse preview) are checked separately
+  // by their page-load and install-control assertions above.
+  for (const route of pages) {
+    await mobilePage.goto(base + '/' + route, { waitUntil: 'domcontentloaded' });
+    const menuStructure = await mobilePage.evaluate(() => ({
+      toggle: !!document.getElementById('navToggle'),
+      nav: !!document.getElementById('navLinks')
+    }));
+    if (menuStructure.toggle !== menuStructure.nav) {
+      failures.push(route + ': mobile menu toggle/nav structure is incomplete');
+      continue;
+    }
+    if (!menuStructure.toggle) continue;
+
+    await mobilePage.locator('#navToggle').click();
+    const menuState = await mobilePage.evaluate(() => {
+      const nav = document.getElementById('navLinks');
+      const toggle = document.getElementById('navToggle');
+      const rect = nav?.getBoundingClientRect();
+      return {
+        open: !!nav?.classList.contains('open'),
+        expanded: toggle?.getAttribute('aria-expanded'),
+        left: rect?.left ?? 0,
+        right: rect?.right ?? 0,
+        viewportWidth: window.innerWidth
+      };
+    });
+    if (!menuState.open || menuState.expanded !== 'true') {
+      failures.push(route + ': mobile navigation did not open with aria-expanded=true');
+    }
+    if (menuState.left < -1 || menuState.right > menuState.viewportWidth + 1) {
+      failures.push(route + ': mobile navigation extends beyond the viewport');
+    }
+  }
+
   if (mobileErrors.length) failures.push('Mobile browser page errors: ' + mobileErrors.join(' | '));
   await mobileContext.close();
 
