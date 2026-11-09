@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Tiga pilar utama MPS: money management, trading psychology, dan trading discipline.">
   <meta name="theme-color" content="#080808">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MPS">
+  <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <title>Core System | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
@@ -13,7 +19,9 @@
 <nav class="navbar" aria-label="Navigasi utama">
   <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt="">MPS</a>
   <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">☰</button>
-  <ul class="nav-links" id="navLinks"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="system.html">Core System</a></li><li><a href="education.html">Education</a></li><li><a href="membership.html">Membership</a></li><li><a href="rewards.html">Rewards</a></li><li><a href="rebate.html">Rebate</a></li><li><a href="join.html">Join</a></li><li><a href="heatmap.html">Free Heatmap</a></li><li><a href="contact.html">Contact</a></li></ul>
+  <ul class="nav-links" id="navLinks"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="system.html">Core System</a></li><li><a href="education.html">Education</a></li><li><a href="membership.html">Membership</a></li><li><a href="rewards.html">Rewards</a></li><li><a href="rebate.html">Rebate</a></li><li><a href="join.html">Join</a></li><li><a href="heatmap.html">Free Heatmap</a></li><li><a href="contact.html">Contact</a></li>
+    <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
+  </ul>
 </nav>
 <header class="page-head"><div class="eyebrow">The Foundation</div><h1>Core System MPS</h1><p>Tiga pilar untuk membangun proses trading yang lebih terukur.</p></header>
 <section><div class="container grid grid-3"><article class="card"><div class="card-num">01</div><h3>Money Management</h3><p>Memahami risiko per posisi, ukuran lot, alokasi modal, batas kerugian, dan perlindungan profit.</p></article><article class="card"><div class="card-num">02</div><h3>Trading Psychology</h3><p>Mengenali pemicu emosional, menerima kerugian terencana, dan menghindari keputusan impulsif.</p></article><article class="card"><div class="card-num">03</div><h3>Trading Discipline</h3><p>Membuat rencana, mematuhi checklist, mencatat transaksi, dan mengevaluasi proses secara rutin.</p></article></div><div class="container content mt-4"><div class="notice"><strong>Catatan:</strong> Counter Risk &amp; Money Management masih merupakan konsep pengembangan yang perlu diuji dan dievaluasi, bukan sistem yang telah terbukti atau jaminan hasil.</div></div></section>
@@ -29,4 +37,27 @@
 <script src="config.js"></script>
 <script src="js/main.js"></script>
 
+
+<script>
+(()=>{
+  const btn=document.getElementById('installMpsApp');
+  const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(!('serviceWorker' in navigator))return;
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
+  if(!btn||isStandalone())return;
+  let installPrompt=null;
+  const ua=navigator.userAgent||'';
+  const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Share/Bagikan.\n3. Pilih “Add to Home Screen” / “Tambahkan ke Layar Utama”.\n4. Tekan Add / Tambahkan.'));}
+  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
+  btn.addEventListener('click',async()=>{
+    if(isAppleMobile)return;
+    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Install app” atau “Tambahkan ke layar utama”.');return;}
+    installPrompt.prompt();
+    try{const choice=await installPrompt.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}
+    installPrompt=null;
+  });
+  window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
+})();
+</script>
 </body></html>
