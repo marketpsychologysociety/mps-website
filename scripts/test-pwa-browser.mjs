@@ -202,12 +202,12 @@ try {
 
   let offlineBody = '';
   try {
-    await page.goto(base + '/education.html', { waitUntil: 'domcontentloaded', timeout: 10000 });
+    await page.goto(base + '/index.html?source=pwa', { waitUntil: 'domcontentloaded', timeout: 10000 });
     offlineBody = await page.locator('body').innerText();
   } catch (error) {
     failures.push('Offline navigation threw: ' + error.message);
   }
-  if (!offlineBody.includes('MPS sedang offline')) failures.push('Offline navigation did not show the privacy-safe offline page');
+  if (!offlineBody.includes('MPS sedang offline')) failures.push('Offline PWA start_url navigation did not show the privacy-safe offline page');
 
   await context.setOffline(false);
 
