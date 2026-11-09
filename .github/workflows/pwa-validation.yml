@@ -21,3 +21,9 @@ jobs:
           node-version: 20
       - name: Validate PWA files and privacy rules
         run: node scripts/validate-pwa.mjs
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
+      - name: Run Chromium browser checks
+        run: node scripts/test-pwa-browser.mjs
