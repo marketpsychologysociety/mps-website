@@ -29,6 +29,7 @@ if (manifest) {
 for (const page of pages) {
   if (!exists(page)) { errors.push('Missing page: ' + page); continue; }
   const html = read(page);
+  check(!html.includes("\\\\n"), page + ': iOS install instructions contain a double-escaped newline');
   check((html.match(/rel=["']manifest["']/gi) || []).length === 1, page + ': expected exactly one manifest link');
   check((html.match(/id=["']installMpsApp["']/gi) || []).length === 1, page + ': expected exactly one install button');
   check((html.match(/serviceWorker\.register\(/g) || []).length === 1, page + ': expected exactly one service worker registration');
