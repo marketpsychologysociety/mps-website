@@ -69,6 +69,7 @@ check(/if\(isCode\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.put\(request,res
 check(/request\.method!=='GET'/.test(sw), 'sw.js must bypass non-GET requests');
 check(/url\.origin!==self\.location\.origin/.test(sw), 'sw.js must bypass cross-origin requests');
 check(/request\.mode==='navigate'[\s\S]*?fetch\(request\)\.catch/.test(sw), 'sw.js navigation must not use cache-first');
+check(sw.indexOf("if(request.mode==='navigate')") >= 0 && sw.indexOf("if(request.mode==='navigate')") < sw.indexOf('if(url.search&&!isVersionedPublicAsset)'), 'sw.js must handle navigations before query-string cache guards');
 check(/if\(url\.hash\)return/.test(sw) && /isVersionedPublicAsset/.test(sw) && /url\.searchParams\.has\('v'\)/.test(sw), 'sw.js must allow only versioned public assets while bypassing other query URLs');
 check(/const PUBLIC_ASSET_PATHS=new Set\(/.test(sw) && /if\(!isPublicAsset\)return/.test(sw), 'sw.js must use an explicit public-asset path allowlist');
 check(/Cache-Control/.test(sw) && /private\|no-store\|no-cache/.test(sw), 'sw.js must respect private/no-store/no-cache response headers');
