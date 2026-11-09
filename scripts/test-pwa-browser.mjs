@@ -120,7 +120,7 @@ try {
     await image.decode();
     return { width: image.naturalWidth, height: image.naturalHeight };
   });
-  if (!svgIcon.ok || svgIcon.width !== 512 || svgIcon.height !== 512) failures.push('SVG app icon failed browser decoding or dimensions check');
+  if (svgIcon.width !== 512 || svgIcon.height !== 512) failures.push('SVG app icon failed browser decoding or dimensions check');
 
   const pngIcon = await page.evaluate(async () => {
     const response = await fetch('/assets/mps-app-icon-512.png');
