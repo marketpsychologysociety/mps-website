@@ -50,7 +50,7 @@ self.addEventListener('fetch',event=>{
   const isStatic=/\.(?:css|js|svg|png|jpg|jpeg|webp|woff2?)$/i.test(url.pathname);
   if(!isStatic)return;
 
-  const isCode=/\\.(?:css|js)$/i.test(url.pathname);
+  const isCode=/\.(?:css|js)$/i.test(url.pathname);
   event.respondWith(
     caches.open(CACHE_NAME).then(async cache=>{
       if(isCode){
