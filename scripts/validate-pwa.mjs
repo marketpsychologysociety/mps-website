@@ -63,7 +63,7 @@ for (const page of ['join.html', 'deposit-confirmation.html']) {
 const sw = read('sw.js');
 try { new vm.Script(sw, { filename: 'sw.js' }); }
 catch (error) { errors.push('sw.js syntax error: ' + error.message); }
-check(/const isCode=\/\.(?:css|js)\$\/i\.test\(url\.pathname\)/.test(sw), 'sw.js must detect CSS/JS files for network-first updates');
+check(sw.includes(String.raw`const isCode=/\.(?:css|js)$/i.test(url.pathname);`), 'sw.js must detect CSS/JS files for network-first updates');
 check(/if\(isCode\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.put\(request,response\.clone\(\)\)/.test(sw), 'sw.js CSS/JS network-first cache update missing');
 check(/request\.method!=='GET'/.test(sw), 'sw.js must bypass non-GET requests');
 check(/url\.origin!==self\.location\.origin/.test(sw), 'sw.js must bypass cross-origin requests');
