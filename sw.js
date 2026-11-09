@@ -1,15 +1,28 @@
-const CACHE_NAME='mps-public-shell-v3';
+const CACHE_NAME='mps-public-shell-v4';
 const CACHE_PREFIX='mps-public-shell-';
 const BASE=self.registration.scope;
 const CORE_ASSETS=[
   'offline.html',
   'css/style.css',
+  'js/main.js',
+  'config.js',
   'assets/logo.svg',
   'assets/favicon.svg',
   'assets/mps-app-icon.svg',
   'assets/mps-app-icon-512.png'
 ].map(path=>new URL(path,BASE).href);
 const OFFLINE_URL=new URL('offline.html',BASE).href;
+
+// Explicit allowlist: never cache arbitrary same-origin paths or dynamic endpoints.
+const PUBLIC_ASSET_PATHS=new Set([
+  '/css/style.css',
+  '/js/main.js',
+  '/config.js',
+  '/assets/logo.svg',
+  '/assets/favicon.svg',
+  '/assets/mps-app-icon.svg',
+  '/assets/mps-app-icon-512.png'
+]);
 
 self.addEventListener('install',event=>{
   event.waitUntil(
@@ -37,6 +50,9 @@ self.addEventListener('fetch',event=>{
   const url=new URL(request.url);
   if(url.origin!==self.location.origin)return;
 
+  // Never cache credential-bearing or parameterized requests.
+  if(url.search || url.hash)return;
+
   if(request.mode==='navigate'){
     event.respondWith(
       fetch(request).catch(()=>caches.open(CACHE_NAME).then(cache=>cache.match(OFFLINE_URL)))
@@ -44,19 +60,20 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  if(url.searchParams.has('session')||url.searchParams.has('token'))return;
+  if(!PUBLIC_ASSET_PATHS.has(url.pathname))return;
 
-  // Only cache same-origin static assets; do not cache API or member data.
-  const isStatic=/\.(?:css|js|svg|png|jpg|jpeg|webp|woff2?)$/i.test(url.pathname);
-  if(!isStatic)return;
+  const isCode=url.pathname==='/css/style.css'||
+    url.pathname==='/js/main.js'||
+    url.pathname==='/config.js';
 
-  const isCode=/\.(?:css|js)$/i.test(url.pathname);
   event.respondWith(
     caches.open(CACHE_NAME).then(async cache=>{
       if(isCode){
         try{
           const response=await fetch(request);
-          if(response&&response.ok&&response.type==='basic'){
+          const cacheControl=(response.headers.get('Cache-Control')||'').toLowerCase();
+          if(response&&response.ok&&response.type==='basic'&&
+             !/private|no-store|no-cache/.test(cacheControl)){
             await cache.put(request,response.clone());
           }
           return response;
@@ -71,7 +88,9 @@ self.addEventListener('fetch',event=>{
       if(cached)return cached;
 
       const response=await fetch(request);
-      if(response&&response.ok&&response.type==='basic'){
+      const cacheControl=(response.headers.get('Cache-Control')||'').toLowerCase();
+      if(response&&response.ok&&response.type==='basic'&&
+         !/private|no-store|no-cache/.test(cacheControl)){
         await cache.put(request,response.clone());
       }
       return response;
