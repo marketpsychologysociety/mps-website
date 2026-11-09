@@ -25,7 +25,7 @@ const server = http.createServer((req, res) => {
     if (error) { res.writeHead(404).end('Not found'); return; }
     res.writeHead(200, {
       'Content-Type': mime[path.extname(target)] || 'application/octet-stream',
-      'Cache-Control': 'no-store'
+      'Cache-Control': /\.(?:css|js)$/.test(target) ? 'public, max-age=300' : 'no-store'
     });
     res.end(data);
   });
@@ -83,8 +83,16 @@ try {
     return response.status;
   });
   if (cssOnline !== 200) failures.push('CSS network-first request failed online');
+  const versionedCssStatus = await page.evaluate(async () => (await fetch('/css/style.css?v=mps-test-version')).status);
+  if (versionedCssStatus !== 200) failures.push('Versioned CSS request failed online');
+  const versionedCssCached = await page.evaluate(async () => {
+    const cache = await caches.open('mps-public-shell-v5');
+    return (await cache.keys()).some(request => request.url.includes('/css/style.css?v=mps-test-version'));
+  });
+  if (!versionedCssCached) failures.push('Realistic versioned CSS URL was not cached');
+
   const cachedCss = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v4');
+    const cache = await caches.open('mps-public-shell-v5');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/css/style.css'));
   });
@@ -120,6 +128,14 @@ try {
     return response.status;
   });
   if (tokenRequestStatus !== 200) failures.push('Session-query static asset test request failed');
+  const otherQueryStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?other=not-allowed')).status);
+  if (otherQueryStatus !== 200) failures.push('Other-query asset test request failed');
+  const otherQueryCached = await page.evaluate(async () => {
+    const cache = await caches.open('mps-public-shell-v5');
+    return (await cache.keys()).some(request => request.url.includes('other=not-allowed'));
+  });
+  if (otherQueryCached) failures.push('Non-version query URL was incorrectly cached');
+
   const tokenWasCached = await page.evaluate(async () => {
     const cache = await caches.open('mps-public-shell-v4');
     const keys = await cache.keys();
@@ -171,6 +187,12 @@ try {
   });
   if (cssOffline !== 200) failures.push('Cached CSS did not load while offline');
 
+
+  const versionedCssOffline = await page.evaluate(async () => {
+    try { return (await fetch('/css/style.css?v=mps-test-version')).status; }
+    catch { return 0; }
+  });
+  if (versionedCssOffline !== 200) failures.push('Versioned CSS did not load offline from cache');
 
   const jsOffline = await page.evaluate(async () => {
     try { return (await fetch('/js/main.js')).status; }
