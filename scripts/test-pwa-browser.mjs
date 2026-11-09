@@ -115,9 +115,10 @@ try {
 
 
   const svgIcon = await page.evaluate(async () => {
-    const response = await fetch('/assets/mps-app-icon.svg');
-    const bitmap = await createImageBitmap(await response.blob());
-    return { ok: response.ok, width: bitmap.width, height: bitmap.height };
+    const image = new Image();
+    image.src = '/assets/mps-app-icon.svg';
+    await image.decode();
+    return { width: image.naturalWidth, height: image.naturalHeight };
   });
   if (!svgIcon.ok || svgIcon.width !== 512 || svgIcon.height !== 512) failures.push('SVG app icon failed browser decoding or dimensions check');
 
