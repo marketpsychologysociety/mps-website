@@ -3,124 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Formulir konfirmasi deposit untuk administrasi IB Market Psychology Society.">
+  <meta name="description" content="Informasi konfirmasi deposit dan verifikasi akun untuk calon anggota Market Psychology Society.">
   <meta name="theme-color" content="#080808">
   <title>Konfirmasi Deposit | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
+  <link rel="stylesheet" href="css/style.css?v=mps-v470-security">
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
-  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt="">MPS</a>
+  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt=""><span><strong>Market Psychology Society</strong><small>MPS · TRADE WITH DISCIPLINE</small></span></a>
   <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">☰</button>
   <ul class="nav-links" id="navLinks">
-    <li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li>
-    <li><a href="system.html">Core System</a></li><li><a href="education.html">Education</a></li>
-    <li><a href="membership.html">Membership</a></li><li><a href="rewards.html">Rewards</a></li>
-    <li><a href="rebate.html">Rebate</a></li><li><a href="join.html">Join</a></li>
-    <li><a href="contact.html">Contact</a></li>
+    <li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="system.html">Core System</a></li><li><a href="education.html">Education</a></li><li><a href="membership.html">Membership</a></li><li><a href="rewards.html">Rewards</a></li><li><a href="rebate.html">Rebate</a></li><li><a class="active" aria-current="page" href="member-portal.html">Member Portal</a></li><li><a href="heatmap.html">MPS Market Pulse</a></li><li><a href="contact.html">Contact</a></li>
   </ul>
 </nav>
-
 <header class="page-head">
-  <div class="eyebrow">STEP 2 — PROSES PENDAFTARAN MEMBER</div>
-  <h1>Verifikasi Akun IB MPS</h1>
-  <p>Broker partner MPS saat ini adalah Exness. MPS dapat menambahkan broker partner lain di kemudian hari dan akan mengumumkannya secara terbuka. Untuk saat ini, akun wajib terhubung di bawah IB MPS dan memiliki deposit minimal Rp1.000.000. Verifikasi admin ditargetkan maksimal 1 × 24 jam setelah seluruh data lengkap diterima, bergantung pada jumlah pendaftar.</p>
+  <div class="eyebrow">MEMBER VERIFICATION</div>
+  <h1>Konfirmasi Deposit</h1>
+  <p>Pengiriman data deposit dan bukti transaksi hanya dilakukan melalui Portal Resmi MPS.</p>
 </header>
-
-<section>
-  <div class="container">
-    <div class="notice">
-      <strong>Step 2 — Wajib untuk menyelesaikan pendaftaran:</strong> Setelah mengisi data diri pada Step 1, baca dan pahami <a href="terms.html" target="_blank" rel="noopener">Syarat &amp; Ketentuan MPS</a>. Jika setuju, pastikan akun Exness sudah terhubung di bawah IB MPS dan lakukan deposit minimal Rp1.000.000 ke akun trading milik Anda. Jika sudah memiliki akun Exness, pindahkan/tautkan akun ke IB MPS terlebih dahulu melalui panduan admin, kemudian deposit. Deposit bukan biaya keanggotaan dan tidak dibayarkan kepada MPS. Isi nomor login MT5, jenis akun, nominal dan tanggal deposit setelah akun terhubung, serta bukti deposit. MPS tidak meminta akses masuk atau mengendalikan akun trading. Verifikasi ditargetkan maksimal 1 × 24 jam setelah data lengkap diterima, bergantung pada jumlah pendaftar. Pengiriman formulir belum berarti otomatis diterima.
-    </div>
-    <div role="alert" style="margin:16px 0;padding:16px;border:1px solid #dc2626;border-left:5px solid #ef4444;border-radius:10px;background:#2a1010;color:#fff1f2">
-      <strong style="color:#fca5a5">🔺 PERINGATAN KEAMANAN — JANGAN BAGIKAN PASSWORD ATAU KODE OTP</strong>
-      <p style="margin:8px 0 0">Dilarang memberikan password MT5, password investor, kode OTP, PIN, atau kode verifikasi kepada siapa pun, termasuk admin maupun seluruh tim MPS. <strong>MPS tidak pernah meminta informasi tersebut.</strong> Kami hanya memerlukan nomor login MT5 dan jenis akun untuk verifikasi keterkaitan akun dengan IB MPS. Jangan pernah memberikan akses jarak jauh atau akses masuk ke akun trading Anda.</p>
-    </div>
-
-    <form class="form-card mt-4" id="depositForm">
-      <h2>1. Data member</h2>
-      <div class="field">
-        <label for="memberName">Nama member *</label>
-        <input id="memberName" name="memberName" required maxlength="80" autocomplete="name" placeholder="Nama sesuai data pendaftaran MPS">
-      </div>
-      <div class="field">
-        <label for="telegram">Username Telegram *</label>
-        <input id="telegram" name="telegram" required maxlength="40" autocomplete="off" placeholder="Contoh: @username">
-        <small class="muted">Gunakan username Telegram yang bisa dihubungi admin.</small>
-      </div>
-
-      <h2 class="mt-4">2. Informasi identifikasi akun trading</h2>
-      <p class="muted">Formulir ini tidak meminta seluruh data atau akses akun MT5. Cukup isi informasi identifikasi yang tercantum di bawah.</p>
-      <div class="field">
-        <label for="mt5Login">Nomor login MT5 *</label>
-        <input id="mt5Login" name="mt5Login" type="text" required inputmode="numeric" pattern="[0-9]{4,20}" maxlength="20" autocomplete="off" placeholder="Contoh: 12345678">
-        <small class="muted">Cukup masukkan nomor login MT5 untuk identifikasi akun. Ini bukan password dan tidak dapat digunakan untuk masuk ke akun.</small>
-      </div>
-      <div class="field">
-        <label for="accountType">Jenis akun trading *</label>
-        <select id="accountType" name="accountType" required>
-          <option value="">Pilih jenis akun</option>
-          <option value="Standard">Standard</option>
-          <option value="Standard Cent">Standard Cent</option>
-          <option value="Pro">Pro</option>
-          <option value="Raw Spread">Raw Spread</option>
-          <option value="Zero">Zero</option>
-          <option value="Lainnya">Lainnya</option>
-        </select>
-      </div>
-      <div class="field" id="otherAccountField" hidden>
-        <label for="otherAccountType">Sebutkan jenis akun *</label>
-        <input id="otherAccountType" name="otherAccountType" type="text" maxlength="40" autocomplete="off" placeholder="Tulis jenis akun">
-      </div>
-
-      <h2 class="mt-4">3. Bukti deposit setelah terhubung ke IB MPS</h2><div class="notice"><strong>Minimum deposit: Rp1.000.000.</strong> Deposit harus dilakukan setelah akun terhubung di bawah IB MPS. Dana masuk ke akun trading Exness milik Anda, bukan kepada MPS. Dana tersebut tetap memiliki risiko trading.</div>
-      <div class="field">
-        <label for="depositAmount">Nominal deposit setelah terhubung ke IB MPS (IDR) *</label>
-        <input id="depositAmount" name="depositAmount" type="text" required inputmode="numeric" autocomplete="off" maxlength="19" placeholder="Minimal 1.000.000" aria-describedby="depositAmountHelp">
-        <small class="muted" id="depositAmountHelp">Ketik angka saja. Titik pemisah ribuan akan muncul otomatis. Nominal wajib minimal Rp1.000.000.</small>
-      </div>
-      <div class="field">
-        <label for="depositDate">Tanggal deposit setelah akun terhubung ke IB MPS *</label>
-        <input id="depositDate" name="depositDate" type="date" required>
-      </div>
-      <div class="field">
-        <label for="proof">Bukti deposit (JPG, PNG, atau WEBP; maksimal 5 MB) *</label>
-        <input id="proof" name="proof" type="file" accept="image/jpeg,image/png,image/webp" required aria-describedby="proofHelp">
-        <small class="muted" id="proofHelp">Unggah gambar bukti transaksi deposit yang relevan. Tutupi informasi pribadi yang tidak diperlukan sebelum mengunggah.</small>
-      </div>
-
-      <div class="field" aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden">
-        <label for="website">Jangan isi kolom ini</label>
-        <input id="website" name="website" tabindex="-1" autocomplete="off">
-      </div>
-
-      <label class="checkline">
-        <input type="checkbox" id="consent" required>
-        <span>Saya menyatakan data yang dikirim benar, telah membaca dan menyetujui seluruh <a href="terms.html" target="_blank" rel="noopener">Syarat &amp; Ketentuan MPS</a>, serta mengizinkan MPS menggunakan data ini untuk verifikasi pendaftaran, deposit, dan akun MT5. Saya memahami bahwa MPS tidak meminta password, OTP, atau akses ke akun trading saya. Saya juga telah membaca <a href="privacy.html" target="_blank" rel="noopener">Kebijakan Privasi</a>.</span>
-      </label>
-
-      <button class="btn btn-gold mt-3" type="submit" id="submitDeposit">Kirim untuk Verifikasi Admin</button>
-      <div class="form-message" id="depositMessage" role="status" aria-live="polite"></div>
-      <div role="alert" style="margin-top:16px;padding:14px;border:1px solid #dc2626;border-left:5px solid #ef4444;border-radius:10px;background:#2a1010;color:#fff1f2;font-size:13px"><strong style="color:#fca5a5">🔺 INGAT: PASSWORD &amp; OTP BERSIFAT RAHASIA.</strong><p style="margin:6px 0 0">Jangan tulis atau kirim password MT5, password investor, OTP, PIN, atau kode verifikasi di formulir, chat, maupun kepada siapa pun. Termasuk kepada tim MPS. MPS tidak pernah meminta dan tidak membutuhkan informasi tersebut.</p></div>
-    </form>
+<section><div class="container">
+  <div class="notice" style="margin-bottom:18px">
+    <strong>Minimum deposit: Rp1.000.000.</strong> Deposit di atas nominal tersebut diperbolehkan. Dana harus masuk ke akun trading milik Anda yang telah terhubung di bawah IB MPS; deposit bukan biaya pendaftaran dan tidak dibayarkan kepada MPS.
   </div>
-</section>
-
+  <div class="card">
+    <h2>Siapkan informasi berikut</h2>
+    <ul>
+      <li>Application Ref yang diperoleh setelah mengirim pendaftaran.</li>
+      <li>Nama sesuai akun trading dan nomor login MT5 (bukan password).</li>
+      <li>Jenis akun, nominal dan tanggal deposit.</li>
+      <li>Bukti transaksi berupa JPG, PNG, atau WEBP maksimal 5 MB. Tutupi informasi pribadi yang tidak diperlukan.</li>
+    </ul>
+    <p>Setelah mengirim konfirmasi, hubungkan akun Telegram melalui tautan verifikasi sementara yang diberikan sistem. Admin akan memeriksa kesesuaian data sebelum menyetujui pengajuan.</p>
+    <a class="btn btn-gold mt-3" href="member-portal.html">Buka Portal Konfirmasi Deposit</a>
+  </div>
+  <div class="notice mt-3"><strong>Perlindungan akun:</strong> Jangan pernah mengirim password MT5, investor password, OTP, PIN, kode pemulihan, atau memberikan akses jarak jauh. MPS hanya meminta data identifikasi yang dijelaskan di atas.</div>
+  <p class="muted" style="font-size:12px;margin-top:16px">Dengan melanjutkan proses, pengguna menyatakan telah membaca <a href="terms.html">Syarat &amp; Ketentuan</a> dan <a href="privacy.html">Kebijakan Privasi</a>.</p>
+</div></section>
 <footer class="footer">
-  <div class="footer-brand" data-brand="name">Market Psychology Society</div>
-  <div class="footer-tag" data-brand="tagline">TRADE WITH DISCIPLINE.</div>
-  <div class="footer-quote">“Discipline First. Survival Always.”</div>
-  <div class="footer-links">
-    <a href="index.html">Home</a><a href="membership.html">Membership</a>
-    <a href="rebate.html">Rebate</a><a href="join.html">Join</a>
-    <a href="terms.html">Syarat &amp; Ketentuan</a><a href="privacy.html">Kebijakan Privasi</a>
-  </div>
-  <p class="footer-disclaimer">MPS merupakan komunitas edukasi dan diskusi trading independen, bukan broker atau penasihat keuangan. Trading memiliki risiko tinggi. MPS tidak menjamin keuntungan.</p>
+  <div class="footer-brand" data-brand="name">Market Psychology Society</div><div class="footer-tag" data-brand="tagline">TRADE WITH DISCIPLINE.</div><div class="footer-quote">“Discipline First. Survival Always.”</div>
+  <div class="footer-links"><a href="index.html">Home</a><a href="about.html">About</a><a href="membership.html">Membership</a><a href="rebate.html">Rebate</a><a href="member-portal.html">Member Portal</a><a href="terms.html">S&amp;K</a><a href="privacy.html">Privasi</a><a href="contact.html">Contact</a></div>
+  <p class="footer-disclaimer">MPS merupakan komunitas edukasi dan diskusi trading independen. Materi ditujukan untuk edukasi, bukan rekomendasi investasi. Trading Forex dan Gold memiliki risiko tinggi dan tidak ada jaminan keuntungan.</p>
   <div class="footer-copy" id="year">© 2026 Market Psychology Society. All Rights Reserved.</div>
 </footer>
-<script src="config.js"></script>
-<script src="js/main.js"></script>
-<script src="js/deposit.js?v=5"></script>
+<script src="config.js"></script><script src="js/main.js"></script>
 </body>
 </html>
