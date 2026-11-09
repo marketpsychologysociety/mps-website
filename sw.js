@@ -50,14 +50,8 @@ self.addEventListener('fetch',event=>{
   const url=new URL(request.url);
   if(url.origin!==self.location.origin)return;
 
-  // Permit only a single non-empty version parameter on explicitly public assets.
-  // Session, token, auth, and all other parameterized requests bypass the cache.
-  if(url.hash)return;
-  const isPublicAsset=PUBLIC_ASSET_PATHS.has(url.pathname);
-  const isVersionedPublicAsset=isPublicAsset&&url.searchParams.size===1&&
-    url.searchParams.has('v')&&url.searchParams.get('v')!=='';
-  if(url.search&&!isVersionedPublicAsset)return;
-
+  // Handle every document navigation, including the PWA start_url query,
+  // without caching HTML or any credential-bearing URL.
   if(request.mode==='navigate'){
     event.respondWith(
       fetch(request).catch(()=>caches.open(CACHE_NAME).then(cache=>cache.match(OFFLINE_URL)))
@@ -65,6 +59,13 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
+  // Permit only a single non-empty version parameter on explicitly public assets.
+  // Session, token, auth, and all other parameterized requests bypass the cache.
+  if(url.hash)return;
+  const isPublicAsset=PUBLIC_ASSET_PATHS.has(url.pathname);
+  const isVersionedPublicAsset=isPublicAsset&&url.searchParams.size===1&&
+    url.searchParams.has('v')&&url.searchParams.get('v')!=='';
+  if(url.search&&!isVersionedPublicAsset)return;
   if(!isPublicAsset)return;
 
   const isCode=url.pathname==='/css/style.css'||
