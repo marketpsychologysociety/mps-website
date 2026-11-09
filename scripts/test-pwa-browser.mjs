@@ -79,26 +79,41 @@ try {
   }
 
   const cssOnline = await page.evaluate(async () => {
-    const response = await fetch('/css/style.css?browser-test=1');
+    const response = await fetch('/css/style.css');
     return response.status;
   });
   if (cssOnline !== 200) failures.push('CSS network-first request failed online');
   const cachedCss = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v3');
+    const cache = await caches.open('mps-public-shell-v4');
     const keys = await cache.keys();
-    return keys.some(request => request.url.includes('/css/style.css?browser-test=1'));
+    return keys.some(request => request.url.includes('/css/style.css'));
   });
   if (!cachedCss) failures.push('CSS was not cached after successful network-first request');
 
 
-  const jsOnline = await page.evaluate(async () => (await fetch('/js/main.js?browser-test=1')).status);
+  const jsOnline = await page.evaluate(async () => (await fetch('/js/main.js')).status);
   if (jsOnline !== 200) failures.push('JavaScript network-first request failed online');
   const cachedJs = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v3');
+    const cache = await caches.open('mps-public-shell-v4');
     const keys = await cache.keys();
-    return keys.some(request => request.url.includes('/js/main.js?browser-test=1'));
+    return keys.some(request => request.url.includes('/js/main.js'));
   });
   if (!cachedJs) failures.push('JavaScript was not cached after successful network-first request');
+  const arbitraryScriptStatus = await page.evaluate(async () => (await fetch('/admin.js')).status);
+  const arbitraryScriptCached = await page.evaluate(async () => {
+    const cache = await caches.open('mps-public-shell-v4');
+    return (await cache.keys()).some(request => new URL(request.url).pathname === '/admin.js');
+  });
+  if (arbitraryScriptCached) failures.push('Non-allowlisted same-origin JavaScript was cached');
+
+  const parameterizedAssetStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?cache-bust=1')).status);
+  const parameterizedAssetCached = await page.evaluate(async () => {
+    const cache = await caches.open('mps-public-shell-v4');
+    return (await cache.keys()).some(request => request.url.includes('cache-bust=1'));
+  });
+  if (parameterizedAssetStatus !== 200) failures.push('Parameterized asset request failed');
+  if (parameterizedAssetCached) failures.push('Parameterized asset URL was cached');
+
 
   const tokenRequestStatus = await page.evaluate(async () => {
     const response = await fetch('/assets/mps-app-icon.svg?session=browser-test-secret');
@@ -106,7 +121,7 @@ try {
   });
   if (tokenRequestStatus !== 200) failures.push('Session-query static asset test request failed');
   const tokenWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v3');
+    const cache = await caches.open('mps-public-shell-v4');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('session=browser-test-secret'));
   });
@@ -132,13 +147,13 @@ try {
 
   const apiStatus = await page.evaluate(async () => (await fetch('/api/member?token=browser-test-secret')).status);
   const apiWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v3');
+    const cache = await caches.open('mps-public-shell-v4');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/api/member') || request.url.includes('token=browser-test-secret'));
   });
   if (apiWasCached) failures.push('API/member URL was incorrectly cached');
   const htmlPagesCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v3');
+    const cache = await caches.open('mps-public-shell-v4');
     const keys = await cache.keys();
     return keys.some(request => {
       const pathname = new URL(request.url).pathname;
@@ -150,7 +165,7 @@ try {
   await context.setOffline(true);
   const cssOffline = await page.evaluate(async () => {
     try {
-      const response = await fetch('/css/style.css?browser-test=1');
+      const response = await fetch('/css/style.css');
       return response.status;
     } catch { return 0; }
   });
@@ -158,7 +173,7 @@ try {
 
 
   const jsOffline = await page.evaluate(async () => {
-    try { return (await fetch('/js/main.js?browser-test=1')).status; }
+    try { return (await fetch('/js/main.js')).status; }
     catch { return 0; }
   });
   if (jsOffline !== 200) failures.push('Cached JavaScript did not load while offline');
