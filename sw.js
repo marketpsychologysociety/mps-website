@@ -1,4 +1,4 @@
-const CACHE_NAME='mps-public-shell-v4';
+const CACHE_NAME='mps-public-shell-v5';
 const CACHE_PREFIX='mps-public-shell-';
 const BASE=self.registration.scope;
 const CORE_ASSETS=[
@@ -11,7 +11,6 @@ const CORE_ASSETS=[
   'assets/mps-app-icon.svg',
   'assets/mps-app-icon-512.png'
 ].map(path=>new URL(path,BASE).href);
-const OFFLINE_URL=new URL('offline.html',BASE).href;
 
 // Explicit allowlist: never cache arbitrary same-origin paths or dynamic endpoints.
 const PUBLIC_ASSET_PATHS=new Set([
@@ -23,6 +22,7 @@ const PUBLIC_ASSET_PATHS=new Set([
   '/assets/mps-app-icon.svg',
   '/assets/mps-app-icon-512.png'
 ]);
+const OFFLINE_URL=new URL('offline.html',BASE).href;
 
 self.addEventListener('install',event=>{
   event.waitUntil(
@@ -50,8 +50,13 @@ self.addEventListener('fetch',event=>{
   const url=new URL(request.url);
   if(url.origin!==self.location.origin)return;
 
-  // Never cache credential-bearing or parameterized requests.
-  if(url.search || url.hash)return;
+  // Permit only a single non-empty version parameter on explicitly public assets.
+  // Session, token, auth, and all other parameterized requests bypass the cache.
+  if(url.hash)return;
+  const isPublicAsset=PUBLIC_ASSET_PATHS.has(url.pathname);
+  const isVersionedPublicAsset=isPublicAsset&&url.searchParams.size===1&&
+    url.searchParams.has('v')&&url.searchParams.get('v')!=='';
+  if(url.search&&!isVersionedPublicAsset)return;
 
   if(request.mode==='navigate'){
     event.respondWith(
@@ -60,7 +65,7 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  if(!PUBLIC_ASSET_PATHS.has(url.pathname))return;
+  if(!isPublicAsset)return;
 
   const isCode=url.pathname==='/css/style.css'||
     url.pathname==='/js/main.js'||
@@ -72,7 +77,7 @@ self.addEventListener('fetch',event=>{
         try{
           const response=await fetch(request);
           const cacheControl=(response.headers.get('Cache-Control')||'').toLowerCase();
-          if(response&&response.ok&&response.type==='basic'&&
+          if(response.ok&&response.type==='basic'&&
              !/private|no-store|no-cache/.test(cacheControl)){
             await cache.put(request,response.clone());
           }
@@ -89,7 +94,7 @@ self.addEventListener('fetch',event=>{
 
       const response=await fetch(request);
       const cacheControl=(response.headers.get('Cache-Control')||'').toLowerCase();
-      if(response&&response.ok&&response.type==='basic'&&
+      if(response.ok&&response.type==='basic'&&
          !/private|no-store|no-cache/.test(cacheControl)){
         await cache.put(request,response.clone());
       }
