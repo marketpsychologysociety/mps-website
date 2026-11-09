@@ -3,65 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Formulir pendaftaran keanggotaan komunitas Market Psychology Society.">
+  <meta name="description" content="Informasi dan akses pendaftaran keanggotaan Market Psychology Society.">
   <meta name="theme-color" content="#080808">
   <title>Join MPS | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
+  <link rel="stylesheet" href="css/style.css?v=mps-v470-security">
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
   <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt=""><span><strong>Market Psychology Society</strong><small>MPS · TRADE WITH DISCIPLINE</small></span></a>
   <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">☰</button>
-  <ul class="nav-links" id="navLinks"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="system.html">Core System</a></li><li><a href="education.html">Education</a></li><li><a href="membership.html">Membership</a></li><li><a href="rewards.html">Rewards</a></li><li><a href="rebate.html">Rebate</a></li><li><a class="active" aria-current="page" href="member-portal.html">Member Portal</a></li><li><a href="heatmap.html">MPS Market Pulse</a></li><li><a href="contact.html">Contact</a></li></ul>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="system.html">Core System</a></li><li><a href="education.html">Education</a></li><li><a href="membership.html">Membership</a></li><li><a href="rewards.html">Rewards</a></li><li><a href="rebate.html">Rebate</a></li><li><a class="active" aria-current="page" href="member-portal.html">Member Portal</a></li><li><a href="heatmap.html">MPS Market Pulse</a></li><li><a href="contact.html">Contact</a></li>
+  </ul>
 </nav>
-<header class="page-head"><div class="eyebrow">MARKET PSYCHOLOGY SOCIETY</div><h1>Gabung Menjadi Member</h1><p>Pendaftaran komunitas tidak dipungut biaya. Persyaratan keanggotaan: akun Exness terhubung di bawah IB MPS dan deposit minimal Rp1.000.000 ke akun trading tersebut.</p></header>
+<header class="page-head">
+  <div class="eyebrow">MARKET PSYCHOLOGY SOCIETY</div>
+  <h1>Gabung Menjadi Member</h1>
+  <p>Pendaftaran komunitas tidak dipungut biaya. Pengajuan dilakukan melalui Portal Resmi MPS.</p>
+</header>
 <section class="join-spotlight" aria-label="Ajakan bergabung dengan MPS">
   <div class="join-orbit join-orbit-one"></div><div class="join-orbit join-orbit-two"></div>
   <div class="join-spotlight-inner">
     <span class="join-live"><span></span> OPEN MEMBERSHIP</span>
     <h2>Mulai Perjalanan Trading yang Lebih Disiplin</h2>
     <p>Belajar, bertumbuh, dan bangun kebiasaan trading yang lebih terarah bersama komunitas MPS.</p>
-    <a class="btn btn-gold join-cta" href="member-portal.html"><span>✦</span> DAFTAR JADI MEMBER <span class="join-cta-arrow">→</span></a>
-    <div class="join-perks"><span>✓ Gratis pendaftaran</span><span>✓ Komunitas edukasi</span><span>✓ Proses 2 langkah</span></div>
+    <a class="btn btn-gold join-cta" href="member-portal.html"><span>✦</span> BUKA PORTAL PENDAFTARAN <span class="join-cta-arrow">→</span></a>
+    <div class="join-perks"><span>✓ Gratis pendaftaran</span><span>✓ Komunitas edukasi</span><span>✓ Verifikasi admin</span></div>
   </div>
 </section>
-<section><div class="container"><div class="notice" style="margin-bottom:18px"><strong>Informasi penting sebelum mendaftar:</strong> Broker partner MPS saat ini adalah Exness. MPS dapat menambahkan broker partner lain di kemudian hari dan akan mengumumkannya secara terbuka. Untuk saat ini, calon anggota wajib memiliki akun Exness di bawah IB MPS dan melakukan deposit minimal Rp1.000.000 ke akun trading sendiri. Jika sudah memiliki akun Exness, hubungi admin untuk panduan memindahkan/menautkan akun ke IB MPS, lalu lakukan deposit. Deposit bukan biaya pendaftaran dan tidak dibayarkan kepada MPS. Verifikasi admin ditargetkan maksimal 1 × 24 jam setelah data lengkap diterima, bergantung pada jumlah pendaftar.</div><div class="form-intro"><span class="pill">PENDAFTARAN MEMBER</span><h2>Market Psychology Society</h2><p>Isi data dengan benar. Tim MPS akan meninjau pendaftaran dan menghubungi Anda untuk proses verifikasi.</p><div class="form-steps"><span class="active">01 · Data diri</span><span>02 · Verifikasi akun &amp; deposit</span><span>03 · Persetujuan admin</span></div></div><form class="form-card" id="joinForm">
-<div class="field"><label for="nickname">Nama panggilan *</label><input id="nickname" name="nickname" required maxlength="60" autocomplete="nickname"></div>
-<div class="field"><label for="telegram">Username Telegram *</label><input id="telegram" name="telegram" required placeholder="@username" maxlength="33"></div>
-<div class="field"><label for="country">Negara *</label><input id="country" name="country" required value="Indonesia" maxlength="60"></div>
-<div class="field"><label for="goal">Tujuan bergabung *</label><select id="goal" name="goal" required><option value="">Pilih salah satu</option><option>Belajar money management</option><option>Mengembangkan psikologi trading</option><option>Membangun disiplin dan jurnal</option><option>Belajar materi teknikal pendukung</option><option>Bergabung dengan komunitas</option></select></div>
-<div class="field"><label for="note">Catatan (opsional)</label><textarea id="note" name="note" maxlength="500" placeholder="Ceritakan singkat tentang dirimu..."></textarea></div>
-<label class="checkline">
-  <input type="checkbox" name="agreement" value="yes" required>
-  <span>
-    Saya memahami bahwa pendaftaran MPS tidak dipungut biaya, tetapi persyaratan keanggotaan mencakup akun Exness di bawah IB MPS dan deposit minimal Rp1.000.000 ke akun trading saya. Saya bersedia menjalani verifikasi akun oleh admin. Saya memahami bahwa MPS adalah komunitas edukasi, bukan penyedia sinyal, dan tidak menjanjikan keuntungan. Saya menyetujui penggunaan informasi untuk proses pendaftaran serta telah membaca
-    <a href="terms.html" target="_blank">Syarat & Ketentuan</a>
-    dan
-    <a href="privacy.html" target="_blank">Kebijakan Privasi</a>.
-  </span>
-</label>
-<button class="btn btn-gold mt-3" type="submit">Kirim Pendaftaran</button>
-<div id="formMessage" class="form-message" role="status" aria-live="polite"></div>
-<pre id="registrationSummary" class="notice" hidden style="white-space:pre-wrap"></pre>
-<div class="hero-btns"><button id="copySummary" class="btn btn-outline" type="button" hidden>Salin Ringkasan</button><button id="openTelegram" class="btn btn-outline" type="button" hidden>Buka Telegram MPS</button></div>
-<p class="muted" style="font-size:11px">Ini adalah Step 1 pendaftaran. Broker partner MPS saat ini adalah Exness. Untuk menjadi anggota, akun wajib terhubung di bawah IB MPS dan memiliki deposit minimal Rp1.000.000. Jika sudah memiliki akun Exness, pindahkan/tautkan akun ke IB MPS terlebih dahulu melalui panduan admin, lalu lakukan deposit. Setelah itu lanjutkan ke Step 2 untuk mengirim nomor login MT5, jenis akun, serta informasi dan bukti deposit setelah akun terhubung. Deposit bukan biaya keanggotaan dan tidak dibayarkan kepada MPS. MPS tidak meminta akses masuk ke akun trading, password, atau OTP.</p>
-<div id="step2Next" class="notice mt-3" hidden>
-  <strong>Step 1 selesai.</strong>
-  <p>Lanjutkan ke Step 2 untuk menyelesaikan proses pendaftaran dan verifikasi member MPS.</p>
-  <a class="btn btn-gold" href="deposit-confirmation.html">Lanjut Step 2 – Konfirmasi Deposit &amp; MT5</a>
-</div>
-</form></div></section>
+<section><div class="container">
+  <div class="notice" style="margin-bottom:18px">
+    <strong>Persyaratan keanggotaan:</strong> Broker partner MPS saat ini adalah Exness. Persyaratan mencakup akun Exness yang terhubung di bawah IB MPS dan deposit minimal Rp1.000.000 ke akun trading milik calon anggota. Deposit bukan biaya pendaftaran dan tidak dibayarkan kepada MPS. Jika sudah memiliki akun Exness, hubungi admin melalui kanal resmi untuk panduan penautan akun.
+  </div>
+  <div class="form-intro">
+    <span class="pill">PENDAFTARAN MEMBER</span>
+    <h2>Proses Pendaftaran MPS</h2>
+    <p>Pengajuan, konfirmasi deposit, verifikasi Telegram, dan pemantauan status dilakukan di satu portal resmi.</p>
+    <div class="form-steps"><span class="active">01 · Data &amp; pengajuan</span><span>02 · Verifikasi</span><span>03 · Persetujuan admin</span></div>
+    <a class="btn btn-gold mt-3" href="member-portal.html">Buka Portal Resmi MPS</a>
+  </div>
+  <div class="notice mt-3"><strong>Keamanan akun:</strong> MPS tidak pernah meminta password MT5, password investor, OTP, PIN, atau akses untuk masuk ke akun trading. Jangan bagikan informasi rahasia tersebut kepada siapa pun.</div>
+  <p class="muted" style="font-size:12px;margin-top:16px">Dengan melanjutkan proses, calon anggota menyatakan telah membaca <a href="terms.html">Syarat &amp; Ketentuan</a> dan <a href="privacy.html">Kebijakan Privasi</a>. MPS adalah komunitas edukasi, bukan broker atau penasihat keuangan, dan tidak menjanjikan keuntungan.</p>
+</div></section>
 <footer class="footer">
-  <div class="footer-brand" data-brand="name">Market Psychology Society</div>
-  <div class="footer-tag" data-brand="tagline">TRADE WITH DISCIPLINE.</div>
-  <div class="footer-quote">“Discipline First. Survival Always.”</div>
-  <div class="footer-links"><a href="index.html">Home</a><a href="about.html">About</a><a href="system.html">Core System</a><a href="education.html">Education</a><a href="membership.html">Membership</a><a href="rewards.html">Rewards</a><a href="rebate.html">Rebate</a><a href="member-portal.html">Join</a><a href="contact.html">Contact</a></div>
-  <p class="footer-disclaimer">MPS merupakan komunitas edukasi dan diskusi trading independen. Materi ditujukan untuk edukasi, bukan rekomendasi investasi atau ajakan transaksi. Trading Forex dan Gold memiliki risiko tinggi dan dapat menyebabkan kehilangan sebagian atau seluruh modal. MPS tidak menjamin keuntungan atau hasil trading tertentu. MPS bukan broker dan bukan penasihat keuangan.</p>
+  <div class="footer-brand" data-brand="name">Market Psychology Society</div><div class="footer-tag" data-brand="tagline">TRADE WITH DISCIPLINE.</div><div class="footer-quote">“Discipline First. Survival Always.”</div>
+  <div class="footer-links"><a href="index.html">Home</a><a href="about.html">About</a><a href="membership.html">Membership</a><a href="rebate.html">Rebate</a><a href="member-portal.html">Member Portal</a><a href="terms.html">S&amp;K</a><a href="privacy.html">Privasi</a><a href="contact.html">Contact</a></div>
+  <p class="footer-disclaimer">MPS merupakan komunitas edukasi dan diskusi trading independen. Materi ditujukan untuk edukasi, bukan rekomendasi investasi. Trading Forex dan Gold memiliki risiko tinggi dan tidak ada jaminan keuntungan.</p>
   <div class="footer-copy" id="year">© 2026 Market Psychology Society. All Rights Reserved.</div>
 </footer>
-<div class="float-chat"><a href="mailto:ndhisolasi.music@gmail.com?subject=Pertanyaan%20untuk%20Admin%20MPS" aria-label="Hubungi MPS melalui Email">✉</a></div>
-<script src="config.js"></script>
-<script src="js/main.js"></script>
-<script src="js/join.js"></script>
-</body></html>
+<script src="config.js"></script><script src="js/main.js"></script>
+</body>
+</html>
