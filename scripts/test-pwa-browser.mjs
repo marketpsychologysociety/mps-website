@@ -102,6 +102,14 @@ try {
   });
   if (tokenWasCached) failures.push('Session-query URL was incorrectly cached');
 
+
+  const pngIcon = await page.evaluate(async () => {
+    const response = await fetch('/assets/mps-app-icon-512.png');
+    const bitmap = await createImageBitmap(await response.blob());
+    return { ok: response.ok, width: bitmap.width, height: bitmap.height };
+  });
+  if (!pngIcon.ok || pngIcon.width !== 512 || pngIcon.height !== 512) failures.push('512px PNG app icon failed browser decoding or dimensions check');
+
   await context.setOffline(true);
   const cssOffline = await page.evaluate(async () => {
     try {
@@ -121,6 +129,32 @@ try {
   if (!offlineBody.includes('MPS sedang offline')) failures.push('Offline navigation did not show the privacy-safe offline page');
 
   await context.setOffline(false);
+
+  const mobileContext = await browser.newContext({
+    serviceWorkers: 'allow',
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    deviceScaleFactor: 2
+  });
+  await mobileContext.route('https://**/*', route => route.abort());
+  const mobilePage = await mobileContext.newPage();
+  const mobileErrors = [];
+  mobilePage.on('pageerror', error => mobileErrors.push(error.message));
+  await mobilePage.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
+  await mobilePage.locator('#navToggle').click();
+  const mobileMenu = await mobilePage.evaluate(() => ({
+    open: document.getElementById('navLinks')?.classList.contains('open'),
+    expanded: document.getElementById('navToggle')?.getAttribute('aria-expanded'),
+    installButton: !!document.getElementById('installMpsApp'),
+    menuRight: document.getElementById('navLinks')?.getBoundingClientRect().right,
+    viewportWidth: window.innerWidth
+  }));
+  if (!mobileMenu.open || mobileMenu.expanded !== 'true') failures.push('Mobile navigation menu did not open accessibly');
+  if (!mobileMenu.installButton) failures.push('PWA install control missing in mobile navigation');
+  if (mobileMenu.menuRight > mobileMenu.viewportWidth) failures.push('Mobile navigation extends beyond viewport');
+  if (mobileErrors.length) failures.push('Mobile browser page errors: ' + mobileErrors.join(' | '));
+  await mobileContext.close();
+
   if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
   await context.close();
 } catch (error) {
