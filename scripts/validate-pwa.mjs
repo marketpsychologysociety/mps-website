@@ -69,8 +69,8 @@ check(/if\(isCode\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.put\(request,res
 check(/request\.method!=='GET'/.test(sw), 'sw.js must bypass non-GET requests');
 check(/url\.origin!==self\.location\.origin/.test(sw), 'sw.js must bypass cross-origin requests');
 check(/request\.mode==='navigate'[\s\S]*?fetch\(request\)\.catch/.test(sw), 'sw.js navigation must not use cache-first');
-check(/if\(url\.search \|\| url\.hash\)return/.test(sw), 'sw.js must bypass all parameterized or fragment URLs');
-check(/const PUBLIC_ASSET_PATHS=new Set\(/.test(sw) && /if\(!PUBLIC_ASSET_PATHS\.has\(url\.pathname\)\)return/.test(sw), 'sw.js must use an explicit public-asset path allowlist');
+check(/if\(url\.hash\)return/.test(sw) && /isVersionedPublicAsset/.test(sw) && /url\.searchParams\.has\('v'\)/.test(sw), 'sw.js must allow only versioned public assets while bypassing other query URLs');
+check(/const PUBLIC_ASSET_PATHS=new Set\(/.test(sw) && /if\(!isPublicAsset\)return/.test(sw), 'sw.js must use an explicit public-asset path allowlist');
 check(/Cache-Control/.test(sw) && /private\|no-store\|no-cache/.test(sw), 'sw.js must respect private/no-store/no-cache response headers');
 check(/keys\.filter\(key=>key\.startsWith\(CACHE_PREFIX\)&&key!==CACHE_NAME\)/.test(sw), 'sw.js must clean up only old MPS cache namespaces');
 
