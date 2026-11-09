@@ -225,12 +225,12 @@ try {
   await iosPage.locator('#navToggle').click();
   const iosInstallButton = iosPage.locator('#installMpsApp');
   if (!await iosInstallButton.isVisible()) failures.push('iOS Add to Home Screen helper button did not appear');
-  const [iosDialog] = await Promise.all([
-    iosPage.waitForEvent('dialog'),
-    iosInstallButton.click()
-  ]);
-  const iosInstructions = iosDialog.message();
-  await iosDialog.accept();
+  let iosInstructions = '';
+  iosPage.once('dialog', async dialog => {
+    iosInstructions = dialog.message();
+    await dialog.accept();
+  });
+  await iosInstallButton.click();
   if (!iosInstructions.includes('Safari') || !iosInstructions.includes('Add to Home Screen')) failures.push('iOS install instructions are incomplete');
   await iosContext.close();
 
