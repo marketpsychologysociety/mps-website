@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Preview Learning Room Market Psychology Society. Materi lengkap tersedia khusus member resmi MPS.">
   <meta name="theme-color" content="#080808">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MPS">
+  <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <title>Learning Room | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
@@ -38,6 +44,8 @@
     <li><a class="nav-join" href="member-portal.html">Portal Member</a></li>
     <li><a href="about.html">Tentang</a></li>
     <li><a href="contact.html">Kontak</a></li>
+  
+    <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
   </ul>
 </nav>
 <header class="page-head">
@@ -86,5 +94,28 @@
 </footer>
 <script src="config.js"></script>
 <script src="js/main.js"></script>
+
+<script>
+(()=>{
+  const btn=document.getElementById('installMpsApp');
+  const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(!('serviceWorker' in navigator))return;
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
+  if(!btn||isStandalone())return;
+  let installPrompt=null;
+  const ua=navigator.userAgent||'';
+  const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Share/Bagikan.\n3. Pilih “Add to Home Screen” / “Tambahkan ke Layar Utama”.\n4. Tekan Add / Tambahkan.'));}
+  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
+  btn.addEventListener('click',async()=>{
+    if(isAppleMobile)return;
+    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Install app” atau “Tambahkan ke layar utama”.');return;}
+    installPrompt.prompt();
+    try{const choice=await installPrompt.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}
+    installPrompt=null;
+  });
+  window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
+})();
+</script>
 </body>
 </html>

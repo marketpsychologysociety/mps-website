@@ -10,6 +10,13 @@
   <title>Syarat & Ketentuan | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
+
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MPS">
+  <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
 </head>
 <body>
 
@@ -26,6 +33,8 @@
     <li><a href="rebate.html">Rebate</a></li>
     <li><a href="join.html">Join</a></li>
     <li><a href="contact.html">Contact</a></li>
+  
+    <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
   </ul>
 </nav>
 
@@ -201,5 +210,9 @@
 
 <script src="config.js"></script>
 <script src="js/main.js"></script>
+
+<script>
+(()=>{const btn=document.getElementById('installMpsApp');const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));if(!btn||standalone())return;let promptEvent=null;const ua=navigator.userAgent||'',apple=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);if(apple){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\\n1. Buka MPS melalui Safari.\\n2. Tekan Share/Bagikan.\\n3. Pilih Add to Home Screen/Tambahkan ke Layar Utama.\\n4. Tekan Add/Tambahkan.'));}window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();promptEvent=e;btn.hidden=false;});btn.addEventListener('click',async()=>{if(apple)return;if(!promptEvent){alert('Buka menu browser lalu pilih Install app atau Tambahkan ke layar utama jika opsi tersedia.');return;}promptEvent.prompt();try{const choice=await promptEvent.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}promptEvent=null;});window.addEventListener('appinstalled',()=>{btn.hidden=true;promptEvent=null;});})();
+</script>
 </body>
 </html>

@@ -825,3 +825,7 @@ a.btn[href="deposit-confirmation.html"]::before,
     animation: none !important;
   }
 }
+
+/* MPS installable PWA */
+.pwa-install-btn{font:inherit;cursor:pointer;border:0;line-height:1.2}
+.pwa-install-btn[hidden]{display:none!important}
