@@ -102,21 +102,21 @@ try {
   const jsOnline = await page.evaluate(async () => (await fetch('/js/main.js')).status);
   if (jsOnline !== 200) failures.push('JavaScript network-first request failed online');
   const cachedJs = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v4');
+    const cache = await caches.open('mps-public-shell-v5');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/js/main.js'));
   });
   if (!cachedJs) failures.push('JavaScript was not cached after successful network-first request');
   const arbitraryScriptStatus = await page.evaluate(async () => (await fetch('/admin.js')).status);
   const arbitraryScriptCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v4');
+    const cache = await caches.open('mps-public-shell-v5');
     return (await cache.keys()).some(request => new URL(request.url).pathname === '/admin.js');
   });
   if (arbitraryScriptCached) failures.push('Non-allowlisted same-origin JavaScript was cached');
 
   const parameterizedAssetStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?cache-bust=1')).status);
   const parameterizedAssetCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v4');
+    const cache = await caches.open('mps-public-shell-v5');
     return (await cache.keys()).some(request => request.url.includes('cache-bust=1'));
   });
   if (parameterizedAssetStatus !== 200) failures.push('Parameterized asset request failed');
@@ -137,7 +137,7 @@ try {
   if (otherQueryCached) failures.push('Non-version query URL was incorrectly cached');
 
   const tokenWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v4');
+    const cache = await caches.open('mps-public-shell-v5');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('session=browser-test-secret'));
   });
@@ -163,13 +163,13 @@ try {
 
   const apiStatus = await page.evaluate(async () => (await fetch('/api/member?token=browser-test-secret')).status);
   const apiWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v4');
+    const cache = await caches.open('mps-public-shell-v5');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/api/member') || request.url.includes('token=browser-test-secret'));
   });
   if (apiWasCached) failures.push('API/member URL was incorrectly cached');
   const htmlPagesCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v4');
+    const cache = await caches.open('mps-public-shell-v5');
     const keys = await cache.keys();
     return keys.some(request => {
       const pathname = new URL(request.url).pathname;
