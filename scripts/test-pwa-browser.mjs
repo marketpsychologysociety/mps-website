@@ -196,8 +196,42 @@ try {
   if (!mobileMenu.open || mobileMenu.expanded !== 'true') failures.push('Mobile navigation menu did not open accessibly');
   if (!mobileMenu.installButton) failures.push('PWA install control missing in mobile navigation');
   if (mobileMenu.menuRight > mobileMenu.viewportWidth) failures.push('Mobile navigation extends beyond viewport');
+
+  await mobilePage.evaluate(() => {
+    const event = new Event('beforeinstallprompt', { cancelable: true });
+    event.prompt = () => { window.__mpsInstallPromptCalled = true; };
+    event.userChoice = Promise.resolve({ outcome: 'accepted' });
+    window.dispatchEvent(event);
+  });
+  const androidInstallButton = mobilePage.locator('#installMpsApp');
+  if (!await androidInstallButton.isVisible()) failures.push('Android install button did not appear after beforeinstallprompt');
+  await androidInstallButton.click();
+  await mobilePage.waitForFunction(() => document.getElementById('installMpsApp')?.hidden === true);
+  const androidPromptCalled = await mobilePage.evaluate(() => window.__mpsInstallPromptCalled === true);
+  if (!androidPromptCalled) failures.push('Android install button did not invoke the native install prompt handler');
   if (mobileErrors.length) failures.push('Mobile browser page errors: ' + mobileErrors.join(' | '));
   await mobileContext.close();
+
+  const iosContext = await browser.newContext({
+    serviceWorkers: 'allow',
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+  });
+  await iosContext.route('https://**/*', route => route.abort());
+  const iosPage = await iosContext.newPage();
+  await iosPage.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
+  await iosPage.locator('#navToggle').click();
+  const iosInstallButton = iosPage.locator('#installMpsApp');
+  if (!await iosInstallButton.isVisible()) failures.push('iOS Add to Home Screen helper button did not appear');
+  const iosDialogPromise = iosPage.waitForEvent('dialog');
+  await iosInstallButton.click();
+  const iosDialog = await iosDialogPromise;
+  const iosInstructions = iosDialog.message();
+  await iosDialog.accept();
+  if (!iosInstructions.includes('Safari') || !iosInstructions.includes('Add to Home Screen')) failures.push('iOS install instructions are incomplete');
+  await iosContext.close();
 
   if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
   await context.close();
