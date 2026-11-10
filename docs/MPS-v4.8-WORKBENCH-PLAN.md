@@ -422,3 +422,18 @@ Scope: static review of `google-apps-script/Code.gs` (legacy v1) and `google-app
 - [ ] Document incident response, evidence preservation, containment, member communication, restore, and post-incident review.
 
 **Security boundary:** the blueprint is a requirement, not evidence of implementation. Static frontend copying cannot be prevented absolutely; the security goal is to ensure a clone cannot gain authority over genuine MPS services. The actual Apps Script deployment, Drive ACLs, live authorization, Netlify settings, account MFA, and DNS protections remain unverified. No production data, deployment, credentials, hosting, DNS, triggers, or Telegram webhook were changed.
+
+
+## Database compatibility audit — source-level findings (2026-11-11)
+
+- [x] Retrieved saved v4.6.1 backend source and confirmed its exact 18-column Database Member header contract.
+- [x] Retrieved saved reconstructed v4.8.0 candidate and confirmed it declares 30 columns: the first 18 headers match exactly and in order; 12 fields are appended at columns 19–30.
+- [x] Reviewed v4.8.0 getMemberSheet_()/validateHeaders_(): the candidate requires at least 30 columns and exact positional equality for all 30. An 18-column sheet is rejected before member operations proceed.
+- [x] Targeted source search found no explicit additive migration routine in the saved v4.8.0 candidate.
+- [x] Added detailed source-level mapping, compatibility findings, and a non-destructive append-only migration design in [MPS-v4.8-DATABASE-COMPATIBILITY.md](MPS-v4.8-DATABASE-COMPATIBILITY.md).
+- [ ] Verify the actually deployed Apps Script source/version and active spreadsheet schema. The production header row and width remain NOT VERIFIED.
+- [ ] Build and test an isolated synthetic 18-column fixture; append only the 12 new headers in the test copy; prove legacy values remain unchanged and migration is idempotent.
+- [ ] Review every candidate member-row read/write and all auxiliary sheet contracts against the schema.
+- [ ] Do not migrate, deploy, clear, rename, reorder, or rewrite production data without explicit Super Admin approval and verified backup.
+
+**Compatibility decision:** the candidate's 30-column requirement is not backward-compatible with an unmodified 18-column sheet at runtime. The first 18 fields are structurally preservable, but an append-only schema migration is required before this candidate can operate against that legacy layout. The isolated runbook's 30-column fixture is a test setup, not evidence that production is already migrated. No live spreadsheet or member data was read or changed.
