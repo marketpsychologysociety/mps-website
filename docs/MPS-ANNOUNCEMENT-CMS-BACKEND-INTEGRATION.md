@@ -226,7 +226,9 @@ Each mutation must use backend session validation, role validation, input valida
 - Frontend renders announcement text through DOM `textContent`, validates links, accepts only a strict masked-ID format, and uses a generic VIP activation message when masking is absent. Ticker announcement items are limited to important/maintenance/winner categories; no names or raw IDs are rendered.
 - Winner Board now shows no-result state rather than a sample winner. Service status now states that no status has been published rather than claiming normal operation. Roulette remains clearly labelled visual simulation.
 - `sw.js` cache namespace advanced to v6 and the new controller was added to the explicit public asset allowlist.
-- Route audit: all 11 public-facing routes contain exactly one ticker, one shared feed loader, config, and pause controller.\n- Local Node syntax check and synthetic DOM tests: PASS (feature-flag fail-closed behavior, masked-ID-only acceptance, generic VIP fallback, generic winner ticker copy, no JSONP callback, and textContent-only ticker rendering).\n- No real browser, GitHub Actions run, Apps Script runtime, live data, or Android test has been run for this frontend commit set.
+- Route audit: all 11 public-facing routes contain exactly one ticker, one shared feed loader, config, and pause controller.
+- Local Node syntax check and synthetic DOM tests: PASS (feature-flag fail-closed behavior, masked-ID-only acceptance, generic VIP fallback, generic winner ticker copy, no JSONP callback, and textContent-only ticker rendering).
+- No real browser, GitHub Actions run, Apps Script runtime, live data, or Android test has been run for this frontend commit set.
 5. **Backend isolated implementation:** additive schema only in a separate test Apps Script project and separate test resources; no production migration.
 6. **Failure injection and security tests:** duplicate events, concurrent publish, rollback, invalid roles, direct API access, cache leakage, and draw replay.
 7. **Runtime + Android validation:** separate test Apps Script deployment, test spreadsheet/folders, test bot/group, and real Android device.
