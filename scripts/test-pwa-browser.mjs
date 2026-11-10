@@ -284,6 +284,25 @@ try {
     }
   }
 
+  // Exercise the Announcement Center prototype: ticker controls, category filter,
+  // and the presentation-only roulette. No real member or draw data is loaded.
+  const announcementResponse = await page.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
+  if (!announcementResponse || announcementResponse.status() !== 200) failures.push('Announcement Center did not return HTTP 200');
+  const announcementTitle = await page.title();
+  if (!announcementTitle.includes('Announcement Center')) failures.push('Announcement Center title is missing');
+  const tickerButton = page.locator('.ticker-toggle');
+  await tickerButton.click();
+  const tickerPaused = await page.locator('.ticker-track').evaluate(el => el.classList.contains('is-paused'));
+  if (!tickerPaused || await tickerButton.getAttribute('aria-pressed') !== 'true') failures.push('Announcement ticker pause control failed');
+  await page.locator('[data-filter="community"]').click();
+  const visibleCategories = await page.locator('.announce-card:not([hidden])').evaluateAll(nodes => nodes.map(el => el.dataset.category));
+  if (visibleCategories.length !== 1 || visibleCategories[0] !== 'community') failures.push('Announcement category filter did not isolate community cards');
+  await page.locator('[data-filter="all"]').click();
+  await page.locator('#demoSpin').click();
+  await page.waitForFunction(() => document.getElementById('rouletteResult')?.textContent.includes('Simulasi selesai'), null, { timeout: 7000 });
+  const rouletteText = await page.locator('#rouletteResult').innerText();
+  if (!rouletteText.includes('Tidak ada pemenang')) failures.push('Demo roulette implied a winner or failed to disclose simulation-only behavior');
+
   if (mobileErrors.length) failures.push('Mobile browser page errors: ' + mobileErrors.join(' | '));
   await mobileContext.close();
 
