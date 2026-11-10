@@ -117,3 +117,13 @@ Do not auto-rewrite mismatched auxiliary headers. Do not create or rename produc
 6. Add automated schema tests for exact 18-header legacy input, exact 30-header migrated input, mismatched/reordered headers, unexpected data beyond column 18, and repeat migration idempotency.
 
 **Current state:** source-level compatibility is established; live production schema and migration behavior remain unverified. No production changes have been made.
+
+
+## 9. Member ID format compatibility (additional source check)
+
+- The saved v4.6.1 source contains several member/admin paths that validate the 10-hex format `MPS-[A-F0-9]{10}`.
+- The reconstructed v4.8.0 source accepts both 8-hex and 10-hex IDs in its member-link, admin-list, resend, PIN, VIP, and group-membership checks that were inspected.
+- The v4.8.0 candidate generates new IDs with 10 hexadecimal characters.
+- Preserve every existing ID exactly as stored. Do not rewrite 8-character IDs to 10 characters or regenerate any member IDs during schema migration.
+- Before acceptance, test synthetic fixtures for both formats across login, member lookup, admin operations, VIP linkage, ticker event association, and dashboard counts. Any path that rejects an otherwise valid legacy ID is a compatibility defect to fix in the candidate.
+- The actual production population and distribution of 8-/10-character IDs remain NOT VERIFIED; this source review does not establish what formats are present in the live database.
