@@ -193,3 +193,24 @@ These requirements are recovered from the user's earlier MPS decisions and are b
 4. Normalize all public-page navigation labels and route targets on the workbench branch.
 5. Implement the agreed ticker and missing product pages only after route, role, and data contracts are defined.
 6. Add targeted automated checks for all internal links, public/private route boundaries, and API contract assumptions; retain live E2E as a separate acceptance stage.
+
+
+## Follow-up implementation audit — 2026-11-11 (workbench)
+
+### Evidence checked in current branch
+
+- Re-fetched `index.html`, `js/main.js`, `css/style.css`, `config.js`, and `sw.js` directly from `mps-v4.8-workbench`; current blob SHAs were recorded during the audit.
+- `index.html` now shows the intended primary tagline, `DISCIPLINE OVER IMPULSE`, in the page title, brand label, and hero. `js/main.js` uses the same value as the dynamic fallback. The prior finding that the homepage still used the old tagline is therefore superseded for this workbench snapshot.
+- No ticker/marquee markup or ticker runtime was found in the current `index.html` or `js/main.js`. The animated member social-proof ticker is still NOT IMPLEMENTED.
+- The public homepage's Market Pulse section explicitly labels the preview `MEMBER ONLY`, says actual data is not shown publicly, and links to `heatmap.html`. This is correct public-facing intent only; it does not prove backend protection.
+- `config.js` contains public brand/contact settings and the published Apps Script endpoint URLs. The inspected file does not contain an apparent bot token, password, PIN, or secret API key. Endpoint URLs are public routing information and must never be treated as authorization.
+- `sw.js` retains its public-asset allowlist and parameterized-request cache bypass rule for session/token/auth requests. Do not weaken these controls while adding ticker or member features.
+- `js/main.js` currently updates brand strings through `textContent`, which avoids interpreting configuration text as HTML. Preserve this behavior.
+
+### Decision and safe next actions
+
+- Do NOT fabricate member names or ticker events in frontend code. The ticker requires an authenticated/admin-controlled backend feed or a reviewed public-safe event feed. Until that contract is verified, it remains unimplemented rather than displaying synthetic social proof.
+- The ticker must use only the member display name and a minimal approved event (for example, membership approval), and must exclude phone/email, Telegram handle/ID, MT5 login, deposit value/date, proof documents, PIN, and credentials.
+- Backend authorization must be verified independently for direct URL and API access before any private Pulse or member data is rendered.
+- No source file was changed during this audit pass; no deployment, live endpoint call, spreadsheet mutation, credential change, trigger change, or production database operation was performed.
+- Evidence level: repository source inspection only. Browser rendering, automated browser tests, live backend authorization, Google Sheets/Drive integration, Telegram delivery, and physical-device tests remain NOT TESTED.
