@@ -336,3 +336,13 @@ Evidence boundary: all edits remain on `mps-v4.8-workbench`; no production deplo
 - [ ] Report platform-specific PASS / FAIL / NOT TESTED. Desktop emulation is not physical Android/iPhone evidence.
 
 **Current evidence:** source inspection only. Responsive breakpoints exist in the shared stylesheet (1080px, 700px, and 380px), and the service worker uses a public-asset allowlist while bypassing HTML navigation caching and non-allowlisted/parameterized requests. Actual Netlify deployment, live host parity, physical Android/iPhone behavior, and cross-browser rendering remain **NOT TESTED**.
+
+
+### CTA interaction and integration discovery — 2026-11-11
+
+- Inspected CTA anchors on `index.html`, `membership.html`, `join.html`, `member-portal.html`, `deposit-confirmation.html`, and `heatmap.html` against the shared red CTA selectors in `css/style.css`.
+- Primary button-class CTAs to `member-portal.html`, `join.html`, `deposit-confirmation.html`, and the Apps Script `page=register` destination are covered by the global selector families. Navigation-only anchors are not treated as primary animated CTAs.
+- The animated shine/finger pseudo-elements inspected use `pointer-events:none`; reduced-motion overrides are present. This is source-level inspection, not a physical touch test.
+- Plugin discovery for Netlify hosting/deployment did not return a Netlify connector. This does not prove Netlify is disconnected; its dashboard settings and live deploy remain inaccessible/unverified from the current workbench tools.
+- Latest workbench CI run #67 for commit `df74aa8b54d69f7dc06c05519c559defbbfef8af` completed successfully, including PWA validation and Playwright Chromium checks. See https://github.com/marketpsychologysociety/mps-website/actions/runs/42868447946.
+- No production branch, hosting deployment, Apps Script backend, database, credentials, or member records were changed.
