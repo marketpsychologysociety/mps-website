@@ -403,7 +403,7 @@ The user has explicitly confirmed that the experience must include a prominent *
 - Use only backend-published, approved records. Do not fabricate member activity or create fake social-proof entries.
 
 ### 13.2 Required ticker message types
-1. **Official winner announcement:** e.g. “Selamat kepada [nama tampilan pemenang] — pemenang [nama event] MPS.” Show only after the official draw has passed verification and publication approval.
+1. **Official winner announcement:** e.g. “Selamat kepada pemenang event [nama event] MPS — hasil resmi telah diverifikasi.” Do not display a real name, display name, or alias. A masked Member ID may be included only if backend-generated and independently assessed as non-identifying; otherwise omit the identifier. Publish only after the official draw has passed verification and publication approval.
 2. **VIP registration welcome:** e.g. “Member VIP baru berhasil diaktifkan — ID MPS-****-4821.” Do not include the member's name or alias. Trigger only after backend confirms the member's final successful/active VIP registration state; never trigger from a submitted form, pending application, or unverified payment.
 3. **Important announcements:** maintenance schedule/status, service disruptions, system repairs, feature updates, event openings/closing dates, policy notices, and urgent operational updates.
 4. **Optional community milestones:** only genuine, backend-verifiable events and only if the publication policy permits them.
