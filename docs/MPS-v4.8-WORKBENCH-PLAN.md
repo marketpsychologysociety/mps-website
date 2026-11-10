@@ -368,3 +368,27 @@ Evidence boundary: all edits remain on `mps-v4.8-workbench`; no production deplo
 - `manifest.webmanifest` declares relative scope/start URL and standalone display. It references the SVG app icon at 192/512 and the 512px PNG icon. Existing CI validates manifest structure and icon file presence/decoding; actual installation on physical Android/iPhone remains untested.
 - No production branch, hosting configuration, Apps Script deployment, live database, credentials, or member records were changed.
 - A broad automated repository-wide secret scan was attempted through the GitHub connector but hit the tool's call limit; therefore the audit is limited to the explicitly reviewed files and targeted patterns above. Do not interpret this as a clean full-repository secret scan.
+
+
+### Backend source security review (historical repository files only) — 2026-11-11
+
+Scope: static review of `google-apps-script/Code.gs` (legacy v1) and `google-apps-script-v2/Code.gs` (historical v2). These files are not confirmed to match the deployed Apps Script endpoint. No deployment, spreadsheet, Drive folder, Script Property, trigger, webhook, or member record was accessed or changed.
+
+**Critical boundary:** both files document a Web App deployment with access set to `Anyone`, and both expose `doPost(e)` without caller authentication. This may be appropriate only for narrowly scoped public intake endpoints. It is not sufficient authorization for member portal, Learning, Dashboard, Market Pulse, or Admin operations. Neither source contains those member/admin route handlers or a complete session/role authorization layer. Therefore backend authorization for those protected services remains NOT VERIFIED; the public portal's copy asserting session checks is not proof.
+
+**Historical v2 observations:**
+- Registration accepts caller-supplied nickname, Telegram username, country, goal, and note. A repeat Telegram username updates the existing row's profile fields without verifying control of that Telegram account or a member session.
+- Deposit accepts caller-supplied name, Telegram username, MT5 login, account type, amount, date, MIME label, filename, and base64 image. It locates a member row by Telegram username only; it does not require Application Ref, Member ID, PIN, a verified Telegram challenge, or a logged-in session. A caller who knows a member's Telegram username could attempt to attach/overwrite that member's deposit fields. This is a serious identity-binding/authorization weakness if this code were deployed as the member workflow.
+- The 1.5m server-side deposit minimum and 5 MB decoded-size limit are checked. MIME type is accepted from the caller and checked by string pattern, but image file signatures are not verified in this source. No effective per-IP/per-user rate limit or durable anti-abuse control is visible; a honeypot is not adequate authorization or rate limiting.
+- Uploaded proof is created in a Drive folder and no public sharing call is present; source comment says private by default. Actual Drive ACLs and deployment owner permissions remain unverified.
+- Telegram notification includes member identity, Telegram username, MT5 login, and deposit amount. This is a private destination configured in Script Properties in the source, but actual recipient/configuration and access controls are unverified; data minimization should be considered in a future approved redesign.
+- `setupMPSStorage()` creates sheets if absent. The associated `createDashboard_()` does not clear the existing dashboard, which is safer for repeat execution than v1, but the setup function still requires a separate controlled migration/backup review before any real use.
+
+**Historical v1 observations:**
+- The public deposit action writes a new row to a separate `Data IB MPS` sheet and does not match the submission to an existing member row in this source.
+- It accepts public `doPost` submissions without caller authentication; same broad concerns about identity binding, abuse controls, and file-content verification apply.
+- `setupMPSStorage()` calls `dashboard.clear()` in `formatMpsWorkbook_()`. Re-running setup against a workbook with dashboard content would clear that dashboard. This is a destructive operational risk; do not run the function against production without a verified backup and explicit approval.
+
+**Required v4.8 backend controls before protected data is exposed:** authenticated server-side session on every protected page and API action; server-side role checks (member/admin/Super Admin) and member status checks; verified identity binding rather than username-only matching; short-lived/revocable sessions and PIN handling with secure hashing/attempt throttling; object-level authorization for every file/dataset; private Drive ACL verification and download mediation; server-side MIME/signature/size validation; request throttling/idempotency/audit logs; least-privilege deployment and secrets in Script Properties; safe error messages; backup/restore and rollback; direct-URL and direct-API negative tests for anonymous, pending, rejected, successful member, and non-admin accounts.
+
+**Status:** static source review only. No live endpoint requests or unauthorized-access tests were performed because the files are historical and the active deployment/version and safe test identities are not established. Do not deploy either historical source as a fix or use it as evidence of the active backend's behavior.
