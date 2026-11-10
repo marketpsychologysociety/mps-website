@@ -5,7 +5,7 @@ window.MPS_CONFIG = {
   brand: {
     name: "Market Psychology Society",
     short: "MPS",
-    tagline: "TRADE WITH DISCIPLINE.",
+    tagline: "DISCIPLINE OVER IMPULSE",
     quote: "Discipline First. Survival Always.",
     year: 2026
   },
