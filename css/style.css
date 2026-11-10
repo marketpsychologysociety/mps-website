@@ -830,3 +830,47 @@ a.btn[href="deposit-confirmation.html"]::before,
 /* MPS installable PWA */
 .pwa-install-btn{font:inherit;cursor:pointer;border:0;line-height:1.2}
 .pwa-install-btn[hidden]{display:none!important}
+
+
+/* MPS PREMIUM NEON SIGNATURE — v4.8 workbench */
+:root{
+  color-scheme:dark;
+  --bg:#07080c;
+  --panel:#101218;
+  --panel2:#171b24;
+  --gold:#d9d000;
+  --gold2:#efff4b;
+  --bull:#efff00;
+  --bull-soft:#d8e83c;
+  --bear:#35a9ff;
+  --bear-soft:#83ceff;
+  --neon-pink:#ff3bd4;
+  --racing-green:#b7ff00;
+  --text:#f4f5f7;
+  --muted:#a6abb7;
+  --line:rgba(220,235,55,.22);
+}
+body{background:var(--bg);color:var(--text)}
+.navbar{background:rgba(7,8,12,.96);border-bottom-color:rgba(220,235,55,.22)}
+.hero{background:radial-gradient(ellipse at 50% 24%,rgba(220,235,0,.13),transparent 48%),linear-gradient(rgba(7,8,12,.72),rgba(7,8,12,.98)),repeating-linear-gradient(135deg,transparent 0 40px,rgba(220,235,0,.025) 41px 42px)}
+.hero h1,.section-head h2,.page-head h1,.content h2,.content h3{ text-shadow:0 0 22px rgba(220,235,0,.12) }
+.card,.form-card{background:linear-gradient(145deg,#151923,#0d1017);border-color:var(--line)}
+.page-head{background:radial-gradient(ellipse at top,rgba(220,235,0,.10),transparent 60%);border-bottom-color:var(--line)}
+.btn{border-color:var(--gold)}
+.btn-gold{background:linear-gradient(135deg,#f5ff52,#d6cf00 58%,#8f8a00);color:#090a05}
+.btn-outline{color:var(--gold2)}
+.btn:hover{box-shadow:0 8px 26px rgba(220,235,0,.18)}
+:focus-visible{outline-color:var(--gold2)}
+/* Directional market colors: Bull = fluorescent yellow, Bear = electric blue. */
+.mps-bull,.signal-bull,.market-bull,[data-bias="bullish"],[data-direction="bull"]{
+  color:var(--bull)!important;border-color:rgba(239,255,0,.62)!important;
+  text-shadow:0 0 12px rgba(239,255,0,.32);
+}
+.mps-bear,.signal-bear,.market-bear,[data-bias="bearish"],[data-direction="bear"]{
+  color:var(--bear)!important;border-color:rgba(53,169,255,.62)!important;
+  text-shadow:0 0 12px rgba(53,169,255,.28);
+}
+.mps-bull-panel,.signal-bull-panel{background:rgba(239,255,0,.07);border:1px solid rgba(239,255,0,.3);border-radius:12px}
+.mps-bear-panel,.signal-bear-panel{background:rgba(53,169,255,.08);border:1px solid rgba(53,169,255,.32);border-radius:12px}
+.mps-neon-pink{color:var(--neon-pink)!important;text-shadow:0 0 12px rgba(255,59,212,.3)}
+.mps-racing-green{color:var(--racing-green)!important;text-shadow:0 0 12px rgba(183,255,0,.25)}
