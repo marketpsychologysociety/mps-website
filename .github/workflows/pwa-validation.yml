@@ -22,6 +22,8 @@ jobs:
           node-version: 22
       - name: Validate PWA files and privacy rules
         run: node scripts/validate-pwa.mjs
+      - name: Run synthetic database schema compatibility tests
+        run: node scripts/test-schema-compatibility.mjs
       - name: Install Playwright and Chromium
         run: |
           npm install --no-save --no-package-lock playwright
