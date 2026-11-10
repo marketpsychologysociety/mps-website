@@ -266,3 +266,18 @@ These requirements were explicitly confirmed by the Super Admin. They define the
 - [ ] Keep spreadsheet/member database schema and existing member records intact unless a separately reviewed migration is explicitly approved.
 - [ ] Test upload/update/delete/restore, member/public/VIP access boundaries, direct-link denial, cache isolation, economic event timezone/countdown transitions, source outages, signal state transitions, Telegram idempotency, and rollback.
 - [ ] Report PASS / FAIL / NOT TESTED with evidence. Source inspection or a successful code parse is not proof of live provider, Drive, Apps Script, or Telegram operation.
+
+
+## Confirmed visual direction — MPS Premium Neon Signature (2026-11-11)
+
+The Super Admin confirmed the recovered design direction from the 2026-11-07 visual references.
+
+- [ ] Treat **MPS Premium Neon Signature / Premium Dark Neon** as the approved visual direction for the v4.8 workbench.
+- [ ] Core canvas: deep black / charcoal dark surfaces with a premium futuristic fintech feel; use neon glow selectively, not as visual noise.
+- [ ] Bull visual identity: metallic/neon gold-yellow emphasis.
+- [ ] Bear visual identity: electric blue emphasis. Do not recolor both Bull and Bear yellow; preserve clear directional contrast.
+- [ ] Supporting accent colors may include fluorescent pink and vivid racing green, used sparingly for secondary highlights/status accents.
+- [ ] Preserve strong contrast, legible typography, accessible status distinctions, and consistent colors across public pages, member portal, dashboards, Heatmap, Market Pulse, and Signal Center.
+- [ ] Keep the MPS brand tagline **DISCIPLINE OVER IMPULSE** and descriptor **Discipline · Psychology · Community**.
+- [ ] Reference assets recovered from the Library: Beranda Neon Futuristik MPS.png, Dasbor Futuristik MPS: Psikologi Pasar.png, and Kolase Desain UI MPS Futuristik.png (2026-11-07). Treat these as visual references, not proof of implemented UI.
+- [ ] Before broad restyling, compare each target page against the reference assets and document any intentional deviations; do not change production.
