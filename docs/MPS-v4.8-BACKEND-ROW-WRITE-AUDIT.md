@@ -103,3 +103,14 @@ Search of the candidate function names and relevant API paths found no passkey/W
 ## Evidence limitations
 
 This audit does not establish live database compatibility, actual Drive privacy, active deployment identity, real Telegram membership, runtime behavior, Apps Script quotas, or production security. No production system was accessed or changed.
+
+
+## Read-only inspector and failure-injection preparation — 2026-11-11
+
+A standalone helper was added at `scripts/mps-readonly-schema-inspector.gs`. It receives an explicitly selected Spreadsheet object and checks only the existence, header row, and last-row metadata of Database Member, MPS Applications, MPS Deposit Applications, and MPS Member Telegram Links. It does not open the database, initialize missing sheets, write values, format sheets, or inspect member rows. The VIP Access schema is intentionally excluded until its canonical header contract is established from a verified source.
+
+A synthetic VM test was added at `scripts/test-readonly-schema-inspector.mjs`, and the repository workflow now invokes it. Test scenarios cover exact headers, 18-column legacy rejection at column 19, missing auxiliary sheet, altered header, invalid input, and absence of write calls. **These tests are committed but not yet executed here.** CI status must be checked against the latest commit before reporting PASS.
+
+The isolated Apps Script failure-injection runbook is in `docs/MPS-v4.8-ISOLATED-FAILURE-INJECTION-PLAN.md`. It requires a disposable Apps Script project, synthetic spreadsheet/Drive resources, deterministic adapter-level fault injection, rollback-failure cases, and concurrent duplicate-approval tests. It explicitly forbids production failpoint switches and production resources.
+
+**Current status:** read-only helper and mock test added; execution pending. Actual Apps Script failure injection remains NOT TESTED. No rollback guarantee is established by this preparation.
