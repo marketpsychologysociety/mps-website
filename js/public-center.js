@@ -69,7 +69,10 @@
       items.push(mask ? "Member VIP berhasil diaktifkan dan diverifikasi — ID " + mask :
         "Keanggotaan Member VIP MPS berhasil diaktifkan dan diverifikasi");
     });
-    data.announcements.slice(0, 12).forEach(item => {
+    data.announcements.filter(item => {
+      const category = String(item.Category || "").toLowerCase();
+      return /important|penting|urgent|maintenance|pemeliharaan|perbaikan|winner|pemenang/.test(category);
+    }).slice(0, 12).forEach(item => {
       const title = safeText(item.Title, 180).trim();
       if (title) items.push(title);
     });
