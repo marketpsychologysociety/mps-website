@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Pusat pengumuman resmi, informasi layanan, dan papan pemenang Market Psychology Society.">
+  <meta name="theme-color" content="#07080c">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css?v=mps-neon-live-20261111">
+  <title>Announcement Center | Market Psychology Society</title>
+</head>
+<body class="announcement-page">
+<nav class="navbar" aria-label="Navigasi utama">
+  <a href="index.html" class="nav-brand"><img src="assets/logo.svg" alt=""><span><strong>Market Psychology Society</strong><small>MPS · DISCIPLINE OVER IMPULSE</small></span></a>
+  <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">☰</button>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="index.html">Beranda</a></li><li><a href="system.html">Sistem MPS</a></li>
+    <li><a href="education.html">Learning</a></li><li><a href="membership.html">Benefit</a></li>
+    <li><a href="heatmap.html">Market Pulse</a></li><li><a class="nav-join" href="member-portal.html">Portal Member</a></li>
+    <li><a href="about.html">Tentang</a></li><li><a href="rewards.html">Rewards</a></li>
+    <li><a href="announcements.html" class="active" aria-current="page">Pengumuman</a></li>
+    <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
+  </ul>
+</nav>
+
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> DEMO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>SIMULASI: Member VIP baru berhasil diaktifkan — ID MPS-****-4821</span><b>✦</b>
+    <span>DEMO: Pengumuman pemenang program komunitas</span><b>✦</b>
+    <span>INFO: Jadwal maintenance akan diumumkan melalui kanal resmi</span><b>✦</b>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+<div class="demo-warning"><strong>MODE PROTOTIPE / DATA DEMONSTRASI</strong><span>Semua nama program, status, jadwal, ID, dan hasil di halaman ini hanya contoh tampilan. Bukan pengumuman resmi dan tidak terhubung ke database member MPS.</span></div>
+
+<header class="announce-hero">
+  <div class="announce-orbit orbit-a"></div><div class="announce-orbit orbit-b"></div>
+  <div class="announce-hero-inner reveal">
+    <span class="announce-kicker"><i></i> MPS COMMUNITY UPDATE</span>
+    <h1>Announcement <em>Center</em></h1>
+    <p>Satu tempat untuk mengikuti kabar penting, status layanan, aktivitas komunitas, dan pengumuman pemenang MPS.</p>
+    <div class="announce-hero-stats">
+      <div><strong>03</strong><span>Kategori utama</span></div><div><strong>24/7</strong><span>Akses informasi</span></div><div><strong>WIB</strong><span>Zona waktu</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="announce-main">
+  <section class="announce-status-section">
+    <div class="announce-section-title"><div><span class="announce-eyebrow">SERVICE MONITOR</span><h2>Status Layanan</h2></div><span class="demo-chip">CONTOH UI</span></div>
+    <article class="service-status-card">
+      <div class="service-status-icon">⌁</div><div class="service-status-copy"><span class="status-label"><i></i> CONTOH STATUS NORMAL</span><h3>Seluruh layanan berjalan normal</h3><p>Bagian ini nantinya menampilkan status yang dikonfirmasi oleh sistem backend. Status pada prototipe ini bukan kondisi layanan aktual.</p></div>
+      <div class="status-updated"><small>PEMBARUAN TERAKHIR</small><strong>—</strong><span>Belum terhubung</span></div>
+    </article>
+  </section>
+
+  <section class="announce-feed-section">
+    <div class="announce-section-title"><div><span class="announce-eyebrow">LATEST INFORMATION</span><h2>Pengumuman Terbaru</h2><p>Informasi penting disusun agar mudah ditemukan dan dibaca.</p></div></div>
+    <div class="announce-filters" role="group" aria-label="Filter kategori pengumuman">
+      <button class="announce-filter active" type="button" data-filter="all" aria-pressed="true">Semua</button>
+      <button class="announce-filter" type="button" data-filter="important" aria-pressed="false">Penting</button>
+      <button class="announce-filter" type="button" data-filter="maintenance" aria-pressed="false">Maintenance</button>
+      <button class="announce-filter" type="button" data-filter="update" aria-pressed="false">Update</button>
+      <button class="announce-filter" type="button" data-filter="community" aria-pressed="false">Komunitas</button>
+    </div>
+    <div class="announce-card-grid" id="announceCards">
+      <article class="announce-card featured" data-category="important">
+        <div class="announce-card-top"><span class="announce-tag tag-important">PENTING</span><span class="announce-date">CONTOH · 11 NOV 2026</span></div>
+        <div class="announce-card-symbol symbol-alert">!</div><h3>Informasi resmi MPS akan hadir di sini</h3>
+        <p>Pengumuman prioritas akan ditampilkan dengan ringkasan, waktu publikasi, dan tautan menuju informasi lengkap.</p>
+        <button class="announce-read" type="button" data-demo-detail="Pengumuman prioritas akan dibuat, ditinjau, dan dipublikasikan melalui alur admin resmi. Data prototipe ini tidak mewakili pemberitahuan aktual.">Baca contoh detail <span>↗</span></button>
+      </article>
+      <article class="announce-card" data-category="maintenance">
+        <div class="announce-card-top"><span class="announce-tag tag-maintenance">MAINTENANCE</span><span class="announce-date">CONTOH JADWAL</span></div>
+        <div class="announce-card-symbol symbol-maintenance">⚙</div><h3>Contoh pemberitahuan pemeliharaan sistem</h3>
+        <p>Jadwal, layanan terdampak, estimasi waktu, dan pembaruan progres akan ditampilkan secara transparan.</p>
+        <button class="announce-read" type="button" data-demo-detail="Contoh saja: admin akan mengisi layanan terdampak, jadwal, estimasi yang sudah diverifikasi, serta timeline perubahan status.">Baca contoh detail <span>↗</span></button>
+      </article>
+      <article class="announce-card" data-category="update">
+        <div class="announce-card-top"><span class="announce-tag tag-update">UPDATE</span><span class="announce-date">CONTOH FITUR</span></div>
+        <div class="announce-card-symbol symbol-update">✦</div><h3>Perubahan dan fitur terbaru MPS</h3>
+        <p>Catatan pembaruan akan memuat apa yang berubah, dampaknya, dan panduan bila diperlukan.</p>
+        <button class="announce-read" type="button" data-demo-detail="Contoh saja: catatan versi akan menjelaskan perubahan yang benar-benar telah dirilis dan telah diverifikasi.">Baca contoh detail <span>↗</span></button>
+      </article>
+      <article class="announce-card" data-category="community">
+        <div class="announce-card-top"><span class="announce-tag tag-community">KOMUNITAS</span><span class="announce-date">CONTOH AKTIVITAS</span></div>
+        <div class="announce-card-symbol symbol-community">◇</div><h3>Selamat kepada member VIP baru</h3>
+        <p>Ucapan selamat hanya diterbitkan setelah aktivasi VIP dikonfirmasi backend. Identitas menggunakan ID tersensor atau tanpa ID.</p>
+        <button class="announce-read" type="button" data-demo-detail="Contoh format aman: “Member VIP baru berhasil diaktifkan — ID MPS-****-4821”. Nama asli, nama tampilan, alias, dan ID lengkap tidak dipublikasikan.">Lihat contoh format <span>↗</span></button>
+      </article>
+    </div>
+    <p class="announce-empty" id="announceEmpty" hidden>Tidak ada contoh pengumuman pada kategori ini.</p>
+  </section>
+
+  <section class="winner-section">
+    <div class="announce-section-title"><div><span class="announce-eyebrow">COMMUNITY RECOGNITION</span><h2>Winner Board</h2><p>Papan hasil program dan aktivitas komunitas yang telah diverifikasi.</p></div><span class="demo-chip">BUKAN HASIL RESMI</span></div>
+    <div class="winner-showcase">
+      <div class="winner-medal">✦<small>WINNER</small></div>
+      <div class="winner-copy"><span class="winner-overline">CONTOH KARTU PEMENANG</span><h3>Identitas disamarkan</h3><p>Member ID: <strong>MPS-****-4821</strong></p><div class="winner-prize">Hadiah program komunitas <b>·</b> Contoh hadiah</div></div>
+      <div class="winner-proof"><span>STATUS</span><strong>DEMO</strong><small>Belum ada hasil terverifikasi</small></div>
+    </div>
+    <div class="winner-privacy-note"><span>◈</span><p>Privasi member adalah prioritas. Nama tidak ditampilkan. ID hanya dapat muncul dalam bentuk sensor setelah penilaian risiko identifikasi ulang; jika tidak aman, identitas dihilangkan sepenuhnya.</p></div>
+  </section>
+
+  <section class="roulette-section">
+    <div class="announce-section-title"><div><span class="announce-eyebrow">VISUAL EXPERIENCE</span><h2>MPS Lucky Roulette</h2><p>Animasi roda undian sebagai pratinjau pengalaman visual.</p></div></div>
+    <div class="roulette-panel">
+      <div class="roulette-copy"><span class="roulette-demo-label">SIMULASI VISUAL SAJA</span><h3>Fairness first.<br><em>Always.</em></h3><p>Hasil undian resmi kelak harus ditentukan backend dengan snapshot peserta, protokol acak yang dapat diverifikasi, dan audit. Animasi browser tidak memilih pemenang.</p><button class="btn btn-gold roulette-spin" id="demoSpin" type="button">Putar animasi demo</button><p class="roulette-result" id="rouletteResult" aria-live="polite">Belum dijalankan · tidak ada hasil undian</p></div>
+      <div class="roulette-wheel-wrap"><div class="roulette-pointer">▼</div><div class="roulette-wheel" id="demoWheel"><div class="wheel-center">MPS</div><span class="wheel-label w1">01</span><span class="wheel-label w2">02</span><span class="wheel-label w3">03</span><span class="wheel-label w4">04</span><span class="wheel-label w5">05</span><span class="wheel-label w6">06</span></div><span class="wheel-caption">DEMO WHEEL · NO PARTICIPANT DATA</span></div>
+    </div>
+  </section>
+
+  <section class="announce-archive">
+    <div><span class="announce-eyebrow">TRANSPARENCY & HISTORY</span><h2>Arsip Pengumuman</h2><p>Riwayat pengumuman resmi akan tersedia setelah sistem publikasi dan arsip terhubung ke backend.</p></div>
+    <div class="archive-placeholder"><span>▤</span><strong>Arsip belum terhubung</strong><small>Data demonstrasi tidak disimpan sebagai riwayat resmi.</small></div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-brand">Market Psychology Society</div><div class="footer-tag">DISCIPLINE OVER IMPULSE</div>
+  <div class="footer-quote">“Discipline First. Survival Always.”</div>
+  <div class="footer-links"><a href="index.html">Beranda</a><a href="announcements.html">Pengumuman</a><a href="about.html">Tentang</a><a href="member-portal.html">Portal Member</a><a href="contact.html">Kontak</a></div>
+  <p class="footer-disclaimer">MPS merupakan komunitas edukasi dan diskusi trading independen. Informasi pada halaman ini tidak menjamin hasil trading. Setiap aktivitas trading memiliki risiko kehilangan modal.</p>
+  <div class="footer-copy">© 2026 Market Psychology Society. All Rights Reserved.</div>
+</footer>
+<script src="js/main.js"></script>
+<script src="js/announcements.js"></script>
+<script>
+(()=>{if(!('serviceWorker'in navigator))return;window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));})();
+</script>
+</body>
+</html>
