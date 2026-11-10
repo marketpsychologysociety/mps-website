@@ -32,7 +32,7 @@ const server = http.createServer((req, res) => {
 });
 
 const pages = [
-  'index.html','about.html','contact.html','education.html','heatmap.html',
+  'index.html','about.html','announcements.html','contact.html','education.html','heatmap.html',
   'join.html','deposit-confirmation.html','member-portal.html','membership.html',
   'privacy.html','rebate.html','rewards.html','system.html','terms.html'
 ];
