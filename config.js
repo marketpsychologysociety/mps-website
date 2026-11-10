@@ -1,4 +1,4 @@
-/* MPS public configuration — v4.7.0.
+/* MPS public configuration — v4.8.0 reconstruction draft.
    The endpoint is public routing information, not a secret.
    Never put passwords, bot tokens, PINs, or secret API keys in this file. */
 window.MPS_CONFIG = {
