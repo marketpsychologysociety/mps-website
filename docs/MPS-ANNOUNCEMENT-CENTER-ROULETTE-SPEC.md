@@ -388,3 +388,62 @@ Every admin API must authorize on the server and validate object ownership, role
 - [ ] No page, API, sheet, production setting, live draw, or deployment has been implemented by this specification.
 
 **Release rule:** this document is a design specification, not evidence that the feature exists or is secure. Do not publish a real winner or run an official draw until all fairness, authorization, privacy, recovery, and runtime acceptance gates pass.
+
+## 13. Explicit product requirement — VIP welcome and running text
+
+The user has explicitly confirmed that the experience must include a prominent **running text / ticker** for important MPS updates, not only a dedicated announcement page. Treat this as a first-class feature in the UI and CMS.
+
+### 13.1 Running text placement and behavior
+- Show a compact, polished ticker in a clearly visible position on the public MPS website and Announcement Center; keep it consistent across relevant pages without obscuring navigation or content.
+- Use a smooth continuous horizontal marquee on larger screens. On narrow/mobile screens, use a readable one-line ticker with pause/next controls or a swipeable notice strip; avoid forcing users to chase fast-moving text.
+- Provide pause/stop controls, keyboard accessibility, readable contrast, and reduced-motion behavior. Do not auto-scroll critical text so quickly that it cannot be read.
+- Support pinned priority notices and a controlled display order: Critical, Important, VIP welcome, General. Critical maintenance notices may temporarily take precedence.
+- Each ticker item should be clickable and open the matching announcement detail when a public detail exists.
+- Never let a ticker be the only place a critical notice appears; the full announcement page remains the source of detail.
+- Use only backend-published, approved records. Do not fabricate member activity or create fake social-proof entries.
+
+### 13.2 Required ticker message types
+1. **Official winner announcement:** e.g. “Selamat kepada [nama tampilan pemenang] — pemenang [nama event] MPS.” Show only after the official draw has passed verification and publication approval.
+2. **VIP registration welcome:** e.g. “Selamat datang [nama tampilan] — pendaftaran Member VIP MPS berhasil.” Trigger only after backend confirms the member's final successful/active VIP registration state; never trigger from a submitted form, pending application, or unverified payment.
+3. **Important announcements:** maintenance schedule/status, service disruptions, system repairs, feature updates, event openings/closing dates, policy notices, and urgent operational updates.
+4. **Optional community milestones:** only genuine, backend-verifiable events and only if the publication policy permits them.
+
+### 13.3 VIP welcome event integrity and privacy
+- Generate the ticker item from a real state transition in the authoritative backend, not from frontend form submission.
+- Make event creation idempotent so retries, refreshes, or duplicate triggers cannot produce repeated welcome messages.
+- Use the member's approved display name. Do not expose phone number, email, Telegram username/ID, Member ID, MT5 login, deposit amount, payment details, proof documents, PIN, or credentials.
+- If display-name publication policy or member preference requires it, use an approved alias; do not infer consent from mere registration.
+- The ticker must not imply “VIP aktif” while the account is pending, rejected, expired, or otherwise inactive.
+- Provide an admin correction/withdrawal workflow with an audit trail if a welcome item was published incorrectly; do not silently rewrite history.
+
+### 13.4 CMS fields and APIs
+Add logical fields to announcement/ticker content:
+- ticker_enabled
+- ticker_priority
+- ticker_start_utc / ticker_end_utc
+- ticker_message (sanitized plain text or constrained safe formatting)
+- ticker_target (announcement detail route or event detail)
+- ticker_audience (PUBLIC / MEMBER / VIP)
+- ticker_dismissible
+- ticker_source_event_id (unique source event reference for idempotency)
+- ticker_status (DRAFT / APPROVED / SCHEDULED / ACTIVE / EXPIRED / WITHDRAWN)
+
+Logical API contracts:
+- getPublicTickerFeed(cursor)
+- getMemberTickerFeed(session, cursor)
+- adminCreateTickerItem(session, payload, idempotencyKey)
+- adminApproveTickerItem(session, tickerId, expectedVersion)
+- adminWithdrawTickerItem(session, tickerId, reason, idempotencyKey)
+
+The VIP welcome ticker should preferably be emitted by a backend domain event/outbox after the successful VIP activation transaction, then published through the normal moderation/policy path. Do not add ticker creation as a fragile post-commit cache write that can cause a committed activation to be reported as failed.
+
+### 13.5 Additional acceptance tests
+- [ ] Ticker is visible and readable on public pages and mobile layouts without covering navigation/content.
+- [ ] Pause control, keyboard focus, reduced-motion mode, and screen-reader announcement behavior work.
+- [ ] Critical ticker can take priority and links to full detail.
+- [ ] A pending/rejected member never triggers a VIP welcome.
+- [ ] A successful VIP activation produces at most one ticker event, including under retries/concurrency.
+- [ ] Ticker contains only approved display name and safe message fields.
+- [ ] No contact/payment/member credentials or private identifiers appear in HTML, API responses, caches, logs, or URLs.
+- [ ] Withdrawn/expired ticker items stop displaying while historical audit remains.
+- [ ] Synthetic/fake activity cannot be inserted through public endpoints.
