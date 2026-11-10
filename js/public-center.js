@@ -73,6 +73,11 @@
       const category = String(item.Category || "").toLowerCase();
       return /important|penting|urgent|maintenance|pemeliharaan|perbaikan|winner|pemenang/.test(category);
     }).slice(0, 12).forEach(item => {
+      const category = String(item.Category || "").toLowerCase();
+      if (/winner|pemenang/.test(category)) {
+        items.push("Pengumuman pemenang MPS telah diverifikasi dan dipublikasikan.");
+        return;
+      }
       const title = safeText(item.Title, 180).trim();
       if (title) items.push(title);
     });
