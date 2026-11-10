@@ -24,9 +24,10 @@ Both hashes matched the manifest. The source pair is `Code.gs` + `Index.html`; `
 - The homepage renderer no longer expects or renders a public alias. It renders only an optional masked ID and generic status copy.
 - Rotated the public-center cache namespace to `mps_public_center_v481_privacy` so a previously cached name-bearing payload cannot be reused under the new code.
 - Public ticker settings are now an explicit allowlist (enabled/speed/theme and fixed `VIP LIVE` label); free-form Admin prefix/suffix values are not sent to visitors.
+- Added a read-only `?publicCenter=1` ContentService bridge for the static site. It emits a fixed `window.MPS_PUBLIC_CENTER_DATA` assignment with a strict response projection; it does not accept a callback parameter. The response is intended only for non-sensitive public content.
 
 ## Patched candidate checksums
-- Patched `Code.gs`: `b3b4ddf6337e80c141c6c36ddf84a2d81fa0aa199a5ad338399353fca7a22948`
+- Patched `Code.gs`: `6902a4956c00ad55f671da93979a8ff24a9ee027913406d8c3c67bb5339467a4`
 - Patched `Index.html`: `5d8a2457744f0eaa1f45fa598674b888963055a0eea9e537ca729f9bd17329e1`
 
 ## Local verification performed
@@ -52,4 +53,5 @@ Both hashes matched the manifest. The source pair is `Code.gs` + `Index.html`; `
 2. Apply the patch only to a separate test Apps Script project with a synthetic spreadsheet and test Telegram group.
 3. Inject webhook replay/concurrency and database read failures; confirm the event remains idempotent and masking fails closed.
 4. Inspect actual serialized public and Super Admin responses from the test deployment.
-5. Only after those pass, prepare complete reviewed `Code.gs` and `Index.html` delivery for explicit user-controlled deployment.
+5. Verify the ContentService JavaScript response and redirected `script.googleusercontent.com` URL in a test deployment and real browsers; the local test only validates generated source text, not Google's redirect/runtime behavior.
+6. Only after those pass, prepare complete reviewed `Code.gs` and `Index.html` delivery for explicit user-controlled deployment.
