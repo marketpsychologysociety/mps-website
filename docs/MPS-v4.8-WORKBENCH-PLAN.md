@@ -346,3 +346,14 @@ Evidence boundary: all edits remain on `mps-v4.8-workbench`; no production deplo
 - Plugin discovery for Netlify hosting/deployment did not return a Netlify connector. This does not prove Netlify is disconnected; its dashboard settings and live deploy remain inaccessible/unverified from the current workbench tools.
 - Latest workbench CI run #67 for commit `df74aa8b54d69f7dc06c05519c559defbbfef8af` completed successfully, including PWA validation and Playwright Chromium checks. See https://github.com/marketpsychologysociety/mps-website/actions/runs/42868447946.
 - No production branch, hosting deployment, Apps Script backend, database, credentials, or member records were changed.
+
+
+### Heatmap / Member Portal / service-worker privacy audit — 2026-11-11
+
+- `heatmap.html` contains an explicitly illustrative static preview asset and Member Only messaging; the page does not contain actual market statistics/history or a client-side data fetch. Its full-data CTA routes to the configured Apps Script Web App with `page=pulse`.
+- `member-portal.html` exposes navigation links for registration, Learning, Dashboard, Pulse, and Admin through the same Apps Script deployment endpoint with separate page routes. These are public navigation links only; they are not proof of backend authorization.
+- The public `config.js` contains brand/contact/routing configuration and the Apps Script endpoint. Its own comment prohibits secrets; source review found no password, PIN, bot token, or secret API key in that file. The endpoint is routing information, not an authorization control.
+- `sw.js` caches only explicit public asset paths (CSS, JS, public config, and selected icons); all document navigations are network-first with offline fallback and are never cached as HTML. Cross-origin Apps Script requests bypass the service worker. Query-bearing requests other than a single non-empty version parameter on allowlisted public assets bypass caching; non-GET requests bypass caching.
+- CI browser tests exercise exclusion of token/query URLs, mock API/member paths, and HTML/member pages from the cache, plus mobile navigation and install-prompt simulations. These tests do not contact the live Apps Script backend.
+- **Security boundary:** a static GitHub Pages/Netlify host cannot protect member data by hiding a link or page. Authorization must be enforced server-side on every Apps Script page and API route, including direct URL and API requests. The backend source and live unauthenticated/unauthorized behavior were not available for this workbench-only audit; therefore Pulse/Learning/Dashboard/Admin backend authorization remains **NOT VERIFIED**. Do not expose real member data until separately verified.
+- No live backend request was used to mutate data. No Apps Script, production database, credentials, triggers, or deployment was changed.
