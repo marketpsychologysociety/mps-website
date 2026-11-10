@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Preview MPS Market Pulse. Akses data lengkap hanya untuk member resmi Market Psychology Society.">
-  <meta name="theme-color" content="#091321">
+  <meta name="theme-color" content="#07080c">
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,26 +17,26 @@
   <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
   <style>
     :root{color-scheme:dark}
-    body{background:#091321;color:#edf2f8}
+    body{background:#07080c;color:var(--text)}
     .pulse-preview-wrap{width:min(100% - 32px,920px);margin:42px auto 70px}
-    .pulse-preview-card{position:relative;overflow:hidden;border:1px solid rgba(220,190,125,.25);border-radius:22px;background:linear-gradient(145deg,#14243a,#0b1727 65%,#101d2c);padding:clamp(20px,4vw,38px);box-shadow:0 24px 70px rgba(0,0,0,.3)}
+    .pulse-preview-card{position:relative;overflow:hidden;border:1px solid rgba(220,190,125,.25);border-radius:22px;background:linear-gradient(145deg,#171b24,#0b0e14 65%,#101218);padding:clamp(20px,4vw,38px);box-shadow:0 24px 70px rgba(0,0,0,.3)}
     .pulse-preview-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-    .pulse-tag{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(231,201,139,.38);border-radius:99px;color:#e7c98b;font-size:11px;font-weight:800;letter-spacing:.12em}
+    .pulse-tag{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(231,201,139,.38);border-radius:99px;color:var(--gold2);font-size:11px;font-weight:800;letter-spacing:.12em}
     .pulse-lock{display:grid;place-items:center;width:56px;height:56px;border-radius:16px;background:rgba(231,201,139,.12);border:1px solid rgba(231,201,139,.28);font-size:26px}
-    .pulse-preview-card h1{font-size:clamp(30px,6vw,52px);line-height:1.06;margin:20px 0 12px;color:#f4e7c9}
-    .pulse-preview-card .lead{max-width:650px;color:#b8c6d7;line-height:1.7}
+    .pulse-preview-card h1{font-size:clamp(30px,6vw,52px);line-height:1.06;margin:20px 0 12px;color:var(--gold2)}
+    .pulse-preview-card .lead{max-width:650px;color:#b3bac7;line-height:1.7}
     .chart-window{position:relative;margin:28px 0 24px;padding:18px;border-radius:16px;background:rgba(4,12,22,.78);border:1px solid rgba(154,174,199,.18);overflow:hidden}
     .chart-head{display:flex;justify-content:space-between;gap:12px;color:#aebbd0;font-size:12px;margin-bottom:16px}
     .chart-grid{display:grid;grid-template-columns:48px repeat(3,minmax(0,1fr));gap:7px;filter:blur(2.2px);opacity:.78;user-select:none;pointer-events:none}
     .chart-grid span{min-height:42px;border-radius:7px;background:#24364a;display:grid;place-items:center;color:#c8d3df;font-size:11px;font-weight:700}
     .chart-grid span:nth-child(4n+2),.chart-grid span:nth-child(4n+3){background:#183c32;color:#9bd7b4}
     .chart-grid span:nth-child(4n+4){background:#48292e;color:#efb4b4}
-    .chart-overlay{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:min(90%,330px);padding:18px;border:1px solid rgba(231,201,139,.4);border-radius:14px;background:rgba(8,19,33,.92);text-align:center;box-shadow:0 10px 35px rgba(0,0,0,.35)}
-    .chart-overlay strong{color:#f0d69e;letter-spacing:.08em;font-size:13px}
-    .chart-overlay small{color:#b9c5d3;line-height:1.5}
+    .chart-overlay{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:min(90%,330px);padding:18px;border:1px solid rgba(231,201,139,.4);border-radius:14px;background:rgba(7,8,12,.94);text-align:center;box-shadow:0 10px 35px rgba(0,0,0,.35)}
+    .chart-overlay strong{color:var(--gold2);letter-spacing:.08em;font-size:13px}
+    .chart-overlay small{color:#a6abb7;line-height:1.5}
     .pulse-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
     .pulse-actions a{min-width:190px;text-align:center}
-    .pulse-note{font-size:12px;line-height:1.65;color:#9cabbc;margin-top:18px}
+    .pulse-note{font-size:12px;line-height:1.65;color:#9299a8;margin-top:18px}
     @media(max-width:560px){.pulse-preview-wrap{margin:22px auto 44px}.chart-window{padding:12px}.chart-grid{grid-template-columns:35px repeat(3,minmax(0,1fr));gap:5px}.chart-grid span{min-height:34px;font-size:9px}.pulse-actions a{width:100%}}
   </style>
 </head>
