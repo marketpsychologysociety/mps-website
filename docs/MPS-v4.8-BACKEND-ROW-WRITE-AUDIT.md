@@ -152,3 +152,30 @@ In the outer submission flow, after `registerMember_()` or `saveDeposit_()` retu
 - RW-04: **Medium** — caller-visible failure after persistence can cause confusing retries or duplicate/blocked workflows.
 
 These findings strengthen the release block: the candidate must not be considered rollback-safe until the isolated runtime fault-injection matrix passes and the compensation logic is corrected. No production data or service was changed.
+
+
+## Third-pass static review — post-commit reporting and rejection completeness (2026-11-11)
+
+### Finding RW-05 — post-commit cache invalidation is inside the persistence try/catch
+
+In `submitCore_()`, after `registerMember_()` or `saveDeposit_()` returns successfully, cache invalidation at line 275 and the initial request-result cache write at line 278 still execute inside the same try/catch as the persistent writes. If either cache operation throws, the caller receives `ok:false` although the application/deposit rows have already been committed. For deposit, `proofLinkedToSheet` is already true, so the proof file remains; the API response nevertheless implies failure. This is a confirmed static control-flow issue, not a runtime reproduction.
+
+**Required correction:** define a clear commit boundary immediately after the persistent operation returns. Cache invalidation and idempotency-cache population must be best-effort post-commit operations and must never convert a committed write into a failure response. Durable idempotency must not rely exclusively on CacheService; use a persisted request/operation reference with a unique constraint/lookup in the authoritative sheet.
+
+### Finding RW-06 — rejection path mutates Telegram link/access state without snapshots
+
+The rejection branch mutates every pending application link to `Ditolak` and changes the matching Telegram Access row to `Akses Ditolak`, but the transaction's snapshot variables only cover the application and deposit rows. The catch block therefore cannot restore link/access state if any later operation fails, including dashboard cache invalidation.
+
+**Required correction:** snapshot the exact affected link rows and the Telegram Access row before the first mutation. Restore all affected rows on abort, collect rollback errors, and mark reconciliation-required if any restoration fails. Test both one-link and multiple-link cases.
+
+### Finding RW-07 — new Telegram link can be orphaned before the caller receives its row/token
+
+In `createMemberTelegramLink_()`, the link row is appended before the function reads Script Properties and constructs the return object. If a subsequent operation throws, the caller never receives the returned `link` object, so the surrounding deposit rollback cannot identify and cancel the newly appended row. This is a narrow failure window, but it is a real ordering hazard in the source.
+
+**Required correction:** read and validate all configuration before appending; retain the created row/hash in a transaction-owned variable immediately after append; ensure any later exception compensates that exact row. Avoid looking up and deleting by a non-unique business key.
+
+### Transaction design direction
+
+Google Sheets/Drive do not provide a multi-resource ACID transaction. The correction must therefore be explicit about a saga/compensation model rather than claiming atomic rollback. Before any mutation, validate all schemas, permissions, proof metadata, and required configuration. Capture exact before-images for every row/file/relationship that can change. Persist a transaction journal in a pre-provisioned, header-validated sheet (never auto-create it in a public request), with a unique transaction ID and non-sensitive operation metadata. Record PREPARED, COMMITTING, COMMITTED, COMPENSATING, COMPENSATED, or RECONCILIATION_REQUIRED states. Do not store PINs, raw Telegram tokens, proof bytes, or credentials in the journal. If the journal itself is unavailable, fail before mutation. The repair process must be admin-only, audited, idempotent, and separate from public submission endpoints.
+
+**Risk update:** RW-05 Medium; RW-06 High; RW-07 Medium. All remain static-source findings pending isolated Apps Script failure injection.
