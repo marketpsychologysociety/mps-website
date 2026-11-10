@@ -37,7 +37,7 @@
   }
 
   const filters = [...document.querySelectorAll(".announce-filter")];
-  const cards = [...document.querySelectorAll(".announce-card")];
+  
   const empty = document.getElementById("announceEmpty");
   filters.forEach(button => button.addEventListener("click", () => {
     const filter = button.dataset.filter;
@@ -46,6 +46,7 @@
       item.classList.toggle("active", active);
       item.setAttribute("aria-pressed", String(active));
     });
+    const cards = [...document.querySelectorAll(".announce-card")];
     let visible = 0;
     cards.forEach(card => {
       const show = filter === "all" || card.dataset.category === filter;
