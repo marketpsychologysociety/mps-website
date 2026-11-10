@@ -281,3 +281,15 @@ The Super Admin confirmed the recovered design direction from the 2026-11-07 vis
 - [ ] Keep the MPS brand tagline **DISCIPLINE OVER IMPULSE** and descriptor **Discipline · Psychology · Community**.
 - [ ] Reference assets recovered from the Library: Beranda Neon Futuristik MPS.png, Dasbor Futuristik MPS: Psikologi Pasar.png, and Kolase Desain UI MPS Futuristik.png (2026-11-07). Treat these as visual references, not proof of implemented UI.
 - [ ] Before broad restyling, compare each target page against the reference assets and document any intentional deviations; do not change production.
+
+
+## Visual system implementation pass — 2026-11-11 (workbench only)
+
+- [x] Added centralized Premium Dark Neon tokens to the shared stylesheet: deep charcoal surfaces, fluorescent yellow Bull, electric blue Bear, fluorescent pink and racing-green supporting accents.
+- [x] Added reusable semantic Bull/Bear text and panel classes for future signal/market components; these classes do not create or imply live market data.
+- [x] Updated the public homepage Market Pulse preview cards, Heatmap/Pulse public preview surface, and Learning hero surface from the older navy-blue gradient to the shared charcoal premium surface.
+- [x] Preserved the shared stylesheet references and existing reduced-motion accessibility rule.
+- [x] Re-fetched all four changed files and passed eight source-level checks for tokens, semantic classes, dark surfaces, stylesheet references, and reduced-motion support.
+- [ ] Still required: visual browser rendering/responsive review, cross-page regression review, member portal/dashboard review, and device testing. These have not been performed in this pass.
+
+Evidence boundary: changes are committed only to `mps-v4.8-workbench`; no production deployment or live Apps Script/member data was changed. Source-level string checks are not a substitute for browser rendering or runtime tests.
