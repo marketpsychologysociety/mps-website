@@ -460,3 +460,17 @@ Scope: static review of `google-apps-script/Code.gs` (legacy v1) and `google-app
 - [ ] Implement trial/passkey only after their server-side contracts and architecture are reviewed.
 
 Evidence: `docs/MPS-v4.8-BACKEND-ROW-WRITE-AUDIT.md`. The source passed Node JavaScript syntax checking after temporary extension normalization; Apps Script runtime and live integration remain NOT TESTED.
+
+
+## Read-only inspector and isolated failure-test preparation — 2026-11-11
+
+- [x] Added `scripts/mps-readonly-schema-inspector.gs`: explicitly receives a Spreadsheet object; reads only the four known header rows and row counts; does not open by ID, create sheets, write, format, or read member rows.
+- [x] Added synthetic VM tests for exact schemas, legacy 18-column fail-closed, missing auxiliary sheet, altered header, invalid input, and zero write calls.
+- [x] Added the read-only inspector mock test to the PWA validation workflow.
+- [x] Added [isolated failure-injection test plan](MPS-v4.8-ISOLATED-FAILURE-INJECTION-PLAN.md) covering approval, deposit, rollback failure, concurrency, and migration interruption.
+- [ ] Run CI for the new commit and verify the inspector test passes.
+- [ ] Execute the inspector against an authorized disposable spreadsheet clone in Apps Script.
+- [ ] Refactor candidate write orchestration into a test-injectable adapter in a disposable Apps Script project, then run deterministic failure injection.
+- [ ] Do not claim rollback safety until the actual candidate flow passes Apps Script runtime tests with rollback-failure and concurrency cases.
+
+**Evidence boundary:** the helper and mock tests are designed to be non-mutating. The tests have not yet been executed in this environment. The failure-injection document is a runbook, not evidence that failure injection has occurred. No production spreadsheet, Apps Script deployment, Drive file, Telegram bot, or member record was accessed or changed.
