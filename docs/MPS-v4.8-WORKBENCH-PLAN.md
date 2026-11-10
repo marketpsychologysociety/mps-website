@@ -474,3 +474,15 @@ Evidence: `docs/MPS-v4.8-BACKEND-ROW-WRITE-AUDIT.md`. The source passed Node Jav
 - [ ] Do not claim rollback safety until the actual candidate flow passes Apps Script runtime tests with rollback-failure and concurrency cases.
 
 **Evidence boundary:** the helper's synthetic VM tests and repository CI passed. This is not a Google Sheets/Apps Script runtime inspection. The failure-injection document is a runbook, not evidence that failure injection has occurred. No production spreadsheet, Apps Script deployment, Drive file, Telegram bot, or member record was accessed or changed.
+
+
+### Additional backend rollback risks — static review (2026-11-11)
+
+- [x] Found that failed deposit compensation does not restore previously active Telegram links changed to `Diganti` (RW-01).
+- [x] Found that rejection compensation omits Telegram link/access snapshots (RW-02).
+- [x] Found rollback errors may be swallowed/logged without a durable reconciliation-required state (RW-03).
+- [x] Found post-commit cache failures can return a failed submission response after data was already persisted (RW-04).
+- [ ] Correct these candidate-source gaps in a separately reviewed full backend candidate.
+- [ ] Reproduce each failure and rollback-failure case in an isolated Apps Script project before accepting the correction.
+
+**Risk:** RW-01/RW-02/RW-03 High; RW-04 Medium. Details and test points are in the backend row-write audit and isolated failure-injection plan. These are static findings, not live reproductions.
