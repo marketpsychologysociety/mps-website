@@ -158,3 +158,38 @@ A feature is not complete because a menu exists or code parses. It is complete o
 - [ ] Verify private Drive folder permissions and backend authorization before publishing or serving files.
 
 These requirements are recovered from the user's earlier MPS decisions and are binding acceptance criteria. They are now explicit checklist items; their presence in this document does not mean implementation or runtime verification is complete.
+
+
+## Follow-up static audit — 2026-11-10
+
+### Confirmed public-site findings (source inspection only)
+
+- The workbench tree contains 31 tracked files, including 14 public HTML pages, shared CSS/JS, PWA assets, two historical Apps Script source copies, and PWA validation scripts.
+- The main Indonesian navigation is not consistent across pages. The home/education/member portal mostly use Indonesian labels, while About/Contact/System/Membership/Join/Rewards/Rebate retain older English navigation labels (Home, Core System, Education, Membership, Join, Free Heatmap). Footer navigation also varies.
+- index.html and config.js still use the older TRADE WITH DISCIPLINE tagline; no shared ticker/marquee code was found in the inspected home page or js/main.js.
+- No dedicated public News & Review, Advertise, Signal Center, or Market Outlook page exists in the inspected repository tree. This is a repository-tree observation, not a claim about other external systems.
+- education.html and heatmap.html link to the same published Apps Script web-app deployment URL with different page=learning and page=pulse parameters. member-portal.html links to register, learning, dashboard, pulse, and admin routes on that same URL. The deployment's active source and authorization behavior remain unverified.
+- join.html and deposit-confirmation.html intentionally contain no legacy HTML forms; they direct users to the member portal. This matches the current PWA validator's regression expectation.
+- membership.html and deposit-confirmation.html state a minimum deposit of Rp1,000,000. The historical repository copies google-apps-script/Code.gs and google-apps-script-v2/Code.gs enforce Rp1,500,000. Because README marks these Apps Script copies as historical/legacy, this is a critical version-consistency item to verify against the actually deployed backend, not proof of a live production mismatch.
+- Both historical backend copies are publicly readable in this public repository. The v2 copy accepts public registration/deposit POSTs and uses a supplied Telegram username to locate/update a member row; it has no identity-bound authorization in the inspected registration/deposit handlers. This is a high-risk legacy-source finding only; do not infer that this code is deployed. Confirm the live deployment before any security conclusion or change.
+- The first historical backend copy has a public doPost deposit path that appends a deposit record without matching a verified member identity in the inspected handler. It also enforces Rp1,500,000. Again, this is legacy source evidence only.
+- sw.js uses a public asset allowlist, bypasses cross-origin and non-GET requests, does not cache document navigations, and uses network-first updates for CSS/JS/config. Preserve these protections. config.js is cached as a public asset; inspect it for secrets before any future configuration change.
+- The existing PWA validator checks 14 HTML pages, manifest/icons, inline JavaScript syntax, local references, duplicate IDs, _blank rel attributes, Join/Deposit regression, and selected service-worker privacy/update rules. It does not prove member authorization, live Apps Script behavior, Telegram integration, real-device installability, or the correctness of every route/API.
+- The PWA workflow runs both the static validator and Playwright Chromium checks. The last previously inspected successful main run is historical evidence only; no new CI run was triggered by this audit.
+
+### Current evidence / blockers
+
+- Static inspection: performed on the mps-v4.8-workbench branch.
+- Workbench-to-main comparison: workbench is 2 commits ahead, 0 behind; the only changed file is this planning/audit document. Production main remains unchanged.
+- Browser audit: not run in this turn. TinyFish previously failed before launch because its wallet balance was negative; no retry is appropriate until the wallet is funded.
+- Live Apps Script source, deployed version, spreadsheet schema, Drive permissions, Telegram bot source, and actual member authorization remain NOT VERIFIED.
+- No production data, deployment, credentials, or running bot were modified.
+
+### Immediate priorities from this audit
+
+1. Obtain a read-only copy/export of the actually deployed Apps Script source and identify its deployment/version without changing it.
+2. Compare its schema and role/session authorization with the 18-column legacy database and the v4.8 candidate schema before any migration or code change.
+3. Resolve the Rp1,000,000 UI versus Rp1,500,000 historical backend discrepancy only after confirming the live rule and business decision.
+4. Normalize all public-page navigation labels and route targets on the workbench branch.
+5. Implement the agreed ticker and missing product pages only after route, role, and data contracts are defined.
+6. Add targeted automated checks for all internal links, public/private route boundaries, and API contract assumptions; retain live E2E as a separate acceptance stage.
