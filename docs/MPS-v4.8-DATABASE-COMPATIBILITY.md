@@ -127,3 +127,12 @@ Do not auto-rewrite mismatched auxiliary headers. Do not create or rename produc
 - Preserve every existing ID exactly as stored. Do not rewrite 8-character IDs to 10 characters or regenerate any member IDs during schema migration.
 - Before acceptance, test synthetic fixtures for both formats across login, member lookup, admin operations, VIP linkage, ticker event association, and dashboard counts. Any path that rejects an otherwise valid legacy ID is a compatibility defect to fix in the candidate.
 - The actual production population and distribution of 8-/10-character IDs remain NOT VERIFIED; this source review does not establish what formats are present in the live database.
+
+
+## 10. Synthetic migration test harness
+
+A Node.js synthetic test harness is added at `scripts/test-schema-compatibility.mjs` and wired into `.github/workflows/pwa-validation.yml`. It models the proposed append-only guard policy using synthetic rows only; it does **not** import or execute the Apps Script candidate and does not connect to Google Sheets.
+
+The nine checks cover: exact 18/30 header counts; append-only preservation of all legacy cells; blank initialization of the 12 new fields; idempotent second run; rejection of renamed/reordered headers; rejection of unexpected trailing data; unchanged handling of an already migrated schema; preservation of both 8- and 10-hex synthetic member IDs; and fail-closed behavior for short/partial headers.
+
+**Interpretation:** a passing harness proves the documented migration policy behaves as expected in the synthetic model. It does not prove the live Apps Script migration implementation, Google Sheets behavior, live schema, production data integrity, or backend authorization. Those remain separate work items.
