@@ -437,3 +437,11 @@ Scope: static review of `google-apps-script/Code.gs` (legacy v1) and `google-app
 - [ ] Do not migrate, deploy, clear, rename, reorder, or rewrite production data without explicit Super Admin approval and verified backup.
 
 **Compatibility decision:** the candidate's 30-column requirement is not backward-compatible with an unmodified 18-column sheet at runtime. The first 18 fields are structurally preservable, but an append-only schema migration is required before this candidate can operate against that legacy layout. The isolated runbook's 30-column fixture is a test setup, not evidence that production is already migrated. No live spreadsheet or member data was read or changed.
+
+
+## Synthetic schema migration harness — added to CI (2026-11-11)
+
+- [x] Added `scripts/test-schema-compatibility.mjs` with nine synthetic tests for 18→30 append-only compatibility, legacy-cell preservation, idempotency, mismatched headers, unexpected trailing data, already-migrated schemas, both legacy ID lengths, and fail-closed partial headers.
+- [x] Added the synthetic schema test to the PWA validation GitHub Actions workflow.
+- [ ] Wait for the new CI runs and confirm the schema test step passes.
+- [ ] Do not interpret synthetic test success as proof of live Apps Script/Google Sheets migration or production compatibility.
