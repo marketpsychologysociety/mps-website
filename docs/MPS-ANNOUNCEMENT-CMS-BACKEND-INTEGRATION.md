@@ -112,7 +112,7 @@ Never infer service state from a client clock. ETA is informational; actual reso
 - target_announcement_id (optional)
 - created_at, approved_at, updated_at, actor refs, version
 
-The public feed returns only: ticker ID, safe text, priority, and a safe public target. It never returns the source event hash, raw member ID, raw member name, actor identity, or private fields.
+The public feed returns only: ticker ID, safe text, priority, and a safe public target. It never returns the source event hash, raw member ID, raw member name, actor identity, or private fields. For the static GitHub Pages site, `?publicCenter=1` must use a separate strict projection: only public announcements, masked VIP ticker activity, allowlisted ticker presentation settings, and update timestamp. Do not forward news, calendar, ads, ad packages, Admin settings, or unknown fields.
 
 ### 5.4 Winner record
 - winner_event_id, event_title, prize_public_description
@@ -229,6 +229,6 @@ Each mutation must use backend session validation, role validation, input valida
 - The current workbench frontend prototype is UI-only and its roulette is not an official draw.
 - The reviewed reconstructed v4.8 candidate has an existing Announcement CMS foundation and Super Admin role checks.
 - Learning and Market Pulse management already have candidate APIs and UI; they should be reused rather than duplicated.
-- The current candidate VIP ticker is **not privacy-compliant** with the latest user instruction and must be corrected before reuse.
+- The original candidate VIP ticker was not privacy-compliant. A local reconstructed-v4.8 candidate patch now removes names/aliases from public and Super Admin ticker projections, masks IDs only when the suffix is unique, excludes legacy name-bearing events, rotates the public cache namespace, and adds a strict read-only static-site bridge. This patch has only synthetic/static verification and is not deployed or Apps Script-runtime verified.
 - A verified winner workflow and official roulette engine remain new work, not existing functionality.
 - No backend implementation, spreadsheet creation, deployment, production data change, or live draw was performed by this design review.
