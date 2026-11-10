@@ -142,7 +142,7 @@ Roles:
 10. Publish result.
 11. Record claim verification and prize handover as separate state transitions.
 
-An official draw cannot be edited into a different winner. Corrections must append a correction record and preserve the original draw result/proof. A cancelled event must retain its cancellation reason and history.
+Public static-site integration must use a read-only, strict allowlist projection from the Apps Script bridge. The bridge must not forward unrelated news, calendar, advertising, ad packages, Admin settings, private data, or unknown API fields. Client rendering must use text-safe DOM APIs and validate public links.\n\nAn official draw cannot be edited into a different winner. Corrections must append a correction record and preserve the original draw result/proof. A cancelled event must retain its cancellation reason and history.
 
 ### 5.4 Admin safety controls
 - Server-side role and session verification on every action.
@@ -230,7 +230,7 @@ Never store PINs, session tokens, raw credentials, or unnecessary personal data.
 - claim_status, submitted_at_utc, verified_at_utc, handed_over_at_utc
 - verifier_ref, handover_reference
 - private evidence reference with strict access controls
-Public board receives only safe status and alias.
+Public board receives only a generic public message and, only if approved by the privacy gate, a backend-generated masked Member ID; otherwise identity is omitted.
 
 ### 6.7 Journal and transactional recovery
 Sensitive freeze/draw/publish actions must use a pre-provisioned journal and explicit state machine. Sheets/Drive are not ACID transactions. Use durable operation IDs, write-intent/read-back records, compensation, and RECONCILIATION_REQUIRED when rollback cannot be verified. CacheService is never the source of truth for idempotency.
@@ -262,11 +262,11 @@ Sensitive freeze/draw/publish actions must use a pre-provisioned journal and exp
 The exact entropy provider, signature verification, availability/fallback behavior, and Apps Script implementation must be security-reviewed before code. If the source is unavailable or proof verification fails, the draw stops; do not silently fall back to an unverified random function. Do not claim “provably fair” until independent verification has passed.
 
 ### 7.3 Roulette animation
-- Backend returns a signed/verified draw result and display-safe winner alias.
+- Backend returns a verified draw result and display-safe winner message with no name or alias; a masked Member ID is optional only after the privacy gate.
 - Frontend maps that already-confirmed result to a visual wheel position.
 - Animation duration/easing affects presentation only, never outcome.
 - If the animation fails or user reloads, the same confirmed result is shown; no new draw is triggered.
-- The result card displays event name, draw ID, winner alias, timestamp, participant count, and proof link/status.
+- The result card displays event name, draw ID, generic winner message (or privacy-approved masked Member ID), timestamp, participant count, and public proof status/link. Never display a real name, display name, or alias.
 - The wheel may use anonymized labels or numbered slots; do not reveal private participant identities to spectators.
 
 ## 8. API contracts (logical; names are provisional)
