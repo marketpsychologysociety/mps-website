@@ -5,16 +5,33 @@
     const track = ticker.querySelector(".ticker-track");
     const toggle = ticker.querySelector(".ticker-toggle");
     if (track && toggle) {
-      const setPaused = paused => {
-        track.classList.toggle("is-paused", paused);
-        toggle.setAttribute("aria-pressed", String(paused));
-        toggle.textContent = paused ? "Lanjut" : "Jeda";
+      let manualPaused = false;
+      let hoverPaused = false;
+      let focusPaused = false;
+      const applyPause = () => {
+        track.classList.toggle("is-paused", manualPaused || hoverPaused || focusPaused);
+        toggle.setAttribute("aria-pressed", String(manualPaused));
+        toggle.textContent = manualPaused ? "Lanjut" : "Jeda";
       };
-      toggle.addEventListener("click", () => setPaused(!track.classList.contains("is-paused")));
-      ticker.addEventListener("focusin", () => setPaused(true));
-      ticker.addEventListener("mouseenter", () => setPaused(true));
+      toggle.addEventListener("click", () => {
+        manualPaused = !manualPaused;
+        applyPause();
+      });
+      ticker.addEventListener("focusin", () => {
+        focusPaused = true;
+        applyPause();
+      });
+      ticker.addEventListener("focusout", () => {
+        focusPaused = ticker.contains(document.activeElement);
+        applyPause();
+      });
+      ticker.addEventListener("mouseenter", () => {
+        hoverPaused = true;
+        applyPause();
+      });
       ticker.addEventListener("mouseleave", () => {
-        if (!toggle.matches(":focus")) setPaused(false);
+        hoverPaused = false;
+        applyPause();
       });
     }
   }
