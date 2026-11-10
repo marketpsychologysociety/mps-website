@@ -403,3 +403,22 @@ Scope: static review of `google-apps-script/Code.gs` (legacy v1) and `google-app
 - A live browser-based inspection of the Apps Script page could not be started because the external browser runner rejected the run for insufficient tool-wallet balance. No top-up or payment was requested or made. The audit continues on independent repository tasks; this external blocker is not evidence of a website/backend defect.
 - GitHub Pages is confirmed to be serving the public site. Netlify's dashboard configuration, production/preview role, and live deployment were not inspected; do not infer that Netlify is disconnected or that it is the canonical host.
 - No live member records, personal information, proof files, or private datasets were intentionally requested or copied. No production changes were made.
+
+
+## Security blueprint — mandatory v4.8 requirement (2026-11-11)
+
+- [x] Added companion threat model and mandatory security/anti-abuse acceptance requirements in [MPS-v4.8-SECURITY-BLUEPRINT.md](MPS-v4.8-SECURITY-BLUEPRINT.md).
+- [ ] Identify the active Apps Script deployment/source/version and execution/access model; current production backend authorization remains NOT VERIFIED.
+- [ ] Define and implement server-side authentication, member status, role, session expiry/revocation, PIN protection, privileged MFA/step-up, and object-level authorization.
+- [ ] Protect against frontend cloning/impersonation: public assets contain no secrets or authority; copied frontend cannot access private backend resources; establish canonical official host and anti-phishing guidance.
+- [ ] Secure API schemas, identity binding, request validation, idempotency, replay/duplicate prevention, rate limits/quotas, safe errors, and audit records.
+- [ ] Protect Sheets/database with exact legacy 18-column compatibility, additive/versioned migration only, dry-run, backup/restore, and rollback; no destructive production operation without explicit approval.
+- [ ] Verify private Drive ACLs and enforce per-object authorization, upload signature/type/size validation, safe filenames, and private download mediation.
+- [ ] Protect public forms, bots, expensive endpoints, and integrations; assess edge CDN/WAF separately from Apps Script endpoint capabilities.
+- [ ] Protect GitHub/Google/hosting/DNS accounts, deployment permissions, secret storage, canonical/preview host separation, and release rollback.
+- [ ] Secure Telegram webhook/commands, notification idempotency, least privilege, and kill switch without touching production integration during workbench work.
+- [ ] Add synthetic adversarial tests for anonymous/pending/rejected/member/non-admin actors, ID tampering, session replay/revocation, brute force, malicious uploads, private file access, duplicate writes, forged webhook, abuse traffic, and backup restoration.
+- [ ] Require zero unresolved Critical/High security findings before protected member features are accepted for production.
+- [ ] Document incident response, evidence preservation, containment, member communication, restore, and post-incident review.
+
+**Security boundary:** the blueprint is a requirement, not evidence of implementation. Static frontend copying cannot be prevented absolutely; the security goal is to ensure a clone cannot gain authority over genuine MPS services. The actual Apps Script deployment, Drive ACLs, live authorization, Netlify settings, account MFA, and DNS protections remain unverified. No production data, deployment, credentials, hosting, DNS, triggers, or Telegram webhook were changed.
