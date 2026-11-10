@@ -117,3 +117,44 @@ Use clear Indonesian for important explanations and disclaimers. Retain common t
 ## Acceptance rules
 
 A feature is not complete because a menu exists or code parses. It is complete only when its expected behavior is tested with evidence at the appropriate level. Do not report production security, Google Sheets/Drive, Telegram, or device behavior as passed without actual end-to-end evidence.
+
+
+## P1/P5 — Detailed requirements recovered from prior MPS decisions (added 2026-11-10)
+
+### Learning — premium member library
+
+- [ ] Public visitors see an attractive visual/interactive teaser only; full lessons and files remain member-only.
+- [ ] Member content covers trading psychology, money/risk management, SMC/ICT, market structure, liquidity/order blocks, price action, trading plans/journals, and case studies.
+- [ ] Organize by category and learning level; support PDF, visual, and video resources, descriptions, ordering, publication status, updates, and archive/history.
+- [ ] Admin can upload private PDFs (historical requirement: maximum 8 MB), validate files, set title/category/level/order/description/status, publish/unpublish, edit, archive, and control public teaser content.
+- [ ] Keep Learning files in private Drive storage; enforce authorization in backend, not only by hiding UI.
+- [ ] Verify member progress/catalog behavior only if the current implementation supports it; do not claim progress tracking exists without testing.
+
+### News & Review — premium market intelligence
+
+- [ ] Public visitors see teaser cards/visuals only; full analysis is member-only and backend-authorized.
+- [ ] Coverage includes NFP, FOMC, CPI/PCE, Federal Reserve statements, macroeconomic releases, geopolitics/international events relevant to XAU/USD.
+- [ ] Each published item should include source and publication time, concise summary, why it matters, potential USD/XAUUSD impact, bullish/bearish/neutral scenarios, and volatility/risk notes.
+- [ ] Admin workflow includes source/sync review queue, editorial review, impact analysis, publish/edit/archive, and source URL tracking.
+- [ ] Economic calendar records should support event name, date/time and timezone, importance, currency/asset impact, forecast/previous/actual where applicable, status, and source URL.
+- [ ] Announcements should support audience targeting (Public / Member / VIP), scheduling, visibility controls, and history.
+- [ ] VIP Briefing should support controlled publication and VIP-only access.
+- [ ] Never imply automatic live news synchronization until the source connector and refresh behavior have been verified.
+
+### Advertising / Advertise — public advertiser intake, admin-controlled delivery
+
+- [ ] Public page explains cooperation opportunities and displays available packages.
+- [ ] Prospective advertisers can submit a request with brand/company, contact details, offer/proposal, preferred placement, and ad materials.
+- [ ] Admin exclusively controls package creation, IDR pricing, duration, placements, review/approval, payment status, scheduling, active dates, publication, pause/stop, and performance statistics.
+- [ ] Published ads require admin approval and controlled target/placement/start/end dates.
+- [ ] Public teaser must not expose advertiser private contact or proposal data.
+- [ ] Validate uploaded material and prevent unsafe files or untrusted scripts from being served.
+- [ ] Advertising workflow must be tested end-to-end before claiming it is operational.
+
+### Admin Control Room integration
+
+- [ ] One coherent admin area manages Learning, News & Review, calendar, announcements, VIP briefings, advertising packages/requests/placements, and member/VIP access.
+- [ ] Every admin action is role-authorized server-side and leaves an auditable status/history record where supported.
+- [ ] Verify private Drive folder permissions and backend authorization before publishing or serving files.
+
+These requirements are recovered from the user's earlier MPS decisions and are binding acceptance criteria. They are now explicit checklist items; their presence in this document does not mean implementation or runtime verification is complete.
