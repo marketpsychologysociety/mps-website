@@ -80,7 +80,7 @@
     const track = ticker.querySelector(".ticker-track");
     if (!track) return;
     track.replaceChildren();
-    const sequence = items.length > 1 ? items.concat(items) : items;
+    const sequence = items.concat(items);
     sequence.forEach((message, index) => {
       const span = document.createElement("span");
       span.textContent = message;
