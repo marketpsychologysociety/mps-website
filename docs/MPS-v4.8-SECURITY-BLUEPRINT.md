@@ -118,6 +118,26 @@ The security objective is:
 
 **Acceptance tests:** logs contain enough metadata for investigation without plaintext credentials/PINs or unnecessary personal data; test alerts reach the designated operator; incident and restore procedures are documented and rehearsed.
 
+
+## 2.10 Optional member passkeys (biometric/device verification)
+- Passkeys are optional for members; do not force enrollment. Admin and Super Admin are not required to use passkeys under the current product decision. This does not remove the separate requirement for strong privileged-account protection and step-up verification.
+- Never collect, transmit, or store fingerprints, Face ID templates, or other biometric data. The device/passkey provider performs local user verification; MPS receives and verifies a cryptographic WebAuthn assertion.
+- Enrollment and authentication must use a vetted WebAuthn implementation with unpredictable one-time challenges, strict RP ID/origin validation, signature/counter/credential checks as appropriate, challenge expiry and replay prevention, credential revocation, and safe account recovery.
+- The current split between the public static frontend and Apps Script backend means the RP ID/origin and server-side verification architecture must be resolved before implementation. Do not add a frontend-only biometric button or trust a client-side success flag.
+- Offer a non-passkey login path to members. Enrollment, removal, recovery, and new-device events must be auditable and bound to a verified member identity.
+- Test supported Android/iOS/browser combinations and fallback behavior on real devices before claiming broad compatibility.
+
+## 2.11 One-time VIP trial for new, non-deposit members
+- A newly registered member who is eligible under the server's current member-state policy may start exactly one VIP trial before a verified deposit. The trial does not change the member's deposit or paid-VIP status.
+- The trial duration is fixed at **60 minutes maximum**. The countdown starts only after the member explicitly activates the trial; registration time or merely viewing the offer must not start it.
+- Persist the trial claim/start timestamp and immutable expiry timestamp server-side, associated with the canonical member identity. Enforce a unique one-time claim atomically (lock/transaction-equivalent) so concurrent requests, logout/login, browser storage clearing, device changes, URL changes, and replay cannot create another trial.
+- The browser countdown is informational UI only. Every protected VIP API/resource request must independently verify eligibility and server time against the stored expiry; client clock changes, paused tabs, edited JavaScript, or direct URLs must not extend access.
+- At expiry, deny further trial access server-side and show the locked state. Re-login must show the actual remaining time or expired state derived from the backend, never reset the timer.
+- Define the exact trial feature allowlist. Keep paid-only, high-risk, financial, account-management, private member data, and privileged actions excluded unless explicitly approved. Trial access must not expose another member's data.
+- Record minimal audit events for trial offered, activated, access denied/expired, and any admin override; do not log secrets or unnecessary personal data. Any extension/reset/override requires an authorized, audited administrative action and explicit policy.
+- Acceptance tests must cover: eligible first activation; duplicate/concurrent activation; ineligible or already-used member; expiry boundary; manipulated client clock/timer; logout/login; new browser/device; direct API/URL; stale session; backend outage/fail-closed behavior; and confirmation that deposit/VIP-paid status remains unchanged.
+- No trial implementation or production access is authorized by this design entry alone. Implement and test only on the isolated workbench with synthetic accounts/data; production changes require separate explicit approval.
+
 ## 3. Required adversarial test matrix
 
 Run only against an isolated workbench/test backend and synthetic accounts/data unless a separately approved production test plan exists.
