@@ -64,6 +64,13 @@ Run only against a cloned synthetic spreadsheet. Test exact 18-column input, alr
 
 These four risks are static-source findings documented in `MPS-v4.8-BACKEND-ROW-WRITE-AUDIT.md`. They have not yet been reproduced by runtime injection.
 
+## Additional source-confirmed injection points
+
+- Cache invalidation and request-result cache writes after successful persistent submission: force CacheService exceptions and verify the response still reports the committed operation, with durable idempotency handled independently of volatile cache.
+- Rejection flow: inject failure after each pending Telegram link status update and after Telegram Access status update; verify all snapshots restore.
+- Telegram-link creation: inject failure after append but before helper return/config lookup; verify the exact appended link row is compensated and no orphan pending token remains.
+- Journal availability: make the pre-provisioned journal unavailable and verify the operation aborts before any business-row/file mutation.
+
 ## Acceptance and evidence rules
 
 - Record Apps Script execution logs, synthetic fixture hashes, injected operation index, before/after schema snapshots, and rollback outcome.
