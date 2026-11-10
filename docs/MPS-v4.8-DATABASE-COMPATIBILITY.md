@@ -136,3 +136,15 @@ A Node.js synthetic test harness is added at `scripts/test-schema-compatibility.
 The nine checks cover: exact 18/30 header counts; append-only preservation of all legacy cells; blank initialization of the 12 new fields; idempotent second run; rejection of renamed/reordered headers; rejection of unexpected trailing data; unchanged handling of an already migrated schema; preservation of both 8- and 10-hex synthetic member IDs; and fail-closed behavior for short/partial headers.
 
 **Interpretation:** a passing harness proves the documented migration policy behaves as expected in the synthetic model. It does not prove the live Apps Script migration implementation, Google Sheets behavior, live schema, production data integrity, or backend authorization. Those remain separate work items.
+
+
+## 11. Candidate backend row-write and auxiliary-sheet assumptions
+
+Additional source inspection of the saved v4.8.0 candidate found:
+
+- `getMemberSheet_()` calls `validateHeaders_()`, which requires all 30 columns and exact header order before member-row access.
+- Member lifecycle operations read and write full rows using `MPS.headers.length` (30 cells). Approval/activation code writes a 30-cell row; member creation constructs a 30-cell array and appends it. This confirms that simply allowing an 18-column header through validation would be unsafe; the 12 new cells must be present before these paths run.
+- Several auxiliary-sheet accessors (including application, member-link, and deposit sheets) create a missing sheet and initialize its headers as a side effect. This behavior must be considered in any deployment dry run: a supposedly read-only health check must not call mutating accessors unless it is explicitly intended to create those sheets.
+- Some admin/reporting paths write bounded ranges within the 30-column row. Their column indices must be rechecked against the exact header map in isolated tests, not inferred from labels.
+
+**Required refinement:** separate read-only schema/health inspection from setup/initialization helpers. Add a non-mutating inspection mode that reports missing auxiliary sheets without creating them. Do not change production helpers or run setup against production as part of this audit.
