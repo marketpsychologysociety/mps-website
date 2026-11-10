@@ -468,9 +468,9 @@ Evidence: `docs/MPS-v4.8-BACKEND-ROW-WRITE-AUDIT.md`. The source passed Node Jav
 - [x] Added synthetic VM tests for exact schemas, legacy 18-column fail-closed, missing auxiliary sheet, altered header, invalid input, and zero write calls.
 - [x] Added the read-only inspector mock test to the PWA validation workflow.
 - [x] Added [isolated failure-injection test plan](MPS-v4.8-ISOLATED-FAILURE-INJECTION-PLAN.md) covering approval, deposit, rollback failure, concurrency, and migration interruption.
-- [ ] Run CI for the new commit and verify the inspector test passes.
+- [x] CI run 42876672500 completed successfully on commit 9e0346a3ee06460b59b5eed8dea2a9aa47192db6; PWA validator, synthetic schema compatibility tests, read-only inspector tests, and Chromium browser checks all passed.
 - [ ] Execute the inspector against an authorized disposable spreadsheet clone in Apps Script.
 - [ ] Refactor candidate write orchestration into a test-injectable adapter in a disposable Apps Script project, then run deterministic failure injection.
 - [ ] Do not claim rollback safety until the actual candidate flow passes Apps Script runtime tests with rollback-failure and concurrency cases.
 
-**Evidence boundary:** the helper and mock tests are designed to be non-mutating. The tests have not yet been executed in this environment. The failure-injection document is a runbook, not evidence that failure injection has occurred. No production spreadsheet, Apps Script deployment, Drive file, Telegram bot, or member record was accessed or changed.
+**Evidence boundary:** the helper's synthetic VM tests and repository CI passed. This is not a Google Sheets/Apps Script runtime inspection. The failure-injection document is a runbook, not evidence that failure injection has occurred. No production spreadsheet, Apps Script deployment, Drive file, Telegram bot, or member record was accessed or changed.
