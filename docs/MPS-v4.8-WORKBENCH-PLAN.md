@@ -180,7 +180,7 @@ These requirements are recovered from the user's earlier MPS decisions and are b
 ### Current evidence / blockers
 
 - Static inspection: performed on the mps-v4.8-workbench branch.
-- Workbench-to-main comparison after this audit update: workbench is 3 commits ahead, 0 behind; the only changed file is this planning/audit document. Production main remains unchanged.
+- Workbench-to-main comparison: workbench is based on main; the only changed path is this planning/audit document. Production main remains unchanged.
 - Browser audit: not run in this turn. TinyFish previously failed before launch because its wallet balance was negative; no retry is appropriate until the wallet is funded.
 - Live Apps Script source, deployed version, spreadsheet schema, Drive permissions, Telegram bot source, and actual member authorization remain NOT VERIFIED.
 - No production data, deployment, credentials, or running bot were modified.
