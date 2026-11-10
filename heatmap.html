@@ -46,6 +46,16 @@
   <a class="btn btn-outline" href="index.html">Kembali ke Website</a>
   <button class="btn btn-outline pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button>
 </nav>
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> DEMO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>DEMO: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
+    <span>DEMO: Informasi maintenance resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>DEMO: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
 <main class="pulse-preview-wrap">
   <section class="pulse-preview-card" aria-labelledby="pulseTitle">
     <div class="pulse-preview-top"><span class="pulse-tag">✦ MEMBER ONLY · DATA PRIVAT</span><span class="pulse-lock" aria-hidden="true">🔒</span></div>
@@ -96,5 +106,8 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+<script src="config.js"></script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 </body>
 </html>
