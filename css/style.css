@@ -874,3 +874,128 @@ body{background:var(--bg);color:var(--text)}
 .mps-bear-panel,.signal-bear-panel{background:rgba(53,169,255,.08);border:1px solid rgba(53,169,255,.32);border-radius:12px}
 .mps-neon-pink{color:var(--neon-pink)!important;text-shadow:0 0 12px rgba(255,59,212,.3)}
 .mps-racing-green{color:var(--racing-green)!important;text-shadow:0 0 12px rgba(183,255,0,.25)}
+
+
+/* MPS NEON LIVING EXPERIENCE — site-wide interaction layer */
+:root{
+  --mps-red:#ff263f;
+  --mps-red-hot:#ff5268;
+  --mps-neon-glow:rgba(226,242,38,.22);
+  --mps-blue-glow:rgba(53,169,255,.20);
+}
+html{background:#07080c}
+body{position:relative;isolation:isolate;background-color:#07080c}
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 8% 18%,rgba(226,242,38,.055),transparent 34%),
+    radial-gradient(ellipse at 92% 38%,rgba(53,169,255,.055),transparent 36%),
+    radial-gradient(ellipse at 50% 100%,rgba(255,59,212,.028),transparent 42%);
+  animation:mps-ambient-breathe 12s ease-in-out infinite alternate;
+}
+@keyframes mps-ambient-breathe{
+  from{opacity:.58;transform:scale(1)}
+  to{opacity:1;transform:scale(1.035)}
+}
+/* Headings receive a brighter neon-metal sweep while remaining readable. */
+.hero h1,.section-head h2,.page-head h1,.card h3,.content h2,.content h3,
+.nav-brand,.footer-brand{
+  background-image:linear-gradient(110deg,#a99c00 0%,#efff4b 24%,#fffbd0 42%,#d8e600 58%,#9fb000 78%,#efff4b 100%);
+  background-size:220% 100%;
+  text-shadow:0 0 14px rgba(239,255,75,.16);
+}
+/* Site-wide buttons: bright feedback, without changing their destinations or behavior. */
+.btn,.nav-links a,.nav-toggle,.nav-join,.pwa-install-btn{
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,filter .22s ease,color .22s ease;
+}
+.btn{
+  position:relative;
+  box-shadow:0 0 0 1px rgba(239,255,75,.08),0 0 12px rgba(239,255,75,.09);
+}
+.btn:not(:disabled):hover,.nav-links a:hover,.nav-join:hover,.pwa-install-btn:hover{
+  filter:brightness(1.13);
+  transform:translateY(-2px);
+  box-shadow:0 0 10px rgba(239,255,75,.20),0 0 24px rgba(239,255,75,.13);
+}
+.btn:not(:disabled):active,.nav-toggle:active,.nav-join:active,.pwa-install-btn:active{
+  transform:translateY(1px) scale(.975);
+  filter:brightness(1.2);
+}
+.btn-gold:not(:disabled):not(.mps-no-neon){
+  box-shadow:0 0 9px rgba(239,255,75,.18),0 0 20px rgba(239,255,75,.10),inset 0 0 12px rgba(255,255,255,.08);
+}
+.btn-outline:hover{
+  border-color:var(--bear);
+  color:#bfe6ff;
+  box-shadow:0 0 12px rgba(53,169,255,.25),0 0 26px rgba(53,169,255,.13);
+}
+/* Main conversion actions: vivid red pulse + moving highlight + animated press pointer. */
+a.btn[href*="member-portal"],a.btn[href*="page=register"],a.btn[href*="join"],
+a.btn[href*="deposit-confirmation"],.join-cta,
+#joinForm button.btn[type="submit"],#step2Next a.btn-gold{
+  position:relative;isolation:isolate;overflow:visible;
+  border:1px solid #ff8190;border-radius:999px;
+  color:#fff!important;
+  background:linear-gradient(112deg,#760817 0%,#e10e2d 28%,#ff4057 48%,#a80020 70%,#ff5268 100%);
+  background-size:220% 220%;
+  box-shadow:0 0 9px rgba(255,38,63,.42),0 0 22px rgba(255,38,63,.24),inset 0 0 12px rgba(255,255,255,.12);
+  animation:mps-live-cta 2.4s ease-in-out infinite;
+}
+a.btn[href*="member-portal"]::after,a.btn[href*="page=register"]::after,
+a.btn[href*="join"]::after,a.btn[href*="deposit-confirmation"]::after,
+.join-cta::after,#joinForm button.btn[type="submit"]::after,#step2Next a.btn-gold::after{
+  content:"";position:absolute;z-index:1;top:-65%;left:-75%;width:36%;height:230%;
+  transform:rotate(23deg);pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.08) 25%,rgba(255,255,255,.75) 50%,rgba(255,255,255,.08) 75%,transparent);
+  animation:mps-live-shine 3.1s ease-in-out infinite;
+}
+a.btn[href*="member-portal"]::before,a.btn[href*="page=register"]::before,
+a.btn[href*="join"]::before,a.btn[href*="deposit-confirmation"]::before,
+.join-cta::before,#joinForm button.btn[type="submit"]::before,#step2Next a.btn-gold::before{
+  content:"";position:absolute;z-index:3;top:-8px;right:12px;width:17px;height:23px;
+  background:linear-gradient(135deg,#fff8d2,#ffe05b 52%,#c88c16);
+  clip-path:polygon(0 0,0 100%,29% 73%,48% 100%,61% 94%,43% 67%,80% 67%);
+  filter:drop-shadow(1px 2px 3px rgba(0,0,0,.85));
+  pointer-events:none;animation:mps-live-press 1.55s ease-in-out infinite;
+}
+a.btn[href*="member-portal"]:hover,a.btn[href*="page=register"]:hover,
+a.btn[href*="join"]:hover,a.btn[href*="deposit-confirmation"]:hover,
+.join-cta:hover,#joinForm button.btn[type="submit"]:hover,#step2Next a.btn-gold:hover{
+  border-color:#fff0f2;
+  background-position:100% 50%;
+  box-shadow:0 0 14px rgba(255,38,63,.62),0 0 32px rgba(255,38,63,.35),0 0 44px rgba(255,38,63,.16);
+}
+@keyframes mps-live-cta{
+  0%,100%{background-position:0% 50%;box-shadow:0 0 8px rgba(255,38,63,.35),0 0 18px rgba(255,38,63,.18),inset 0 0 10px rgba(255,255,255,.08)}
+  50%{background-position:100% 50%;box-shadow:0 0 13px rgba(255,38,63,.58),0 0 30px rgba(255,38,63,.32),inset 0 0 15px rgba(255,255,255,.14)}
+}
+@keyframes mps-live-shine{
+  0%,20%{left:-75%}
+  72%,100%{left:145%}
+}
+@keyframes mps-live-press{
+  0%,100%{transform:translateY(-3px) scale(1)}
+  42%,58%{transform:translateY(5px) scale(.91)}
+}
+/* Cards and panels light up on interaction; static borders remain subtle. */
+.card,.form-card,.mps-preview-card,.pulse-preview-card,.learning-hero{
+  transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease;
+}
+.card:hover,.form-card:focus-within,.mps-preview-card:hover,.pulse-preview-card:hover,.learning-hero:hover{
+  border-color:rgba(239,255,75,.42);
+  box-shadow:0 0 0 1px rgba(239,255,75,.08),0 12px 38px rgba(0,0,0,.32),0 0 24px rgba(239,255,75,.075);
+}
+.nav-links a.active,.nav-links a:hover{ text-shadow:0 0 12px rgba(239,255,75,.35) }
+.nav-join{border:1px solid rgba(239,255,75,.4);border-radius:999px;padding:8px 12px;color:var(--gold2)}
+/* Avoid motion for users who request it; keep high-contrast static states. */
+@media(prefers-reduced-motion:reduce){
+  body::before,.hero h1,.section-head h2,.page-head h1,.card h3,.content h2,.content h3,.nav-brand,.footer-brand,
+  a.btn[href*="member-portal"],a.btn[href*="page=register"],a.btn[href*="join"],
+  a.btn[href*="deposit-confirmation"],.join-cta,#joinForm button.btn[type="submit"],#step2Next a.btn-gold,
+  a.btn[href*="member-portal"]::after,a.btn[href*="page=register"]::after,a.btn[href*="join"]::after,
+  a.btn[href*="deposit-confirmation"]::after,.join-cta::after,#joinForm button.btn[type="submit"]::after,#step2Next a.btn-gold::after,
+  a.btn[href*="member-portal"]::before,a.btn[href*="page=register"]::before,a.btn[href*="join"]::before,
+  a.btn[href*="deposit-confirmation"]::before,.join-cta::before,#joinForm button.btn[type="submit"]::before,#step2Next a.btn-gold::before{
+    animation:none!important;
+  }
+}
