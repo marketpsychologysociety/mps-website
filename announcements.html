@@ -51,7 +51,7 @@
   <section class="announce-status-section">
     <div class="announce-section-title"><div><span class="announce-eyebrow">SERVICE MONITOR</span><h2>Status Layanan</h2></div><span class="demo-chip">CONTOH UI</span></div>
     <article class="service-status-card">
-      <div class="service-status-icon">⌁</div><div class="service-status-copy"><span class="status-label"><i></i> CONTOH STATUS NORMAL</span><h3>Seluruh layanan berjalan normal</h3><p>Bagian ini nantinya menampilkan status yang dikonfirmasi oleh sistem backend. Status pada prototipe ini bukan kondisi layanan aktual.</p></div>
+      <div class="service-status-icon">⌁</div><div class="service-status-copy"><span class="status-label"><i></i> BELUM DIPUBLIKASIKAN</span><h3>Belum ada informasi status layanan</h3><p>Status layanan hanya akan ditampilkan jika ada pemberitahuan resmi yang diterbitkan dan masih berlaku.</p></div>
       <div class="status-updated"><small>PEMBARUAN TERAKHIR</small><strong>—</strong><span>Belum terhubung</span></div>
     </article>
   </section>
@@ -65,7 +65,7 @@
       <button class="announce-filter" type="button" data-filter="update" aria-pressed="false">Update</button>
       <button class="announce-filter" type="button" data-filter="community" aria-pressed="false">Komunitas</button>
     </div>
-    <div class="announce-card-grid" id="announceCards">
+    <div class="announce-card-grid" id="announceCards" data-public-announcements>
       <article class="announce-card featured" data-category="important">
         <div class="announce-card-top"><span class="announce-tag tag-important">PENTING</span><span class="announce-date">CONTOH · 11 NOV 2026</span></div>
         <div class="announce-card-symbol symbol-alert">!</div><h3>Informasi resmi MPS akan hadir di sini</h3>
@@ -98,8 +98,8 @@
     <div class="announce-section-title"><div><span class="announce-eyebrow">COMMUNITY RECOGNITION</span><h2>Winner Board</h2><p>Papan hasil program dan aktivitas komunitas yang telah diverifikasi.</p></div><span class="demo-chip">BUKAN HASIL RESMI</span></div>
     <div class="winner-showcase">
       <div class="winner-medal">✦<small>WINNER</small></div>
-      <div class="winner-copy"><span class="winner-overline">CONTOH KARTU PEMENANG</span><h3>Identitas disamarkan</h3><p>Member ID: <strong>MPS-****-4821</strong></p><div class="winner-prize">Hadiah program komunitas <b>·</b> Contoh hadiah</div></div>
-      <div class="winner-proof"><span>STATUS</span><strong>DEMO</strong><small>Belum ada hasil terverifikasi</small></div>
+      <div class="winner-copy"><span class="winner-overline">HASIL RESMI</span><h3>Belum ada hasil resmi yang dipublikasikan</h3><p>Winner Board hanya menampilkan hasil undian yang telah diverifikasi dan disetujui untuk publikasi.</p></div>
+      <div class="winner-proof"><span>STATUS</span><strong>MENUNGGU</strong><small>Tidak ada pemenang yang ditampilkan</small></div>
     </div>
     <div class="winner-privacy-note"><span>◈</span><p>Privasi member adalah prioritas. Nama tidak ditampilkan. ID hanya dapat muncul dalam bentuk sensor setelah penilaian risiko identifikasi ulang; jika tidak aman, identitas dihilangkan sepenuhnya.</p></div>
   </section>
@@ -127,6 +127,7 @@
 </footer>
 <script src="config.js"></script>\n<script src="js/main.js"></script>
 <script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 <script>
 (()=> {
   const btn=document.getElementById('installMpsApp');
