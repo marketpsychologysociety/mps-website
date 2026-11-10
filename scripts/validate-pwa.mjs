@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 const root = process.cwd();
 const pages = [
-  'about.html','contact.html','deposit-confirmation.html','education.html',
+  'about.html','announcements.html','contact.html','deposit-confirmation.html','education.html',
   'heatmap.html','index.html','join.html','member-portal.html','membership.html',
   'privacy.html','rebate.html','rewards.html','system.html','terms.html'
 ];
