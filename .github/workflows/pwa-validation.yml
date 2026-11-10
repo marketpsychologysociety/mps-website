@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, 'integration/**']
+    branches: [main, 'integration/**', 'mps-v4.8-workbench']
 
 permissions:
   contents: read
