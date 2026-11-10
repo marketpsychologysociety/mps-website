@@ -486,3 +486,16 @@ Evidence: `docs/MPS-v4.8-BACKEND-ROW-WRITE-AUDIT.md`. The source passed Node Jav
 - [ ] Reproduce each failure and rollback-failure case in an isolated Apps Script project before accepting the correction.
 
 **Risk:** RW-01/RW-02/RW-03 High; RW-04 Medium. Details and test points are in the backend row-write audit and isolated failure-injection plan. These are static findings, not live reproductions.
+
+
+### Third-pass static review — additional findings (2026-11-11)
+
+- [x] RW-05: Cache invalidation/request-cache writes can throw after persistent submission commits and still produce an `ok:false` response.
+- [x] RW-06: Rejection path does not snapshot/restore Telegram link rows or Telegram Access status.
+- [x] RW-07: Telegram-link row append can occur before a later configuration read throws, leaving an orphan pending link unknown to the caller.
+- [x] Documented saga/journal direction: preflight first, exact before-images, pre-provisioned validated journal, explicit compensation and reconciliation states.
+- [ ] Review a full corrected backend candidate against all seven findings before preparing any deployable file.
+- [ ] Verify the transaction journal schema and operational repair workflow in an isolated Apps Script project.
+- [ ] Run the complete deterministic fault-injection matrix, including cache failure, link creation failure, rollback failure, and concurrency.
+
+**Updated static risk register:** RW-01/02/03/06 High; RW-04/05/07 Medium. None has been reproduced against an Apps Script runtime. No live service or production data was accessed or changed.
