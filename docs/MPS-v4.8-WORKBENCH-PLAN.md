@@ -293,3 +293,20 @@ The Super Admin confirmed the recovered design direction from the 2026-11-07 vis
 - [ ] Still required: visual browser rendering/responsive review, cross-page regression review, member portal/dashboard review, and device testing. These have not been performed in this pass.
 
 Evidence boundary: changes are committed only to `mps-v4.8-workbench`; no production deployment or live Apps Script/member data was changed. Source-level string checks are not a substitute for browser rendering or runtime tests.
+
+
+## Site-wide living neon interaction pass — 2026-11-11 (workbench only)
+
+- [x] Added a low-intensity ambient neon background layer with slow breathing motion.
+- [x] Updated metallic heading sweep to the fluorescent-yellow neon family while retaining the MPS premium dark canvas.
+- [x] Added consistent glow/hover/press feedback to site-wide buttons and navigation controls.
+- [x] Expanded the red animated Join/Register CTA treatment to links targeting the member portal, registration endpoint, join page, and deposit-confirmation page; includes a moving light sweep and a visual press pointer.
+- [x] Added restrained neon hover edges to cards and key preview panels.
+- [x] Added reduced-motion overrides for ambient, heading, CTA, pointer, and shine animations.
+- [x] Refreshed the shared stylesheet cache version on all 14 public HTML pages.
+- [x] Re-fetched the stylesheet and all 14 pages; nine source-level checks passed.
+- [ ] Browser rendering, interaction, mobile performance, cross-browser, and physical-device checks remain NOT TESTED in this pass.
+
+Safety/design note: visual urgency is limited to genuine navigation/registration calls to action. No fabricated member activity, false countdowns, fake scarcity, or fake transaction notifications were introduced. Animations retain a reduced-motion fallback.
+
+Evidence boundary: all edits remain on `mps-v4.8-workbench`; no production deployment, live Apps Script, database, member records, Drive, Script Properties, triggers, or Telegram settings were changed.
