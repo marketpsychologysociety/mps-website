@@ -23,6 +23,11 @@ Both hashes matched the manifest. The source pair is `Code.gs` + `Index.html`; `
 - Super Admin ticker history is explicitly projected to Event ID, timestamp, masked ID, generic text, and status; raw identity columns are not serialized to the Admin browser.
 - The homepage renderer no longer expects or renders a public alias. It renders only an optional masked ID and generic status copy.
 - Rotated the public-center cache namespace to `mps_public_center_v481_privacy` so a previously cached name-bearing payload cannot be reused under the new code.
+- Public ticker settings are now an explicit allowlist (enabled/speed/theme and fixed `VIP LIVE` label); free-form Admin prefix/suffix values are not sent to visitors.
+
+## Patched candidate checksums
+- Patched `Code.gs`: `b3b4ddf6337e80c141c6c36ddf84a2d81fa0aa199a5ad338399353fca7a22948`
+- Patched `Index.html`: `5d8a2457744f0eaa1f45fa598674b888963055a0eea9e537ca729f9bd17329e1`
 
 ## Local verification performed
 
