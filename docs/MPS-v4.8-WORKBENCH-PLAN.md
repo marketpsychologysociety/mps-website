@@ -310,3 +310,29 @@ Evidence boundary: changes are committed only to `mps-v4.8-workbench`; no produc
 Safety/design note: visual urgency is limited to genuine navigation/registration calls to action. No fabricated member activity, false countdowns, fake scarcity, or fake transaction notifications were introduced. Animations retain a reduced-motion fallback.
 
 Evidence boundary: all edits remain on `mps-v4.8-workbench`; no production deployment, live Apps Script, database, member records, Drive, Script Properties, triggers, or Telegram settings were changed.
+
+
+## Cross-platform + Netlify release parity gate — 2026-11-11
+
+**Requirement confirmed by Super Admin:** MPS must provide the same product capability, content, navigation, visual identity, and working flows on desktop web, Android, and iPhone/iOS. Layout may adapt to screen size and platform conventions; feature availability and behavior must not diverge.
+
+### Hosting / deployment facts observed in the workbench
+- The current repository README still describes GitHub Pages as the public static-site host; it separately describes the Apps Script Web App as the member portal/backend.
+- The inspected workbench root did not contain `netlify.toml`, `_redirects`, or `package.json`. This is not proof that the Netlify site is disconnected: Netlify may be configured through its dashboard or an external build/deploy configuration.
+- No Netlify site/deployment API or dashboard connection was exposed in the available project tools during this inspection. Therefore the connected Netlify site's site ID, production branch, build command, publish directory, deploy contexts, custom domains, and current deployed commit remain **UNVERIFIED**.
+- The existing `.github/workflows/pwa-validation.yml` runs PWA validation and Chromium checks on pull requests targeting `main` and pushes to `main` / `integration/**`; it does not currently validate the isolated `mps-v4.8-workbench` branch by its push trigger.
+- Do not add Netlify configuration or change branch/domain settings by guessing. First establish the actual Netlify site's intended role (preview vs production) and its existing build/publish settings. Do not deploy workbench or change production routing without explicit release approval.
+
+### Required release parity checks
+- [ ] Record the canonical source branch and commit for each Netlify deploy context (production, deploy preview, branch deploy).
+- [ ] Confirm Netlify publish directory and build command match the static-site repository structure; confirm no generated output directory is assumed without evidence.
+- [ ] Verify custom domains, HTTPS, redirects, headers, SPA/static routing behavior, and canonical URLs without exposing private endpoints.
+- [ ] Ensure GitHub Pages and Netlify cannot silently serve different code versions to users; define one canonical production host and a clear preview host.
+- [ ] Compare deployed commit SHA and asset versions after every approved release.
+- [ ] Validate manifest, service worker scope, asset paths, cache versioning, install/update behavior, and offline fallback on the actual canonical host.
+- [ ] Test desktop Chromium/Firefox/Safari where available; Android Chrome; iPhone Safari and Add to Home Screen standalone mode.
+- [ ] Test narrow widths, tablet widths, landscape/portrait, safe areas, keyboard behavior, touch targets, form validation, external Apps Script navigation, and session continuity.
+- [ ] Confirm the same member-only authorization boundaries on every entry path; hosting separation must never weaken backend authorization.
+- [ ] Report platform-specific PASS / FAIL / NOT TESTED. Desktop emulation is not physical Android/iPhone evidence.
+
+**Current evidence:** source inspection only. Responsive breakpoints exist in the shared stylesheet (1080px, 700px, and 380px), and the service worker uses a public-asset allowlist while bypassing HTML navigation caching and non-allowlisted/parameterized requests. Actual Netlify deployment, live host parity, physical Android/iPhone behavior, and cross-browser rendering remain **NOT TESTED**.
