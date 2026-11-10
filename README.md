@@ -7,7 +7,7 @@ Website publik MPS menggunakan HTML, CSS, dan JavaScript statis serta dipublikas
 - Beranda, About, Core System, Education
 - Membership, Rewards, Rebate
 - Join dan Konfirmasi Deposit (halaman informasi yang mengarahkan ke Portal Resmi)
-- Market Pulse (preview statis; bukan dataset aktual)
+- Market Pulse (preview statis; bukan dataset aktual)\n- Announcement Center (prototipe publik; data demo, belum terhubung backend)
 - Member Portal, Contact, Syarat & Ketentuan, dan Kebijakan Privasi
 
 ## Alur pendaftaran dan keanggotaan
@@ -35,7 +35,7 @@ Minimum deposit yang ditampilkan saat ini adalah Rp1.000.000. Nominal lebih besa
 - Dashboard, Heatmap, Learning, Market Pulse, dan fungsi Admin harus memvalidasi sesi serta role di backend pada setiap permintaan.
 - Bukti deposit dan materi Learning harus berada pada folder/file privat; jangan memakai tautan Drive publik.
 - Tautan eksternal dengan `target="_blank"` wajib memakai `rel="noopener noreferrer"`.
-- Ticker publik hanya boleh menampilkan identitas member sesuai pengaturan MPS; jangan menampilkan nomor telepon, email, Telegram ID/username, MT5, nominal/tanggal deposit, bukti, PIN, atau token.
+- Ticker publik tidak boleh menampilkan nama asli, nama tampilan, atau alias member. Jika benar-benar diperlukan dan lolos penilaian risiko identifikasi ulang, hanya ID member yang disensor dari backend (contoh `MPS-****-4821`) yang boleh ditampilkan; jika tidak aman, hilangkan ID. Jangan tampilkan nomor telepon, email, Telegram ID/username, MT5, nominal/tanggal deposit, bukti, PIN, token, atau referensi internal.\n- Announcement Center saat ini adalah prototipe UI dengan data demonstrasi; tidak ada feed pengumuman, status layanan, pemenang, atau undian resmi yang terhubung. Roulette hanya animasi presentasi dan tidak menentukan hasil.
 - File `google-apps-script/Code.gs` dan `google-apps-script-v2/Code.gs` adalah sumber historis/legacy di repository, bukan bukti versi backend yang sedang terpasang. Jangan deploy keduanya untuk menggantikan backend aktif tanpa audit dan persetujuan.
 - Jangan menganggap file backend lokal atau isi repository sama dengan deployment Apps Script yang sedang berjalan. Verifikasi versi dari deployment dan pengujian runtime.
 
