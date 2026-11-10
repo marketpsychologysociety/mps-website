@@ -445,3 +445,18 @@ Scope: static review of `google-apps-script/Code.gs` (legacy v1) and `google-app
 - [x] Added the synthetic schema test to the PWA validation GitHub Actions workflow.
 - [ ] Wait for the new CI runs and confirm the schema test step passes.
 - [ ] Do not interpret synthetic test success as proof of live Apps Script/Google Sheets migration or production compatibility.
+
+
+## Backend row/schema audit update — 2026-11-11
+
+- [x] Static review of the saved reconstructed v4.8.0 Code.gs candidate and historical repository v2 backend.
+- [x] Confirm exact 30-column header gate and document why accepting an 18-column sheet without migration would be unsafe.
+- [x] Review application/deposit/member row lifecycle, positional mapping, locking, and compensating rollback behavior.
+- [x] Identify auxiliary-sheet accessors that create missing sheets; prohibit their use in read-only health checks.
+- [x] Confirm strict paid-VIP authorization gate and document that a trial must use a separate, limited entitlement path.
+- [x] Confirm passkey and 60-minute trial are not yet implemented in the candidate.
+- [ ] Build isolated Apps Script failure-injection tests for approval/deposit rollback and migration.
+- [ ] Build a non-mutating read-only schema inspection routine and test it against synthetic/cloned spreadsheets.
+- [ ] Implement trial/passkey only after their server-side contracts and architecture are reviewed.
+
+Evidence: `docs/MPS-v4.8-BACKEND-ROW-WRITE-AUDIT.md`. The source passed Node JavaScript syntax checking after temporary extension normalization; Apps Script runtime and live integration remain NOT TESTED.
