@@ -137,7 +137,7 @@
   let installPrompt=null;
   const ua=navigator.userAgent||'';
   const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\\n1. Buka MPS melalui Safari.\\n2. Tekan tombol Share/Bagikan.\\n3. Pilih “Add to Home Screen” / “Tambahkan ke Layar Utama”.\\n4. Tekan Add / Tambahkan.'));}
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Share/Bagikan.\n3. Pilih “Add to Home Screen” / “Tambahkan ke Layar Utama”.\n4. Tekan Add / Tambahkan.'));}
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
   btn.addEventListener('click',async()=>{
     if(isAppleMobile)return;
