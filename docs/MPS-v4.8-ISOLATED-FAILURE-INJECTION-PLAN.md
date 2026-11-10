@@ -55,6 +55,15 @@ Inject failures after proof-file creation, deposit row append, application statu
 
 Run only against a cloned synthetic spreadsheet. Test exact 18-column input, already migrated 30-column input, reordered/renamed headers, unexpected trailing non-empty cells, blank rows, formulas, and interrupted append. Verify legacy columns 1–18 remain value-identical, no column is reordered/deleted, a second run is idempotent, and an interrupted migration stops safely for manual reconciliation. Do not automatically resume if the post-failure state is ambiguous.
 
+## Candidate-specific failure points now confirmed by static review
+
+- Deposit flow: inject failure after each old pending Telegram-link row is changed to `Diganti`; verify all prior link states are restored if the deposit submission aborts.
+- Rejection flow: inject failure after each Telegram-link row is changed to `Ditolak` and after the Telegram Access row is changed to `Akses Ditolak`; verify those rows are restored together with application/deposit snapshots.
+- Every rollback step: inject a second failure during compensation; verify the system records reconciliation-required rather than silently swallowing the error or reporting a clean rollback.
+- Submission post-commit: inject failures in dashboard cache invalidation and request-result cache writes after the Sheets/Drive persistence succeeds; verify the caller is not told that persistence failed when it actually committed.
+
+These four risks are static-source findings documented in `MPS-v4.8-BACKEND-ROW-WRITE-AUDIT.md`. They have not yet been reproduced by runtime injection.
+
 ## Acceptance and evidence rules
 
 - Record Apps Script execution logs, synthetic fixture hashes, injected operation index, before/after schema snapshots, and rollback outcome.
