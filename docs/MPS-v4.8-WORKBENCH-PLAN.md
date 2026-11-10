@@ -214,3 +214,55 @@ These requirements are recovered from the user's earlier MPS decisions and are b
 - Backend authorization must be verified independently for direct URL and API access before any private Pulse or member data is rendered.
 - No source file was changed during this audit pass; no deployment, live endpoint call, spreadsheet mutation, credential change, trigger change, or production database operation was performed.
 - Evidence level: repository source inspection only. Browser rendering, automated browser tests, live backend authorization, Google Sheets/Drive integration, Telegram delivery, and physical-device tests remain NOT TESTED.
+
+
+## Follow-up requirements — Admin-managed content and automated market intelligence (2026-11-11)
+
+These requirements were explicitly confirmed by the Super Admin. They define the target architecture; they do not claim that the features are already implemented or connected to live services.
+
+### A. Learning, Heatmap, and Market Pulse must be data-managed
+
+- [ ] Super Admin can create, upload, edit, publish, unpublish, archive, restore where feasible, and delete Learning content from the Admin Control Room without editing or redeploying Code.gs or Index.html for routine content changes.
+- [ ] Learning content supports title, description, category, level, ordering, media/file type, storage reference, publication status, timestamps, and optional member/VIP visibility.
+- [ ] Super Admin can replace/update Heatmap images or datasets, set the applicable market/instrument and period, add source/updated-at metadata, publish/unpublish, and archive older versions without code changes.
+- [ ] Super Admin can create/update/publish/archive/delete Market Pulse entries and datasets through an authenticated admin interface, without code changes for routine content updates.
+- [ ] All content CRUD and file operations are authorized server-side by role; hiding admin controls in the browser is not authorization.
+- [ ] Private/member/VIP resources are served through backend authorization (or short-lived access grants) and are not exposed through guessable public Drive links, static frontend bundles, public API responses, or service-worker caches.
+- [ ] Upload validation covers file type/signature, size, filename, metadata, and safe rendering; never execute uploaded HTML/JS/SVG as trusted code.
+- [ ] Content changes become visible after successful save/publish and validation; use versioning/audit history and confirmation for destructive actions. Prefer archive/unpublish over irreversible deletion when recovery is useful.
+- [ ] Keep the existing public static Pulse preview and Member Only messaging. Public visitors must not receive actual private Pulse data through page source, direct URLs, API, or cached responses.
+- [ ] Routine content operations must not require editing Code.gs/Index.html. Code changes remain necessary only for genuine schema, security, integration, or feature-logic upgrades.
+
+### B. News & Review and economic calendar automation
+
+- [ ] Build an automated economic-calendar ingestion/synchronization pipeline using a vetted provider/source with documented licensing, timezone, update cadence, and outage behavior.
+- [ ] Cover high-impact XAU/USD-relevant events including NFP, CPI/Core CPI, PCE/Core PCE, FOMC rate decisions/statements/minutes, Fed speeches where available, and other material USD/macro releases.
+- [ ] Store canonical event identity, title, currency, impact level, scheduled timestamp, source timezone, normalized UTC timestamp, WIB display time, forecast, previous, actual, status, source URL, last-synced time, and correction history where available.
+- [ ] Display High/Medium/Low impact clearly and provide an accurate live countdown to scheduled high-impact releases. Countdown must derive from a canonical timestamp, handle timezone/DST correctly, and switch to Released/Delayed/Rescheduled rather than going negative or continuing after the event.
+- [ ] Show Forecast / Previous / Actual only when supplied by the source; do not invent missing values. Record source and last update and visibly flag stale/failed synchronization.
+- [ ] Generate or assist editorial summaries and potential USD/XAUUSD scenarios, but distinguish source facts from model-generated interpretation. Require review/approval before publishing consequential analysis unless an explicitly approved, tested policy says otherwise.
+- [ ] Provide pre-event reminders/alerts with configurable lead times and audience targeting; prevent duplicate alerts and record delivery outcomes.
+- [ ] Support manual admin correction/override with audit history, without allowing a manual edit to be silently overwritten by the next sync.
+- [ ] Do not claim live automation until provider access, licensing, synchronization, failure handling, and end-to-end output have been verified.
+
+### C. Signal Bot automation and shared state
+
+- [ ] Audit the currently running Telegram bot and its source/data flow before integration; do not interrupt, replace, rotate credentials, or change its webhook/triggers during the audit.
+- [ ] Define one canonical server-side signal store/API as the source of truth for both the MPS website and Telegram notifications.
+- [ ] Support XAU/USD multi-timeframe analysis (4H → 1H → 15M), Bullish/Bearish bias, SND/FVG/SNR context, Plans A/B/C, Entry, SL, TP, RR, rationale, validity/expiry, timestamps, and lifecycle status.
+- [ ] Define and validate status transitions (e.g. Draft → Pending → Filled/Active → Closed/Invalidated/Expired, or Skip) and preserve a full event history. Never infer Filled/Closed solely from an unverified price tick.
+- [ ] Automate notifications only from validated state changes; implement idempotency, duplicate suppression, retries with backoff, timeout handling, delivery logs, and admin pause/kill switch.
+- [ ] Add high-impact event countdown/context to the signal dashboard and configurable pre-event risk warnings. Do not automatically suppress, create, or close a signal unless an explicitly approved strategy rule defines that behavior.
+- [ ] Keep Telegram bot tokens, provider API keys, and internal credentials exclusively in server-side secret storage. Never expose them in frontend files, public repository, logs, or client API responses.
+- [ ] Admin can review, correct, publish, pause, and audit signals according to role permissions. Clearly distinguish automated analysis from human-approved publication.
+- [ ] Verify that Telegram and website show the same signal ID, content revision, and status; test duplicate/out-of-order webhook events and partial provider outages.
+- [ ] Preserve the existing bot until a tested migration/rollback plan and explicit production approval exist.
+
+### D. Architecture and acceptance gates
+
+- [ ] Separate stable application code from dynamic content records and media storage. Use a backend content API/CMS and private storage; frontend pages render authorized data rather than embedding frequently changing content.
+- [ ] Use stable content IDs, schema validation, pagination, caching rules, publication state, and audit logs. Cache only public content; bypass service-worker/browser caches for authenticated/private data.
+- [ ] Verify role authorization on every read/write endpoint, including direct URL/API calls and tampered requests.
+- [ ] Keep spreadsheet/member database schema and existing member records intact unless a separately reviewed migration is explicitly approved.
+- [ ] Test upload/update/delete/restore, member/public/VIP access boundaries, direct-link denial, cache isolation, economic event timezone/countdown transitions, source outages, signal state transitions, Telegram idempotency, and rollback.
+- [ ] Report PASS / FAIL / NOT TESTED with evidence. Source inspection or a successful code parse is not proof of live provider, Drive, Apps Script, or Telegram operation.
