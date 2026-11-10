@@ -23,6 +23,16 @@
     <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
   </ul>
 </nav>
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> DEMO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>DEMO: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
+    <span>DEMO: Informasi maintenance resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>DEMO: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
 <header class="page-head"><div class="eyebrow">Who We Are</div><h1>Tentang MPS</h1><p>Komunitas yang ingin membantu trader membangun proses, bukan mengejar janji hasil.</p></header>
 <section><div class="container content"><h2>Identitas Kami</h2><p>Market Psychology Society (MPS) adalah komunitas edukasi dan diskusi trading independen. Fokus utama kami adalah money management, trading psychology, dan trading discipline.</p>
 <div class="notice"><strong>Pendiri &amp; Pengelola:</strong> Ndhi Solasi.</div>
@@ -63,4 +73,6 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 </body></html>
