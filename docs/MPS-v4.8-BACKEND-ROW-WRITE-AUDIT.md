@@ -114,3 +114,41 @@ A synthetic VM test was added at `scripts/test-readonly-schema-inspector.mjs`, a
 The isolated Apps Script failure-injection runbook is in `docs/MPS-v4.8-ISOLATED-FAILURE-INJECTION-PLAN.md`. It requires a disposable Apps Script project, synthetic spreadsheet/Drive resources, deterministic adapter-level fault injection, rollback-failure cases, and concurrent duplicate-approval tests. It explicitly forbids production failpoint switches and production resources.
 
 **Current status:** read-only helper and mock test added; execution pending. Actual Apps Script failure injection remains NOT TESTED. No rollback guarantee is established by this preparation.
+
+
+## Additional static review — compensation gaps found (2026-11-11)
+
+A second line-by-line review of the saved candidate source identified the following rollback gaps. These are **source-level findings**, not runtime reproductions:
+
+### Finding RW-01 — prior Telegram links are not restored on failed deposit submission
+
+In `saveDeposit_()`, the candidate creates a new Telegram link and calls `expireOtherApplicationLinks_()`, which changes other pending links for the same Application Ref to `Diganti`. If a later application-sheet update fails, the catch block restores the deposit/application snapshots and marks the newly created link `Dibatalkan`, but it does not snapshot or restore the prior link rows. A previously valid link can therefore remain expired even though the new deposit operation is rolled back.
+
+**Required correction:** snapshot every affected prior link row/status before mutation; restore those rows if the transaction fails; if restoration fails, persist/emit a reconciliation-required state. Test failure immediately after each prior-link status mutation and during restoration.
+
+### Finding RW-02 — rejection path omits rollback snapshots for Telegram links and access row
+
+In `adminVerifyApplication_()`, the rejection branch changes pending application Telegram-link rows to `Ditolak` and changes the Telegram Access row to `Akses Ditolak`. The catch block snapshots/restores the application and deposit rows, but the rejection branch does not assign snapshots for the changed link rows or rejected Telegram Access row. A later failure can therefore restore the application/deposit state while leaving link/access state rejected.
+
+**Required correction:** capture all changed link rows and the exact Telegram Access row before mutation; restore them on failure. Inject a failure after each write and during each rollback write. Verify that no state mismatch remains.
+
+### Finding RW-03 — rollback errors are swallowed or only logged
+
+The deposit compensation path uses empty catch handlers for restoration/deletion/link cancellation. The approval path logs rollback errors but rethrows only the original error. Neither path creates a durable reconciliation record or reports that compensation was incomplete.
+
+**Required correction:** collect rollback outcomes, write a non-sensitive reconciliation record through a separately verified path, and return a distinct maintenance-required failure state. Never report a clean rollback when any compensation step failed. The reconciliation path itself must not mask the original failure.
+
+### Finding RW-04 — cache failures can misreport an already-persisted submission as failed
+
+In the outer submission flow, after `registerMember_()` or `saveDeposit_()` returns successfully, dashboard cache invalidation and request-result cache writes occur inside the same outer try block. If a cache operation throws after the sheet/file writes have committed, the handler can return an error even though the application/deposit is already persisted. The proof cleanup guard is intentionally disabled after `onProofLinked()`, so a caller retry may encounter an existing deposit rather than a clean retry.
+
+**Required correction:** treat cache invalidation as post-commit best-effort work that cannot reverse the reported database outcome; keep durable idempotency independent of volatile cache where required. Add fault injection immediately after each successful persistence step and at each cache operation.
+
+### Updated risk assessment
+
+- RW-01: **High** — a failed submission can invalidate a previously valid Telegram verification link.
+- RW-02: **High** — rejection failure can leave application/deposit and Telegram access/link states inconsistent.
+- RW-03: **High** — incomplete compensation may be hidden from the caller and lacks a durable repair queue.
+- RW-04: **Medium** — caller-visible failure after persistence can cause confusing retries or duplicate/blocked workflows.
+
+These findings strengthen the release block: the candidate must not be considered rollback-safe until the isolated runtime fault-injection matrix passes and the compensation logic is corrected. No production data or service was changed.
