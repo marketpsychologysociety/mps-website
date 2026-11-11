@@ -808,8 +808,10 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 - [x] Change ownerless lock handling from an unbounded retry loop to a bounded grace period followed by `LOCK_RECOVERY_REQUIRED`; never infer that an ownerless lock is stale or safe to steal.
 - [x] Add a synthetic regression test that confirms the registry fails closed after a bounded grace period and leaves the ambiguous lock directory untouched.
 - [x] Verify the expanded trust-registry suite from clean checkout in GitHub Actions (#315 SUCCESS).
-- [ ] Document a controlled manual reconciliation procedure before any real deployment; no automatic deletion of ownerless locks.
+- [x] Document a controlled manual reconciliation procedure for the synthetic same-host test environment; no automatic deletion of ownerless locks.
  
+**Runbook:** `docs/MPS-REVIEWER-REGISTRY-LOCK-RECOVERY-RUNBOOK.md` defines stop conditions, evidence preservation, two-person manual review, copy validation, atomic quarantine, and single-writer restart. It is explicitly limited to the synthetic local-filesystem harness.
+
 **Verification status:** clean-checkout GitHub Actions workflow #315 (run ID `42948585112`) completed **SUCCESS** on commit `6eeeb39657db5a2219656c574aca2f48a1b92553`. The trust-registry suite, including the bounded ownerless-lock regression and both nonce crash-recovery cases, completed successfully; all other configured synthetic suites and Chromium browser checks also passed. This is CI evidence, not a separate local run.
 
 **Scope limits:** synthetic local filesystem only. This narrows a process-lock recovery failure mode but does not provide multi-host locking, power-loss guarantees, transactional durability, or production-grade storage. No production system, GCP resource, credential, identity provider, member data or deployment is touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
