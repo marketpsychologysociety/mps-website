@@ -164,3 +164,12 @@ test('corrupt persisted intent and cursor are rejected on read',()=>{
  h.sheets.get('MPS Telegram VIP Member Cursor')[1][3]='not-decimal';
  assert.throws(()=>h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12')),/VIP_TRANSITION_CURSOR_CORRUPT/);
 });
+
+test('pending scan fails closed on a corrupt completed intent for the same member',()=>{
+ const h=harness();
+ h.run((s,tx)=>s.insertIntent(tx,record()));
+ h.run((s,tx)=>s.updateIntent(tx,'telegram:2:100:vip_transition',{'State':'STATUS_APPLIED'}));
+ h.run((s,tx)=>s.updateIntent(tx,'telegram:2:100:vip_transition',{'State':'COMPLETED'}));
+ h.sheets.get('MPS Telegram VIP Transition Intents')[1][8]='bad-hash';
+ assert.throws(()=>h.run((s,tx)=>s.findPending(tx,'MPS-ABCDEF12')),/VIP_TRANSITION_INTENT_CORRUPT/);
+});
