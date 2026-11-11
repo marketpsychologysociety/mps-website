@@ -284,6 +284,23 @@ try {
     }
   }
 
+  // Public Market Pulse must remain a static preview; no actual dataset or API payload is public.
+  const heatmapResponse = await page.goto(base + '/heatmap.html', { waitUntil: 'domcontentloaded' });
+  if (!heatmapResponse || heatmapResponse.status() !== 200) failures.push('Public Market Pulse preview did not return HTTP 200');
+  const publicPulseState = await page.evaluate(() => ({
+    memberOnly: document.body.innerText.includes('MEMBER ONLY · DATA PRIVAT'),
+    previewDisclosure: document.body.innerText.includes('bukan data Market Pulse yang sebenarnya'),
+    demoTicker: !!document.querySelector('[data-mps-demo-ticker]'),
+    actualDatasetInline: [...document.scripts].some(script => /const\\s+D\\s*=/.test(script.textContent || '')),
+    datasetScript: [...document.scripts].some(script => /market.?pulse.?data|pulse.?dataset/i.test(script.src || ''))
+  }));
+  if (!publicPulseState.memberOnly || !publicPulseState.previewDisclosure || !publicPulseState.demoTicker) {
+    failures.push('Public Market Pulse page must show Member Only, static-preview disclosure, and demo ticker');
+  }
+  if (publicPulseState.actualDatasetInline || publicPulseState.datasetScript) {
+    failures.push('Public Market Pulse page contains an actual dataset or dataset script');
+  }
+
   // Exercise the Announcement Center prototype: ticker controls, category filter,
   // and the presentation-only roulette. No real member or draw data is loaded.
   const announcementResponse = await page.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
