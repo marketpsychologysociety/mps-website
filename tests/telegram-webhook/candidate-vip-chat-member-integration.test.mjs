@@ -27,7 +27,7 @@ function joinHarness(fetchImpl){
  const accessSheet={getRange:()=>({getValues:()=>[accessRow]})};
  const memberSheet={getRange:()=>({getValues:()=>[memberRow]})};
  const context={
-  console,
+  console,MPS:{headers:new Array(30)},
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>({MPS_TELEGRAM_VIP_CHAT_ID:'-1001234567890',MPS_TELEGRAM_BOT_TOKEN:'123456:TEST_TOKEN_NOT_REAL'})[key]||''})},
   getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByUserId_:()=>2,
   getMemberSheet_:()=>memberSheet,findMemberById_:()=>2,
