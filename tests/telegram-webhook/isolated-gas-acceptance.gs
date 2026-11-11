@@ -42,7 +42,7 @@ function runMpsV480IsolatedGasAcceptance(confirmation) {
     report.checks.push({ name: message, passed: true });
   }
   function makeSheet_(book, name, headers, row) {
-    var sh = book.insertSheet(name);
+    var sh = book.getSheetByName(name) || book.insertSheet(name);
     sh.getRange(1, 1, 1, headers.length).setValues([headers]);
     if (row) sh.getRange(2, 1, 1, row.length).setValues([row]);
     return sh;
@@ -71,7 +71,8 @@ function runMpsV480IsolatedGasAcceptance(confirmation) {
     synthetic = SpreadsheetApp.create('MPS_ISOLATED_ACCEPTANCE_' + new Date().getTime());
     var spreadsheetId = synthetic.getId();
     var defaultSheet = synthetic.getSheets()[0];
-    synthetic.deleteSheet(defaultSheet);
+    defaultSheet.setName('Database Member');
+    assert_(DriveApp.getFileById(spreadsheetId).getSharingAccess() === DriveApp.Access.PRIVATE, 'Synthetic spreadsheet is private');
 
     var memberHeaders = [
       'ID Member','Waktu Daftar','Nama Panggilan','Username Telegram','Negara','Tujuan Bergabung','Catatan Member','Status Pendaftaran',
