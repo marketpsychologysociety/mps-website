@@ -248,6 +248,20 @@ Legend: **R** read, **C** create/command, **A** approve, **—** denied. Scope a
 
 No row grants authority solely because a person holds a role. For every approval pair, the backend checks distinct immutable human subjects and policy-specific separation. Service identities are non-interactive and cannot count as human approvers.
 
+
+### 6.1 Canonical role identifiers
+
+The API and audit layer must use exactly these role identifiers (case-sensitive):
+
+- `DRAW_OPERATOR`
+- `DRAW_REVIEWER`
+- `DRAW_PUBLISHER`
+- `DRAW_AUDITOR`
+- `DRAW_SECURITY_ADMIN`
+- `SERVICE_IDENTITY` (non-human, non-interactive; never counts as an independent approver)
+
+Role grants are bound to immutable `issuer + subject`, scope, effective time and revocation state. Human roles cannot be inferred from email, display name or client input. Service identities must be separately registered and narrowly scoped.
+
 ## 7. Identity and session acceptance
 
 ### 7.1 OIDC validation
@@ -488,6 +502,12 @@ This specification does **not** authorize:
 - executing a real winner draw or publishing an official winner.
 
 Before any such action, present the exact resource/provider, owner, region, permissions, data class, cost estimate/cap, retention and irreversibility, rollback limitations and evidence plan for separate explicit approval. “Next” or “Lanjut” authorizes only safe isolated work, not these operations.
+
+
+
+### 15.1 Explicit non-actions in P1.22
+
+No cloud project/account, database, bucket, KMS key, audit sink, identity-provider tenant, billing configuration, IAM binding, privileged account, service identity, credential, provider notification, Apps Script deployment, Sheet/Drive/Telegram connection, DNS/hosting change, production data access or live draw was created, configured or changed. No member data was copied, hashed or used. The logical schema is not a migration and has not been applied to any database.
 
 ## 16. P1.22 completion checklist
 
