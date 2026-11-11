@@ -81,6 +81,8 @@ jobs:
         run: node --test tests/telegram-webhook/durable-effect-outbox.test.mjs
       - name: Run Telegram handler reconciliation contract tests (synthetic only)
         run: node --test tests/telegram-webhook/handler-reconciliation.test.mjs
+      - name: Run append-only Telegram effect-key migration contract tests (synthetic only)
+        run: node --test tests/telegram-webhook/effect-ledger-migration.test.mjs
       - name: Run read-only schema inspector tests
         run: node scripts/test-readonly-schema-inspector.mjs
       - name: Install Playwright and Chromium
