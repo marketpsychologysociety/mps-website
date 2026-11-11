@@ -310,3 +310,6 @@ P1.23 verification update: corrected clean-checkout CI run #403 (42964135867) co
 ## P1.24 — SQLite transactional persistence (synthetic only)
 
 Added a local file-backed SQLite adapter and nine tests for atomic draw/idempotency/outbox writes, canonical idempotency replay, rollback, database constraints, and reopen-after-lost-ack behavior. Uses Node's built-in experimental `node:sqlite`; no external package or production DB. Local Node 22.16.0 run: 9 PASS, 0 FAIL, 0 SKIP. CI verification pending. See `docs/MPS-P1.24-SQLITE-TRANSACTIONAL-PERSISTENCE.md`.
+
+
+P1.24 verification: local Node 22.16.0 tests 9 PASS / 0 FAIL / 0 SKIP; clean-checkout CI run #417 (`42964627111`) SUCCESS, including the SQLite step, all other synthetic suites and Chromium browser checks. No production or cloud integration was performed.
