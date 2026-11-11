@@ -111,25 +111,17 @@ function createMpsGasVipTransitionOrchestrator_(config) {
         {epoch:Number(cursor.epoch),sourceDate:Number(cursor.sourceDate),updateId:String(cursor.updateId)})<=0)return 'STALE';
       var record={
         'Intent Key':intentKey,'Update Epoch':epoch,'Update ID':updateId,'Member ID':memberId,
-        'Target State':target,'Source Type':'CHAT_MEMBER','Source Date':sourceDate,
+        'Member Name':String(input.memberName||memberId),'Target State':target,'Source Type':'CHAT_MEMBER','Source Date':sourceDate,
         'Payload SHA-256':payloadHash,'State':'INTENT','Ticker Effect Key':intentKey+':ticker',
         'Audit Effect Key':intentKey+':audit','Created At':timestampIso,'Updated At':timestampIso,
-        'Last Error Code':'','Member Name':String(input.memberName||memberId)
+        'Last Error Code':''
       };
-      // Member Name is not a persisted intent column; ticker identity is supplied
-      // by the caller through a stable optional field below only when available.
-      delete record['Member Name'];
       var inserted=store.insertIntent(tx,record);
       if(inserted.outcome==='REVIEW_COLLISION')throw new Error('VIP_TRANSITION_INTENT_COLLISION');
       if(inserted.outcome!=='INSERTED'&&inserted.outcome!=='EXISTS')throw new Error('VIP_TRANSITION_INTENT_WRITE_FAILED');
       var durable=store.readIntent(tx,intentKey);
       if(!durable)throw new Error('VIP_TRANSITION_INTENT_NOT_DURABLE');
       if(String(durable['Payload SHA-256'])!==payloadHash)throw new Error('VIP_TRANSITION_INTENT_COLLISION');
-      if(target==='ACTIVE'&&input.memberName){
-        // The display name is deliberately passed only to the effect row and is
-        // not retained in the durable intent; see process-scoped value below.
-        durable['Member Name']=String(input.memberName);
-      }
       finish_(tx,durable,timestampIso);
       return target;
     });
