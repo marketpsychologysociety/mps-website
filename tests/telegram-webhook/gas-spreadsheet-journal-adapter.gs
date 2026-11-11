@@ -26,7 +26,7 @@ function createMpsTelegramGasJournal_(config) {
     'Lease Expires At', 'Claim Token', 'Completed At',
     'Effect Keys JSON', 'Last Error Code'
   ];
-  var allowedStates = { RECEIVED: true, PROCESSING: true, RETRYABLE: true, DONE: true, REVIEW: true };
+  var allowedStates = { RECEIVED: true, PROCESSING: true, RETRYABLE: true, DONE: true, REVIEW: true };\n  var allowedUpdateTypes = { CHAT_JOIN_REQUEST: true, CHAT_MEMBER: true, BOT_CHAT_MEMBER: true, MESSAGE: true, OTHER: true };
 
   function withLock_(fn) {
     var lock = LockService.getScriptLock();
