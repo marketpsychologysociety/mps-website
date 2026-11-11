@@ -108,10 +108,11 @@ test('crash after durable intent fails closed as RECONCILIATION_REQUIRED after r
 
   child = startSandbox(directory, 'after_intent');
   await waitForHealth(child);
+  const crashExit = new Promise(resolve => child.once('exit', resolve));
   await assert.rejects(api('POST', '/api/v1/draws/' + drawId + '/execute', {
     body: {}, key: 'crash-after-intent-001', version: 1
   }));
-  const crashCode = await new Promise(resolve => child.once('exit', resolve));
+  const crashCode = await crashExit;
   assert.equal(crashCode, 86);
 
   child = startSandbox(directory);
