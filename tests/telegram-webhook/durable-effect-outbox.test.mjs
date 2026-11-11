@@ -20,7 +20,7 @@ test('enqueue persists only effect metadata and a payload digest', async () => {
   const row = await store.get(effect.effectKey);
   assert.equal(row.state, 'PENDING');
   assert.match(row.payloadHash, /^[a-f0-9]{64}$/);
-  assert.equal(JSON.stringify(row).includes('VIP_WELCOME'), false);
+  assert.equal(Object.hasOwn(row, 'payload'), false);
   assert.equal(JSON.stringify(row).includes('9988'), false);
 });
 
