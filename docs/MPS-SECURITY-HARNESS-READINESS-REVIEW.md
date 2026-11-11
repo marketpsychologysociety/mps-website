@@ -109,7 +109,7 @@ Before the public-projection fixture was added, a local test run against a recon
 
 ## 7. Safety boundary
 
-This review changes documentation only. No production branch, Apps Script deployment, database, spreadsheet, Drive file, Script Property, identity provider, cloud resource, webhook, or member record is created, modified, or accessed.
+This isolated workbench update adds test-only local journal code and documentation. No production branch, Apps Script deployment, database, spreadsheet, Drive file, Script Property, identity provider, cloud resource, webhook, or member record is created, modified, or accessed.
 
 
 ### P0 public projection privacy gate — verified update (2026-11-11)
