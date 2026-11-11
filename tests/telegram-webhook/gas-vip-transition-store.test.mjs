@@ -122,4 +122,9 @@ test('cursor writes use text update IDs and reject malformed identifiers before 
  assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'01',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'})),/VIP_TRANSITION_INVALID_UPDATE_ID/);
 });
 
-test('cursor rejects regression and conflicting transition at identical sequence',()=>{\n const h=harness();\n h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:vip_transition',updatedAt:'now'}));\n assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'999',transitionKey:'telegram:2:999:vip_transition',updatedAt:'old'})),/VIP_TRANSITION_CURSOR_REGRESSION/);\n assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:other',updatedAt:'now'})),/VIP_TRANSITION_CURSOR_COLLISION/);\n});\n
+test('cursor rejects regression and conflicting transition at identical sequence',()=>{
+ const h=harness();
+ h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:vip_transition',updatedAt:'now'}));
+ assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'999',transitionKey:'telegram:2:999:vip_transition',updatedAt:'old'})),/VIP_TRANSITION_CURSOR_REGRESSION/);
+ assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:other',updatedAt:'now'})),/VIP_TRANSITION_CURSOR_COLLISION/);
+});
