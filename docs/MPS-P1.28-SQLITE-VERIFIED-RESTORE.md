@@ -1,7 +1,7 @@
 # P1.28 — Verified SQLite Backup Restore and Recovery Reconciliation
 
 **Evidence class:** SYNTHETIC  
-**Status:** implementation and clean-checkout verification pending  
+**Status:** seven verified-restore tests pass in clean-checkout CI run #460  
 **Production decision:** official winner draw **BLOCKED / NO-GO**; roulette **SIMULATION ONLY**
 
 ## Objective
@@ -23,6 +23,12 @@ Validate a controlled SQLite recovery sequence: create a consistent logical back
 6. Existing target/source are never overwritten.
 7. Interruption after target creation leaves evidence in place, returns `RESTORE_RECONCILIATION_REQUIRED`, and refuses a blind retry.
 8. Unknown manifest fields fail closed.
+
+## Verification outcome
+
+Clean-checkout GitHub Actions run #460 (`42967284731`) on code commit `38b9794ebb054223c523669ba500052140d14f72`: **SUCCESS**. P1.28 tests: 7 PASS, 0 FAIL, 0 SKIP. Full workflow: 29/29 steps successful, 0 failed, 0 skipped; Chromium browser checks passed.
+
+An initial CI attempt found that Node's SQLite row objects use a null prototype, so a strict deep comparison with ordinary object literals failed despite identical field values. The test now normalizes each selected row to an explicit plain object before comparing exact field values. The data assertions and restore checks were retained.
 
 ## Trust boundary
 
