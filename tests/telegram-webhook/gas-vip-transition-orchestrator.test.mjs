@@ -129,3 +129,11 @@ test('same transition key with changed target or member identity is quarantined'
  assert.throws(()=>h.process({...input(),memberName:'Other Member'}),/VIP_TRANSITION_INTENT_COLLISION/);
  assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
 });
+
+
+test('later Telegram event date wins after update ID reset even with lower epoch and ID',()=>{
+ const h=harness();migrate(h);
+ assert.equal(h.process({...input('LEFT','900',1760000000),epoch:5}),'LEFT');
+ assert.equal(h.process({...input('ACTIVE','2',1760000001),epoch:0}),'ACTIVE');
+ assert.equal(h.sheets.get('MPS VIP Access State')[1][1],'ACTIVE');
+});
