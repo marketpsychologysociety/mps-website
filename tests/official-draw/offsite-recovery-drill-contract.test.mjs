@@ -74,3 +74,12 @@ test('rejects malformed timing and unknown schema fields',()=>{
  const c=fixture();c.extra='unexpected';
  assert.throws(()=>verifyOffsiteRecoveryDrill(c),e=>e.code==='DRILL_SCHEMA_INVALID');
 });
+
+test('requires an independently established expected source checkpoint',()=>{
+ const b=fixture();
+ assert.throws(()=>verifyOffsiteRecoveryDrill(b),e=>e.code==='SOURCE_CHECKPOINT_MISMATCH');
+});
+test('rejects retention that expires before drill completion',()=>{
+ const b=fixture();b.backup.retention_until='2026-11-10T00:00:00.000Z';
+ assert.throws(()=>verifyOffsiteRecoveryDrill(b,{expectedSourceCheckpoint:{sequence:12,last_hash:b.source.last_hash}}),e=>e.code==='RETENTION_NOT_IMMUTABLE');
+});
