@@ -76,7 +76,7 @@ export class VipActivationOrchestrator {
     const key = keyFor(updateId, 'vip_activation');
     const intent = await this.store.atomic(async () => {
       const existing = await this.store.intent(key);
-      if (existing) return existing;
+      if (existing) return existing.state === 'COMPLETED' ? null : existing;
       const member = await this.store.member(memberId);
       if (member.status === 'ACTIVE') return null;
       const next = {
