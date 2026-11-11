@@ -150,3 +150,13 @@ The recovery verifier now requires an exact record-key allowlist; unknown extra 
 **GitHub Actions run #180** on commit `ec9c3df600dbd7e3509f56dc9e620309aa4fb606` completed successfully from a clean checkout: durable journal suite **8 PASS, 0 FAIL, 0 SKIP**; Official Draw contract **10 PASS**; schema compatibility **9/9**; read-only inspector **5 scenarios**; Chromium PWA/browser checks passed. Overall workflow: **SUCCESS**. The immediately preceding run #179 failed because the new canary test reached CI one commit before its matching exact-schema guard; the follow-up commit added the guard, and run #180 verified the combined change green.
 
 This closes the standalone journal's synthetic test gap only. The journal is not yet integrated into API state transitions and remains single-process local-file storage without a cross-process lock, transactional database, or external hash anchor. API-level restart/fault-injection tests remain next. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+## P1.2 — persistent HTTP sandbox integration (2026-11-11)
+
+A separate test-only adapter, tests/official-draw/persistent-local-sandbox-adapter.mjs, now connects HTTP draw execution to the P1.1 durable audit journal. Completed allowlisted aggregate records rebuild synthetic draw state on process startup. An incomplete durable intent causes the associated draw to restore as RECONCILIATION_REQUIRED; the API rejects a duplicate attempt rather than silently executing again.
+
+tests/official-draw/persistent-api-integration.test.mjs exercises real child Node processes on loopback and a shared disposable temporary journal directory. It checks state and idempotency recovery after process restart, changed-payload conflict, and forced process termination after intent fsync. CI now runs this suite.
+
+Verification is pending until the new clean-checkout workflow run completes. Do not claim the integration tests passed before the run is green.
+
+Scope limits: this is still a single-process local-file prototype. It has no cross-process locking, transactional database, external hash anchor, OIDC/MFA, beacon signature verifier, fair selection algorithm, or production suitability. Crash reconciliation is fail-closed but requires a separate reviewed recovery procedure. Official draw remains BLOCKED / NO-GO; roulette remains SIMULATION ONLY.
