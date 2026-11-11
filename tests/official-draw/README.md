@@ -78,3 +78,29 @@ The adapter source must be reviewed before execution. It must not make requests 
 - **ERROR:** test infrastructure failed; investigate before interpreting security posture.
 
 A passing harness is not a complete security certification. It does not replace OIDC provider validation, cryptographic beacon verification, source review, independent proof reproduction, fault injection, browser testing, Android testing, or external security review.
+
+## Included loopback sandbox (synthetic only)
+
+A deliberately limited local API sandbox and adapter are included at
+`tests/official-draw/local-sandbox-adapter.mjs`. It binds only to
+`127.0.0.1:4178` and uses fixed synthetic bearer tokens mapped to synthetic
+actor subjects/roles inside the test process. It has in-memory state only.
+
+Run the integration scaffold against it from the repository root:
+
+```sh
+MPS_DRAW_TEST_ALLOW_LOCAL=1 \
+MPS_DRAW_TEST_ADAPTER=./tests/official-draw/local-sandbox-adapter.mjs \
+node --test tests/official-draw/security-contract.test.mjs
+```
+
+The sandbox is intended to exercise real local HTTP routing and middleware
+boundaries for a narrow set of negative/contract tests. It is **not** an OIDC
+implementation, durable database, tamper-evident journal, production identity
+system, beacon verifier, fair winner-selection engine, or deployable Draw API.
+Its synthetic credentials are test fixtures, not secrets. Never expose the
+port, reuse its tokens, connect it to real data, or deploy this module.
+
+The sandbox's state is reset in memory before each test. Passing these tests
+would demonstrate only that these specific sandbox contracts behave as
+asserted; it would not demonstrate that a future production backend is secure.
