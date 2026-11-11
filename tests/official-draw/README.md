@@ -333,3 +333,13 @@ node --test tests/official-draw/sqlite-operational-boundaries.test.mjs
 ```
 
 Five test cases cover six checks: bounded writer lock contention, WAL snapshot consistency across concurrent commits, checkpoint blocking while a reader is active, checkpoint completion after release, logical snapshot backup including committed WAL data, refusal to overwrite an existing backup destination, and PASSIVE checkpoint/integrity checks. Uses temporary local SQLite files and fixed child-worker modes only. Clean-checkout GitHub Actions run #437 (`42966034774`) SUCCESS; P1.26 tests and Chromium browser checks passed with no failed/skipped workflow steps. This is CI evidence, not a separate local or production run. See `docs/MPS-P1.26-SQLITE-OPERATIONAL-BOUNDARIES.md`.
+
+
+## P1.27 — SQLite failure containment and fail-closed integrity (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/sqlite-failure-containment.test.mjs
+```
+
+Four tests cover connection-level query-only rejection, bounded database-full rollback using `max_page_count`, corruption detection on a disposable copy while preserving the healthy source, and no silent repair/overwrite after corruption. These are controlled local simulations, not OS read-only permissions, real disk exhaustion, or an exhaustive corruption campaign. Clean-checkout CI verification pending. See `docs/MPS-P1.27-SQLITE-FAILURE-CONTAINMENT.md`.
