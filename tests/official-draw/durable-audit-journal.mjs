@@ -12,6 +12,7 @@ const GENESIS = 'GENESIS';
 const MAX_LINE_BYTES = 64 * 1024;
 const HASH_RE = /^[a-f0-9]{64}$/;
 const RESULT_FIELDS = new Set(['state', 'status', 'code', 'synthetic', 'result_digest', 'proof_digest']);
+const RECORD_FIELDS = new Set(['seq', 'type', 'operation_id', 'idempotency_key', 'actor_subject', 'target_id', 'payload_digest', 'result', 'created_at', 'prev_hash', 'hash']);
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -133,7 +134,9 @@ export class DurableAuditJournal {
   }
 
   #verifyAndApply(record) {
-    if (!record || !Number.isSafeInteger(record.seq) || record.seq !== this.records.length + 1 ||
+    if (!record || typeof record !== 'object' || Array.isArray(record) ||
+        Object.keys(record).length !== RECORD_FIELDS.size || Object.keys(record).some(key => !RECORD_FIELDS.has(key)) ||
+        !Number.isSafeInteger(record.seq) || record.seq !== this.records.length + 1 ||
         !['INTENT', 'COMPLETION'].includes(record.type) ||
         typeof record.operation_id !== 'string' || typeof record.idempotency_key !== 'string' ||
         typeof record.actor_subject !== 'string' || typeof record.target_id !== 'string' ||
