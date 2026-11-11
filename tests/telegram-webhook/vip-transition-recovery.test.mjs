@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SharedVipTransitionStore,VipTransitionOrchestrator} from './vip-transition-recovery.mjs';
 
-const input=(updateId,targetState,epoch=0)=>({updateId,targetState,epoch,memberId:'MPS-ABCDEF12',receivedAt:1800000000000});
+const input=(updateId,targetState,epoch=0,sourceDate=1800000000)=>({updateId,targetState,epoch,sourceDate,memberId:'MPS-ABCDEF12',receivedAt:1800000000000});
 function setup(){const base=new SharedVipTransitionStore();return{base,make:opts=>new VipTransitionOrchestrator(new SharedVipTransitionStore(base.data),opts)};}
 
 for(const targetState of ['ACTIVE','LEFT']) {
@@ -17,7 +17,7 @@ for(const targetState of ['ACTIVE','LEFT']) {
     const member=s.base.member('MPS-ABCDEF12');
     assert.equal(member.statusA,targetState);
     assert.equal(member.statusB,targetState);
-    assert.deepEqual(member.cursor,{epoch:0,updateId:'100'});
+    assert.deepEqual(member.cursor,{epoch:0,sourceDate:1800000000,updateId:'100'});
     const intent=s.base.intent('telegram:0:100:vip_transition');
     assert.equal(intent.state,'COMPLETED');
     assert.equal(s.base.data.effects.size,targetState==='ACTIVE'?2:1);
@@ -33,7 +33,7 @@ test('pending older transition is recovered before a newer opposite transition',
   const member=s.base.member('MPS-ABCDEF12');
   assert.equal(member.statusA,'LEFT');
   assert.equal(member.statusB,'LEFT');
-  assert.deepEqual(member.cursor,{epoch:0,updateId:'201'});
+  assert.deepEqual(member.cursor,{epoch:0,sourceDate:1800000000,updateId:'201'});
   assert.equal(s.base.intent('telegram:0:200:vip_transition').state,'COMPLETED');
   assert.equal(s.base.intent('telegram:0:201:vip_transition').state,'COMPLETED');
 });
@@ -57,3 +57,5 @@ test('a newer ingress epoch accepts a lower update ID',async()=>{
   await s.make().process(input('999999999999','LEFT',0));
   assert.equal(await s.make().process(input('10','ACTIVE',1)),'ACTIVE');
 });
+
+test('source event date outranks a larger update ID within the same ingress epoch',async()=>{\n  const s=setup();\n  await s.make().process(input(900,'LEFT',0,1800000002));\n  assert.equal(await s.make().process(input(901,'ACTIVE',0,1800000001)),'STALE');\n  assert.equal(s.base.member('MPS-ABCDEF12').statusA,'LEFT');\n});\n
