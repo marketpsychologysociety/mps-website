@@ -277,3 +277,8 @@ See docs/MPS-P1.20-PRODUCTION-ACTIVATION-READINESS.md for the consolidated G0–
 ## P1.21 — security architecture implementation blueprint
 
 See `docs/MPS-P1.21-SECURITY-ARCHITECTURE-IMPLEMENTATION-BLUEPRINT.md` for trust boundaries, component contracts, implementation dependencies, G0–G11 operational evidence, test layers, stop/rollback rules and approval gates. Documentation only; no real identity, cloud, database, evidence provider, monitoring, beacon verifier or production integration was created. Operational readiness remains **NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.22 — isolated technical acceptance specification
+
+The detailed acceptance baseline is in `docs/MPS-P1.22-ISOLATED-TECHNICAL-ACCEPTANCE-SPEC.md`. It defines the logical data model, endpoint contracts, authorization matrix, transaction invariants, OIDC/session tests, evidence adapter, beacon boundaries, and 40 technical acceptance cases. Documentation only: no live service, database, identity provider, cloud resource, credentials, production integration or member data was created/changed. Official draw remains **NO-GO**; roulette remains **SIMULATION ONLY**.
