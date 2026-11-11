@@ -499,3 +499,65 @@ Evidence: `docs/MPS-v4.8-BACKEND-ROW-WRITE-AUDIT.md`. The source passed Node Jav
 - [ ] Run the complete deterministic fault-injection matrix, including cache failure, link creation failure, rollback failure, and concurrency.
 
 **Updated static risk register:** RW-01/02/03/06 High; RW-04/05/07 Medium. None has been reproduced against an Apps Script runtime. No live service or production data was accessed or changed.
+
+---
+
+## Consolidated progress update — 2026-11-11 (workbench only)
+
+This section supersedes earlier checklist assumptions where newer evidence is recorded below. A checked item means the stated artifact or source-level task exists; it does **not** automatically mean production/runtime acceptance.
+
+### Completed / delivered in the isolated workbench
+
+- [x] Security & Anti-Abuse Blueprint and companion threat model documented.
+- [x] Winner-draw security review, dual-control/audit-journal design, identity/evidence architecture, official Draw API contract, abuse-case plan (TM-01–TM-32), and security-harness readiness review documented.
+- [x] Announcement Center / Winner Board / Lucky Roulette prototype added with premium dark-neon styling, responsive layout, announcement categories, maintenance area, winner empty state, and demo-only roulette.
+- [x] Shared public-center frontend controller added. External feed remains fail-closed behind `MPS_CONFIG.publicCenter.enabled=false` until an isolated Apps Script runtime test is completed.
+- [x] Generic privacy-safe ticker integrated into 11 public routes. No real names or full member IDs are displayed; ticker uses generic text and a masked ID only when the backend privacy gate supplies a valid unique mask.
+- [x] Public feed rendering uses DOM text nodes/textContent and URL validation; ticker does not use JSONP.
+- [x] Service-worker public cache namespace advanced to v6 and the public-center script added to the explicit public asset allowlist.
+- [x] Static route audit for the 11 ticker routes completed; local JavaScript syntax and synthetic DOM checks passed.
+- [x] Draw sandbox adapter added as a loopback-only synthetic HTTP service; ownership checks and If-Match version preconditions added for state-changing actions.
+- [x] Draw contract tests expanded for cross-owner execution and missing/stale version preconditions. Privacy test now explicitly SKIPs when no real public projection fixture exists rather than treating null as a pass.
+- [x] Workbench documentation and security readiness review updated to distinguish implemented artifacts from unimplemented production controls.
+
+### Completed checks — evidence scope
+
+- [x] GitHub readback of updated workbench files and blob hashes.
+- [x] Static route audit and local syntax/synthetic DOM checks for the announcement ticker integration.
+- [x] Narrow sandbox contract run on a reconstructed local working copy of the fetched adapter and harness: **8 PASS, 1 SKIP, 0 FAIL**. The skipped test is public-projection privacy because no published projection fixture/serialization endpoint exists. This was not a clean checkout or CI run.
+- [x] Latest GitHub compare reports `mps-v4.8-workbench` **136 commits ahead, 0 behind** `main`; the base `main` SHA remains `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`.
+
+### In progress / pending — do not mark complete
+
+- [ ] Run the test suite from a clean workbench checkout or CI and retain exact commit-bound logs.
+- [ ] Implement a real synthetic public projection fixture and serialization endpoint; then turn the privacy SKIP into an actual canary-leak test.
+- [ ] Implement real OIDC validation, individually authenticated privileged identities, revocation, MFA/step-up, and enforceable person-level dual control.
+- [ ] Replace in-memory sandbox state with isolated durable synthetic persistence, journal intent/completion, idempotency ledger, and fault-injection coverage.
+- [ ] Implement and independently verify the beacon signature verifier, pinned beacon configuration, deterministic unbiased selection, snapshot commitment, and reproducible draw proof.
+- [ ] Build the official Draw API from the contract; the current sandbox is only a narrow test harness, not that API.
+- [ ] Complete announcement CMS/backend integration and runtime-test the public Apps Script bridge. Feature flag remains OFF.
+- [ ] Complete verified winner publication workflow. Winner Board remains empty; roulette remains simulation-only.
+- [ ] Run Apps Script runtime tests, isolated Sheets/Drive ACL checks, backend direct-API tests, real browser tests, and Android/iPhone device tests.
+- [ ] Complete outstanding P0–P7 workbench tasks, including deployed backend identification, v4.7/v4.8 parity, member/database lifecycle, Signal Center, PWA device acceptance, full regression, and release preparation.
+- [ ] Resolve previously documented backend rollback risks RW-01 through RW-07 in a full candidate and reproduce them in an isolated Apps Script runtime before acceptance.
+- [ ] Verify production hosting, Netlify settings, canonical domain/DNS, account MFA, Telegram integration and active Apps Script deployment only through authorized read-only evidence; no production mutation is implied.
+
+### Explicit blockers / release decisions
+
+- **Official winner draw: BLOCKED / NO-GO.**
+- **Frontend roulette: SIMULATION ONLY.**
+- **Public-center backend feed: DISABLED** until isolated Apps Script runtime validation.
+- **Production backend security: NOT VERIFIED.**
+- **Production database/schema and Drive ACLs: NOT VERIFIED.**
+- **No deployment, merge, live DB change, credential rotation, DNS/hosting change, trigger, or Telegram webhook change is authorized by this plan.**
+
+### Next recommended execution order
+
+1. Clean-checkout/CI run for the sandbox and retain evidence.
+2. Implement real public projection fixture + canary privacy test.
+3. Build durable synthetic Draw API persistence/journal and fault-injection layer.
+4. Implement actual OIDC/dual-control boundary in an isolated identity sandbox.
+5. Implement beacon verifier and deterministic proof workflow.
+6. Finish announcement CMS bridge and runtime tests.
+7. Resume remaining P0–P7 acceptance items; only then prepare a separate release review.
+
