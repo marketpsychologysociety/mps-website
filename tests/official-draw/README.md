@@ -119,8 +119,17 @@ Run the standalone persistence and fault-injection suite:
 node --test tests/official-draw/durable-audit-journal.test.mjs
 ```
 
-The journal uses a disposable local directory and an append-only JSONL file. It writes INTENT and COMPLETION records, fsyncs each append, verifies a sequential SHA-256 hash chain on reopen, recovers complete records, drops only an incomplete final line, rejects complete-record tampering, and enforces idempotency and a narrow completion-result field allowlist.
+The journal uses a disposable local directory and an append-only JSONL file. It writes INTENT and COMPLETION records, fsyncs each append, verifies a sequential SHA-256 hash chain and exact journal-record key allowlist on reopen, recovers complete records, drops only an incomplete final line, rejects complete-record tampering/unknown fields, and enforces idempotency and a narrow completion-result field allowlist.
 
 The fault-injection tests cover failure before append, write-before-fsync ambiguity, and fsync-before-ack loss. Uncertain outcomes require closing/reopening and reconciling before writes resume.
 
 **Limitations:** this is a single-process local test prototype and is not yet connected to the HTTP sandbox state transitions. It has no multi-process lock, transactional database, external hash anchor, backup/restore, OIDC, or production hardening. A hash chain stored only in the same writable file is not tamper-proof against an attacker who can rewrite the entire file and recompute all hashes. Use synthetic metadata only; never write participant PII, proof documents, PINs, credentials, or production data.
+
+
+### P1.1 strict journal schema hardening — verified CI (2026-11-11)
+
+The recovery verifier now requires an exact record-key allowlist; unknown extra fields fail closed before hash-chain application. A synthetic canary test confirms that an unexpected private payload field is rejected during recovery. Completion results also remain restricted to the bounded allowlist.
+
+**GitHub Actions run #180** on commit `ec9c3df600dbd7e3509f56dc9e620309aa4fb606` completed successfully from a clean checkout: durable journal suite **8 PASS, 0 FAIL, 0 SKIP**; Official Draw contract **10 PASS**; schema compatibility **9/9**; read-only inspector **5 scenarios**; Chromium PWA/browser checks passed. Overall workflow: **SUCCESS**. The immediately preceding run #179 failed because the new canary test reached CI one commit before its matching exact-schema guard; the follow-up commit added the guard, and run #180 verified the combined change green.
+
+This closes the standalone journal's synthetic test gap only. The journal is not yet integrated into API state transitions and remains single-process local-file storage without a cross-process lock, transactional database, or external hash anchor. API-level restart/fault-injection tests remain next. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
