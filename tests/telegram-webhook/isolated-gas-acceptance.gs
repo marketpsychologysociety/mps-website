@@ -32,7 +32,7 @@ function runMpsV480IsolatedGasAcceptance(confirmation) {
   var report = {
     suite: 'MPS v4.8 isolated Google Apps Script acceptance',
     environment: 'new standalone Apps Script project + private synthetic spreadsheet',
-    networkCalls: 0,
+    telegramApiCalls: 0,
     productionResourcesUsed: false,
     checks: []
   };
