@@ -23,7 +23,8 @@ async function fixture(t) {
   `);
   db.close();
   const checkpoint=inspectLogicalDatabase(source);
-  return {dir,source,checkpoint,backup:path.join(dir,'backup.sqlite'),target:path.join(dir,'restored.sqlite')};
+  const backup=path.join(dir,'backup.sqlite'),target=path.join(dir,'restored.sqlite');
+  return {dir,source,checkpoint,backup,target,sourcePath:source,backupPath:backup,targetPath:target};
 }
 const timing={createdAt:'2026-11-11T00:00:00.000Z',now:'2026-11-11T01:00:00.000Z',maxAgeMs:24*60*60*1000};
 
