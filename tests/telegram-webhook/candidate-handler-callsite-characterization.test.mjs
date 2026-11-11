@@ -137,7 +137,8 @@ test('actual recordMpsAudit_ swallows persistence failures instead of propagatin
     getMpsContentSheet_: () => { throw new Error('SHEET_WRITE_FAILED'); },
     clean_: value => String(value),
     sheetText_: value => value,
-    cleanNewsText_: value => value
+    cleanNewsText_: value => value,
+    safeErrorMessage_: error => String(error && error.message || error)
   };
   vm.createContext(context);
   vm.runInContext(auditSource, context, { timeout: 1000 });
