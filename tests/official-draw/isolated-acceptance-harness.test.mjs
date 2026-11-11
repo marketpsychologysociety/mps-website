@@ -10,6 +10,10 @@ test("canonical JSON is key-order invariant and rejects non-finite numbers", () 
   assert.equal(digestCanonical({b:2,a:1}), digestCanonical({a:1,b:2}));
   assert.throws(() => canonicalJson({bad:Infinity}), /NON_FINITE_NUMBER/);
   assert.throws(() => canonicalJson(new Date()), /NON_PLAIN_OBJECT/);
+  assert.throws(() => canonicalJson({bad:undefined}), /UNSUPPORTED_JSON_VALUE/);
+  assert.throws(() => canonicalJson([,1]), /SPARSE_ARRAY/);
+  const cyclic={}; cyclic.self=cyclic;
+  assert.throws(() => canonicalJson(cyclic), /CYCLIC_VALUE/);
 });
 
 test("strict create-event contract rejects identity, role, participant and unknown fields", () => {
@@ -42,7 +46,7 @@ test("public winner projection only accepts exact allowlisted PUBLISHED and VERI
   const safe = {
     event_title:"Synthetic event", message:"Verified synthetic result",
     prize_public_description:"Synthetic prize", proof_summary:{
-      beacon_chain_hash:"synthetic-chain", beacon_round:"42", participant_count:3,
+      beacon_chain_hash:"c".repeat(64), beacon_round:"42", participant_count:3,
       result_digest:"a".repeat(64), snapshot_commitment:"b".repeat(64)
     }, protocol_version:"test.v1", public_result_id:"public-synthetic-1",
     published_at_utc:"2026-01-01T00:00:00Z", verification_status:"VERIFIED",
@@ -51,6 +55,8 @@ test("public winner projection only accepts exact allowlisted PUBLISHED and VERI
   assert.equal(projectPublicWinner({...safe,state:"DRAFT"}),null);
   assert.equal(projectPublicWinner({...safe,verification_status:"UNVERIFIED"}),null);
   assert.equal(projectPublicWinner({...safe,private_member_id:"CANARY_PRIVATE"}),null);
+  assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,beacon_chain_hash:{leak:"CANARY_NESTED"}}}),null);
+  assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,participant_count:"3"}}),null);
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,member_name:"CANARY_NAME"}}),null);
   const projected=projectPublicWinner(safe);
   assert.equal(projected.public_result_id,safe.public_result_id);
