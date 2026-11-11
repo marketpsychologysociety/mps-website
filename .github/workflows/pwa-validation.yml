@@ -31,6 +31,8 @@ jobs:
         run: node --test tests/official-draw/security-contract.test.mjs
       - name: Run durable synthetic audit journal fault-injection tests
         run: node --test tests/official-draw/durable-audit-journal.test.mjs
+      - name: Run synthetic external journal-anchor contract tests
+        run: node --test tests/official-draw/synthetic-external-anchor.test.mjs
       - name: Run persistent Draw API process-restart and reconciliation tests
         run: node --test tests/official-draw/persistent-api-integration.test.mjs
       - name: Run read-only schema inspector tests
