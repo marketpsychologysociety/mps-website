@@ -8,10 +8,9 @@ const validId = value => typeof value === 'number'
 const cmp = (a, b) => {
   if (!b) return 1;
   if (a.sourceDate !== b.sourceDate) return a.sourceDate > b.sourceDate ? 1 : -1;
+  if(a.epoch!==b.epoch)return a.epoch>b.epoch?1:-1;
   const x=String(a.updateId), y=String(b.updateId);
-  const byId=x.length!==y.length ? (x.length>y.length?1:-1) : (x===y?0:(x>y?1:-1));
-  if(byId!==0)return byId;
-  return a.epoch===b.epoch?0:(a.epoch>b.epoch?1:-1);
+  return x.length!==y.length ? (x.length>y.length?1:-1) : (x===y?0:(x>y?1:-1));
 };
 const keyFor = (epoch,id) => 'telegram:'+epoch+':'+String(id)+':vip_transition';
 const clone = value => structuredClone(value);
