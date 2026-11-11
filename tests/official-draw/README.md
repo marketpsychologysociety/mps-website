@@ -267,3 +267,8 @@ See `docs/MPS-INCIDENT-RESPONSE-AND-RECOVERY-RUNBOOK.md` for severity classifica
 ## P1.19 — synthetic incident tabletop evaluator
 
 `tabletop-exercise.mjs` and `tabletop-exercise.test.mjs` validate fictional response decisions for all eight P1.18 incident scenarios. The evaluator is not an incident simulator or operational control: it performs no provider, notification, backup, key, identity, or production action. See `docs/MPS-P1.19-INCIDENT-TABLETOP-EXERCISE.md`. CI command: `node --test tests/official-draw/tabletop-exercise.test.mjs`.
+
+
+## P1.20 — production activation readiness
+
+See docs/MPS-P1.20-PRODUCTION-ACTIVATION-READINESS.md for the consolidated G0–G11 gate matrix, evidence classifications, activation sequence and stop conditions. This is a documentation-only assessment. Synthetic CI is not operational proof. Current decision: **NO-GO / NOT OPERATIONALLY READY**; official draw remains blocked and roulette simulation-only.
