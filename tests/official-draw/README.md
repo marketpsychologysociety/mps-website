@@ -257,3 +257,8 @@ Run:
 The offline evaluator classifies normalized evidence as HEALTHY, DEGRADED, or UNHEALTHY using backup freshness/checkpoint/integrity/retention, independent audit export, restore-drill and key-recovery evidence. It creates stable checkpoint-scoped alert keys and a test-only notification outbox. A notification is DELIVERED only after an explicit provider acknowledgement; retries use bounded backoff and exhaust to DEAD_LETTER. Seventeen synthetic tests cover positive/negative evidence and outbox transitions.
 
 **Limitations:** no provider authentication, real monitoring, scheduled checks, cloud alerting, email/Telegram/webhook send, production logs, credentials, member data, or deployment. A passing fixture test does not prove real backup health, provider retention, audit authenticity, key recoverability, or disaster recovery. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.18 — incident response and recovery runbook (design only)
+
+See `docs/MPS-INCIDENT-RESPONSE-AND-RECOVERY-RUNBOOK.md` for severity classification, first-response evidence preservation, eight incident playbooks, two-person recovery gates, safe stop conditions, closure criteria and privacy-safe communication templates. It is not activated operational procedure: actual MPS owners, contacts, response targets, approved RPO/RTO, evidence retention and tabletop validation remain pending. No live incident or production action was performed.
