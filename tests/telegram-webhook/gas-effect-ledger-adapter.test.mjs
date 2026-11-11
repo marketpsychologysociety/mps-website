@@ -65,7 +65,7 @@ function sharedGasRuntime({kind='audit',failFlushAt=0,failWrite=''}={}){
    getDisplayValues(){return this.getValues().map(line=>line.map(v=>v==null?'':String(v)));},
    setNumberFormat(){return this;},
    setValue(v){while(rows.length<row)rows.push([]);rows[row-1][col-1]=v;return this;},
-   setValues(values){if(failWrite==='before')throw Error('SIMULATED_WRITE_BEFORE_PERSIST');values.forEach((line,r)=>{const target=row-1+r;while(rows.length<=target)rows.push([]);while(rows[target].length<col-1)rows[target].push('');line.forEach((v,c)=>rows[target][col-1+c]=v);});if(failWrite==='after')throw Error('SIMULATED_WRITE_AFTER_PERSIST');return this;}
+   setValues(values){if(failWrite==='before'){failWrite='';throw Error('SIMULATED_WRITE_BEFORE_PERSIST');}values.forEach((line,r)=>{const target=row-1+r;while(rows.length<=target)rows.push([]);while(rows[target].length<col-1)rows[target].push('');line.forEach((v,c)=>rows[target][col-1+c]=v);});if(failWrite==='after'){failWrite='';throw Error('SIMULATED_WRITE_AFTER_PERSIST');}return this;}
   };}
  };
  const services={
