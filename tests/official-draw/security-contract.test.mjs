@@ -34,7 +34,7 @@ if (enabled && adapterPath) {
     }
     const required = [
       "reset", "seedApprovedEvent", "seedDrawAtState", "request",
-      "getPrivateCanaries", "getPublishedProjection", "getOperationCount"
+      "seedPublishedProjection", "getPrivateCanaries", "getPublishedProjection", "getOperationCount"
     ];
     for (const name of required) {
       if (typeof adapter[name] !== "function") {
@@ -199,19 +199,36 @@ integration("cross-event identifiers do not bypass object-level authorization", 
   assert.notEqual(own.drawId, other.drawId);
 });
 
-integration("public projection never exposes private synthetic canaries", async (t) => {
+integration("public projection never exposes private synthetic canaries", async () => {
+  const fixture = await adapter.seedPublishedProjection();
   const canaries = await adapter.getPrivateCanaries();
-  assert.ok(Array.isArray(canaries) && canaries.length > 0);
-  const projection = await adapter.getPublishedProjection();
-  if (projection === null || projection === undefined) {
-    t.skip("No published public projection fixture exists; privacy serialization is not yet exercised.");
-    return;
-  }
-  const serialized = JSON.stringify(projection);
+  assert.ok(Array.isArray(canaries) && canaries.length >= 10);
+
+  // Both anonymous collection and detail routes traverse the local HTTP server.
+  const responses = await adapter.getPublishedProjection(fixture.publicResultId);
+  assert.equal(responses.collection.status, 200);
+  assert.equal(responses.detail.status, 200);
+  assert.equal(responses.collection.body?.data?.count, 1);
+  assert.equal(responses.detail.body?.data?.public_result_id, fixture.publicResultId);
+
+  const serialized = JSON.stringify([responses.collection.body, responses.detail.body]);
   for (const canary of canaries) {
     assert.ok(!serialized.includes(canary), `Private canary leaked: ${canary}`);
   }
   assert.doesNotMatch(serialized, /participant_synthetic_\d{3,}/);
+  assert.doesNotMatch(serialized, /SYNTHETIC_PRIVATE_CANARY/);
+
+  const publicResult = responses.detail.body.data;
+  assert.deepEqual(Object.keys(publicResult).sort(), [
+    "event_title", "message", "prize_public_description", "proof_summary",
+    "protocol_version", "public_result_id", "published_at_utc", "verification_status"
+  ].sort());
+  assert.deepEqual(Object.keys(publicResult.proof_summary).sort(), [
+    "beacon_chain_hash", "beacon_round", "participant_count",
+    "result_digest", "snapshot_commitment"
+  ].sort());
+  assert.equal(publicResult.verification_status, "VERIFIED");
+  assert.equal(publicResult.message, "Hasil undian telah diverifikasi dan dipublikasikan.");
 });
 
 integration("unverified result cannot be published", async () => {
