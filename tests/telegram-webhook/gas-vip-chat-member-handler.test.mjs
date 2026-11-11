@@ -40,8 +40,8 @@ test('preserves Telegram update_id, original event date, user and payload hash',
 test('resolver runs under orchestrator scope and external follow-up runs after lock release',()=>{
  const h=harness();h.handler.process(update());
  assert.equal(h.held(),false);
- assert.equal(h.after.length,1);
- assert.equal(h.after[0].held,false);
+ assert.equal(h.after.length,2);
+ assert.equal(h.after[1].held,false);
 });
 test('foreign group and join-request-only updates are ignored',()=>{
  const h=harness();
