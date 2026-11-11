@@ -55,6 +55,7 @@ function harness({crashAt=''}={}) {
   const rows=sheets.get(name),i=rows.findIndex((x,n)=>n>0&&String(x[0])===r.memberId);
   const row=[r.memberId,r.targetState,r.transitionKey];
   if(i<0)rows.push(row);else rows[i]=row;
+  SpreadsheetApp.flush();
  }
  const statusWriter=rawStatus;
  function makeLedger(){
@@ -74,28 +75,15 @@ function harness({crashAt=''}={}) {
   updateIntent(tx,key,patch){const r=store.updateIntent(tx,key,patch);if(patch.State==='STATUS_APPLIED')trip('AFTER_STATUS_APPLIED');if(patch.State==='COMPLETED')trip('AFTER_COMPLETE');return r;}
  });
  function orchestrator(){return context.makeOrchestrator({ledger:makeLedger(),store:wrappedStore,statusWriter});}
+ function migrateEffects(){return ledger.runExclusive(tx=>{tx.migrate('audit');tx.migrate('ticker');});}
  function resetCounts(){acquired=0;released=0;}
- return{process:input=>orchestrator().process(input),sheets,stats:()=>({held,acquired,released}),resetCounts};
+ return{process:input=>orchestrator().process(input),migrateEffects,sheets,stats:()=>({held,acquired,released}),resetCounts};
 }
 const input=(targetState='ACTIVE',updateId='700',sourceDate=1760000000)=>({
  updateId,epoch:0,sourceDate,memberId:'MPS-ABCDEF12',memberName:'Test Member',
  targetState,sourceType:'CHAT_MEMBER',payloadSha256:'a'.repeat(64)
 });
-function migrate(h){
- const c={...{SpreadsheetApp:{openById(id){return{getSheetByName(name){
-  const rows=h.sheets.get(name);if(!rows)return null;
-  return{getLastRow:()=>rows.length,getLastColumn:()=>Math.max(...rows.map(r=>r.length)),getRange(row,col,nr=1,nc=1){return{
-   getValues:()=>Array.from({length:nr},(_,r)=>Array.from({length:nc},(_,j)=>rows[row-1+r]?.[col-1+j]??'')),
-   getDisplayValues(){return this.getValues().map(x=>x.map(String));},
-   setValue(v){rows[0][col-1]=v;return this;}
-  };}};
- }}}},LockService:{getScriptLock(){return{waitLock(){},releaseLock(){}};} }}};
- // Migration uses the same runtime ledger in the orchestrator's own isolated context.
- // Call the normal harness process only after explicitly appending the key headers.
- for(const [name,headers] of [['MPS Audit Logs',auditHeaders],['MPS VIP Ticker Events',tickerHeaders]]){
-  const rows=h.sheets.get(name);rows[0].push('Effect Key');
- }
-}
+function migrate(h){h.migrateEffects();}
 
 const phases=['AFTER_INTENT','AFTER_STATUS_A','AFTER_STATUS_B','AFTER_STATUS_APPLIED','AFTER_CURSOR','AFTER_TICKER','AFTER_AUDIT','AFTER_COMPLETE'];
 for(const phase of phases)test('actual GAS adapters recover activation after '+phase+' crash',()=>{
