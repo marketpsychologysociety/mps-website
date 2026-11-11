@@ -351,3 +351,10 @@ Residual limits: local filesystem only, no network/distributed filesystem guaran
 ## P1.4 synthetic journal-lock crash recovery evidence — 2026-11-11
 
 Added a real child-process crash test for the narrow failure window where a writer dies after writing an INTENT record but before fsync/acknowledgement, while still holding the journal lock. Recovery must verify the dead same-host PID, atomically quarantine the stale lock, replay the complete record if present, and reject a duplicate intent through the existing idempotency scope. The test is synthetic and runs only in a disposable local directory. It is evidence for this specific process-crash path, not power-loss guarantees, cross-host coordination, network filesystem semantics, or production security. GitHub Actions run #231 is the required clean-checkout verification for this addition; record its final outcome before marking the test complete.
+
+
+## P1.5 — synthetic external-anchor contract (2026-11-11)
+
+Added `tests/official-draw/synthetic-external-anchor.mjs` and its test suite. The contract models monotonically ordered journal checkpoints, create-only anchor objects, previous-receipt chaining, deterministic receipt hashes, idempotent retry for the same checkpoint, conflict rejection for a changed checkpoint, and fail-closed detection of missing, tampered, reordered, or unknown-field anchors. Five synthetic tests are wired into the clean-checkout workflow.
+
+**Trust boundary:** provider is deliberately in-memory and exists only to test the contract. This is not an external anchor, immutable storage, cloud service, independent account boundary, or production security control. No external resource, bucket, retention policy, credentials, or project has been created. Before selecting a real provider, governance must decide ownership, separate IAM principals/projects, create-only semantics, retention duration, deletion/policy-change monitoring, backup/export, independent verification, recovery, cost, and privacy minimization. Irreversible retention locking remains prohibited without explicit approval. Official draw stays BLOCKED / NO-GO; roulette remains SIMULATION ONLY.
