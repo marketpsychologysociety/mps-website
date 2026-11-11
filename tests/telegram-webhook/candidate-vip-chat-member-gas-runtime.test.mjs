@@ -108,6 +108,13 @@ function event(updateId,sourceDate,oldStatus,newStatus,userId='987654321'){
  }};
 }
 
+test('complete candidate Code.gs loads in a clean Apps Script-like V8 global scope without top-level service access',()=>{
+ const context={console};
+ vm.runInNewContext(candidate,context,{timeout:3000,filename:'candidate/Code.gs'});
+ for(const name of ['doGet','doPost','processTelegramUpdateCore_','processMpsVipChatMemberEvent_','apiAdminInspectMemberSchemaV480','apiAdminMigrateMemberSheetToV480','apiAdminPrepareTelegramVipTransitionStorage']){
+  assert.equal(typeof context[name],'function','expected global function '+name);
+ }
+});
 test('candidate chat_member activation writes actual VIP Access and Database Member state with durable intent and keyed effects',()=>{
  const h=runtime();
  const update=event(7001,1760000000,'left','member');
