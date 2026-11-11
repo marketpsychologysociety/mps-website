@@ -78,7 +78,7 @@ test('never overwrites an existing restore target or source journal',async t=>{
   await assert.rejects(f.store.restoreToNewTarget(b.backup_id,target,{sequence:f.checkpoint.record_count,last_hash:f.checkpoint.last_hash}),
     e=>e.code==='RESTORE_TARGET_EXISTS');
   assert.equal(await fs.readFile(target,'utf8'),'preserve-me');
-  assert.equal((await fs.readFile(f.journalPath)).length,f.checkpoint.record_count>0?(await fs.readFile(f.journalPath)).length:0);
+  assert.equal((await fs.readFile(f.journalPath)).length,(await fs.readFile(path.join(f.store.root,b.backup_id,'audit.journal.jsonl'))).length);
 });
 
 test('interrupted backup publication leaves staging evidence and no published backup',async t=>{
@@ -91,15 +91,12 @@ test('interrupted backup publication leaves staging evidence and no published ba
 
 test('interrupted restore never overwrites or silently retries a possibly partial target',async t=>{
   const f=await fixture(t,{faultInjector:stage=>stage==='RESTORE_AFTER_WRITE'});
-  const b=await f.store.createBackup(f.journalPath).catch(()=>null);
-  // Use a clean store for backup, then inject only at restore.
-  const clean=new SyntheticBackupStore(path.join(f.root,'clean-backups'));
-  const good=await clean.createBackup(f.journalPath);
+  const good=await f.store.createBackup(f.journalPath);
   const target=path.join(f.root,'restore-interrupted');
-  await assert.rejects(clean.restoreToNewTarget(good.backup_id,target,{sequence:f.checkpoint.record_count,last_hash:f.checkpoint.last_hash}),
-    e=>e.code==='RECONCILIATION_REQUIRED' || e.code==='INJECTED_FAILURE');
+  await assert.rejects(f.store.restoreToNewTarget(good.backup_id,target,{sequence:f.checkpoint.record_count,last_hash:f.checkpoint.last_hash}),
+    e=>e.code==='INJECTED_FAILURE');
   assert.equal(await fs.readFile(target,'utf8'),await fs.readFile(f.journalPath,'utf8'));
-  await assert.rejects(clean.restoreToNewTarget(good.backup_id,target,{sequence:f.checkpoint.record_count,last_hash:f.checkpoint.last_hash}),
+  await assert.rejects(f.store.restoreToNewTarget(good.backup_id,target,{sequence:f.checkpoint.record_count,last_hash:f.checkpoint.last_hash}),
     e=>e.code==='RESTORE_TARGET_EXISTS');
 });
 
