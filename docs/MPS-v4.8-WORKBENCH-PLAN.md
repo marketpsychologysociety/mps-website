@@ -899,3 +899,8 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 ## P1.21 — security architecture implementation blueprint
 
 See `docs/MPS-P1.21-SECURITY-ARCHITECTURE-IMPLEMENTATION-BLUEPRINT.md` for the target trust boundaries, component contracts, dependency-ordered phases A–J, G0–G11 evidence mapping, required test layers, stop/rollback/reconciliation rules and explicit cost/irreversibility approval gates. This is a documentation-only implementation blueprint. It does not provision identity, cloud, database, storage, monitoring or beacon services and does not authorize production integration. Operational G0–G11 gates remain unpassed; official draw remains **NO-GO** and roulette **SIMULATION ONLY**.
+
+
+## P1.22 — isolated technical acceptance specification
+
+See `docs/MPS-P1.22-ISOLATED-TECHNICAL-ACCEPTANCE-SPEC.md` for canonical types/serialization, logical relational entities and constraints, transaction boundaries, API endpoint request contracts, role matrix, OIDC/session acceptance, evidence adapter, beacon/selection invariants, 40 traceable acceptance tests and evidence-class rules. This is a documentation-only specification. No service, schema migration, database, identity tenant, cloud provider, credentials, member-data connection or production deployment was created. Operational G0–G11 remain unpassed; official draw remains **NO-GO** and roulette **SIMULATION ONLY**.
