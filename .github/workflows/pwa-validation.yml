@@ -61,6 +61,8 @@ jobs:
         run: node --test tests/official-draw/gcs-evidence-provenance-verifier.test.mjs
       - name: Run durable reviewer trust registry and single-use nonce tests
         run: node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs
+      - name: Run P1.33 reviewer trust journal integrity-preservation tests (synthetic only)
+        run: node --test tests/official-draw/reviewer-trust-integrity-preservation.test.mjs
       - name: Run synthetic independent backup and restore verification tests
         run: node --test tests/official-draw/synthetic-backup-recovery.test.mjs
       - name: Run off-site recovery drill evidence contract tests
