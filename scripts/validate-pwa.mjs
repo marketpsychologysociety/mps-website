@@ -20,7 +20,7 @@ const configSandbox = { window: {} };
 try { new vm.Script(read('config.js'), { filename: 'config.js' }).runInNewContext(configSandbox); }
 catch (error) { errors.push('config.js syntax error: ' + error.message); }
 check(configSandbox.window.MPS_CONFIG?.publicCenter?.enabled === false,
-  'Public Center feature flag must remain disabled until the cross-origin script bridge is replaced and runtime-tested');
+  'Public Center feature flag must remain disabled until the data-only CORS transport is verified against an isolated Apps Script deployment');
 const publicCenterLoader = read('js/public-center.js');
 const publicCenterGuard = publicCenterLoader.indexOf('config.publicCenter.enabled !== true');
 const publicCenterFetch = publicCenterLoader.indexOf('window.fetch(url.href');
