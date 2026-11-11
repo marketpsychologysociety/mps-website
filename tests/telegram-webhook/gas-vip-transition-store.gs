@@ -83,8 +83,7 @@ function createMpsGasVipTransitionStore_(config) {
     if(!Number.isSafeInteger(priorEpoch)||priorEpoch<0||!Number.isSafeInteger(priorDate)||priorDate<=0||!/^(0|[1-9]\d{0,19})$/.test(priorId))throw new Error('VIP_TRANSITION_CURSOR_CORRUPT');
     key_(prior[4]);
     function cmpId(a,b){return a.length!==b.length?(a.length>b.length?1:-1):(a===b?0:(a>b?1:-1));}
-    var order=sourceDate!==priorDate?(sourceDate>priorDate?1:-1):cmpId(updateId,priorId);
-    if(order===0&&epoch!==priorEpoch)order=epoch>priorEpoch?1:-1;
+    var order=sourceDate!==priorDate?(sourceDate>priorDate?1:-1):(epoch!==priorEpoch?(epoch>priorEpoch?1:-1):cmpId(updateId,priorId));
     if(order<0)throw new Error('VIP_TRANSITION_CURSOR_REGRESSION');
     if(order===0&&String(prior[4])!==transitionKey)throw new Error('VIP_TRANSITION_CURSOR_COLLISION');
     if(order===0)return{outcome:'ALREADY_CURRENT'};
