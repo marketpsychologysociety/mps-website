@@ -35,6 +35,8 @@ jobs:
         run: node --test tests/official-draw/synthetic-external-anchor.test.mjs
       - name: Run offline GCS PoC evidence-bundle verifier tests
         run: node --test tests/official-draw/gcs-poc-evidence-verifier.test.mjs
+      - name: Run offline raw GCS audit normalization tests
+        run: node --test tests/official-draw/gcs-raw-audit-normalizer.test.mjs
       - name: Run persistent Draw API process-restart and reconciliation tests
         run: node --test tests/official-draw/persistent-api-integration.test.mjs
       - name: Run read-only schema inspector tests
