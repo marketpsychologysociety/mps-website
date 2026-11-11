@@ -17,7 +17,7 @@ function createMpsGasEffectLedger_(config) {
   function withLock_(fn){var lock=LockService.getScriptLock();lock.waitLock(lockWaitMs);try{return fn();}finally{lock.releaseLock();}}
   function schema_(kind){var s=schemas[kind];if(!s)throw new Error('UNKNOWN_EFFECT_SHEET');return s;}
   function sheet_(s){var ss=SpreadsheetApp.openById(spreadsheetId),sh=ss&&ss.getSheetByName(s.sheetName);if(!sh)throw new Error('EFFECT_SHEET_MISSING');return sh;}
-  function readHeaders_(sh){var width=sh.getLastColumn();if(width<1)return [];return sh.getRange(1,1,1,width).getDisplayValues()[0].map(function(v){return String(v==null?'':v).trim();});}
+  function readHeaders_(sh){var width=sh.getLastColumn();if(width<1)return [];return sh.getRange(1,1,1,width).getDisplayValues()[0].map(function(v){return String(v==null?'':v);});}
   function validateSchema_(kind,sh,requireMigrated){
     var s=schema_(kind),actual=readHeaders_(sh),expected=s.headers;
     for(var i=0;i<expected.length;i++)if(actual[i]!==expected[i])throw new Error('EFFECT_LEGACY_SCHEMA_MISMATCH');
