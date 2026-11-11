@@ -8,6 +8,7 @@ const validId = value => typeof value === 'number'
 const cmp = (a, b) => {
   if (!b) return 1;
   if (a.epoch !== b.epoch) return a.epoch > b.epoch ? 1 : -1;
+  if (a.sourceDate !== b.sourceDate) return a.sourceDate > b.sourceDate ? 1 : -1;
   const x=String(a.updateId), y=String(b.updateId);
   return x.length!==y.length ? (x.length>y.length?1:-1) : (x===y?0:(x>y?1:-1));
 };
@@ -47,10 +48,11 @@ export class VipTransitionOrchestrator {
     this.store=store; this.failAt=failAt; this.onPhase=onPhase;
   }
   crash(phase) { this.onPhase(phase); if(this.failAt===phase)throw new Error('SIMULATED_CRASH_'+phase); }
-  async process({updateId,epoch=0,memberId,targetState,receivedAt=1800000000000}) {
+  async process({updateId,epoch=0,sourceDate=1800000000,memberId,targetState,receivedAt=1800000000000}) {
     if(!validId(updateId))throw new TypeError('INVALID_UPDATE_ID');
     if(!Number.isSafeInteger(epoch)||epoch<0)throw new TypeError('INVALID_EPOCH');
     if(!memberId||!['ACTIVE','LEFT'].includes(targetState))throw new TypeError('INVALID_TRANSITION');
+    if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new TypeError('INVALID_SOURCE_DATE');
     if(!Number.isSafeInteger(receivedAt)||receivedAt<=0)throw new TypeError('INVALID_RECEIVED_AT');
     await this.recover(memberId);
     const key=keyFor(epoch,updateId);
@@ -63,9 +65,9 @@ export class VipTransitionOrchestrator {
         return {outcome:'RESUME',intent:old};
       }
       const member=this.store.member(memberId);
-      if(cmp({epoch,updateId:String(updateId)},member.cursor)<=0)return {outcome:'STALE'};
+      if(cmp({epoch,sourceDate,updateId:String(updateId)},member.cursor)<=0)return {outcome:'STALE'};
       const intent={key,updateId:String(updateId),epoch,memberId:String(memberId),
-        targetState,receivedAt,state:'INTENT',
+        targetState,sourceDate,receivedAt,state:'INTENT',
         effectKeys:targetState==='ACTIVE'?[key+':ticker',key+':audit']:[key+':audit']};
       this.store.putIntent(key,intent); return {outcome:'NEW',intent};
     });
@@ -84,7 +86,7 @@ export class VipTransitionOrchestrator {
     if(intent.state==='INTENT') {
       const result=await this.store.atomic(async()=>{
         const latest=this.store.intent(intent.key); const member=this.store.member(intent.memberId);
-        if(cmp({epoch:latest.epoch,updateId:latest.updateId},member.cursor)<=0) {
+        if(cmp({epoch:latest.epoch,sourceDate:latest.sourceDate,updateId:latest.updateId},member.cursor)<=0) {
           this.store.putIntent(intent.key,{...latest,state:'SUPERSEDED'});return false;
         }
         // Each sheet-like row write is persisted separately to expose crash windows.
@@ -101,7 +103,7 @@ export class VipTransitionOrchestrator {
       await this.store.atomic(async()=>{
         const latest=this.store.intent(intent.key),member=this.store.member(intent.memberId);
         if(latest.state==='INTENT') {
-          this.store.putMember(intent.memberId,{...member,cursor:{epoch:latest.epoch,updateId:latest.updateId}});
+          this.store.putMember(intent.memberId,{...member,cursor:{epoch:latest.epoch,sourceDate:latest.sourceDate,updateId:latest.updateId}});
           this.store.putIntent(intent.key,{...latest,state:'STATUS_APPLIED'});
         }
       });
