@@ -42,3 +42,5 @@ test('lock releases after schema validation failure',()=>{const bad=schemas.audi
 test('lock failure prevents mutation',()=>{const h=harness({failLock:true});assert.throws(()=>h.create().migrate('audit'),/SIMULATED_LOCK_FAILURE/);assert.equal(h.rows[0].length,7);});
 test('append before explicit migration is blocked',()=>{const h=harness();assert.throws(()=>h.create().appendOnce('audit','telegram:10:vip_join_audit',arow()),/EFFECT_MIGRATION_REQUIRED/);});
 test('ticker append keeps six legacy fields plus key',()=>{const h=harness({kind:'ticker',rows:[[...schemas.ticker.headers,'Effect Key']]});assert.equal(h.create().appendOnce('ticker','telegram:11:vip_ticker_event',trow()).outcome,'APPENDED');assert.deepEqual(h.rows[1],[...trow(),'telegram:11:vip_ticker_event']);});
+
+test('whitespace-padded persisted keys fail closed instead of bypassing exact-key replay',()=>{const h=harness({rows:[[...schemas.audit.headers,'Effect Key'],[...arow(),' telegram:12:vip_join_audit ']]});assert.throws(()=>h.create().appendOnce('audit','telegram:12:vip_join_audit',arow()),/EFFECT_INVALID_EXISTING_KEY/);});
