@@ -38,6 +38,8 @@ jobs:
         run: node --test tests/official-draw/sqlite-verified-restore.test.mjs
       - name: Run P1.29 end-to-end SQLite recovery drill tests (synthetic only)
         run: node --test tests/official-draw/sqlite-recovery-drill.test.mjs
+      - name: Run P1.30 signed recovery-checkpoint attestation tests (synthetic only)
+        run: node --test tests/official-draw/recovery-checkpoint-attestation.test.mjs
       - name: Run official draw synthetic security contract
         env:
           MPS_DRAW_TEST_ALLOW_LOCAL: "1"
