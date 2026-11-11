@@ -101,7 +101,8 @@ Before the public-projection fixture was added, a local test run against a recon
 | Public projection fixture and serializer | Implemented; allowlist verified in CI run #173 |
 | Canary privacy test through public HTTP routes | 10-test suite PASS; 0 SKIP in CI run #173 |
 | Official Draw API implementation in inspected workbench | Not found |
-| OIDC | Not implemented |\n| Durable synthetic journal | Local single-process prototype; 7/7 CI tests PASS; API integration pending |
+| OIDC | Not implemented |
+| Durable synthetic journal | Local single-process prototype; 7/7 CI tests PASS; API integration pending |
 | Public projection privacy test | Synthetic API canary test PASS; production CMS/cache/log privacy remains unverified |
 | Cryptographic verifier integration | Not implemented |
 | Official winner draw | **BLOCKED** |
