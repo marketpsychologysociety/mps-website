@@ -166,3 +166,19 @@ Do not switch the production webhook to this design as part of this work item.
 The local candidate currently uses CacheService for update-level PROCESSING/DONE state. The code comment correctly acknowledges that CacheService may evict entries early and is not an exactly-once guarantee. This design document does not silently upgrade that implementation: durable journal code, isolated spreadsheet provisioning, runtime tests, Telegram test-bot tests, and operational monitoring remain unimplemented.
 
 **Release decision:** NO-GO for production webhook migration until all acceptance criteria and operational gates are evidenced.
+
+
+## 5A. Append-only effect-key compatibility migration (design contract)
+
+The reconstructed Code.gs candidate currently defines the legacy audit schema as seven columns and the ticker schema as six columns. Existing readers request those original column counts. The compatibility proposal is therefore an **append-only extension**, not a rename, reorder, or replacement:
+
+- \`MPS Audit Logs\`: preserve the seven existing columns exactly and append \`Effect Key\` as column 8.
+- \`MPS VIP Ticker Events\`: preserve the six existing columns exactly and append \`Effect Key\` as column 7.
+- Historical rows remain unchanged; their new key cells remain blank. Do not infer keys for old events.
+- New keyed audit/ticker rows write the stable effect key in the same row as the event. A retry can scan the key column and recognize an append that completed before the previous execution was interrupted.
+- The check-and-append sequence must execute under the same Apps Script script lock. A real adapter must validate uniqueness across the full key column before appending and fail closed on duplicates, malformed keys, unknown extra columns, or a mismatched legacy header.
+- Existing seven-/six-column readers remain compatible because they read only their original leading columns. The migration must not rewrite or truncate existing rows.
+
+The isolated contract is in \`tests/telegram-webhook/effect-ledger-migration.mjs\` and \`effect-ledger-migration.test.mjs\`. It covers schema planning, legacy-row preservation, duplicate/collision detection, concurrent append attempts, deterministic update-scoped keys, and a simulated crash after append but before caller acknowledgement.
+
+**Important limitation:** this synthetic in-memory contract does not implement a Google Sheets adapter. Sheets writes plus ScriptLock are not a transactional database; this design only narrows the crash window for a single append by storing its idempotency key in that same appended row. It does not make the member-status write plus ticker/audit writes atomic. The real migration must be an explicit, separately reviewed admin operation in an isolated spreadsheet, with backup, before/after header snapshots, row-count checks, and rollback evidence. It must never auto-run from a normal webhook or silently modify production sheets.
