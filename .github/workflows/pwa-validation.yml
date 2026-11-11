@@ -26,6 +26,8 @@ jobs:
         run: node scripts/test-schema-compatibility.mjs
       - name: Run P1.23 isolated technical acceptance harness (synthetic only)
         run: node --test tests/official-draw/isolated-acceptance-harness.test.mjs
+      - name: Run P1.24 SQLite transactional persistence tests (synthetic only)
+        run: node --test tests/official-draw/sqlite-transactional-store.test.mjs
       - name: Run official draw synthetic security contract
         env:
           MPS_DRAW_TEST_ALLOW_LOCAL: "1"
