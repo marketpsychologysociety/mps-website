@@ -4,6 +4,13 @@
 
 ## Findings
 
+### Newly verified source-level gaps (isolated Code.gs candidate, read-only)
+
+- **Application one-time link replay:** `verifyTelegramApplication_` currently requires link status `Menunggu`; after a successful first-use write changes it to `Terverifikasi`, a replay throws the expired/used-link error before checking whether the stored Telegram user ID, private chat ID, and Application Ref match the same binding. The legacy path likewise rejects a consumed link before reconciling the existing access row. The intended safe behavior is to acknowledge a replay only when link row, access row, and application/member binding all match the exact same Telegram identity; a different identity must be rejected.
+- **VIP activation side effects:** `updateVipJoinStatus_` writes `Aktif` to the access row and member row before appending ticker and audit events. If execution terminates after the status writes but before either event write, a retry observes `wasActive=true` and skips both events. The ticker event uses a random event ID, not a stable update/effect key. The handler currently receives no `update_id`, so it cannot derive a deterministic effect identity from the Telegram update.
+- **VIP reactivation:** a member who leaves is set to `Keluar`, so a later transition back to active can be a legitimate new activation. This must create a new event for that transition while duplicate delivery of the same update must not create a second event.
+
+
 | Update / handler | Current source behavior | Crash-after-effect retry risk | Required reconciliation |
 |---|---|---|---|
 | Group /start candidate discovery | Writes candidate group ID/title to Script Properties, then sends a group notice | A crash after Telegram accepts the notice but before webhook completion can send the notice again | Store a stable effect key/outbox status; candidate property write is naturally idempotent, notification delivery must be separately deduplicated or accepted as at-least-once |
@@ -13,6 +20,10 @@
 | VIP join request | Checks current membership with getChatMember before approving; after failed API response it checks membership again | Membership mutation has useful reconciliation. Welcome DM can still be duplicated after a crash, and remote API ambiguity must not be blindly retried | Preserve membership read-back as the authoritative reconciliation. Track welcome DM in an outbox; ambiguous approve/decline outcomes become REVIEW when read-back cannot establish state |
 | VIP chat-member status | Calls updateVipJoinStatus_ with the current Telegram membership status | Membership row assignment is repeatable. However, the helper marks the member Aktif before appending the VIP ticker event and audit row; a crash between those writes means replay sees wasActive=true and can permanently skip the ticker/audit event. In addition, the ticker writer rejects any prior row for the same member ID, so a legitimate later re-activation cannot generate a new welcome event. Invite revocation, unauthorized-member ban/unban, and admin alerts are separate effects with their own ambiguous retry windows | Use a durable pending effect/outbox record keyed by the specific activation transition before marking the transition complete; reconcile ticker and audit publication independently, and give invite revocation, ban/unban, and admin alerts stable effect keys. Do not deduplicate all future activations solely by member ID |
 | Bot membership/permission change | Writes an audit event and may send a warning | Duplicate update can create duplicate audit entries and duplicate warning messages | Deduplicate audit by update/effect key and send warning through an outbox with explicit retry semantics |
+
+## Isolated reconciliation contract (not wired into Code.gs)
+
+`tests/telegram-webhook/handler-reconciliation.mjs` and its 15 synthetic tests define the target behavior for exact same-identity link replay and transition-scoped VIP activation keys. The contract requires matching private chat ID, Telegram user ID, access-row identity, and Application Ref/member ID. VIP ticker/audit keys are derived from the update ID so replay is stable and a later reactivation can have a distinct key. These tests exercise a pure helper only; they do not execute the Code.gs handlers or Google Apps Script services.
 
 ## Integration rules
 
@@ -25,4 +36,4 @@
 
 ## Release gate
 
-This matrix is a source-review finding list, not proof of runtime behavior. Before integration, implement and test each reconciliation branch using mocked spreadsheet and Telegram adapters, then test the candidate in a separate Apps Script project, isolated spreadsheet, and Telegram test bot/group. No production handler should be switched to the journal adapter until those tests pass and a separate production migration is explicitly approved.
+This matrix is a source-review finding list, not proof of runtime behavior. Before integration, wire the tested replay classifier and transition effect keys into the isolated Code.gs candidate; then test each reconciliation branch using mocked spreadsheet and Telegram adapters, and finally test the candidate in a separate Apps Script project, isolated spreadsheet, and Telegram test bot/group. No production handler should be switched to the journal adapter until those tests pass and a separate production migration is explicitly approved.
