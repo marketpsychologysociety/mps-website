@@ -138,7 +138,7 @@ test("idempotency conflicts, stale versions, foreign owner and invalid state fai
   assert.equal(success.status,202);
   assert.equal((await h.execute({...base,payload:{x:2}})).code,"IDEMPOTENCY_CONFLICT");
   assert.equal((await h.execute({...base,expectedVersion:2})).code,"IDEMPOTENCY_CONFLICT");
-  assert.equal((await h.execute({...base,key:"another-key"})).code,"INVALID_STATE");
+  assert.equal((await h.execute({...base,key:"another-key",expectedVersion:2})).code,"INVALID_STATE");
   assert.equal(h.operationCount(),1);
 });
 
