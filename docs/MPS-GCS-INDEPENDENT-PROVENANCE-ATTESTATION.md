@@ -27,7 +27,7 @@ It does **not** mean Google cryptographically signed the records. The field goog
 ## Signed payload
 
 The strict payload binds:
-- schema version, issuer, immutable reviewer subject, exporter subject, and authenticated retrieval principal;
+- schema version, pinned key ID, issuer, immutable reviewer subject, exporter subject, and authenticated retrieval principal;
 - project ID, bucket, start/end time, exact query/filter SHA-256;
 - canonical raw bundle SHA-256, page count, entry count, and pagination completion;
 - fixed retrieval method identifier, retrieval timestamp, reviewer authentication-context assertion, independent source-access assertion, and Data Access coverage assertion;
