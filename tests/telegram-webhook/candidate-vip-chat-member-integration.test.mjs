@@ -367,6 +367,8 @@ test('candidate Index exposes guarded migration controls only for super-admin an
  assert.match(candidateIndex,/<button class="btn" id="migrateMemberSchemaV480" type="button" disabled>/);
  assert.match(candidateIndex,/<button class="btn secondary" id="prepareVipTransitionStorage" type="button" disabled>/);
  assert.match(candidateIndex,/api\('apiAdminInspectMemberSchemaV480',state\.adminSession\)/);
+ assert.match(candidateIndex,/prepare\.disabled=!\(result&&result\.ok===true&&result\.state==='READY_30'&&result\.provisioningReady===true\)/);
+ assert.match(candidateIndex,/preflight\.provisioningReady!==true/);
  const migrateHandler=candidateIndex.slice(candidateIndex.indexOf("$('migrateMemberSchemaV480').addEventListener"),candidateIndex.indexOf("$('prepareVipTransitionStorage').addEventListener"));
  const provisionHandler=candidateIndex.slice(candidateIndex.indexOf("$('prepareVipTransitionStorage').addEventListener"),candidateIndex.indexOf("$('refreshAdmin').addEventListener"));
  assert.ok(migrateHandler.indexOf('if(!confirm(')>=0&&migrateHandler.indexOf("api('apiAdminMigrateMemberSheetToV480'")>migrateHandler.indexOf('if(!confirm('));
