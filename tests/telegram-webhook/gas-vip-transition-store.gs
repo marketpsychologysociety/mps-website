@@ -12,7 +12,7 @@ function createMpsGasVipTransitionStore_(config) {
   var cursorName='MPS Telegram VIP Member Cursor';
   var intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Telegram User ID','Target State','Source Type','Source Date','Payload SHA-256','Ticker Allowed','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
   var cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
-  var intentFields=['Update Epoch','Update ID','Member ID','Member Name','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
+  var intentFields=['Update Epoch','Update ID','Member ID','Member Name','Telegram User ID','Target State','Source Type','Source Date','Payload SHA-256','Ticker Allowed','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
   function active_(tx){if(!tx||typeof tx.assertActive!=='function')throw new Error('VIP_TRANSITION_SCOPE_REQUIRED');tx.assertActive();}
   function sheet_(name,headers,tx){
     active_(tx);
