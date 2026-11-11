@@ -931,3 +931,8 @@ P1.23 CI correction note: initial hardened-source CI execution found one test-fi
 ## P1.23 verification outcome
 
 P1.23 verification update: clean-checkout GitHub Actions run #403 (42964135867) completed SUCCESS after correcting the stale expectedVersion in the invalid-state test fixture. P1.23 harness and all other workflow steps, including Chromium browser checks, passed. This is synthetic/CI evidence only and does not satisfy operational G0–G11 gates or authorize an official draw.
+
+
+## P1.24 — Isolated SQLite transactional persistence
+
+A local synthetic SQLite adapter and nine tests were added to exercise real file-backed SQL transactions, state/idempotency/outbox atomicity, constraints, rollback, canonical replay, and reopen-after-lost-ack. Local Node 22.16.0 tests: 9 PASS, 0 FAIL, 0 SKIP; `node:sqlite` emits an experimental warning. Dedicated CI step added; CI result pending. No production database, cloud resource, identity provider, member data, or external notification integration.
