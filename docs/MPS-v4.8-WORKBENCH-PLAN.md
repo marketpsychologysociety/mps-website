@@ -845,3 +845,15 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 - [ ] Run real off-site restore drills against approved RPO/RTO targets.
 
 **Evidence:** `tests/official-draw/offsite-recovery-drill-contract.mjs`, `tests/official-draw/offsite-recovery-drill-contract.test.mjs`, `docs/MPS-OFFSITE-BACKUP-RECOVERY-DRILL-CONTRACT.md`. This is a synthetic evidence normalizer, not proof of actual provider identity, retention, encryption, audit completeness, or off-site resilience. RPO 86,400s and RTO 3,600s are test defaults, not approved MPS objectives. No cloud resources, billing, IAM, credentials, member data, production integration or deployment were created or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.17 — backup integrity monitoring and DR readiness (synthetic only)
+
+- Added `tests/official-draw/backup-readiness-monitor.mjs`, a deterministic offline evaluator for backup freshness, exact source-checkpoint match, independent exact-generation readback, retention expiry/warning, independent audit-export freshness and pagination, restore-drill freshness/RPO/RTO, and key-recovery evidence.
+- Readiness states are `HEALTHY`, `DEGRADED`, and `UNHEALTHY`; no numeric score is emitted because a synthetic normalized evidence envelope cannot establish real-world availability.
+- Alert events are stable/idempotent per finding and exact source checkpoint. Public-safe fixed messages contain no member identifiers or private data.
+- Notification outbox state transitions are `PENDING` → `ATTEMPTING` → `DELIVERED` only after explicit provider acknowledgement, or `RETRY_WAIT` with bounded exponential backoff / `DEAD_LETTER`. The module does not send notifications or contact a provider.
+- Seventeen synthetic tests cover healthy, missing/stale/forked/corrupt evidence, retention, incomplete audit export, restore/key recovery failures, strict schema, timestamp/digest validation, alert deduplication/privacy, explicit delivery acknowledgement, retries, and dead-letter behavior.
+- CI runs `node --test tests/official-draw/backup-readiness-monitor.test.mjs`.
+- This stage does not create a scheduler, cloud monitor, alert policy, webhook, email/Telegram notification, credential, provider connection, or production integration. It does not authenticate normalized evidence or prove actual backup/DR readiness.
+- Official winner draw remains **BLOCKED / NO-GO**; MPS Lucky Roulette remains **SIMULATION ONLY**.
