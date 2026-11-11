@@ -19,9 +19,13 @@ function createMpsGasVipTransitionOrchestrator_(config) {
   function compareDecimal_(a,b){a=String(a);b=String(b);return a.length!==b.length?(a.length>b.length?1:-1):(a===b?0:(a>b?1:-1));}
   function compare_(a,b){
     if(!b)return 1;
-    if(Number(a.epoch)!==Number(b.epoch))return Number(a.epoch)>Number(b.epoch)?1:-1;
+    // Telegram chat_member.date is the primary source-event clock. update_id
+    // is the deterministic tie-break for events within the same second.
     if(Number(a.sourceDate)!==Number(b.sourceDate))return Number(a.sourceDate)>Number(b.sourceDate)?1:-1;
-    return compareDecimal_(a.updateId,b.updateId);
+    var byId=compareDecimal_(a.updateId,b.updateId);
+    if(byId!==0)return byId;
+    if(Number(a.epoch)!==Number(b.epoch))return Number(a.epoch)>Number(b.epoch)?1:-1;
+    return 0;
   }
   function key_(epoch,id){return 'telegram:'+epoch+':'+id+':vip_transition';}
   function callWriter_(fn,tx,record){
