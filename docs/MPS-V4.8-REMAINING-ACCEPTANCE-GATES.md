@@ -5,10 +5,11 @@
 
 ## Verified in the workbench
 
-- [x] PR CI run #648 and push CI run #647 both completed successfully on commit `c69943452c36c46b720b59034d83f327debc5b12`; each run completed all 36 workflow steps, including Chromium browser checks.
+- [x] PR CI run #43020068718 and push CI run #43020058642 both completed successfully on commit `0fb6bcd084da82a04fac9b6d2663f0c833254f3a`; each run completed all 36 workflow steps, including Chromium browser checks. Earlier PR/push runs #43020051845 and #43019115922/#43019109915 also passed on their respective commits.
 - [x] The earlier PR CI run #646 also completed all 36 steps successfully on its then-current commit.
-- [x] Telegram journal contract suite contains 16 tests.
+- [x] Telegram update-journal contract suite contains 17 tests; the new digit-string regression covers canonical 20-digit IDs, zero, leading-zero rejection, empty input, and overlength input.
 - [x] Mocked Apps Script spreadsheet adapter suite contains 17 tests.
+- [x] A separate effect-outbox contract and 15 synthetic tests cover effect-key uniqueness, independent VIP activation keys, leases/fencing, reconciliation, SENT/RETRYABLE/REVIEW, and ambiguous-send quarantine; this is not a durable production adapter.
 - [x] The adapter candidate is deliberately isolated: it requires an explicit spreadsheet ID and pre-provisioned exact schema; it does not create a sheet, select a spreadsheet implicitly, or connect to `doPost/processTelegramUpdate_`.
 - [x] Public Center frontend parses a data-only response instead of executing cross-origin Apps Script JavaScript. Chromium tests exercise a mocked CORS endpoint and reject an appended executable payload.
 - [x] The public-center feature flag remains disabled in workbench configuration pending live CORS/redirect acceptance.
@@ -30,8 +31,8 @@
 
 - [ ] Implement handler-specific reconciliation for every update type in the handler matrix.
 - [ ] Reconcile already-consumed one-time links to the exact same Telegram user/chat; reject different identities.
-- [ ] Introduce effect-level outbox semantics for welcome DMs, group notices, ticker events, audit records, invite revocation, moderation actions, and admin alerts.
-- [ ] Define the duplicate-versus-loss policy for Telegram `sendMessage` because the API does not provide a caller-supplied idempotency key or reliable lookup by our effect key.
+- [ ] Integrate the isolated effect-outbox contract with durable Apps Script/external storage and handler transactions for welcome DMs, group notices, ticker events, audit records, invite revocation, moderation actions, and admin alerts.
+- [x] Define conservative synthetic contract for ambiguous Telegram `sendMessage`: move to REVIEW unless authoritative reconciliation proves APPLIED/NOT_APPLIED; only explicitly confirmed no-effect failures may be retried. [ ] Obtain business approval for any notification class that instead accepts at-least-once duplicate delivery.
 - [ ] Give each VIP activation transition a distinct effect key; do not deduplicate all future activations solely by member ID.
 - [ ] Exercise each handler with mocked Telegram and spreadsheet adapters, then with a separate Telegram test bot/group.
 
@@ -67,7 +68,7 @@
 
 Passing GitHub Actions proves only the repository's automated checks, including synthetic/mocked tests and local Chromium checks. It does **not** prove live Apps Script persistence, real spreadsheet locking, Telegram API behavior, production CORS/redirect behavior, direct-endpoint authorization, physical Android behavior, or production readiness.
 
-The Apps Script adapter is not wired into the webhook. The current webhook candidate still uses CacheService for update-level PROCESSING/DONE state. The public-center feature flag remains disabled. The backend candidate is not deployed. No production migration, merge, or deployment is authorized by this checklist.
+The Apps Script adapter and new effect-outbox contract are not wired into the webhook. The current webhook candidate still uses CacheService for update-level PROCESSING/DONE state. The public-center feature flag remains disabled. The backend candidate is not deployed. No production migration, merge, or deployment is authorized by this checklist.
 
 **Release status: NO-GO for production activation until the relevant gates above are evidenced and separately approved.**
 
@@ -76,5 +77,7 @@ The Apps Script adapter is not wired into the webhook. The current webhook candi
 - [Draft PR #12](https://github.com/marketpsychologysociety/mps-website/pull/12)
 - [PR CI #648 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43018302173)
 - [Push CI #647 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43018294614)
+- [Latest PR CI #43020068718 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43020068718)
+- [Latest push CI #43020058642 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43020058642)
 - [Previous PR CI #646 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43016135631)
 - Production `main` baseline: `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`.
