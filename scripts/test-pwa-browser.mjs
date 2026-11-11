@@ -291,7 +291,7 @@ try {
     memberOnly: document.body.innerText.includes('MEMBER ONLY · DATA PRIVAT'),
     previewDisclosure: document.body.innerText.includes('bukan data Market Pulse yang sebenarnya'),
     demoTicker: !!document.querySelector('[data-mps-demo-ticker]'),
-    actualDatasetInline: [...document.scripts].some(script => /const\\s+D\\s*=/.test(script.textContent || '')),
+    actualDatasetInline: [...document.scripts].some(script => /const\s+D\s*=/.test(script.textContent || '')),
     datasetScript: [...document.scripts].some(script => /market.?pulse.?data|pulse.?dataset/i.test(script.src || ''))
   }));
   if (!publicPulseState.memberOnly || !publicPulseState.previewDisclosure || !publicPulseState.demoTicker) {
