@@ -1642,15 +1642,6 @@ function isSafePublicIdentity_(value) {
   const sensitivePattern=/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b\+?\d[\d ()-]{7,}\b|\b(?:MT5|LOGIN)\s*[:#-]?\s*\d{4,}\b|(?:^|\s)@[A-Z0-9_]{5,32}\b|\bMPS-(?:APP-)?[A-F0-9]{8,20}\b|https?:\/\/|www\.|\b(?:RP|IDR)\s*[\d.,]+)/i;
   return !sensitivePattern.test(text);
 }
-function recordMpsVipTickerEvent_(memberId,memberName) {
-  const name=clean_(memberName,100),id=clean_(memberId,40);
-  if(!name||!id||!isSafePublicIdentity_(name))return false;
-  const sh=getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true),eventId='VIP-'+Utilities.getUuid().replace(/-/g,'').slice(0,16).toUpperCase();
-  sh.appendRow([eventId,new Date(),id,sheetText_(name),'telah bergabung ke MPS VIP Community','Visible']);
-  CacheService.getScriptCache().remove('mps_public_center_v480');return true;
-}
-
-
 /**
  * Durable VIP transition integration for original Telegram chat_member events.
  * All spreadsheet writes and keyed effects share one ScriptLock scope.
