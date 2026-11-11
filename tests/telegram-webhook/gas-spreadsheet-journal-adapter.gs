@@ -175,6 +175,7 @@ function createMpsTelegramGasJournal_(config) {
       var existing = rowNumber ? readRecord_(sheet, rowNumber) : null;
       if (existing && existing.payloadHash !== hash) {
         existing.state = 'REVIEW';
+        existing.completedAt = 0;
         existing.leaseExpiresAt = 0;
         existing.claimToken = '';
         existing.lastErrorCode = 'PAYLOAD_HASH_MISMATCH';
