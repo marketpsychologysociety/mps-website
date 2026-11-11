@@ -615,7 +615,7 @@
       state.memberSchemaPreflight=result||null;
       const migrate=$('migrateMemberSchemaV480'),prepare=$('prepareVipTransitionStorage');
       migrate.disabled=!(result&&result.ok===true&&result.state==='LEGACY_18_READY');
-      prepare.disabled=!(result&&result.ok===true&&result.state==='READY_30');
+      prepare.disabled=!(result&&result.ok===true&&result.state==='READY_30'&&result.provisioningReady===true);
     }
     async function inspectMemberSchemaV480(){
       const button=$('inspectMemberSchemaV480');
@@ -647,7 +647,7 @@
         const verify=await api('apiAdminInspectMemberSchemaV480',state.adminSession);
         if(!verify||verify.ok!==true||verify.state!=='READY_30')throw new Error('Migrasi mengembalikan respons berhasil, tetapi preflight ulang belum mengonfirmasi skema 30 kolom. Hentikan langkah berikutnya dan lakukan pemeriksaan terkontrol.');
         setMemberSchemaPreflight(verify);
-        showNotice($('memberSchemaPreflightResult'),result.message+' Verifikasi ulang: skema 30 kolom cocok. Provisioning tetap belum dijalankan.', 'success');
+        showNotice($('memberSchemaPreflightResult'),result.message+' Verifikasi ulang: '+verify.message+' Provisioning tetap belum dijalankan.', 'success');
       }catch(err){
         setMemberSchemaPreflight(null);
         showNotice($('memberSchemaPreflightResult'),err.message+' Jalankan preflight read-only sebelum mencoba tindakan lain.','error');
@@ -658,7 +658,7 @@
     });
     $('prepareVipTransitionStorage').addEventListener('click',async()=>{
       const button=$('prepareVipTransitionStorage'),preflight=state.memberSchemaPreflight;
-      if(!preflight||preflight.ok!==true||preflight.state!=='READY_30'){showNotice($('memberSchemaPreflightResult'),'Database Member harus lolos preflight skema 30 kolom sebelum provisioning.','error');return}
+      if(!preflight||preflight.ok!==true||preflight.state!=='READY_30'||preflight.provisioningReady!==true){showNotice($('memberSchemaPreflightResult'),'Database Member dan seluruh skema storage transisi harus lolos preflight sebelum provisioning.','error');return}
       if(!confirm('KONFIRMASI PROVISIONING VIP TRANSITION STORAGE\n\nTindakan ini dapat membuat dua sheet transisi baru serta menambahkan kolom Effect Key pada audit/ticker log yang sudah ada. Data member tidak dimigrasikan oleh langkah ini. Lanjutkan hanya setelah backup dan persetujuan operasional?'))return;
       setBusy(button,true,'PREPARE VIP TRANSITION STORAGE');
       try{
@@ -669,7 +669,7 @@
         showNotice($('memberSchemaPreflightResult'),err.message,'error');
       }finally{
         setBusy(button,false,'PREPARE VIP TRANSITION STORAGE');
-        button.disabled=!(state.memberSchemaPreflight&&state.memberSchemaPreflight.ok===true&&state.memberSchemaPreflight.state==='READY_30');
+        button.disabled=!(state.memberSchemaPreflight&&state.memberSchemaPreflight.ok===true&&state.memberSchemaPreflight.state==='READY_30'&&state.memberSchemaPreflight.provisioningReady===true);
       }
     });
     $('refreshAdmin').addEventListener('click',loadAdminQueue);
