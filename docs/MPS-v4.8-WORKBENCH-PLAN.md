@@ -793,6 +793,8 @@ An intermediate run #279 failed because the module first made keyId mandatory be
 - [ ] Run and inspect clean-checkout GitHub Actions; no green CI result is claimed until observed.
 - [ ] Test actual power-loss/storage semantics, multi-host coordination, transactional storage and external anchoring only in an explicitly authorized isolated infrastructure PoC.
 
+**Verification status:** the test suite now contains 14 cases (12 existing registry/nonce cases plus 2 child-process crash cases), and the workflow command is present. This conversation did not execute the 14-case suite locally; GitHub Actions run/status is not currently exposed by the available repository connector, so CI remains **PENDING / NOT CLAIMED**.
+
 **Scope limits:** process-crash simulation only, not power loss or multi-host safety. The test fault hook is test-only. No production system, GCP resource, credential, identity provider, member data or deployment is touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
 
 ### P1.12 implementation review status — 2026-11-11
