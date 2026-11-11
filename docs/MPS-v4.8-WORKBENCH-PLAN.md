@@ -805,8 +805,8 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 ## P1.14 — ownerless trust-registry lock fail-closed recovery
 
 - [x] Identify the orphan-lock race: process termination after atomic lock-directory creation but before writing `owner.json`.
-- [x] Change ownerless lock handling from an unbounded retry loop to immediate `LOCK_RECOVERY_REQUIRED`; never infer that an ownerless lock is stale or safe to steal.
-- [x] Add a synthetic regression test that confirms the registry fails closed and leaves the ambiguous lock directory untouched.
+- [x] Change ownerless lock handling from an unbounded retry loop to a bounded grace period followed by `LOCK_RECOVERY_REQUIRED`; never infer that an ownerless lock is stale or safe to steal.
+- [x] Add a synthetic regression test that confirms the registry fails closed after a bounded grace period and leaves the ambiguous lock directory untouched.
 - [ ] Verify the expanded trust-registry suite from clean checkout in GitHub Actions.
 - [ ] Document a controlled manual reconciliation procedure before any real deployment; no automatic deletion of ownerless locks.
  
