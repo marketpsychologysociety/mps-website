@@ -1,4 +1,8 @@
 /**
+ * WORKBENCH CANDIDATE — derived from Library Code.gs SHA-256 c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba.
+ * Isolated VIP transition integration; do not deploy without owner approval and live GAS acceptance tests.
+ */
+/**
  * MARKET PSYCHOLOGY SOCIETY — Backend v4.8.0 (reconstructed)
  * Rekonstruksi v4.8.0 berbasis source kompatibilitas v4.7.0 dan kandidat integrasi Calculator VIP. Mempertahankan spreadsheet, sheet, folder bukti,
  * Script Properties, dan integrasi Telegram yang sudah ada.
