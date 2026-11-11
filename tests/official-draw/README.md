@@ -144,3 +144,17 @@ node --test tests/official-draw/persistent-api-integration.test.mjs
 The five integration cases start and stop real child Node processes against one disposable temporary journal directory. They check durable seed/state recovery after restart, idempotent replay, changed-payload conflict, per-draw concurrent execution serialization, crashes after durable intent and after in-memory mutation but before completion, and recovery when the completion record is fsynced but its acknowledgement is lost. Incomplete intents restore as RECONCILIATION_REQUIRED; a durably completed operation is replayed without executing twice. The standalone journal suite also tests exact aggregate allowlisting and replay.
 
 Limitations remain material: single-process local filesystem only; no cross-process lock, transactional database, external journal anchor, OIDC/MFA, beacon verifier, unbiased selection algorithm, or production hardening. The fixture route exists only in this test adapter. Do not expose port 4179, use real data, or deploy it. Official winner draw remains BLOCKED / NO-GO and roulette remains SIMULATION ONLY.
+
+## P1.3 — cross-process journal lock and single-writer API lease (test only)
+
+The P1.1 journal now uses an atomic filesystem lock directory around recovery and every append. Each writer re-reads and verifies the complete journal while holding the lock before applying idempotency checks or appending, preventing independent Node processes from using stale sequence/hash state. Lock ownership is recorded with an exact schema (PID, hostname, random token, start time); release verifies the token and owner. A same-host lock is reclaimed only after the recorded PID is confirmed absent, using an atomic rename to a quarantine path. A missing/malformed owner record, foreign-host owner, or live owner fails closed; no timeout-based lease stealing is used.
+
+The persistent Draw API opts into a separate exclusive server-process lease. A second sandbox process pointed at the same journal directory is rejected before it starts listening. This is deliberately **single-writer**, not active-active/multi-instance service support. A crashed process leaves a lock that is reclaimed on restart only after same-host PID death is confirmed.
+
+New tests use two independent child Node processes writing 20 synthetic operations to the same journal, verify 40 intact chained records after recovery, test exclusive lease rejection/release, and test stale same-host lock recovery. The API integration suite also verifies that a second server cannot acquire the same directory lease. CI verification is pending.
+
+Run:
+node --test tests/official-draw/durable-audit-journal.test.mjs
+node --test tests/official-draw/persistent-api-integration.test.mjs
+
+Remaining limits: local filesystem semantics only; no distributed/network filesystem guarantees, multi-host coordination, transactional database, external immutable journal anchor, backup/restore, OIDC/MFA, beacon verifier, unbiased selection, or production suitability. Official winner draw remains BLOCKED / NO-GO; roulette remains SIMULATION ONLY.
