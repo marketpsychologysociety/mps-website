@@ -20,9 +20,13 @@ check(configSandbox.window.MPS_CONFIG?.publicCenter?.enabled === false,
   'Public Center feature flag must remain disabled until the cross-origin script bridge is replaced and runtime-tested');
 const publicCenterLoader = read('js/public-center.js');
 const publicCenterGuard = publicCenterLoader.indexOf('config.publicCenter.enabled !== true');
-const publicCenterScriptInjection = publicCenterLoader.indexOf('document.createElement("script")');
-check(publicCenterGuard >= 0 && publicCenterScriptInjection > publicCenterGuard,
-  'Public Center loader must fail closed before any cross-origin script injection');
+const publicCenterFetch = publicCenterLoader.indexOf('window.fetch(url.href');
+const publicCenterJsonParse = publicCenterLoader.indexOf('JSON.parse(body.slice(prefix.length, -1))');
+const publicCenterScriptInjection = publicCenterLoader.includes('document.createElement("script")') ||
+  publicCenterLoader.includes('appendChild(script)');
+check(publicCenterGuard >= 0 && publicCenterFetch > publicCenterGuard &&
+  publicCenterJsonParse > publicCenterFetch && !publicCenterScriptInjection,
+  'Public Center loader must fail closed and parse data-only JSON without executing cross-origin scripts');
 
 let manifest;
 try { manifest = JSON.parse(read('manifest.webmanifest')); }
