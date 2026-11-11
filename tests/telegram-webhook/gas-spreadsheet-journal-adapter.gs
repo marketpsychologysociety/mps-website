@@ -55,9 +55,19 @@ function createMpsTelegramGasJournal_(config) {
     return id;
   }
 
+  function canonicalize_(value) {
+    if (Array.isArray(value)) return value.map(canonicalize_);
+    if (value && typeof value === 'object') {
+      var normalized = {};
+      Object.keys(value).sort().forEach(function(key) { normalized[key] = canonicalize_(value[key]); });
+      return normalized;
+    }
+    return value;
+  }
+
   function digest_(value) {
     var raw;
-    try { raw = JSON.stringify(value); } catch (err) { throw new Error('INVALID_UPDATE_PAYLOAD'); }
+    try { raw = JSON.stringify(canonicalize_(value)); } catch (err) { throw new Error('INVALID_UPDATE_PAYLOAD'); }
     var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw, Utilities.Charset.UTF_8);
     return bytes.map(function(b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join('');
   }
