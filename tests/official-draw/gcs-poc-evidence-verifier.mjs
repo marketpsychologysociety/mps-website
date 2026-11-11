@@ -101,7 +101,7 @@ export function verifyGcsPocEvidenceBundle(bundle) {
     const writer = bundle.principals?.writer?.subject;
     const verifier = bundle.principals?.verifier?.subject;
     const events = bundle.auditEvents;
-    for (const object of bundle.objects || []) {
+    for (const object of (Array.isArray(bundle.objects) ? bundle.objects : [])) {
       const created = events.some(e => e?.action === 'OBJECT_CREATE' && e.principalSubject === writer &&
         e.resourceName === object.name && e.outcome === 'SUCCESS');
       const read = events.some(e => e?.action === 'OBJECT_READ' && e.principalSubject === verifier &&
