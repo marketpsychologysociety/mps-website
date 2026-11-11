@@ -84,5 +84,5 @@ A new CI run is required to establish the corrected result. Until that run compl
 
 ## P1.23 verification outcome
 
-- Corrected clean-checkout CI run #402 (42964135867) completed **SUCCESS** after the fixture correction. The P1.23 isolated harness step passed, all subsequent synthetic security/persistence/evidence checks passed, and Chromium browser checks passed. No failed or skipped steps were reported in that run.
+- Corrected clean-checkout CI run #403 (42964135867) completed **SUCCESS** after the fixture correction. The P1.23 isolated harness step passed, all subsequent synthetic security/persistence/evidence checks passed, and Chromium browser checks passed. No failed or skipped steps were reported in that run.
 - The initial failure was a test fixture supplying stale expectedVersion=1 to the invalid-state assertion after the draw had advanced to version 2. The fixture now supplies expectedVersion=2; production guard order and behavior were not weakened.
