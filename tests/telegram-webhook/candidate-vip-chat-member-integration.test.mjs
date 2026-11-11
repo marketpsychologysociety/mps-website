@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
 const candidate=readFileSync(fileURLToPath(new URL('../../candidates/Code.gs',import.meta.url)),'utf8');
+const candidateIndex=readFileSync(fileURLToPath(new URL('../../candidates/Index.html',import.meta.url)),'utf8');
 new vm.Script(candidate,{filename:'candidate/Code.gs'});
 function extract(name,next){
  const start=candidate.indexOf('function '+name+'(');
@@ -316,4 +317,59 @@ test('audit pruning may exceed soft cap rather than delete durable keyed rows',(
  assert.equal(h.rows.length,2003);
  assert.equal(h.rows.slice(1,-1).every(r=>String(r[7]).startsWith('effect-')),true);
  assert.equal(h.rows[h.rows.length-1][3],'ACTION');
+});
+
+
+const schemaPreflightSource=extract('apiAdminInspectMemberSchemaV480','apiAdminMigrateMemberSheetToV480');
+function schemaPreflightHarness(headers,{sheetExists=true,adminAllowed=true}={}) {
+ let reads=0,writes=0,locks=0;
+ const sheet={getLastColumn:()=>headers.length,getRange:(row,col,nr,nc)=>({getDisplayValues:()=>{reads++;return [headers.slice(col-1,col-1+nc)];},setValues:()=>{writes++;}})};
+ const context={
+  MPS:{headers:[...legacyMemberHeaders,...appendedMemberHeaders]},
+  requireSuperAdmin_:()=>{if(!adminAllowed)throw new Error('SUPER_ADMIN_REQUIRED');},
+  openDatabase_:()=>({getSheetByName:name=>{assert.equal(name,'Database Member');return sheetExists?sheet:null;}}),
+  LockService:{getScriptLock:()=>{locks++;throw new Error('READ_ONLY_PREFLIGHT_MUST_NOT_LOCK');}},
+  SpreadsheetApp:{flush:()=>{throw new Error('READ_ONLY_PREFLIGHT_MUST_NOT_FLUSH');}}
+ };
+ vm.createContext(context);vm.runInContext(schemaPreflightSource,context,{timeout:1000});
+ return{run:()=>context.apiAdminInspectMemberSchemaV480('admin-session'),stats:()=>({reads,writes,locks})};
+}
+test('read-only schema preflight recognizes exact 18-column legacy schema without writes or locks',()=>{
+ const h=schemaPreflightHarness(legacyMemberHeaders);
+ const result=h.run();
+ assert.equal(result.ok,true);assert.equal(result.state,'LEGACY_18_READY');assert.equal(result.appendable,true);assert.equal(result.provisioningReady,false);
+ assert.deepEqual(h.stats(),{reads:1,writes:0,locks:0});
+});
+test('read-only schema preflight recognizes exact 30-column v4.8 schema without writes',()=>{
+ const h=schemaPreflightHarness([...legacyMemberHeaders,...appendedMemberHeaders]);
+ const result=h.run();
+ assert.equal(result.ok,true);assert.equal(result.state,'READY_30');assert.equal(result.appendable,false);assert.equal(result.provisioningReady,true);
+ assert.deepEqual(h.stats(),{reads:1,writes:0,locks:0});
+});
+test('read-only schema preflight fails closed for mismatched, partial, or missing sheets',()=>{
+ const wrong=schemaPreflightHarness(['Wrong Header',...legacyMemberHeaders.slice(1)]);
+ assert.equal(wrong.run().state,'SCHEMA_MISMATCH');assert.equal(wrong.stats().writes,0);
+ const partial=schemaPreflightHarness([...legacyMemberHeaders,...appendedMemberHeaders.slice(0,2)]);
+ assert.equal(partial.run().state,'SCHEMA_MISMATCH');assert.equal(partial.stats().writes,0);
+ const missing=schemaPreflightHarness([], {sheetExists:false});
+ assert.equal(missing.run().state,'MISSING_SHEET');assert.equal(missing.stats().writes,0);
+});
+test('read-only schema preflight enforces super-admin before reading database',()=>{
+ const h=schemaPreflightHarness(legacyMemberHeaders,{adminAllowed:false});
+ assert.throws(()=>h.run(),/SUPER_ADMIN_REQUIRED/);
+ assert.deepEqual(h.stats(),{reads:0,writes:0,locks:0});
+});
+test('candidate Index exposes guarded migration controls only for super-admin and requires explicit confirmations',()=>{
+ assert.match(candidateIndex,/<section class="panel" id="memberSchemaMaintenance" data-super-admin-only/);
+ assert.match(candidateIndex,/<button class="btn secondary" id="inspectMemberSchemaV480" type="button">/);
+ assert.match(candidateIndex,/<button class="btn" id="migrateMemberSchemaV480" type="button" disabled>/);
+ assert.match(candidateIndex,/<button class="btn secondary" id="prepareVipTransitionStorage" type="button" disabled>/);
+ assert.match(candidateIndex,/api\('apiAdminInspectMemberSchemaV480',state\.adminSession\)/);
+ const migrateHandler=candidateIndex.slice(candidateIndex.indexOf("$('migrateMemberSchemaV480').addEventListener"),candidateIndex.indexOf("$('prepareVipTransitionStorage').addEventListener"));
+ const provisionHandler=candidateIndex.slice(candidateIndex.indexOf("$('prepareVipTransitionStorage').addEventListener"),candidateIndex.indexOf("$('refreshAdmin').addEventListener"));
+ assert.ok(migrateHandler.indexOf('if(!confirm(')>=0&&migrateHandler.indexOf("api('apiAdminMigrateMemberSheetToV480'")>migrateHandler.indexOf('if(!confirm('));
+ assert.ok(provisionHandler.indexOf('if(!confirm(')>=0&&provisionHandler.indexOf("api('apiAdminPrepareTelegramVipTransitionStorage'")>provisionHandler.indexOf('if(!confirm('));
+ assert.equal((candidateIndex.match(/api\('apiAdminInspectMemberSchemaV480'/g)||[]).length,2);
+ assert.equal((candidateIndex.match(/api\('apiAdminMigrateMemberSheetToV480'/g)||[]).length,1);
+ assert.equal((candidateIndex.match(/api\('apiAdminPrepareTelegramVipTransitionStorage'/g)||[]).length,1);
 });
