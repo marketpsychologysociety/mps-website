@@ -5,7 +5,7 @@
  */
 const validId = value => typeof value === 'number'
   ? Number.isSafeInteger(value) && value >= 0
-  : typeof value === 'string' && /^(0|[1-9]\\d{0,19})$/.test(value);
+  : typeof value === 'string' && /^(0|[1-9]\d{0,19})$/.test(value);
 const keyFor = (updateId, effect) => {
   if (!validId(updateId)) throw new TypeError('INVALID_UPDATE_ID');
   return 'telegram:' + String(updateId) + ':' + effect;
