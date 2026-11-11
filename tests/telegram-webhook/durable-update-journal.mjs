@@ -72,7 +72,7 @@ export class DurableUpdateJournal {
   }
 
   async finish(id, claimToken, now = Date.now(), effectKeys = []) {
-    return this.#transition(id, claimToken, row => ({
+    return this.#transition(id, claimToken, now, row => ({
       ...row, state: 'DONE', completedAt: now, leaseExpiresAt: 0,
       claimToken: null,
       effectKeys: [...new Set([...(row.effectKeys ?? []), ...effectKeys])].slice(-20),
@@ -94,12 +94,12 @@ export class DurableUpdateJournal {
     }));
   }
 
-  async #transition(id, claimToken, transform) {
+  async #transition(id, claimToken, now, transform) {
     return this.store.atomic(async () => {
       const key = String(id);
       const row = await this.store.get(key);
       if (!row || row.state !== 'PROCESSING' || !claimToken ||
-          row.claimToken !== claimToken) {
+          row.claimToken !== claimToken || row.leaseExpiresAt <= now) {
         throw new Error('STALE_OR_INVALID_CLAIM');
       }
       const next = transform(row);
