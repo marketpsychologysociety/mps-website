@@ -419,4 +419,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('MPS PWA browser test PASSED');
-console.log('Chromium passed 15 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, iOS Add to Home Screen guidance, and data-only public-center CORS, malformed-payload, and inert-HTML/XSS checks.');
+console.log('Chromium passed 15 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, iOS Add to Home Screen guidance, public Market Pulse static-preview isolation, and data-only public-center CORS, malformed-payload, and inert-HTML/XSS checks.');
