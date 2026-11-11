@@ -1747,12 +1747,12 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
     resolveTransition:resolveMpsVipChatMemberTransition_,
     afterTransition:function(context){
       const r=context.resolved;
-      if(context.result==='ACTIVE'){
+      if(context.targetState==='ACTIVE'){
         if(r.tickerAllowed)CacheService.getScriptCache().remove('mps_public_center_v480');
         if(r.inviteToRevoke&&!revokeVipInviteLink_(groupId,r.inviteToRevoke)){
           sendTelegram_('⚠️ PERINGATAN MPS: member '+r.memberId+' sudah bergabung, tetapi tautan undangan lama gagal dicabut. Periksa invite link VIP Community.');
         }
-      }else if(context.result==='DENIED'){
+      }else if(context.targetState==='DENIED'){
         if(r.kickNeeded&&!kickMpsUnauthorizedUser_(groupId,r.telegramUserId)){
           sendTelegram_('⚠️ PERINGATAN KEAMANAN MPS: akun Telegram '+r.telegramUserId+' tidak memenuhi syarat member, tetapi bot gagal memastikan penghapusannya dari VIP Community. Admin harus segera memeriksa keanggotaan grup.');
         }else if(r.adminAlert){
@@ -1796,10 +1796,14 @@ function apiAdminPrepareTelegramVipTransitionStorage(session) {
 function kickMpsUnauthorizedUser_(groupId,userId){
   const token=PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_BOT_TOKEN');if(!token)return false;
   try{
+    // A replay must not unban a user who was manually banned or has already left.
+    const check=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChatMember',{method:'post',payload:{chat_id:groupId,user_id:String(userId)},muteHttpExceptions:true});
+    const current=parseTelegramResponse_(check),status=current.ok&&current.result?String(current.result.status||''):'';
+    if(!current.ok)return false;
+    if(status==='left'||status==='kicked'||(status==='restricted'&&current.result.is_member===false))return true;
+    if(status!=='member')return false;
     const r=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/banChatMember',{method:'post',payload:{chat_id:groupId,user_id:String(userId)},muteHttpExceptions:true});
     const banned=parseTelegramResponse_(r);if(!banned.ok){console.error('MPS unauthorized VIP removal: '+(banned.description||'ban failed'));return false;}
-    // Ban is immediately lifted only for the member this function just removed.
-    // sendVipInvite_ never unbans users who may have been banned manually by an admin.
     const u=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/unbanChatMember',{method:'post',payload:{chat_id:groupId,user_id:String(userId),only_if_banned:true},muteHttpExceptions:true});
     const unbanned=parseTelegramResponse_(u);if(!unbanned.ok){console.error('MPS unauthorized VIP temporary ban remains: '+(unbanned.description||'unban failed'));return false;}
     return true;
@@ -1808,10 +1812,14 @@ function kickMpsUnauthorizedUser_(groupId,userId){
 function revokeVipInviteLink_(groupId,inviteLink) {
   if(!groupId||!inviteLink)return false;
   const token=PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_BOT_TOKEN'); if(!token)return false;
-  try { const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{method:'post',payload:{chat_id:groupId,invite_link:inviteLink},muteHttpExceptions:true});const result=parseTelegramResponse_(response);return !!result.ok; }
+  try {
+    const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{method:'post',payload:{chat_id:groupId,invite_link:inviteLink},muteHttpExceptions:true});
+    const result=parseTelegramResponse_(response);if(result.ok)return true;
+    // Telegram reports an already-revoked/expired link as invalid; it is no longer usable.
+    return /INVITE_HASH_INVALID|invite.*(?:invalid|revoked|expired|not found|already)/i.test(String(result.description||''));
+  }
   catch(err) { console.error('VIP invite revoke: '+safeErrorMessage_(err));return false; }
 }
-
 function testTelegram_() {
   const result = sendTelegram_('🧪 TES NOTIFIKASI MARKET PSYCHOLOGY SOCIETY v4');
   if (!result.ok) throw new Error('Tes Telegram gagal: ' + result.error);
@@ -2910,8 +2918,8 @@ function createMpsGasVipTransitionOrchestrator_(config) {
   function compareDecimal_(a,b){a=String(a);b=String(b);return a.length!==b.length?(a.length>b.length?1:-1):(a===b?0:(a>b?1:-1));}
   function compare_(a,b){
     if(!b)return 1;
-    // Original Telegram chat_member.date is primary, ingress epoch handles ID resets,
-    // and decimal update_id deterministically orders events within the same epoch/second.
+    // Telegram chat_member.date is the primary source-event clock. update_id
+    // is the deterministic tie-break for events within the same second.
     if(Number(a.sourceDate)!==Number(b.sourceDate))return Number(a.sourceDate)>Number(b.sourceDate)?1:-1;
     if(Number(a.epoch)!==Number(b.epoch))return Number(a.epoch)>Number(b.epoch)?1:-1;
     return compareDecimal_(a.updateId,b.updateId);
@@ -3033,7 +3041,24 @@ function createMpsGasVipTransitionOrchestrator_(config) {
       return target;
     });
   }
-  return Object.freeze({process:process});
+  function isCurrent(input,resolved){
+    input=input||{};resolved=resolved||{};
+    var memberId=String(resolved.memberId||input.memberId||'').trim();
+    if(!memberId)return false;
+    var updateId=decimal_(input.updateId),epoch=Number(input.epoch),sourceDate=Number(input.sourceDate);
+    if(!Number.isSafeInteger(epoch)||epoch<0||!Number.isSafeInteger(sourceDate)||sourceDate<=0)return false;
+    var intentKey=key_(epoch,updateId);
+    return ledger.runExclusive(function(tx){
+      tx.assertActive();
+      var intent=store.readIntent(tx,intentKey);
+      if(!intent||String(intent.State)!=='COMPLETED'||String(intent['Member ID'])!==memberId)return false;
+      var cursor=store.readCursor(tx,memberId);
+      return !!cursor&&String(cursor.transitionKey)===intentKey&&
+        compare_({epoch:epoch,sourceDate:sourceDate,updateId:updateId},
+          {epoch:Number(cursor.epoch),sourceDate:Number(cursor.sourceDate),updateId:String(cursor.updateId)})===0;
+    });
+  }
+  return Object.freeze({process:process,isCurrent:isCurrent});
 }
 
 
@@ -3083,9 +3108,10 @@ function createMpsGasVipChatMemberHandler_(config) {
       if(!resolved.telegramUserId)resolved.telegramUserId=userId;
       return resolved;
     });
-    if(snapshot&&snapshot.ignored!==true&&typeof config.afterTransition==='function'&&
-      ['ACTIVE','LEFT','DENIED'].indexOf(result)>=0){
-      var followup=config.afterTransition({result:result,input:input,resolved:snapshot});
+    var followupEligible=['ACTIVE','LEFT','DENIED'].indexOf(result)>=0;
+    if(result==='DUPLICATE'&&snapshot&&snapshot.ignored!==true&&typeof orchestrator.isCurrent==='function')followupEligible=orchestrator.isCurrent(input,snapshot);
+    if(snapshot&&snapshot.ignored!==true&&typeof config.afterTransition==='function'&&followupEligible){
+      var followup=config.afterTransition({result:result,targetState:String(snapshot.targetState||''),input:input,resolved:snapshot});
       if(followup&&typeof followup.then==='function')throw new Error('VIP_CHAT_MEMBER_FOLLOWUP_MUST_BE_SYNCHRONOUS');
     }
     return result;
