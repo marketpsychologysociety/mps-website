@@ -223,6 +223,8 @@ Run: `node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs`
 
 ## P1.14 — ownerless registry-lock recovery (synthetic only)
 
+Operator guidance: `docs/MPS-REVIEWER-REGISTRY-LOCK-RECOVERY-RUNBOOK.md`. It requires service quiescence, evidence preservation, validation on a separate copy, independent manual review, atomic quarantine (never deletion), and single-writer readback. It is not a production runbook.
+
 If a process terminates after creating `reviewer-trust.lock` but before writing `owner.json`, the lock has no verifiable PID/token owner. The registry waits only for a bounded owner-file creation window, then fails with `LOCK_RECOVERY_REQUIRED` and deliberately does not delete or steal that ambiguous lock. An operator must reconcile it out of band after proving no writer is active. A regression test asserts fail-closed behavior and confirms the lock directory remains untouched.
 
 The expanded trust-registry suite now contains 15 test cases. Clean-checkout GitHub Actions workflow #315 (run ID `42948585112`) completed **SUCCESS** on commit `6eeeb39657db5a2219656c574aca2f48a1b92553`; the full workflow and Chromium browser checks passed. This is not multi-host or power-loss protection.
