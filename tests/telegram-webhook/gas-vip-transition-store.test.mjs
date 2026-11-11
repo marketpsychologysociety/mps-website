@@ -8,7 +8,7 @@ const root=new URL('./',import.meta.url);
 const effectSource=readFileSync(fileURLToPath(new URL('gas-effect-ledger-adapter.gs',root)),'utf8');
 const storeSource=readFileSync(fileURLToPath(new URL('gas-vip-transition-store.gs',root)),'utf8');
 const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
-const cursorHeaders=['Member ID','Last Update Epoch','Last Update ID','Last Transition Key','Updated At'];
+const cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
 
 function harness({missingCursor=false,failFlushAt=0,failWriteAt=0}={}) {
  const rows=new Map([
@@ -78,9 +78,9 @@ test('intent state update survives a new runtime context',()=>{
 });
 test('member cursor inserts then updates without duplicate member rows',()=>{
  const h=harness();
- assert.equal(h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,updateId:'100',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'})).outcome,'INSERTED');
- assert.equal(h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,updateId:'101',transitionKey:'telegram:2:101:vip_transition',updatedAt:'later'})).outcome,'UPDATED');
- const c=h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12'));assert.equal(c.updateId,'101');
+ assert.equal(h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'100',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'})).outcome,'INSERTED');
+ assert.equal(h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:vip_transition',updatedAt:'later'})).outcome,'UPDATED');
+ const c=h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12'));assert.equal(c.updateId,'101');assert.equal(c.sourceDate,1760000001);
  assert.equal(h.sheets.get('MPS Telegram VIP Member Cursor').length,2);
 });
 test('findPending returns one unfinished transition and rejects multiple pending rows',()=>{
@@ -117,7 +117,7 @@ test('flush failure after intent persistence is reconciled by a fresh runtime',(
  assert.equal(h.stats().held,false);
 });
 test('cursor writes use text update IDs and reject malformed identifiers before mutation',()=>{
- const h=harness();h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,updateId:'90071992547409931234',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'}));
+ const h=harness();h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'90071992547409931234',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'}));
  assert.equal(h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12').updateId),'90071992547409931234');
- assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,updateId:'01',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'})),/VIP_TRANSITION_INVALID_UPDATE_ID/);
+ assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'01',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'})),/VIP_TRANSITION_INVALID_UPDATE_ID/);
 });
