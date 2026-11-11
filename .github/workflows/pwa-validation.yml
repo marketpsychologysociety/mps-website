@@ -99,6 +99,8 @@ jobs:
         run: node --test tests/telegram-webhook/gas-vip-transition-orchestrator.test.mjs
       - name: Run Telegram chat_member source-metadata adapter tests
         run: node --test tests/telegram-webhook/gas-vip-chat-member-handler.test.mjs
+      - name: Run candidate Code.gs VIP transition integration tests
+        run: node --test tests/telegram-webhook/candidate-vip-chat-member-integration.test.mjs
       - name: Run VIP activation contract against isolated GAS adapter (mocked services only)
         run: node --test tests/telegram-webhook/vip-activation-gas-adapter-integration.test.mjs
       - name: Run read-only schema inspector tests
