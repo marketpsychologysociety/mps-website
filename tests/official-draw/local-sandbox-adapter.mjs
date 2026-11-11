@@ -132,6 +132,8 @@ const server = http.createServer(async (req, res) => {
       return fail(res, 409, "SEPARATION_OF_DUTIES", "A distinct person must review this event.");
     }
     if (actor.subject === event.created_by_subject) return fail(res, 409, "SEPARATION_OF_DUTIES", "A distinct person must review this event.");
+    const expectedVersion = String(req.headers["if-match"] || "").replace(/^"|"$/g, "");
+    if (!expectedVersion || expectedVersion !== String(event.version)) return fail(res, 412, "VERSION_PRECONDITION_FAILED", "If-Match must equal the current event version.");
     if (event.state !== "RULES_REVIEW_PENDING" || body.rules_hash !== event.rules_hash) {
       return fail(res, 409, "PRECONDITION_FAILED", "Event state or rules digest does not match.");
     }
@@ -160,6 +162,7 @@ const server = http.createServer(async (req, res) => {
     const draw = draws.get(decodeURIComponent(executeMatch[1]));
     if (!draw) return fail(res, 404, "NOT_FOUND", "Draw not found.");
     if (!requireRole(actor, "DRAW_OPERATOR")) return fail(res, 403, "FORBIDDEN", "Insufficient role.");
+    if (draw.owner_subject !== actor.subject) return fail(res, 404, "NOT_FOUND", "Draw not found.");
     const key = String(req.headers["idempotency-key"] || "");
     if (!key || key.length > 128) return fail(res, 400, "VALIDATION_ERROR", "Idempotency-Key is required.");
     const scope = draw.draw_id + ":" + actor.subject + ":" + key;
@@ -169,6 +172,8 @@ const server = http.createServer(async (req, res) => {
       if (prior.digest !== digest) return fail(res, 409, "IDEMPOTENCY_CONFLICT", "Idempotency key was used with a different request.");
       return json(res, 200, { ok: true, request_id: requestId, data: { operation_id: prior.operation_id }, operation: { state: "COMPLETED", replayed: true } });
     }
+    const expectedVersion = String(req.headers["if-match"] || "").replace(/^"|"$/g, "");
+    if (!expectedVersion || expectedVersion !== String(draw.version)) return fail(res, 412, "VERSION_PRECONDITION_FAILED", "If-Match must equal the current draw version.");
     if (draw.state !== "BEACON_COMMITTED") return fail(res, 409, "PRECONDITION_FAILED", "Draw is not ready for execution.");
     const op = "op_" + randomUUID();
     idempotency.set(scope, { digest, operation_id: op });
@@ -184,6 +189,8 @@ const server = http.createServer(async (req, res) => {
     const draw = draws.get(decodeURIComponent(publishMatch[1]));
     if (!draw) return fail(res, 404, "NOT_FOUND", "Draw not found.");
     if (!requireRole(actor, "DRAW_PUBLISHER")) return fail(res, 403, "FORBIDDEN", "Insufficient role.");
+    const expectedVersion = String(req.headers["if-match"] || "").replace(/^"|"$/g, "");
+    if (!expectedVersion || expectedVersion !== String(draw.version)) return fail(res, 412, "VERSION_PRECONDITION_FAILED", "If-Match must equal the current draw version.");
     if (draw.state !== "VERIFIED") return fail(res, 409, "PRECONDITION_FAILED", "Only independently verified results can be published.");
     draw.state = "PUBLISHED";
     draw.version++;
