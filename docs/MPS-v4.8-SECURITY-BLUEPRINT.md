@@ -217,3 +217,65 @@ Security is accepted only when:
 - Production changes have explicit approval and post-release verification.
 
 **This blueprint defines requirements; its existence is not evidence that any control is implemented or passed.**
+
+---
+
+## 9. Implementation progress and remaining security gates — 2026-11-11
+
+This status record separates documented design, isolated source work, synthetic tests, and production evidence. A documented control is not an implemented control.
+
+### Delivered in the workbench
+
+- [x] Core security blueprint and acceptance matrix.
+- [x] Companion winner-draw security review.
+- [x] Dual-control and audit-journal design.
+- [x] Individual identity and evidence architecture.
+- [x] Official Draw API/data contract.
+- [x] Draw threat model and abuse-case test plan (TM-01–TM-32).
+- [x] Security harness readiness review.
+- [x] Narrow synthetic loopback Draw sandbox adapter with fixed test actors and in-memory state.
+- [x] Sandbox ownership check for draw execution and expected-version (`If-Match`) guards for approval, execution, and publication.
+- [x] Contract tests for cross-owner mutation and missing/stale version preconditions.
+- [x] Privacy test corrected to report SKIP when no actual public projection fixture exists; null output is not counted as privacy proof.
+- [x] Announcement public ticker/frontend privacy controls documented and implemented in isolated frontend workbench: generic public copy, masked-ID-only policy, strict rendering, safe link handling, no names/full IDs.
+
+### Test evidence and limitations
+
+- [x] Narrow synthetic contract suite: **8 PASS, 1 SKIP, 0 FAIL** on a reconstructed local working copy of fetched source; not a clean checkout and not a CI run.
+- [x] Public ticker static route audit and synthetic DOM checks passed in the isolated workbench.
+- [ ] Clean-checkout or CI run of the current exact adapter/test commits.
+- [ ] Real public projection serialization and synthetic canary-leak test.
+- [ ] Apps Script runtime, real browser, mobile-device, and live backend authorization tests remain NOT TESTED.
+- [ ] No production penetration test or independent security certification has been performed.
+
+### Remaining critical implementation work
+
+- [ ] Real OIDC provider integration with server-side signature/JWKS, issuer, audience, nonce, expiry, authorized-party, and assurance validation.
+- [ ] Individually authenticated privileged actors, revocation, MFA/step-up, and enforceable person-level separation of duties.
+- [ ] Durable isolated persistence, transactional/locking behavior, idempotency ledger, tamper-evident journal, external evidence anchor, and reconciliation workflow.
+- [ ] Canonical eligible participant snapshot, freeze/review, and proof of completeness.
+- [ ] Pinned future randomness beacon round and cryptographic signature verification; never trust a relay's `verified:true`.
+- [ ] Deterministic unbiased winner selection, independent proof reproduction, and anti-reroll enforcement.
+- [ ] Real public winner projection generated only from verified proof and independently approved publication.
+- [ ] Announcement CMS/backend implementation and Apps Script bridge runtime validation; current public-center feature flag remains OFF.
+- [ ] Full TM-01–TM-32 execution, including race, fault injection, journal failures, cache/privacy, webhook replay, supply chain, rollback, and recovery.
+- [ ] Browser, Android/iOS, direct API, Apps Script, Sheets/Drive ACL, and independent external review evidence.
+
+### Current security decision
+
+| Surface | Current status |
+|---|---|
+| Public ticker frontend privacy controls | Implemented in isolated workbench; static/synthetic checks only |
+| Public-center Apps Script feed | Disabled pending isolated runtime validation |
+| Draw sandbox | Synthetic loopback harness only; not production API |
+| OIDC / privileged human identity | Design only; not implemented |
+| Durable journal / external anchor | Design only; not implemented |
+| Beacon verifier / fair draw algorithm | Design only; not implemented |
+| Public winner publication | Not implemented |
+| Production Apps Script authorization | NOT VERIFIED |
+| Production Sheets/Drive permissions | NOT VERIFIED |
+| Official winner draw | **BLOCKED / NO-GO** |
+
+The latest repository comparison records `mps-v4.8-workbench` 136 commits ahead and 0 behind `main`; production `main` remains at baseline `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`. This branch comparison is not a release or security certification.
+
+**Safety boundary:** no production deployment, database/member data, Drive ACL, Script Properties, credential, DNS/hosting setting, trigger, or Telegram webhook was changed by this status update.
