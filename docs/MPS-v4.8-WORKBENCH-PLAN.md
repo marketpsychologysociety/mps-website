@@ -830,3 +830,18 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 - [ ] Independently authenticate backup provenance, access controls, retention, encryption/key recovery, and restore drills in an authorized isolated infrastructure PoC.
 
 **Evidence:** `tests/official-draw/synthetic-backup-recovery.mjs`, `tests/official-draw/synthetic-backup-recovery.test.mjs`, `docs/MPS-INDEPENDENT-BACKUP-RECOVERY-VERIFICATION.md`. The current harness is local filesystem only; a manifest hash is not an external trust anchor, and a syntactically valid current checkpoint is not proof of independent authority. No cloud resources, credentials, member data, production integration, or deployment were created or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.16 — off-site backup architecture and recovery drill contract (synthetic only)
+
+- [x] Define separate source, backup and audit account/project/region trust boundaries.
+- [x] Define six distinct identities: source writer, backup writer, recovery operator, independent verifier, storage administrator and audit administrator.
+- [x] Define exact-generation, digest, encryption-key reference, immutable-retention and source-preservation evidence requirements.
+- [x] Define restore-to-new-target and independent readback contract with audit pagination and RPO/RTO assertions.
+- [x] Require an independently established expected source checkpoint; reject missing or mismatched checkpoint.
+- [x] Add provider-neutral offline normalized-evidence validator and sixteen synthetic positive/negative tests.
+- [ ] Obtain explicit authorization and provision separately administered off-site PoC infrastructure.
+- [ ] Authenticate provider APIs, IAM/MFA, KMS/key recovery, immutable retention, raw audit exports and independent reviewer attestations.
+- [ ] Run real off-site restore drills against approved RPO/RTO targets.
+
+**Evidence:** `tests/official-draw/offsite-recovery-drill-contract.mjs`, `tests/official-draw/offsite-recovery-drill-contract.test.mjs`, `docs/MPS-OFFSITE-BACKUP-RECOVERY-DRILL-CONTRACT.md`. This is a synthetic evidence normalizer, not proof of actual provider identity, retention, encryption, audit completeness, or off-site resilience. RPO 86,400s and RTO 3,600s are test defaults, not approved MPS objectives. No cloud resources, billing, IAM, credentials, member data, production integration or deployment were created or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
