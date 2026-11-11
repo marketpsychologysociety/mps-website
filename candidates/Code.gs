@@ -2861,7 +2861,7 @@ function createMpsGasVipTransitionStore_(config) {
     key_(record['Ticker Effect Key']);key_(record['Audit Effect Key']);
     var existingIndex=uniqueRow_(rows,0,key);
     var values=[key].concat(intentFields.map(function(h){return record[h]===undefined?'':record[h];}));
-    if(existingIndex>=0){var prior=rows[existingIndex];var same=prior.length===values.length&&prior.every(function(v,i){return String(v==null?'':v)===String(values[i]==null?'':values[i]);});return{outcome:same?'EXISTS':'REVIEW_COLLISION',record:intentObject_(prior)};}
+    if(existingIndex>=0){var prior=rows[existingIndex];validateIntent_(intentObject_(prior));var same=prior.length===values.length&&prior.every(function(v,i){return String(v==null?'':v)===String(values[i]==null?'':values[i]);});return{outcome:same?'EXISTS':'REVIEW_COLLISION',record:intentObject_(prior)};}
     sh.getRange(sh.getLastRow()+1,1,1,intentHeaders.length).setValues([values]);SpreadsheetApp.flush();
     return{outcome:'INSERTED',row:sh.getLastRow(),record:intentObject_(values)};
   }
@@ -2903,7 +2903,7 @@ function createMpsGasVipTransitionStore_(config) {
   }
   function findPending(tx,memberId){
     var id=member_(memberId),sh=sheet_(intentName,intentHeaders,tx),rows=rows_(sh,intentHeaders.length);
-    var found=[];rows.forEach(function(row){if(String(row[3])===id&&['INTENT','STATUS_APPLIED'].indexOf(String(row[11]))>=0)found.push(validateIntent_(intentObject_(row)));});
+    var found=[];rows.forEach(function(row){if(String(row[3])===id){var intent=validateIntent_(intentObject_(row));if(['INTENT','STATUS_APPLIED'].indexOf(String(intent.State))>=0)found.push(intent);}});
     if(found.length>1)throw new Error('VIP_TRANSITION_MULTIPLE_PENDING');
     return found.length?found[0]:null;
   }
