@@ -126,7 +126,7 @@ test('single ScriptLock covers each transition critical section and is released 
 test('same transition key with changed target or member identity is quarantined',()=>{
  const h=harness();migrate(h);assert.equal(h.process(input()),'ACTIVE');
  assert.throws(()=>h.process(input('LEFT','700')),/VIP_TRANSITION_INTENT_COLLISION/);
- assert.throws(()=>h.process({...input(),memberName:'Other Member'}),/VIP_TRANSITION_INTENT_COLLISION/);
+ assert.throws(()=>h.process({...input(),telegramUserId:'987654322'}),/VIP_TRANSITION_INTENT_COLLISION/);
  assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
 });
 
