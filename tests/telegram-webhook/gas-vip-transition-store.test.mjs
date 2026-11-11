@@ -36,7 +36,7 @@ function harness({missingCursor=false,failFlushAt=0,failWriteAt=0}={}) {
   const c={...services};vm.runInNewContext(effectSource+'\n'+storeSource+'\nthis.createLedger=createMpsGasEffectLedger_;this.createStore=createMpsGasVipTransitionStore_;',c,{timeout:1000});return c;
  }
  function run(fn){const c=context(),ledger=c.createLedger({spreadsheetId:'isolated-vip-ledger'}),store=c.createStore({spreadsheetId:'isolated-vip-ledger'});return ledger.runExclusive(tx=>fn(store,tx));}
- return {run,sheets,stats:()=>({held,acquired,released,flushCount,writeCount})};
+ return {run,sheets,context,stats:()=>({held,acquired,released,flushCount,writeCount})};
 }
 const record=(key='telegram:2:100:vip_transition')=>({
  'Intent Key':key,'Update Epoch':2,'Update ID':'100','Member ID':'MPS-ABCDEF12',
@@ -55,6 +55,7 @@ test('replay after runtime recreation finds same intent and does not append dupl
  const h=harness();h.run((s,tx)=>s.insertIntent(tx,record()));
  const result=h.run((s,tx)=>s.insertIntent(tx,record()));
  assert.equal(result.outcome,'EXISTS');assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,2);
+ const changed={...record(),'Target State':'LEFT'};assert.equal(h.run((s,tx)=>s.insertIntent(tx,changed)).outcome,'REVIEW_COLLISION');
 });
 test('intent state update survives a new runtime context',()=>{
  const h=harness();h.run((s,tx)=>s.insertIntent(tx,record()));
@@ -104,4 +105,5 @@ test('flush failure after intent persistence is reconciled by a fresh runtime',(
 test('cursor writes use text update IDs and reject malformed identifiers before mutation',()=>{
  const h=harness();h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,updateId:'90071992547409931234',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'}));
  assert.equal(h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12').updateId),'90071992547409931234');
+ assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,updateId:'01',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'})),/VIP_TRANSITION_INVALID_UPDATE_ID/);
 });
