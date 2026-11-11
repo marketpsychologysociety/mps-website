@@ -46,6 +46,7 @@ test('candidate Code.gs compiles and removes every legacy status-handler callsit
  assert.ok(candidate.includes('function apiAdminPrepareTelegramVipTransitionStorage(session)'));
  assert.ok(candidate.includes('function processMpsVipChatMemberEvent_(update,memberUpdate)'));
  assert.equal(candidate.includes('updateVipJoinStatus_'),false);
+ assert.equal(candidate.includes('recordMpsVipTickerEvent_'),false);
  assert.equal(joinSource.includes('updateVipJoinStatus_'),false);
  const invite=extract('sendVipInvite_','isSafePublicIdentity_');
  assert.equal(invite.includes("setValue('Aktif'"),false);
