@@ -1758,6 +1758,59 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
  * Read-only schema preflight for the explicit v4.8 member-sheet migration.
  * This function never writes, formats, migrates, provisions, or acquires a lock.
  */
+/**
+ * Read-only validation of every sheet schema required by VIP transition storage.
+ * Missing/empty tabs are acceptable because provisioning creates them; existing
+ * populated tabs must match exactly. Existing Effect Key values are validated.
+ */
+function inspectMpsVipTransitionStorageSchemas_(ss,store) {
+  const checks=[];
+  function check_(name,headers,allowEffectKey) {
+    const sh=ss.getSheetByName(name);
+    if(!sh){checks.push({name:name,ok:true,state:'MISSING_WILL_CREATE'});return;}
+    const lastRow=sh.getLastRow();
+    if(lastRow===0){checks.push({name:name,ok:true,state:'EMPTY_WILL_INITIALIZE'});return;}
+    const width=sh.getLastColumn();
+    if(width!==headers.length&&!(allowEffectKey&&width===headers.length+1)){
+      checks.push({name:name,ok:false,state:'COLUMN_COUNT_MISMATCH'});return;
+    }
+    const actual=sh.getRange(1,1,1,width).getDisplayValues()[0].map(function(v){return String(v==null?'':v);});
+    if(headers.some(function(h,i){return actual[i]!==h;})){
+      checks.push({name:name,ok:false,state:'HEADER_MISMATCH'});return;
+    }
+    if(width===headers.length){
+      checks.push({name:name,ok:true,state:'LEGACY_READY'});return;
+    }
+    if(actual[headers.length]!=='Effect Key'){
+      checks.push({name:name,ok:false,state:'EFFECT_KEY_HEADER_MISMATCH'});return;
+    }
+    const last=sh.getLastRow(),seen=Object.create(null);
+    if(last>1){
+      const keys=sh.getRange(2,headers.length+1,last-1,1).getDisplayValues();
+      for(let i=0;i<keys.length;i++){
+        const key=String(keys[i][0]==null?'':keys[i][0]).trim();
+        if(!key)continue;
+        if(!/^[A-Za-z0-9:_-]{1,160}$/.test(key)||seen[key]){
+          checks.push({name:name,ok:false,state:'EFFECT_KEY_DATA_INVALID'});return;
+        }
+        seen[key]=true;
+      }
+    }
+    checks.push({name:name,ok:true,state:'ALREADY_MIGRATED'});
+  }
+  check_('VIP Access',['ID Member','Telegram User ID','Chat ID','Username','Nama Depan','Terhubung','Status VIP','Invite Link','Invite Expiry','Joined At','Error Terakhir'],false);
+  check_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
+  check_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
+  check_('MPS Telegram VIP Transition Intents',store.headers.intents,false);
+  check_('MPS Telegram VIP Member Cursor',store.headers.cursor,false);
+  const blocked=checks.filter(function(x){return !x.ok;});
+  return {ok:blocked.length===0,checks:checks,message:blocked.length?'Storage preflight diblokir: '+blocked.map(function(x){return x.name+' ('+x.state+')';}).join(', '):'Seluruh skema storage transisi cocok atau aman untuk dibuat/migrasi.'};
+}
+
+/**
+ * Read-only schema preflight for the explicit v4.8 member-sheet migration.
+ * This function never writes, formats, migrates, provisions, or acquires a lock.
+ */
 function apiAdminInspectMemberSchemaV480(session) {
   requireSuperAdmin_(session);
   const ss=openDatabase_();
@@ -1771,7 +1824,11 @@ function apiAdminInspectMemberSchemaV480(session) {
     return {ok:true,state:'LEGACY_18_READY',actualColumns:18,expectedLegacyColumns:18,expectedV480Columns:full.length,appendable:true,provisioningReady:false,message:'Skema legacy v4.6.1 cocok. Migrasi append-only 12 kolom dapat dijalankan setelah konfirmasi eksplisit.'};
   }
   if(actualColumns===full.length&&full.every(function(h,i){return headers[i]===h;})){
-    return {ok:true,state:'READY_30',actualColumns:actualColumns,expectedLegacyColumns:18,expectedV480Columns:full.length,appendable:false,provisioningReady:true,message:'Skema Database Member sudah cocok dengan v4.8. Provisioning storage transisi dapat dijalankan secara terpisah.'};
+    const spreadsheetId=String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||'');
+    if(!spreadsheetId)return {ok:false,state:'CONFIGURATION_BLOCKED',actualColumns:actualColumns,expectedLegacyColumns:18,expectedV480Columns:full.length,appendable:false,provisioningReady:false,message:'MPS_SPREADSHEET_ID belum dikonfigurasi. Provisioning dinonaktifkan.'};
+    const store=createMpsGasVipTransitionStore_({spreadsheetId:spreadsheetId});
+    const storage=inspectMpsVipTransitionStorageSchemas_(ss,store);
+    return {ok:true,state:'READY_30',actualColumns:actualColumns,expectedLegacyColumns:18,expectedV480Columns:full.length,appendable:false,provisioningReady:storage.ok,provisioningChecks:storage.checks,message:storage.ok?'Database Member dan seluruh skema storage transisi cocok atau siap diprovision.': 'Database Member cocok 30 kolom, tetapi '+storage.message};
   }
   return {ok:false,state:'SCHEMA_MISMATCH',actualColumns:actualColumns,expectedLegacyColumns:18,expectedV480Columns:full.length,appendable:false,provisioningReady:false,message:'Skema tidak cocok dengan format legacy 18 kolom atau v4.8 30 kolom. Migrasi dan provisioning dinonaktifkan; tidak ada perubahan dilakukan.'};
 }
@@ -1820,13 +1877,17 @@ function apiAdminPrepareTelegramVipTransitionStorage(session) {
   const ledger=createMpsGasEffectLedger_({spreadsheetId:spreadsheetId});
   const store=createMpsGasVipTransitionStore_({spreadsheetId:spreadsheetId});
   ledger.runExclusive(function(tx){
-    const memberSheet=openDatabase_().getSheetByName('Database Member');
+    const ss=SpreadsheetApp.openById(spreadsheetId);
+    const memberSheet=ss.getSheetByName('Database Member');
     if(!memberSheet||memberSheet.getLastColumn()!==MPS.headers.length)throw new Error('Database Member belum memakai skema 30 kolom. Jalankan apiAdminMigrateMemberSheetToV480(session) terlebih dahulu.');
+    const memberHeaders=memberSheet.getRange(1,1,1,MPS.headers.length).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+    if(MPS.headers.some(function(h,i){return memberHeaders[i]!==h;}))throw new Error('Database Member memiliki header yang tidak cocok. Provisioning dibatalkan tanpa perubahan.');
+    const storage=inspectMpsVipTransitionStorageSchemas_(ss,store);
+    if(!storage.ok)throw new Error('VIP_TRANSITION_PREFLIGHT_FAILED: '+storage.message);
     getMemberSheet_();getTelegramAccessSheet_();
     getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
     getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
     tx.migrate('audit');tx.migrate('ticker');
-    const ss=SpreadsheetApp.openById(spreadsheetId);
     function ensure_(name,headers){
       let sh=ss.getSheetByName(name);
       if(!sh)sh=ss.insertSheet(name);
