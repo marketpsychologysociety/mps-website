@@ -172,6 +172,21 @@ test('lease expiry blocks a late transition even before another claim arrives', 
   assert.equal(h.rows[1][3], 'PROCESSING');
 });
 
+test('initial RECEIVED rows with zero attempts can be claimed safely', () => {
+  const h = makeHarness();
+  const journal = h.create();
+  journal.claim(update(), 1000);
+  h.rows[1][3] = 'RECEIVED';
+  h.rows[1][5] = 0;
+  h.rows[1][6] = 0;
+  h.rows[1][7] = 0;
+  h.rows[1][8] = '';
+  h.rows[1][9] = '';
+  const claimed = journal.claim(update(), 1100);
+  assert.equal(claimed.outcome, 'CLAIMED');
+  assert.equal(claimed.row.attemptCount, 1);
+});
+
 test('transient failure is retryable and increments attempt count on reclaim', () => {
   const h = makeHarness();
   const journal = h.create();
