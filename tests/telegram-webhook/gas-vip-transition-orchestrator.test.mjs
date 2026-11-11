@@ -74,10 +74,10 @@ function harness({crashAt=''}={}) {
   insertIntent(tx,...a){const r=store.insertIntent(tx,...a);trip('AFTER_INTENT');return r;},
   updateIntent(tx,key,patch){const r=store.updateIntent(tx,key,patch);if(patch.State==='STATUS_APPLIED')trip('AFTER_STATUS_APPLIED');if(patch.State==='COMPLETED')trip('AFTER_COMPLETE');return r;}
  });
- function orchestrator(resolveTransition){return context.makeOrchestrator({ledger:makeLedger(),store:wrappedStore,statusWriter,resolveTransition});}
+ function orchestrator(){return context.makeOrchestrator({ledger:makeLedger(),store:wrappedStore,statusWriter});}
  function migrateEffects(){return ledger.runExclusive(tx=>{tx.migrate('audit');tx.migrate('ticker');});}
  function resetCounts(){acquired=0;released=0;}
- return{process:(input,resolveTransition)=>orchestrator(resolveTransition).process(input),migrateEffects,sheets,stats:()=>({held,acquired,released}),resetCounts};
+ return{process:(input,resolveTransition)=>orchestrator().process(input,resolveTransition),migrateEffects,sheets,stats:()=>({held,acquired,released}),resetCounts};
 }
 const input=(targetState='ACTIVE',updateId='700',sourceDate=1760000000)=>({
  updateId,epoch:0,sourceDate,memberId:'MPS-ABCDEF12',memberName:'Test Member',telegramUserId:'987654321',tickerAllowed:true,
