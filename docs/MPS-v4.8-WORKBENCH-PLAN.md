@@ -797,6 +797,19 @@ An intermediate run #279 failed because the module first made keyId mandatory be
 
 **Scope limits:** process-crash simulation only, not power loss, kernel panic, storage-controller cache loss, or multi-host safety. The test fault hook is test-only. No production system, GCP resource, credential, identity provider, member data or deployment is touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
 
-### P1.12 implementation review status — 2026-11-11
+### P1.12 implementation review status — superseded 2026-11-11
 
-The isolated implementation and synthetic suite are committed on `mps-v4.8-workbench`. Local Node.js verification: syntax checks passed and the trust-registry suite completed **12 PASS, 0 FAIL, 0 SKIP**. The GitHub Actions workflow now includes the P1.12 test step. At this review checkpoint, no clean-checkout workflow run/status is visible for the latest workbench commit, so CI verification is explicitly **PENDING / NOT CLAIMED**. Production `main` still resolves to baseline `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`; the workbench is 271 commits ahead, 0 behind. No PR, merge, deployment, GCP resource, identity provider, credentials, private key, member data, Apps Script deployment, or live service was changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+The earlier checkpoint above is historical and superseded by P1.13 clean-checkout CI evidence: workflow #305 passed the expanded 14-case registry suite, and documentation updates passed full workflow runs #306 and #307. P1.13 is complete for synthetic process-crash coverage only. Production `main` remains at baseline `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`; no PR, merge, deployment, GCP resource, identity provider, credentials, private key, member data, Apps Script deployment, or live service was changed.
+
+
+## P1.14 — ownerless trust-registry lock fail-closed recovery
+
+- [x] Identify the orphan-lock race: process termination after atomic lock-directory creation but before writing `owner.json`.
+- [x] Change ownerless lock handling from an unbounded retry loop to immediate `LOCK_RECOVERY_REQUIRED`; never infer that an ownerless lock is stale or safe to steal.
+- [x] Add a synthetic regression test that confirms the registry fails closed and leaves the ambiguous lock directory untouched.
+- [ ] Verify the expanded trust-registry suite from clean checkout in GitHub Actions.
+- [ ] Document a controlled manual reconciliation procedure before any real deployment; no automatic deletion of ownerless locks.
+ 
+**Verification status:** implementation and regression test are committed on the isolated workbench. The expanded suite contains 15 test cases; clean-checkout CI for this change is pending until the triggered workflow completes. No local test execution is claimed in this conversation.
+
+**Scope limits:** synthetic local filesystem only. This narrows a process-lock recovery failure mode but does not provide multi-host locking, power-loss guarantees, transactional durability, or production-grade storage. No production system, GCP resource, credential, identity provider, member data or deployment is touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
