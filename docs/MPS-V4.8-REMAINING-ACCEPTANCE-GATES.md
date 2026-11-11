@@ -32,6 +32,9 @@
 - [ ] Implement handler-specific reconciliation for every update type in the handler matrix.
 - [ ] Reconcile already-consumed one-time links to the exact same Telegram user/chat; reject different identities.
 - [ ] Integrate the isolated effect-outbox contract with durable Apps Script/external storage and handler transactions for welcome DMs, group notices, ticker events, audit records, invite revocation, moderation actions, and admin alerts.
+- [x] Add a separate handler-reconciliation contract with 15 synthetic tests for same-identity application/legacy link replay, cross-identity rejection, and transition-scoped VIP activation keys.
+- [ ] Wire link replay reconciliation into the isolated Code.gs candidate; current source review confirms consumed-link replay is rejected before checking the same persisted Telegram identity.
+- [ ] Wire stable update-scoped VIP ticker/audit effects into the isolated Code.gs candidate; current source review confirms member status is written before ticker/audit and update_id is not passed to the helper.
 - [x] Define conservative synthetic contract for ambiguous Telegram `sendMessage`: move to REVIEW unless authoritative reconciliation proves APPLIED/NOT_APPLIED; only explicitly confirmed no-effect failures may be retried. [ ] Obtain business approval for any notification class that instead accepts at-least-once duplicate delivery.
 - [ ] Give each VIP activation transition a distinct effect key; do not deduplicate all future activations solely by member ID.
 - [ ] Exercise each handler with mocked Telegram and spreadsheet adapters, then with a separate Telegram test bot/group.
@@ -68,7 +71,7 @@
 
 Passing GitHub Actions proves only the repository's automated checks, including synthetic/mocked tests and local Chromium checks. It does **not** prove live Apps Script persistence, real spreadsheet locking, Telegram API behavior, production CORS/redirect behavior, direct-endpoint authorization, physical Android behavior, or production readiness.
 
-The Apps Script adapter and new effect-outbox contract are not wired into the webhook. The current webhook candidate still uses CacheService for update-level PROCESSING/DONE state. The public-center feature flag remains disabled. The backend candidate is not deployed. No production migration, merge, or deployment is authorized by this checklist.
+The Apps Script adapter, effect-outbox contract, and handler-reconciliation contract are not wired into the webhook. The current webhook candidate still uses CacheService for update-level PROCESSING/DONE state. The public-center feature flag remains disabled. The backend candidate is not deployed. No production migration, merge, or deployment is authorized by this checklist.
 
 **Release status: NO-GO for production activation until the relevant gates above are evidenced and separately approved.**
 
