@@ -918,3 +918,8 @@ See `docs/MPS-P1.22-ISOLATED-TECHNICAL-ACCEPTANCE-SPEC.md` for canonical types/s
 - [ ] Independently verify OIDC/MFA, transactional outbox, provider evidence, beacon proof, audit provenance, off-site recovery and operational dual control.
 
 **Evidence:** `tests/official-draw/isolated-acceptance-harness.mjs`, `tests/official-draw/isolated-acceptance-harness.test.mjs`, and `docs/MPS-P1.23-ISOLATED-TECHNICAL-HARNESS.md`. Evidence class is **SYNTHETIC** only. In-memory behavior is not a transactional database or durable integration. No member data, production credentials, cloud/provider resource, database, Apps Script deployment, live endpoint or production configuration was used or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.23 follow-up review — canonicalization and public projection
+
+A second source review hardened canonical serialization against non-enumerable object properties and accessor/non-enumerable array elements, and hardened the public winner projection against hidden own fields and non-string proof identifiers. Regression assertions were added. P1.23 test execution remains unverified in the available evidence; do not mark the suite as passed until a completed run is independently confirmed. Synthetic-only scope and all production NO-GO gates remain unchanged.
