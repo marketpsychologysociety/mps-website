@@ -133,3 +133,14 @@ The recovery verifier now requires an exact record-key allowlist; unknown extra 
 **GitHub Actions run #180** on commit `ec9c3df600dbd7e3509f56dc9e620309aa4fb606` completed successfully from a clean checkout: durable journal suite **8 PASS, 0 FAIL, 0 SKIP**; Official Draw contract **10 PASS**; schema compatibility **9/9**; read-only inspector **5 scenarios**; Chromium PWA/browser checks passed. Overall workflow: **SUCCESS**. The immediately preceding run #179 failed because the new canary test reached CI one commit before its matching exact-schema guard; the follow-up commit added the guard, and run #180 verified the combined change green.
 
 This closes the standalone journal's synthetic test gap only. The journal is not yet integrated into API state transitions and remains single-process local-file storage without a cross-process lock, transactional database, or external hash anchor. API-level restart/fault-injection tests remain next. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+## P1.2 persistent Draw API sandbox (test only)
+
+tests/official-draw/persistent-local-sandbox-adapter.mjs is a separate loopback-only HTTP sandbox on 127.0.0.1:4179. It uses the P1.1 durable JSONL journal as the write-ahead operation log and reconstructs synthetic draw state from completed aggregate records after a process restart. The aggregate result schema is exact and allowlisted; arbitrary nested fields are rejected.
+
+Run the process-restart tests with:
+node --test tests/official-draw/persistent-api-integration.test.mjs
+
+The integration suite starts and stops real child Node processes against one disposable temporary journal directory. It checks durable seed state, execute transition recovery after restart, idempotent replay, changed-payload conflict, and a forced process crash after the durable intent. An incomplete intent restores the draw as RECONCILIATION_REQUIRED; the same key cannot silently execute again.
+
+Limitations remain material: single-process local filesystem only; no cross-process lock, transactional database, external journal anchor, OIDC/MFA, beacon verifier, unbiased selection algorithm, or production hardening. The fixture route exists only in this test adapter. Do not expose port 4179, use real data, or deploy it. Official winner draw remains BLOCKED / NO-GO and roulette remains SIMULATION ONLY.
