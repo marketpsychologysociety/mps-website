@@ -231,6 +231,14 @@ integration("public projection never exposes private synthetic canaries", async 
   assert.equal(publicResult.message, "Hasil undian telah diverifikasi dan dipublikasikan.");
 });
 
+integration("unpublished or unknown public results fail closed", async () => {
+  const empty = await adapter.getPublishedProjection("public_result_unknown");
+  assert.equal(empty.collection.status, 200);
+  assert.equal(empty.collection.body?.data?.count, 0);
+  assert.equal(empty.detail.status, 404);
+  assert.equal(empty.detail.body?.error?.code, "NOT_FOUND");
+});
+
 integration("unverified result cannot be published", async () => {
   const seeded = await adapter.seedDrawAtState({
     state: "DRAWN_UNVERIFIED",
