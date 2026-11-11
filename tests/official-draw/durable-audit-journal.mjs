@@ -356,6 +356,7 @@ export class DurableAuditJournal {
   beginOperation({ operationId = `op_${randomUUID()}`, idempotencyKey, actorSubject, targetId, payloadDigest, failAt = null }) {
     return this.#serial(() => this.#withFileLock(async () => {
       if (this.closed) throw journalError('JOURNAL_CLOSED', 'Journal is closed.');
+      if (this.needsReopen) throw journalError('RECONCILIATION_REQUIRED', 'Journal outcome is uncertain; close and reopen before retrying.');
       await this.#reload();
       validateText(operationId, 'operationId');
       validateText(idempotencyKey, 'idempotencyKey', 128);
@@ -383,6 +384,7 @@ export class DurableAuditJournal {
   completeOperation({ operationId, result, failAt = null }) {
     return this.#serial(() => this.#withFileLock(async () => {
       if (this.closed) throw journalError('JOURNAL_CLOSED', 'Journal is closed.');
+      if (this.needsReopen) throw journalError('RECONCILIATION_REQUIRED', 'Journal outcome is uncertain; close and reopen before retrying.');
       await this.#reload();
       validateText(operationId, 'operationId');
       const current = this.operations.get(operationId);
