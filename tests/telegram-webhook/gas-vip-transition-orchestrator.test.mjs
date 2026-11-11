@@ -74,10 +74,10 @@ function harness({crashAt=''}={}) {
   insertIntent(tx,...a){const r=store.insertIntent(tx,...a);trip('AFTER_INTENT');return r;},
   updateIntent(tx,key,patch){const r=store.updateIntent(tx,key,patch);if(patch.State==='STATUS_APPLIED')trip('AFTER_STATUS_APPLIED');if(patch.State==='COMPLETED')trip('AFTER_COMPLETE');return r;}
  });
- function orchestrator(){return context.makeOrchestrator({ledger:makeLedger(),store:wrappedStore,statusWriter});}
+ function orchestrator(resolveTransition){return context.makeOrchestrator({ledger:makeLedger(),store:wrappedStore,statusWriter,resolveTransition});}
  function migrateEffects(){return ledger.runExclusive(tx=>{tx.migrate('audit');tx.migrate('ticker');});}
  function resetCounts(){acquired=0;released=0;}
- return{process:input=>orchestrator().process(input),migrateEffects,sheets,stats:()=>({held,acquired,released}),resetCounts};
+ return{process:(input,resolveTransition)=>orchestrator(resolveTransition).process(input),migrateEffects,sheets,stats:()=>({held,acquired,released}),resetCounts};
 }
 const input=(targetState='ACTIVE',updateId='700',sourceDate=1760000000)=>({
  updateId,epoch:0,sourceDate,memberId:'MPS-ABCDEF12',memberName:'Test Member',telegramUserId:'987654321',tickerAllowed:true,
@@ -136,4 +136,25 @@ test('later Telegram event date wins after update ID reset even with lower epoch
  assert.equal(h.process({...input('LEFT','900',1760000000),epoch:5}),'LEFT');
  assert.equal(h.process({...input('ACTIVE','2',1760000001),epoch:0}),'ACTIVE');
  assert.equal(h.sheets.get('MPS VIP Access State')[1][1],'ACTIVE');
+});
+
+test('DENIED chat_member transition writes audit only and never emits public ticker',()=>{
+ const h=harness();migrate(h);
+ assert.equal(h.process(input('DENIED','702'),(tx,raw)=>{
+  assert.equal(tx.assertActive(),true);
+  assert.equal(h.stats().held,true);
+  return {...raw,targetState:'DENIED',tickerAllowed:false};
+ }),'DENIED');
+ assert.equal(h.sheets.get('MPS VIP Ticker Events').length,1);
+ assert.equal(h.sheets.get('MPS Audit Logs').length,2);
+ assert.equal(h.sheets.get('MPS Audit Logs')[1][5],'WARNING');
+});
+test('transition resolver executes inside the one exclusive lock and may supply the member identity',()=>{
+ const h=harness();migrate(h);let called=false;
+ const result=h.process({...input(),memberId:'',targetState:''},(tx,raw)=>{
+  called=true;assert.equal(h.stats().held,true);
+  return {...raw,memberId:'MPS-ABCDEF12',targetState:'ACTIVE',telegramUserId:'987654321',tickerAllowed:true};
+ });
+ assert.equal(called,true);assert.equal(result,'ACTIVE');
+ assert.equal(h.stats().acquired,1);assert.equal(h.stats().released,1);
 });
