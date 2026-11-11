@@ -127,12 +127,12 @@ function createMpsTelegramGasJournal_(config) {
       effectKeys: [],
       lastErrorCode: String(v[11] || '')
     };
-    try { record.effectKeys = v[10] ? JSON.parse(String(v[10])) : []; } catch (err) {
+    try { record.effectKeys = normalizeEffects_(v[10] ? JSON.parse(String(v[10])) : []); } catch (err) {
       throw new Error('JOURNAL_EFFECT_KEYS_CORRUPT');
     }
     if (!record.updateId || !/^[a-f0-9]{64}$/.test(record.payloadHash) ||
-        !allowedStates[record.state] || !Array.isArray(record.effectKeys) ||
-        !isFinite(record.attemptCount) || record.attemptCount < 1) {
+        !allowedStates[record.state] || !allowedUpdateTypes[record.updateType] ||
+        !isFinite(record.attemptCount) || Math.floor(record.attemptCount) !== record.attemptCount || record.attemptCount < 1) {
       throw new Error('JOURNAL_ROW_CORRUPT');
     }
     return record;
@@ -146,6 +146,7 @@ function createMpsTelegramGasJournal_(config) {
       JSON.stringify(record.effectKeys || []), record.lastErrorCode || ''
     ]];
     var target = row || (sheet.getLastRow() + 1);
+    sheet.getRange(target, 1, 1, 1).setNumberFormat('@');
     sheet.getRange(target, 1, 1, headers.length).setValues(values);
     SpreadsheetApp.flush();
   }
