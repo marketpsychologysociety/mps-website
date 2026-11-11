@@ -305,3 +305,8 @@ P1.23 CI diagnosis: the first observed hardened-source run reported 6/7 passing.
 ## P1.23 verification outcome
 
 P1.23 verification update: corrected clean-checkout CI run #403 (42964135867) completed SUCCESS. P1.23 harness, all downstream synthetic checks, and Chromium browser checks passed; no failed or skipped steps were reported. The earlier stale-version assertion fixture was corrected without changing the harness's version-before-state guard.
+
+
+## P1.24 — SQLite transactional persistence (synthetic only)
+
+Added a local file-backed SQLite adapter and nine tests for atomic draw/idempotency/outbox writes, canonical idempotency replay, rollback, database constraints, and reopen-after-lost-ack behavior. Uses Node's built-in experimental `node:sqlite`; no external package or production DB. Local Node 22.16.0 run: 9 PASS, 0 FAIL, 0 SKIP. CI verification pending. See `docs/MPS-P1.24-SQLITE-TRANSACTIONAL-PERSISTENCE.md`.
