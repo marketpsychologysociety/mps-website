@@ -1732,7 +1732,8 @@ function createMpsVipTransitionStatusWriter_() {
 function processMpsVipChatMemberEvent_(update,memberUpdate) {
   const props=PropertiesService.getScriptProperties(),groupId=String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_ID')||'');
   const spreadsheetId=String(props.getProperty('MPS_SPREADSHEET_ID')||'');
-  if(!groupId||!spreadsheetId)return 'IGNORED';
+  if(!groupId)return 'IGNORED';
+  if(!spreadsheetId)throw new Error('MPS_SPREADSHEET_ID_REQUIRED_FOR_VIP_TRANSITIONS');
   const ledger=createMpsGasEffectLedger_({spreadsheetId:spreadsheetId});
   const store=createMpsGasVipTransitionStore_({spreadsheetId:spreadsheetId});
   const orchestrator=createMpsGasVipTransitionOrchestrator_({ledger:ledger,store:store,statusWriter:createMpsVipTransitionStatusWriter_()});
