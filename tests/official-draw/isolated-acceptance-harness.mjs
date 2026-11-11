@@ -60,7 +60,12 @@ export function digestCanonical(value) {
 export function validateCreateEvent(input) {
   const allowed = new Set(["title_public", "rules_version", "eligibility_policy_version"]);
   if (!input || typeof input !== "object" || Array.isArray(input)) return { ok:false, code:"INVALID_BODY" };
-  if (Object.keys(input).some(key => !allowed.has(key))) return { ok:false, code:"UNKNOWN_FIELD" };
+  if (Object.getPrototypeOf(input) !== Object.prototype && Object.getPrototypeOf(input) !== null) return { ok:false, code:"INVALID_BODY" };
+  if (Object.getOwnPropertySymbols(input).length || Object.keys(input).some(key => !allowed.has(key))) return { ok:false, code:"UNKNOWN_FIELD" };
+  for (const key of Object.keys(input)) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (!descriptor || !Object.hasOwn(descriptor, "value")) return { ok:false, code:"INVALID_BODY" };
+  }
   if (typeof input.title_public !== "string" || !input.title_public.trim() || input.title_public.length > 160) {
     return { ok:false, code:"INVALID_TITLE" };
   }
@@ -123,9 +128,11 @@ export class SyntheticTransactionHarness {
 
   async execute({ drawId, subject, key, payload, expectedVersion, fault = "" }) {
     const run = async () => {
-      if (!drawId || !subject || !key || key.length > 128) return { status:400, code:"INVALID_REQUEST" };
-      const scope = subject + ":" + drawId + ":" + key;
-      const fingerprint = digestCanonical({ drawId, subject, payload });
+      if (typeof drawId !== "string" || !drawId || drawId.length > 128 || typeof subject !== "string" || !subject || subject.length > 256 || typeof key !== "string" || !key || key.length > 128 || !Number.isSafeInteger(expectedVersion) || expectedVersion < 1) return { status:400, code:"INVALID_REQUEST" };
+      let fingerprint;
+      try { fingerprint = digestCanonical({ drawId, subject, payload, expectedVersion }); }
+      catch { return { status:400, code:"INVALID_PAYLOAD" }; }
+      const scope = JSON.stringify([subject, drawId, key]);
       const previous = this.#operations.get(scope);
       if (previous) return previous.fingerprint === fingerprint
         ? { status:200, replayed:true, result:structuredClone(previous.result) }
@@ -151,6 +158,7 @@ export class SyntheticTransactionHarness {
     return pending;
   }
   seedDraw({ drawId, ownerSubject, state="BEACON_COMMITTED", version=1 }) {
+    if (typeof drawId !== "string" || !drawId || typeof ownerSubject !== "string" || !ownerSubject || !Number.isSafeInteger(version) || version < 1) throw new Error("INVALID_SEED");
     if (this.#records.has(drawId)) throw new Error("DUPLICATE_DRAW");
     this.#records.set(drawId, { drawId, ownerSubject, state, version });
   }
