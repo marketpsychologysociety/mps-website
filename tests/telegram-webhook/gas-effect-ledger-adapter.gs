@@ -28,7 +28,7 @@ function createMpsGasEffectLedger_(config) {
   function validateKeys_(sh,keyColumn){
     var last=sh.getLastRow(),seen=Object.create(null);if(last<2)return;
     sh.getRange(2,keyColumn,last-1,1).getDisplayValues().forEach(function(line){
-      var key=String(line[0]==null?'':line[0]).trim();if(!key)return;
+      var key=String(line[0]==null?'':line[0]);if(!key)return;
       if(!/^[A-Za-z0-9:_-]{1,160}$/.test(key))throw new Error('EFFECT_INVALID_EXISTING_KEY');
       if(seen[key])throw new Error('EFFECT_DUPLICATE_EXISTING_KEY');seen[key]=true;
     });
