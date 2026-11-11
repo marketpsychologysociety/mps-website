@@ -6,7 +6,7 @@ const input = JSON.parse(process.env.MPS_SQLITE_WORKER_INPUT || '{}');
 const store = new SQLiteTransactionalStore(input.file);
 try {
   if (input.waitForGate) {
-    process.stdout.write('READY\\n');
+    process.stdout.write('READY\n');
     const deadline = Date.now() + 15000;
     while (true) {
       try { await access(input.waitForGate); break; }
@@ -14,7 +14,7 @@ try {
     }
   }
   const result = store.execute(input.request);
-  process.stdout.write(JSON.stringify(result) + '\\n');
+  process.stdout.write(JSON.stringify(result) + '\n');
 } finally {
   store.close();
 }
