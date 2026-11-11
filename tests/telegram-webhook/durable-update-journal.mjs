@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 const STATES = new Set(['RECEIVED', 'PROCESSING', 'RETRYABLE', 'DONE', 'REVIEW']);
 
@@ -7,7 +7,8 @@ function digest(value) {
 }
 
 function validUpdateId(value) {
-  return /^(0|[1-9]\d{0,19})$/.test(String(value ?? ''));
+  if (typeof value === 'number') return Number.isSafeInteger(value) && value >= 0;
+  return typeof value === 'string' && /^(0|[1-9]\\d{0,19})$/.test(value);
 }
 
 /**
@@ -16,21 +17,31 @@ function validUpdateId(value) {
  * store; production GAS must provide an independently validated adapter.
  */
 export class DurableUpdateJournal {
-  constructor(store, { leaseMs = 600_000 } = {}) {
+  constructor(store, { leaseMs = 600_000, tokenFactory = randomUUID } = {}) {
     if (!store || typeof store.atomic !== 'function' ||
         typeof store.get !== 'function' || typeof store.put !== 'function') {
       throw new TypeError('A durable atomic store is required');
     }
     this.store = store;
     this.leaseMs = leaseMs;
+    this.tokenFactory = tokenFactory;
   }
 
   async claim(update, now = Date.now()) {
-    const id = String(update?.update_id ?? '');
-    if (!validUpdateId(id)) throw new TypeError('INVALID_UPDATE_ID');
+    const rawId = update?.update_id;
+    if (!validUpdateId(rawId)) throw new TypeError('INVALID_UPDATE_ID');
+    const id = String(rawId);
     const payloadHash = digest(update);
     return this.store.atomic(async () => {
       const existing = await this.store.get(id);
+      if (existing && existing.payloadHash !== payloadHash) {
+        const quarantined = {
+          ...existing, state: 'REVIEW', leaseExpiresAt: 0,
+          claimToken: null, lastErrorCode: 'PAYLOAD_HASH_MISMATCH'
+        };
+        await this.store.put(id, quarantined);
+        return { outcome: 'MANUAL_REVIEW' };
+      }
       if (existing?.state === 'DONE') return { outcome: 'DUPLICATE_DONE' };
       if (existing?.state === 'REVIEW') return { outcome: 'MANUAL_REVIEW' };
       if (existing?.state === 'PROCESSING' && existing.leaseExpiresAt > now) {
@@ -39,6 +50,7 @@ export class DurableUpdateJournal {
       const recovered = Boolean(existing && (
         existing.state === 'PROCESSING' || existing.state === 'RETRYABLE'
       ));
+      const claimToken = this.tokenFactory();
       const row = {
         updateId: id,
         updateType: classify(update),
@@ -48,6 +60,7 @@ export class DurableUpdateJournal {
         lastAttemptAt: now,
         attemptCount: (existing?.attemptCount ?? 0) + 1,
         leaseExpiresAt: now + this.leaseMs,
+        claimToken,
         completedAt: null,
         effectKeys: existing?.effectKeys ?? [],
         lastErrorCode: null
@@ -58,35 +71,40 @@ export class DurableUpdateJournal {
     });
   }
 
-  async finish(id, now = Date.now(), effectKeys = []) {
-    return this.#transition(id, now, row => ({
+  async finish(id, claimToken, now = Date.now(), effectKeys = []) {
+    return this.#transition(id, claimToken, row => ({
       ...row, state: 'DONE', completedAt: now, leaseExpiresAt: 0,
+      claimToken: null,
       effectKeys: [...new Set([...(row.effectKeys ?? []), ...effectKeys])].slice(-20),
       lastErrorCode: null
     }));
   }
 
-  async retry(id, now = Date.now(), errorCode = 'TRANSIENT') {
-    return this.#transition(id, now, row => ({
-      ...row, state: 'RETRYABLE', leaseExpiresAt: 0,
+  async retry(id, claimToken, now = Date.now(), errorCode = 'TRANSIENT') {
+    return this.#transition(id, claimToken, row => ({
+      ...row, state: 'RETRYABLE', leaseExpiresAt: 0, claimToken: null,
       lastErrorCode: sanitizeCode(errorCode)
     }));
   }
 
-  async review(id, now = Date.now(), errorCode = 'AMBIGUOUS') {
-    return this.#transition(id, now, row => ({
-      ...row, state: 'REVIEW', leaseExpiresAt: 0,
+  async review(id, claimToken, now = Date.now(), errorCode = 'AMBIGUOUS') {
+    return this.#transition(id, claimToken, row => ({
+      ...row, state: 'REVIEW', leaseExpiresAt: 0, claimToken: null,
       lastErrorCode: sanitizeCode(errorCode)
     }));
   }
 
-  async #transition(id, now, transform) {
+  async #transition(id, claimToken, transform) {
     return this.store.atomic(async () => {
-      const row = await this.store.get(String(id));
-      if (!row || row.state !== 'PROCESSING') throw new Error('NOT_PROCESSING');
+      const key = String(id);
+      const row = await this.store.get(key);
+      if (!row || row.state !== 'PROCESSING' || !claimToken ||
+          row.claimToken !== claimToken) {
+        throw new Error('STALE_OR_INVALID_CLAIM');
+      }
       const next = transform(row);
       if (!STATES.has(next.state)) throw new Error('INVALID_STATE');
-      await this.store.put(String(id), next);
+      await this.store.put(key, next);
       return structuredClone(next);
     });
   }
@@ -130,27 +148,29 @@ export class SharedMemoryJournalStore {
 export async function executeWithReconciliation(journal, update, handler, now = Date.now()) {
   const claim = await journal.claim(update, now);
   if (claim.outcome !== 'CLAIMED') return claim.outcome;
+  const id = update.update_id;
+  const token = claim.row.claimToken;
   try {
     if (claim.recovered) {
       const reconciliation = await handler.reconcile(update, claim.row);
       if (reconciliation === 'APPLIED') {
-        await journal.finish(update.update_id, now, handler.effectKeys ?? []);
+        await journal.finish(id, token, now, handler.effectKeys ?? []);
         return 'RECOVERED_ALREADY_APPLIED';
       }
       if (reconciliation !== 'NOT_APPLIED') {
-        await journal.review(update.update_id, now, 'AMBIGUOUS_EXTERNAL_STATE');
+        await journal.review(id, token, now, 'AMBIGUOUS_EXTERNAL_STATE');
         return 'MANUAL_REVIEW';
       }
     }
     await handler.apply(update, claim.row);
-    await journal.finish(update.update_id, now, handler.effectKeys ?? []);
+    await journal.finish(id, token, now, handler.effectKeys ?? []);
     return 'PROCESSED';
   } catch (error) {
     if (error?.ambiguousExternalOutcome) {
-      await journal.review(update.update_id, now, 'AMBIGUOUS_EXTERNAL_OUTCOME');
+      await journal.review(id, token, now, 'AMBIGUOUS_EXTERNAL_OUTCOME');
       return 'MANUAL_REVIEW';
     }
-    await journal.retry(update.update_id, now, error?.code ?? 'HANDLER_FAILED');
+    await journal.retry(id, token, now, error?.code ?? 'HANDLER_FAILED');
     throw error;
   }
 }
