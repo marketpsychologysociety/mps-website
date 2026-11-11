@@ -59,6 +59,8 @@ test('rejects unauthorized, self-administered and malformed key registration', a
   await assert.rejects(registry.registerKey({context:{actorSubject:'attacker-subject-999'},keyId:'reviewer-key-001',issuer:ISSUER,subject:'reviewer-subject-002',publicKeyPem:pair.pem,notBefore:'2026-01-01T00:00:00.000Z',notAfter:'2027-01-01T00:00:00.000Z'}),e=>e.code==='FORBIDDEN');
   await assert.rejects(registry.registerKey({context:ADMIN,keyId:'reviewer-key-002',issuer:ISSUER,subject:ADMIN.actorSubject,publicKeyPem:pair.pem,notBefore:'2026-01-01T00:00:00.000Z',notAfter:'2027-01-01T00:00:00.000Z'}),e=>e.code==='SEPARATION_OF_DUTIES');
   await assert.rejects(registry.registerKey({context:ADMIN,keyId:'reviewer-key-003',issuer:ISSUER,subject:'reviewer-subject-002',publicKeyPem:'bad',notBefore:'2026-01-01T00:00:00.000Z',notAfter:'2027-01-01T00:00:00.000Z'}),e=>e.code==='VALIDATION_ERROR');
+  const privatePem=pair.privateKey.export({type:'pkcs8',format:'pem'});
+  await assert.rejects(registry.registerKey({context:ADMIN,keyId:'reviewer-key-004',issuer:ISSUER,subject:'reviewer-subject-002',publicKeyPem:privatePem,notBefore:'2026-01-01T00:00:00.000Z',notAfter:'2027-01-01T00:00:00.000Z'}),e=>e.code==='VALIDATION_ERROR');
 });
 
 test('rotation preserves old keys and verifies historical evidence after expiry', async t => {
