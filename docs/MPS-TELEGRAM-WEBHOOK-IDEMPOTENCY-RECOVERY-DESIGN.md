@@ -36,6 +36,7 @@ Suggested columns:
 | Last Attempt At | Most recent attempt |
 | Attempt Count | Monotonic retry counter |
 | Lease Expires At | PROCESSING lease expiry |
+| Claim Token | Fencing token for the current worker claim; cleared on terminal transition |
 | Completed At | Completion timestamp, if DONE |
 | Effect Keys | Bounded, non-sensitive operation references |
 | Last Error Code | Sanitized allowlisted error category only |
