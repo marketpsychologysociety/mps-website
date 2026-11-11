@@ -353,3 +353,13 @@ node --test tests/official-draw/sqlite-verified-restore.test.mjs
 ```
 
 Seven tests cover consistent `VACUUM INTO` snapshots, strict manifest and separately supplied expected digest checks, backup age, byte/schema/integrity validation, restore to a new target, corrupted/stale/mismatched backup rejection, no-overwrite guarantees, and interrupted-restore reconciliation. Uses temporary local SQLite files and synthetic rows only. The expected digest is generated in the same test process, not a real independent trust anchor. Clean-checkout GitHub Actions run #460 (`42967284731`) SUCCESS: 7 PASS, 0 FAIL, 0 SKIP; full workflow 29/29, including Chromium. Initial strict row-object comparison exposed Node SQLite's null-prototype row shape; the test now normalizes exact fields before comparison without weakening assertions. See `docs/MPS-P1.28-SQLITE-VERIFIED-RESTORE.md`.
+
+
+## P1.29 — end-to-end SQLite recovery drill and checkpoint reconciliation (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/sqlite-recovery-drill.test.mjs
+```
+
+The drill composes the P1.26–P1.28 local SQLite controls: it validates a caller-supplied expected checkpoint, creates a `VACUUM INTO` backup, restores only to a new target, checks schema and deterministic logical-content digests plus row counts for every user table, and rechecks the source to prove it remained unchanged. Seven tests cover complete multi-table recovery, missing/malformed/mismatched checkpoints, altered row counts, interruption after backup, interruption during restore, source mutation, and logical-row tampering. All data is synthetic and local. The expected checkpoint is generated from the same test fixture; this does not authenticate an independent authority or prove off-site/immutable backup, multi-host recovery, physical power-loss resilience, or production DR. Interrupted artifacts are preserved and require reconciliation; no blind retry or automatic cleanup. See `docs/MPS-P1.29-SQLITE-END-TO-END-RECOVERY-DRILL.md`. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
