@@ -40,7 +40,7 @@ function createMpsTelegramGasJournal_(config) {
     var sheet = ss && ss.getSheetByName(sheetName);
     if (!sheet) throw new Error('JOURNAL_SHEET_MISSING');
     var actual = sheet.getRange(1, 1, 1, headers.length).getDisplayValues()[0];
-    if (actual.join('\u001f') !== headers.join('\u001f')) throw new Error('JOURNAL_SCHEMA_MISMATCH');
+    if (sheet.getLastColumn() !== headers.length || actual.join('\u001f') !== headers.join('\u001f')) throw new Error('JOURNAL_SCHEMA_MISMATCH');
     return sheet;
   }
 
