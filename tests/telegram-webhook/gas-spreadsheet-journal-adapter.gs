@@ -51,7 +51,7 @@ function createMpsTelegramGasJournal_(config) {
       return String(value);
     }
     var id = String(value == null ? '' : value);
-    if (!/^(0|[1-9]\\d{0,19})$/.test(id)) throw new Error('INVALID_UPDATE_ID');
+    if (!/^(0|[1-9]\d{0,19})$/.test(id)) throw new Error('INVALID_UPDATE_ID');
     return id;
   }
 
