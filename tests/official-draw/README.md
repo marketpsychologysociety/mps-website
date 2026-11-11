@@ -363,3 +363,13 @@ node --test tests/official-draw/sqlite-recovery-drill.test.mjs
 ```
 
 The drill composes the P1.26–P1.28 local SQLite controls: it validates a caller-supplied expected checkpoint, creates a `VACUUM INTO` backup, restores only to a new target, checks schema and deterministic logical-content digests plus row counts for every user table, and rechecks the source to prove it remained unchanged. Seven tests cover complete multi-table recovery, missing/malformed/mismatched checkpoints, altered row counts, interruption after backup, interruption during restore, source mutation, and logical-row tampering. All data is synthetic and local. The expected checkpoint is generated from the same test fixture; this does not authenticate an independent authority or prove off-site/immutable backup, multi-host recovery, physical power-loss resilience, or production DR. Interrupted artifacts are preserved and require reconciliation; no blind retry or automatic cleanup. See `docs/MPS-P1.29-SQLITE-END-TO-END-RECOVERY-DRILL.md`. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.30 — signed recovery-checkpoint attestation contract (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/recovery-checkpoint-attestation.test.mjs
+```
+
+A pure offline Ed25519 verifier binds an exact P1.29 logical checkpoint digest to an opaque source/checkpoint ID, reviewer key identity, exporter separation, and caller-supplied one-time nonce. Exact payload/trust/checkpoint schemas, canonical serialization, signature, key validity/revocation, scope, nonce equality, and bounded attestation lifetime fail closed. Twelve synthetic tests cover valid signature, checkpoint/scope/nonce tampering, reviewer/exporter collision, revocation, signature corruption, time bounds, unknown fields and malformed context. This verifier does not authenticate a human, prove reviewer assertions, authenticate the database source, prove checkpoint completeness, or issue/consume nonces; production requires separately governed trust and durable atomic nonce consumption. See `docs/MPS-P1.30-SIGNED-RECOVERY-CHECKPOINT-ATTESTATION.md`. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
