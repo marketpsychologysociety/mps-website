@@ -6,6 +6,7 @@
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { createHash, randomUUID } from 'node:crypto';
 
 const GENESIS = 'GENESIS';
@@ -88,12 +89,24 @@ export class DurableAuditJournal {
     }
     await fs.mkdir(directory, { recursive: true, mode: 0o700 });
     const journal = new DurableAuditJournal(directory, options);
-    await journal.#recover();
-    return journal;
+    try {
+      if (journal.exclusiveProcessLease) {
+        journal.processLease = await journal.#acquireLock('server.lock', journal.lockWaitMs);
+      }
+      await journal.#withFileLock(async () => journal.#reload());
+      return journal;
+    } catch (error) {
+      if (journal.processLease) await journal.#releaseLock(journal.processLease).catch(() => {});
+      throw error;
+    }
   }
 
-  constructor(directory, { faultInjector = null } = {}) {
+  constructor(directory, { faultInjector = null, exclusiveProcessLease = false, lockWaitMs = 10000, lockRetryMs = 25 } = {}) {
     this.directory = directory;
+    this.exclusiveProcessLease = exclusiveProcessLease === true;
+    this.lockWaitMs = Number.isSafeInteger(lockWaitMs) && lockWaitMs >= 0 ? lockWaitMs : 10000;
+    this.lockRetryMs = Number.isSafeInteger(lockRetryMs) && lockRetryMs >= 1 ? lockRetryMs : 25;
+    this.processLease = null;
     this.filePath = path.join(directory, 'audit.journal.jsonl');
     this.faultInjector = faultInjector;
     this.records = [];
@@ -109,6 +122,104 @@ export class DurableAuditJournal {
     const result = this.tail.then(work);
     this.tail = result.catch(() => {});
     return result;
+  }
+
+  async #acquireLock(name, timeoutMs = this.lockWaitMs) {
+    const lockPath = path.join(this.directory, name);
+    const deadline = Date.now() + timeoutMs;
+    const token = randomUUID();
+    const owner = { pid: process.pid, hostname: os.hostname(), token, started_at: new Date().toISOString() };
+    while (true) {
+      try {
+        await fs.mkdir(lockPath, { mode: 0o700 });
+        const ownerHandle = await fs.open(path.join(lockPath, 'owner.json'), 'wx', 0o600);
+        try {
+          await ownerHandle.writeFile(JSON.stringify(owner));
+          await ownerHandle.sync();
+        } finally { await ownerHandle.close(); }
+        const directoryHandle = await fs.open(this.directory, 'r');
+        try { await directoryHandle.sync(); } finally { await directoryHandle.close(); }
+        return { lockPath, token };
+      } catch (error) {
+        if (error.code !== 'EEXIST') {
+          if (error.code === 'ENOENT' && Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, this.lockRetryMs));
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      let existing;
+      try {
+        const stat = await fs.lstat(lockPath);
+        if (!stat.isDirectory() || stat.isSymbolicLink()) {
+          throw journalError('LOCK_INTEGRITY_ERROR', 'Lock path is not a real directory.');
+        }
+        const raw = await fs.readFile(path.join(lockPath, 'owner.json'), 'utf8');
+        existing = JSON.parse(raw);
+      } catch (error) {
+        if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error;
+        // A lock directory without a complete owner record is ambiguous. Never steal it.
+        if (Date.now() >= deadline) throw journalError('LOCK_RECOVERY_REQUIRED', 'Lock owner is missing or malformed; manual reconciliation is required.');
+        await new Promise(resolve => setTimeout(resolve, this.lockRetryMs));
+        continue;
+      }
+      if (!existing || Object.keys(existing).sort().join(',') !== 'hostname,pid,started_at,token' ||
+          !Number.isSafeInteger(existing.pid) || existing.pid < 1 ||
+          typeof existing.hostname !== 'string' || typeof existing.token !== 'string') {
+        throw journalError('LOCK_INTEGRITY_ERROR', 'Lock owner record violates its exact schema.');
+      }
+      let stale = false;
+      if (existing.hostname === os.hostname()) {
+        try { process.kill(existing.pid, 0); }
+        catch (error) { if (error.code === 'ESRCH') stale = true; }
+      }
+      if (stale) {
+        const quarantine = lockPath + '.stale-' + process.pid + '-' + randomUUID();
+        try {
+          await fs.rename(lockPath, quarantine);
+          await fs.rm(quarantine, { recursive: true, force: false });
+          const directoryHandle = await fs.open(this.directory, 'r');
+          try { await directoryHandle.sync(); } finally { await directoryHandle.close(); }
+          continue;
+        } catch (error) {
+          if (error.code === 'ENOENT' || error.code === 'EEXIST') continue;
+          throw error;
+        }
+      }
+      if (Date.now() >= deadline) throw journalError('JOURNAL_LOCKED', 'Another process holds the journal lock; no write was attempted.');
+      await new Promise(resolve => setTimeout(resolve, this.lockRetryMs));
+    }
+  }
+
+  async #releaseLock(lock) {
+    if (!lock) return;
+    let owner;
+    try { owner = JSON.parse(await fs.readFile(path.join(lock.lockPath, 'owner.json'), 'utf8')); }
+    catch { throw journalError('LOCK_RECOVERY_REQUIRED', 'Cannot verify lock ownership during release.'); }
+    if (owner.token !== lock.token || owner.pid !== process.pid || owner.hostname !== os.hostname()) {
+      throw journalError('LOCK_OWNERSHIP_ERROR', 'Refusing to release a lock owned by another process.');
+    }
+    await fs.unlink(path.join(lock.lockPath, 'owner.json'));
+    await fs.rmdir(lock.lockPath);
+    const directoryHandle = await fs.open(this.directory, 'r');
+    try { await directoryHandle.sync(); } finally { await directoryHandle.close(); }
+  }
+
+  async #withFileLock(work) {
+    const lock = await this.#acquireLock('journal.lock');
+    try { return await work(); }
+    finally { await this.#releaseLock(lock); }
+  }
+
+  async #reload() {
+    this.records = [];
+    this.operations = new Map();
+    this.idempotency = new Map();
+    this.lastHash = GENESIS;
+    this.needsReopen = false;
+    await this.#recover();
   }
 
   async #recover() {
