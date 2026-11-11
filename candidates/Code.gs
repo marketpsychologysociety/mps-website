@@ -1707,7 +1707,7 @@ function createMpsVipTransitionStatusWriter_() {
     applyAccessStatus:function(tx,r){
       tx.assertActive();
       const sh=accessSheet_(),row=findUniqueMpsTransitionRow_(sh,2,r.telegramUserId);
-      if(!row)return;
+      if(!row){if(r.targetState==='DENIED')return;throw new Error('VIP_TRANSITION_ACCESS_ROW_MISSING');}
       const current=sh.getRange(row,1,1,11).getDisplayValues()[0];
       if(String(r.memberId).indexOf('TGUSER:')!==0&&String(current[0]||'')!==String(r.memberId))throw new Error('VIP_TRANSITION_ACCESS_IDENTITY_CHANGED');
       if(r.targetState==='ACTIVE'){
@@ -2906,8 +2906,8 @@ function createMpsGasVipTransitionOrchestrator_(config) {
   function compareDecimal_(a,b){a=String(a);b=String(b);return a.length!==b.length?(a.length>b.length?1:-1):(a===b?0:(a>b?1:-1));}
   function compare_(a,b){
     if(!b)return 1;
-    // Telegram chat_member.date is the primary source-event clock. update_id
-    // is the deterministic tie-break for events within the same second.
+    // Original Telegram chat_member.date is primary, ingress epoch handles ID resets,
+    // and decimal update_id deterministically orders events within the same epoch/second.
     if(Number(a.sourceDate)!==Number(b.sourceDate))return Number(a.sourceDate)>Number(b.sourceDate)?1:-1;
     if(Number(a.epoch)!==Number(b.epoch))return Number(a.epoch)>Number(b.epoch)?1:-1;
     return compareDecimal_(a.updateId,b.updateId);
