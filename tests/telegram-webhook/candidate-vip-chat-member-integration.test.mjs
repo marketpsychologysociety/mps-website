@@ -261,3 +261,31 @@ test('member migration requires super-admin before acquiring a lock',()=>{
  assert.throws(()=>h.run(),/SUPER_ADMIN_REQUIRED/);
  assert.equal(h.stats().locks,0);assert.equal(h.stats().writes,0);
 });
+
+test('unauthorized restricted member with is_member=true is also scheduled for removal',()=>{
+ const userId='987654321',accessData=['MPS-ABCDEF12',userId,userId,'test_user','Test',true,'Menunggu','',null,null,''];
+ const memberData=new Array(30).fill('');memberData[7]='Menunggu';memberData[14]='Pending';
+ const access={getRange:()=>({getValues:()=>[accessData]})},db={getRange:()=>({getValues:()=>[memberData]})};
+ const context={
+  MPS:{headers:new Array(30)},MPS_COL:{id:1,registrationStatus:8,depositStatus:15,accountName:9,nickname:3},
+  getMpsExistingVipAccessSheetForTransition_:()=>access,getMemberSheet_:()=>db,
+  findUniqueMpsTransitionRow_:()=>2,clean_:v=>String(v),isSafePublicIdentity_:()=>true
+ };
+ vm.createContext(context);vm.runInContext(resolverSource,context,{timeout:1000});
+ const result=context.resolveMpsVipChatMemberTransition_({assertActive:()=>true},{telegramUserId:userId,telegramStatus:'restricted',isMember:true,wasMember:false});
+ assert.equal(result.targetState,'DENIED');assert.equal(result.kickNeeded,true);
+});
+test('unauthorized restricted active user is banned and unbanned only after live membership check',()=>{
+ const source=extract('kickMpsUnauthorizedUser_','revokeVipInviteLink_');
+ const calls=[];let parsed=0;
+ const context={
+  PropertiesService:{getScriptProperties:()=>({getProperty:()=> '123456:TEST_TOKEN_NOT_REAL'})},
+  UrlFetchApp:{fetch:url=>{calls.push(url);return{};}},
+  parseTelegramResponse_:()=>++parsed===1?{ok:true,result:{status:'restricted',is_member:true}}:{ok:true},
+  console
+ };
+ vm.createContext(context);vm.runInContext(source,context,{timeout:1000});
+ assert.equal(context.kickMpsUnauthorizedUser_('-1001234567890','987654321'),true);
+ assert.equal(calls.length,3);
+ assert.ok(calls[0].includes('getChatMember'));assert.ok(calls[1].includes('banChatMember'));assert.ok(calls[2].includes('unbanChatMember'));
+});
