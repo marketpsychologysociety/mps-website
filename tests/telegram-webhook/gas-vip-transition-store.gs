@@ -10,7 +10,7 @@ function createMpsGasVipTransitionStore_(config) {
   if(!spreadsheetId)throw new Error('VIP_TRANSITION_SPREADSHEET_ID_REQUIRED');
   var intentName='MPS Telegram VIP Transition Intents';
   var cursorName='MPS Telegram VIP Member Cursor';
-  var intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
+  var intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Telegram User ID','Target State','Source Type','Source Date','Payload SHA-256','Ticker Allowed','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
   var cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
   var intentFields=['Update Epoch','Update ID','Member ID','Member Name','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
   function active_(tx){if(!tx||typeof tx.assertActive!=='function')throw new Error('VIP_TRANSITION_SCOPE_REQUIRED');tx.assertActive();}
@@ -42,10 +42,12 @@ function createMpsGasVipTransitionStore_(config) {
     if(!Number.isSafeInteger(epoch)||epoch<0)throw new Error('VIP_TRANSITION_INVALID_EPOCH');
     if(!/^(0|[1-9]\d{0,19})$/.test(updateId))throw new Error('VIP_TRANSITION_INVALID_UPDATE_ID');
     if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_TRANSITION_INVALID_SOURCE_DATE');
-    if(record['Target State']!=='ACTIVE'&&record['Target State']!=='LEFT')throw new Error('VIP_TRANSITION_INVALID_TARGET_STATE');
+    if(!['ACTIVE','LEFT','DENIED'].includes(record['Target State']))throw new Error('VIP_TRANSITION_INVALID_TARGET_STATE');
     if(record['Source Type']!=='CHAT_MEMBER')throw new Error('VIP_TRANSITION_UNSUPPORTED_SOURCE_TYPE');
     if(!/^[a-f0-9]{64}$/.test(String(record['Payload SHA-256']||'')))throw new Error('VIP_TRANSITION_INVALID_PAYLOAD_HASH');
     if(String(record['Member Name']||memberId).length>128)throw new Error('VIP_TRANSITION_INVALID_MEMBER_NAME');
+    if(!/^[0-9]{1,20}$/.test(String(record['Telegram User ID']||'')))throw new Error('VIP_TRANSITION_INVALID_TELEGRAM_USER_ID');
+    if(typeof record['Ticker Allowed']!=='boolean')throw new Error('VIP_TRANSITION_INVALID_TICKER_POLICY');
     if(record.State!=='INTENT')throw new Error('VIP_TRANSITION_INVALID_INITIAL_STATE');
     key_(record['Ticker Effect Key']);key_(record['Audit Effect Key']);
     var existingIndex=uniqueRow_(rows,0,key);
@@ -57,7 +59,7 @@ function createMpsGasVipTransitionStore_(config) {
   function updateIntent(tx,intentKey,patch){
     active_(tx);var key=key_(intentKey),sh=sheet_(intentName,intentHeaders,tx),rows=rows_(sh,intentHeaders.length),i=uniqueRow_(rows,0,key);
     if(i<0)throw new Error('VIP_TRANSITION_INTENT_NOT_FOUND');
-    var currentState=String(rows[i][9]),nextState=patch&&patch.State;
+    var currentState=String(rows[i][11]),nextState=patch&&patch.State;
     if(nextState!==undefined){var allowed={INTENT:['INTENT','STATUS_APPLIED','SUPERSEDED'],STATUS_APPLIED:['STATUS_APPLIED','COMPLETED'],COMPLETED:['COMPLETED'],SUPERSEDED:['SUPERSEDED']};if(!allowed[currentState]||allowed[currentState].indexOf(String(nextState))<0)throw new Error('VIP_TRANSITION_INVALID_STATE_CHANGE');}
     Object.keys(patch||{}).forEach(function(field){var col=intentHeaders.indexOf(field);if(col<=0)throw new Error('VIP_TRANSITION_FIELD_NOT_WRITABLE');rows[i][col]=patch[field];});
     sh.getRange(i+2,1,1,intentHeaders.length).setValues([rows[i]]);SpreadsheetApp.flush();
@@ -90,7 +92,7 @@ function createMpsGasVipTransitionStore_(config) {
   }
   function findPending(tx,memberId){
     var id=member_(memberId),sh=sheet_(intentName,intentHeaders,tx),rows=rows_(sh,intentHeaders.length);
-    var found=[];rows.forEach(function(row){if(String(row[3])===id&&['INTENT','STATUS_APPLIED'].indexOf(String(row[9]))>=0)found.push(intentObject_(row));});
+    var found=[];rows.forEach(function(row){if(String(row[3])===id&&['INTENT','STATUS_APPLIED'].indexOf(String(row[11]))>=0)found.push(intentObject_(row));});
     if(found.length>1)throw new Error('VIP_TRANSITION_MULTIPLE_PENDING');
     return found.length?found[0]:null;
   }
