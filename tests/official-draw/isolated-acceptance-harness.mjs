@@ -76,8 +76,22 @@ export function validateCreateEvent(input) {
   }
   return { ok:true, value:{ title_public:input.title_public.trim(), rules_version:input.rules_version, eligibility_policy_version:input.eligibility_policy_version } };
 }
-export function authorize({ role, action, subject, ownerSubject, reviewerSubject }) {
-  if (!ROLES.has(role) || typeof subject !== "string" || !subject) return { allowed:false, code:"FORBIDDEN" };
+export function authorize(context) {
+  if (!context || typeof context !== "object" || Array.isArray(context)) return { allowed:false, code:"FORBIDDEN" };
+  const prototype = Object.getPrototypeOf(context);
+  if (prototype !== Object.prototype && prototype !== null) return { allowed:false, code:"FORBIDDEN" };
+  const allowedKeys = new Set(["role","action","subject","ownerSubject","reviewerSubject"]);
+  if (Object.getOwnPropertySymbols(context).length || Object.keys(context).some(key => !allowedKeys.has(key))) return { allowed:false, code:"FORBIDDEN" };
+  const values = {};
+  for (const key of Object.keys(context)) {
+    const descriptor = Object.getOwnPropertyDescriptor(context,key);
+    if (!descriptor || !Object.hasOwn(descriptor,"value")) return { allowed:false, code:"FORBIDDEN" };
+    values[key] = descriptor.value;
+  }
+  const { role, action, subject, ownerSubject, reviewerSubject } = values;
+  if (!ROLES.has(role) || typeof action !== "string" || typeof subject !== "string" || !subject) {
+    return { allowed:false, code:"FORBIDDEN" };
+  }
   const matrix = {
     create_event: ["DRAW_OPERATOR","DRAW_SECURITY_ADMIN"],
     approve_rules: ["DRAW_REVIEWER"],
@@ -88,25 +102,43 @@ export function authorize({ role, action, subject, ownerSubject, reviewerSubject
     read_audit: ["DRAW_AUDITOR"]
   };
   if (!(matrix[action] || []).includes(role)) return { allowed:false, code:"FORBIDDEN" };
-  if (["freeze_snapshot","execute_draw"].includes(action) && (!ownerSubject || ownerSubject !== subject)) {
+  if (["freeze_snapshot","execute_draw"].includes(action) && (typeof ownerSubject !== "string" || !ownerSubject || ownerSubject !== subject)) {
     return { allowed:false, code:"NOT_RESOURCE_OWNER" };
   }
-  if (action === "approve_rules" && (!reviewerSubject || reviewerSubject === subject)) {
+  if (action === "approve_rules" && (typeof reviewerSubject !== "string" || !reviewerSubject || reviewerSubject === subject)) {
     return { allowed:false, code:"SEPARATION_OF_DUTIES" };
   }
   return { allowed:true, code:"OK" };
 }
 export function projectPublicWinner(record) {
-  if (!record || record.state !== "PUBLISHED" || record.verification_status !== "VERIFIED") return null;
+  if (!record || typeof record !== "object" || Array.isArray(record)) return null;
+  const recordPrototype = Object.getPrototypeOf(record);
+  if (recordPrototype !== Object.prototype && recordPrototype !== null) return null;
+  if (Object.getOwnPropertySymbols(record).length) return null;
+  for (const key of Object.keys(record)) {
+    const descriptor = Object.getOwnPropertyDescriptor(record,key);
+    if (!descriptor || !Object.hasOwn(descriptor,"value")) return null;
+  }
+  if (record.state !== "PUBLISHED" || record.verification_status !== "VERIFIED") return null;
   const proof = record.proof_summary;
+  if (!proof || typeof proof !== "object" || Array.isArray(proof)) return null;
+  const proofPrototype = Object.getPrototypeOf(proof);
+  if (proofPrototype !== Object.prototype && proofPrototype !== null) return null;
+  if (Object.getOwnPropertySymbols(proof).length) return null;
+  for (const key of Object.keys(proof)) {
+    const descriptor = Object.getOwnPropertyDescriptor(proof,key);
+    if (!descriptor || !Object.hasOwn(descriptor,"value")) return null;
+  }
   const inputKeys = [...PUBLIC_RESULT_KEYS, "state"].sort();
-  if (!proof || Object.keys(record).sort().join("|") !== inputKeys.join("|") ||
+  if (Object.keys(record).sort().join("|") !== inputKeys.join("|") ||
       Object.keys(proof).sort().join("|") !== PUBLIC_PROOF_KEYS.join("|")) return null;
   const boundedString = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
   if (!boundedString(record.event_title,160) || !boundedString(record.message,240) ||
       !boundedString(record.prize_public_description,240) ||
       !boundedString(record.protocol_version,48) || !/^[A-Za-z0-9_-]{1,80}$/.test(record.public_result_id) ||
-      typeof record.published_at_utc !== "string" || !Number.isFinite(Date.parse(record.published_at_utc)) || new Date(record.published_at_utc).toISOString() !== (record.published_at_utc.includes(".") ? record.published_at_utc : record.published_at_utc.replace("Z", ".000Z")) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(record.published_at_utc) ||
+      typeof record.published_at_utc !== "string" || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$/.test(record.published_at_utc) ||
+      !Number.isFinite(Date.parse(record.published_at_utc)) ||
+      new Date(record.published_at_utc).toISOString() !== (record.published_at_utc.includes(".") ? record.published_at_utc : record.published_at_utc.replace("Z", ".000Z")) ||
       !Number.isSafeInteger(proof.participant_count) || proof.participant_count < 1 ||
       !/^[0-9a-f]{64}$/.test(proof.beacon_chain_hash) ||
       !/^[0-9]{1,32}$/.test(proof.beacon_round) ||
