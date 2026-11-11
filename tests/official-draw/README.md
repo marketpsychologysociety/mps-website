@@ -297,3 +297,6 @@ The standalone P1.23 harness tests canonical JSON/digests, strict event request 
 ### P1.23 follow-up source hardening
 
 The canonical JSON harness now rejects hidden object properties and accessor/non-enumerable array elements; public winner projection rejects hidden own fields and enforces string types for identifiers and proof fields. Regression assertions were added. These changes are source-reviewed only until the P1.23 Node test suite has a confirmed execution result. The harness remains synthetic and does not change the official-draw NO-GO decision.
+
+
+P1.23 CI diagnosis: the first observed hardened-source run reported 6/7 passing. The sole failure was a stale expected-version value in the invalid-state test fixture; the test now uses the current version to reach the intended state guard. The corrected CI result is pending and must be checked before P1.23 is marked passed.
