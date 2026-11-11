@@ -78,7 +78,7 @@ export class DurableReviewerTrustRegistry {
             }
           }
         } catch (ownerError) {
-          if (ownerError.code === 'ENOENT') continue;
+          if (ownerError.code === 'ENOENT') throw err('LOCK_RECOVERY_REQUIRED', 'Registry lock exists without an owner record; refusing to steal an ambiguous lock. Manual reconciliation required.');
           if (ownerError.code !== 'EEXIST') throw err('LOCK_RECOVERY_REQUIRED', 'Registry lock owner is missing or malformed; manual reconciliation required.');
         }
         if (Date.now() >= deadline) throw err('REGISTRY_LOCKED', 'Trust registry is locked by a live or foreign owner; no timeout-based lock stealing is allowed.');
