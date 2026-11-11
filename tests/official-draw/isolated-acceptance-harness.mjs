@@ -121,7 +121,7 @@ export function projectPublicWinner(record) {
   const recordPrototype = Object.getPrototypeOf(record);
   if (recordPrototype !== Object.prototype && recordPrototype !== null) return null;
   if (Reflect.ownKeys(record).some(key => typeof key !== "string")) return null;
-  for (const key of Object.keys(record)) {
+  for (const key of Reflect.ownKeys(record)) {
     const descriptor = Object.getOwnPropertyDescriptor(record,key);
     if (!descriptor || !Object.hasOwn(descriptor,"value") || !descriptor.enumerable) return null;
   }
@@ -131,7 +131,7 @@ export function projectPublicWinner(record) {
   const proofPrototype = Object.getPrototypeOf(proof);
   if (proofPrototype !== Object.prototype && proofPrototype !== null) return null;
   if (Reflect.ownKeys(proof).some(key => typeof key !== "string")) return null;
-  for (const key of Object.keys(proof)) {
+  for (const key of Reflect.ownKeys(proof)) {
     const descriptor = Object.getOwnPropertyDescriptor(proof,key);
     if (!descriptor || !Object.hasOwn(descriptor,"value") || !descriptor.enumerable) return null;
   }
