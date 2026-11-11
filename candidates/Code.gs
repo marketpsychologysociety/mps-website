@@ -1755,6 +1755,38 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
   return handler.process(update);
 }
 /**
+ * Explicit append-only Database Member migration: legacy v4.6.1 (18 columns)
+ * to the v4.8 candidate schema (30 columns). Existing first 18 headers and all
+ * member rows are preserved; only headers in columns 19-30 are appended.
+ * This function is never invoked automatically by a webhook or page load.
+ */
+function apiAdminMigrateMemberSheetToV480(session) {
+  requireSuperAdmin_(session);
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
+  try{
+    const ss=openDatabase_(),sh=ss.getSheetByName('Database Member');
+    if(!sh)throw new Error('Sheet Database Member tidak ditemukan.');
+    const legacy=MPS.headers.slice(0,18),full=MPS.headers.slice();
+    const last=sh.getLastColumn();
+    if(last===18){
+      const current=sh.getRange(1,1,1,18).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+      if(legacy.some(function(h,i){return current[i]!==h;}))throw new Error('Skema 18 kolom Database Member tidak cocok; migrasi dibatalkan tanpa perubahan.');
+      sh.getRange(1,19,1,12).setValues([full.slice(18)]);
+      SpreadsheetApp.flush();
+    }else if(last===30){
+      const current=sh.getRange(1,1,1,30).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+      if(full.some(function(h,i){return current[i]!==h;}))throw new Error('Skema 30 kolom Database Member tidak cocok; migrasi dibatalkan tanpa perubahan.');
+      return {ok:true,migrated:false,columns:30,message:'Database Member sudah memakai skema 30 kolom v4.8.'};
+    }else{
+      throw new Error('Jumlah kolom Database Member harus tepat 18 atau 30. Tidak ada perubahan dilakukan.');
+    }
+    const verify=sh.getRange(1,1,1,30).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+    if(full.some(function(h,i){return verify[i]!==h;}))throw new Error('Verifikasi header hasil migrasi gagal.');
+    return {ok:true,migrated:true,appendedColumns:12,columns:30,message:'Migrasi header selesai; 18 kolom lama dipertahankan dan 12 header v4.8 ditambahkan di sebelah kanan.'};
+  }finally{lock.releaseLock();}
+}
+
+/**
  * Explicit admin-only one-time provisioning. Never called by the webhook.
  * Adds Effect Key columns append-only and creates only the two new transition
  * tabs when missing; existing rows are never rewritten or inferred.
@@ -1766,6 +1798,8 @@ function apiAdminPrepareTelegramVipTransitionStorage(session) {
   const ledger=createMpsGasEffectLedger_({spreadsheetId:spreadsheetId});
   const store=createMpsGasVipTransitionStore_({spreadsheetId:spreadsheetId});
   ledger.runExclusive(function(tx){
+    const memberSheet=openDatabase_().getSheetByName('Database Member');
+    if(!memberSheet||memberSheet.getLastColumn()!==MPS.headers.length)throw new Error('Database Member belum memakai skema 30 kolom. Jalankan apiAdminMigrateMemberSheetToV480(session) terlebih dahulu.');
     getMemberSheet_();getTelegramAccessSheet_();
     getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
     getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
