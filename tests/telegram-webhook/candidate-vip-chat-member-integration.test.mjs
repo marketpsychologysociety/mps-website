@@ -213,3 +213,50 @@ test('candidate chat_member bridge builds isolated adapters and forwards the ori
  assert.equal(typeof handlerConfig.resolveTransition,'function');
  assert.equal(typeof handlerConfig.afterTransition,'function');
 });
+
+const legacyMemberHeaders=['ID Member','Waktu Daftar','Nama Panggilan','Username Telegram','Negara','Tujuan Bergabung','Catatan Member','Status Pendaftaran','Nama Sesuai Akun','Login MT5','Jenis Akun','Deposit Pertama (IDR)','Tanggal Deposit','Link Bukti Deposit','Status Verifikasi Deposit','Catatan Admin','Waktu Konfirmasi','Terakhir Diperbarui'];
+const appendedMemberHeaders=['Telegram Chat ID','Telegram Link Token','Telegram Linked At','PIN Hash','PIN Updated At','Telegram Link Expires At','Application Ref','VIP Invite Link','VIP Invite Expires At','VIP Joined At','VIP User ID','VIP Status'];
+function migrationHarness(initialHeaders,{adminAllowed=true}={}) {
+ const rows=[initialHeaders.slice(),['MPS-OLD12345','legacy-data']];
+ let writes=0,flushes=0,locks=0,releases=0;
+ const sheet={getLastColumn:()=>rows[0].length,getLastRow:()=>rows.length,getRange:(r,col,nr=1,nc=1)=>({
+  getDisplayValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>String(rows[r-1+ri]?.[col-1+ci]??''))),
+  setValues:values=>{writes++;values.forEach((line,ri)=>{while(rows.length<=r-1+ri)rows.push([]);line.forEach((v,ci)=>rows[r-1+ri][col-1+ci]=v);});}
+ })};
+ const context={
+  MPS:{headers:[...legacyMemberHeaders,...appendedMemberHeaders]},
+  requireSuperAdmin_:()=>{if(!adminAllowed)throw new Error('SUPER_ADMIN_REQUIRED');},
+  LockService:{getScriptLock:()=>({waitLock:()=>{locks++;},releaseLock:()=>{releases++;}})},
+  openDatabase_:()=>({getSheetByName:name=>name==='Database Member'?sheet:null}),
+  SpreadsheetApp:{flush:()=>{flushes++;}}
+ };
+ vm.createContext(context);vm.runInContext(extract('apiAdminMigrateMemberSheetToV480','apiAdminPrepareTelegramVipTransitionStorage'),context,{timeout:1000});
+ return{run:()=>context.apiAdminMigrateMemberSheetToV480('admin-session'),rows,stats:()=>({writes,flushes,locks,releases})};
+}
+test('explicit member migration appends 12 headers and preserves all legacy row values',()=>{
+ const h=migrationHarness(legacyMemberHeaders);
+ const result=h.run();
+ assert.equal(result.ok,true);assert.equal(result.migrated,true);assert.equal(result.appendedColumns,12);
+ assert.deepEqual(h.rows[0],[...legacyMemberHeaders,...appendedMemberHeaders]);
+ assert.deepEqual(h.rows[1],['MPS-OLD12345','legacy-data']);
+ assert.deepEqual(h.stats(),{writes:1,flushes:1,locks:1,releases:1});
+});
+test('explicit member migration is idempotent on an exact 30-column schema',()=>{
+ const h=migrationHarness([...legacyMemberHeaders,...appendedMemberHeaders]);
+ const result=h.run();
+ assert.equal(result.ok,true);assert.equal(result.migrated,false);
+ assert.equal(h.stats().writes,0);assert.equal(h.stats().locks,1);assert.equal(h.stats().releases,1);
+});
+test('member migration fails closed on mismatched legacy headers or partial schema',()=>{
+ const wrong=migrationHarness(['Wrong Header',...legacyMemberHeaders.slice(1)]);
+ assert.throws(()=>wrong.run(),/skema 18 kolom/);
+ assert.equal(wrong.stats().writes,0);assert.equal(wrong.stats().releases,1);
+ const partial=migrationHarness([...legacyMemberHeaders,...appendedMemberHeaders.slice(0,2)]);
+ assert.throws(()=>partial.run(),/Jumlah kolom/);
+ assert.equal(partial.stats().writes,0);
+});
+test('member migration requires super-admin before acquiring a lock',()=>{
+ const h=migrationHarness(legacyMemberHeaders,{adminAllowed:false});
+ assert.throws(()=>h.run(),/SUPER_ADMIN_REQUIRED/);
+ assert.equal(h.stats().locks,0);assert.equal(h.stats().writes,0);
+});
