@@ -467,7 +467,9 @@ test('candidate Index exposes guarded migration controls only for super-admin an
  const provisionHandler=candidateIndex.slice(candidateIndex.indexOf("$('prepareVipTransitionStorage').addEventListener"),candidateIndex.indexOf("$('refreshAdmin').addEventListener"));
  assert.ok(migrateHandler.indexOf('if(!confirm(')>=0&&migrateHandler.indexOf("api('apiAdminMigrateMemberSheetToV480'")>migrateHandler.indexOf('if(!confirm('));
  assert.ok(provisionHandler.indexOf('if(!confirm(')>=0&&provisionHandler.indexOf("api('apiAdminPrepareTelegramVipTransitionStorage'")>provisionHandler.indexOf('if(!confirm('));
- assert.equal((candidateIndex.match(/api\('apiAdminInspectMemberSchemaV480'/g)||[]).length,2);
+ assert.match(provisionHandler,/const verify=await api\('apiAdminInspectMemberSchemaV480',state\.adminSession\)/);
+ assert.match(provisionHandler,/verify\.provisioningReady!==true/);
+ assert.equal((candidateIndex.match(/api\('apiAdminInspectMemberSchemaV480'/g)||[]).length,4);
  assert.equal((candidateIndex.match(/api\('apiAdminMigrateMemberSheetToV480'/g)||[]).length,1);
  assert.equal((candidateIndex.match(/api\('apiAdminPrepareTelegramVipTransitionStorage'/g)||[]).length,1);
 });
