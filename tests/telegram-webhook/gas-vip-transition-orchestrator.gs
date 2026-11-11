@@ -115,7 +115,7 @@ function createMpsGasVipTransitionOrchestrator_(config) {
       var existing=store.readIntent(tx,intentKey);
       if(existing){
         if(String(existing['Payload SHA-256'])!==payloadHash||String(existing['Member ID'])!==memberId||
-          String(existing['Target State'])!==target||Number(existing['Source Date'])!==sourceDate||String(existing['Member Name'])!==effectiveName||String(existing['Telegram User ID'])!==telegramUserId||existing['Ticker Allowed']!==tickerAllowed){
+          String(existing['Target State'])!==target||Number(existing['Source Date'])!==sourceDate||String(existing['Telegram User ID'])!==telegramUserId){
           throw new Error('VIP_TRANSITION_INTENT_COLLISION');
         }
         if(String(existing.State)==='COMPLETED')return 'DUPLICATE';
