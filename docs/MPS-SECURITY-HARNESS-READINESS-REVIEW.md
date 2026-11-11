@@ -101,7 +101,7 @@ Before the public-projection fixture was added, a local test run against a recon
 | Public projection fixture and serializer | Implemented; allowlist verified in CI run #173 |
 | Canary privacy test through public HTTP routes | 10-test suite PASS; 0 SKIP in CI run #173 |
 | Official Draw API implementation in inspected workbench | Not found |
-| OIDC | Not implemented |\n| Durable synthetic journal | Local single-process prototype; API integration and CI pending |
+| OIDC | Not implemented |\n| Durable synthetic journal | Local single-process prototype; 7/7 CI tests PASS; API integration pending |
 | Public projection privacy test | Synthetic API canary test PASS; production CMS/cache/log privacy remains unverified |
 | Cryptographic verifier integration | Not implemented |
 | Official winner draw | **BLOCKED** |
@@ -125,7 +125,7 @@ This closes the known **sandbox** privacy-test skip only. Production CMS/Apps Sc
 
 **Fault-injection coverage:** tests inject failures before append, after write but before fsync, and after fsync but before acknowledgement. Uncertain write outcomes block further writes until reopen/reconciliation. A durable intent whose acknowledgement was lost is recovered and replayed without creating a second intent.
 
-**Local evidence:** Node.js 22 syntax checks passed; the standalone suite completed **11 PASS, 0 FAIL, 0 SKIP** against temporary directories created under the OS temp path. GitHub Actions validation is being added for this commit; CI status must be checked separately.
+**Local evidence:** Node.js 22 syntax checks passed. GitHub Actions clean-checkout run #175 completed the committed journal suite with **7 PASS, 0 FAIL, 0 SKIP**; the full workflow succeeded.
 
 **Important scope boundary:** this is a single-process, local-filesystem test prototype, not yet integrated into the loopback Draw API adapter or its event/draw state transitions. It has no cross-process lock, database transaction, external hash anchor, independent tamper-proof storage, backup/restore process, OIDC identity, or production hardening. A hash chain detects accidental/partial tampering but an attacker able to rewrite the whole file can recompute the chain. Do not store real participant data or secrets in it. Production official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
 
@@ -133,3 +133,10 @@ This closes the known **sandbox** privacy-test skip only. Production CMS/Apps Sc
 ### P1.1 readiness status
 
 The standalone journal prototype is implemented and locally tested (11 PASS, 0 FAIL, 0 SKIP). It provides local append/fsync, hash-chain verification, reopen recovery, idempotency and injected-failure handling. It is not yet integrated with the loopback API; there is no cross-process lock, transactional database, external anchor or production durability acceptance. API-level restart/fault-injection tests remain pending.
+
+
+### P1.1 CI verification — 2026-11-11
+
+**Clean GitHub Actions evidence:** workflow run #175 on commit `44d23528692539846238462335a4ce4b21e9c843` completed successfully from a clean checkout. The durable synthetic journal fault-injection suite reported **7 PASS, 0 FAIL, 0 SKIP**. The same workflow also passed the Official Draw contract (**10/10**), schema compatibility (**9/9**), read-only inspector (**5 scenarios**), and Chromium PWA/browser checks. Workflow run #176 on documentation-correction commit `a1b2ea9589013c06e3ad5ba14d36a12367296209` also completed successfully.
+
+This proves only the standalone synthetic journal prototype and the repository's existing synthetic/browser checks in GitHub Actions. The journal is still not integrated into the loopback Draw API state transitions. It is single-process local-file storage without a cross-process lock, transactional database, or external hash anchor. API-level restart/fault-injection tests remain the next gate. Official draw remains **BLOCKED / NO-GO** and roulette remains **SIMULATION ONLY**.

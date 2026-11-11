@@ -308,7 +308,7 @@ The canary privacy gap in the **synthetic sandbox contract** is closed. This is 
 
 **Fault-injection coverage:** tests inject failures before append, after write but before fsync, and after fsync but before acknowledgement. Uncertain write outcomes block further writes until reopen/reconciliation. A durable intent whose acknowledgement was lost is recovered and replayed without creating a second intent.
 
-**Local evidence:** Node.js 22 syntax checks passed; the standalone suite completed **11 PASS, 0 FAIL, 0 SKIP** against temporary directories created under the OS temp path. GitHub Actions validation is being added for this commit; CI status must be checked separately.
+**Local evidence:** Node.js 22 syntax checks passed. GitHub Actions clean-checkout run #175 completed the committed journal suite with **7 PASS, 0 FAIL, 0 SKIP**; the full workflow succeeded.
 
 **Important scope boundary:** this is a single-process, local-filesystem test prototype, not yet integrated into the loopback Draw API adapter or its event/draw state transitions. It has no cross-process lock, database transaction, external hash anchor, independent tamper-proof storage, backup/restore process, OIDC identity, or production hardening. A hash chain detects accidental/partial tampering but an attacker able to rewrite the whole file can recompute the chain. Do not store real participant data or secrets in it. Production official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
 
@@ -316,3 +316,10 @@ The canary privacy gap in the **synthetic sandbox contract** is closed. This is 
 ### Security decision after P1.1
 
 The local synthetic journal prototype and its fault-injection suite are implemented, but they are not yet connected to API state transitions. Do not interpret this as durable Draw API acceptance. Next gate is API integration plus process-restart tests, then a transactional/multi-process storage design and independent journal anchoring. OIDC and official winner selection remain blocked.
+
+
+### P1.1 CI verification — 2026-11-11
+
+**Clean GitHub Actions evidence:** workflow run #175 on commit `44d23528692539846238462335a4ce4b21e9c843` completed successfully from a clean checkout. The durable synthetic journal fault-injection suite reported **7 PASS, 0 FAIL, 0 SKIP**. The same workflow also passed the Official Draw contract (**10/10**), schema compatibility (**9/9**), read-only inspector (**5 scenarios**), and Chromium PWA/browser checks. Workflow run #176 on documentation-correction commit `a1b2ea9589013c06e3ad5ba14d36a12367296209` also completed successfully.
+
+This proves only the standalone synthetic journal prototype and the repository's existing synthetic/browser checks in GitHub Actions. The journal is still not integrated into the loopback Draw API state transitions. It is single-process local-file storage without a cross-process lock, transactional database, or external hash anchor. API-level restart/fault-injection tests remain the next gate. Official draw remains **BLOCKED / NO-GO** and roulette remains **SIMULATION ONLY**.
