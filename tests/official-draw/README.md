@@ -163,3 +163,11 @@ Remaining limits: local filesystem semantics only; no distributed/network filesy
 ## P1.4 crash-while-lock-held recovery test (test only)
 
 A new child-process crash test terminates a synthetic writer immediately after its INTENT bytes are written but before fsync/acknowledgement, while the writer still owns the journal lock. A fresh process must confirm the previous PID is absent, atomically quarantine the stale same-host lock, recover the journal, and replay the same idempotency scope without appending a second intent. The test uses a disposable temporary directory and synthetic identifiers only. It does not establish power-loss durability, cross-host/network-filesystem safety, or production tamper resistance. The test is included in the existing durable journal CI step; do not treat the complete workflow as passed until the associated run finishes successfully.
+
+
+## P1.5 synthetic external-anchor contract (test only)
+
+Run:
+node --test tests/official-draw/synthetic-external-anchor.test.mjs
+
+The test-only contract simulator defines ordered checkpoint anchors, create-only object semantics, an explicit predecessor receipt hash, deterministic receipt hashing, idempotent same-checkpoint retry, conflict rejection, and verification for missing/reordered/tampered/unknown-field anchors. It uses an in-memory provider in the test process. **It is not an external store, independent trust boundary, immutable service, cloud integration, or evidence of production retention/IAM.** The CI test proves only the contract simulator's behavior. No bucket, project, credentials, retention policy, or external resource is created.
