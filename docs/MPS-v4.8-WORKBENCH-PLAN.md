@@ -782,6 +782,19 @@ An intermediate run #279 failed because the module first made keyId mandatory be
 
 **Evidence:** `tests/official-draw/durable-reviewer-trust-registry.mjs`, `tests/official-draw/durable-reviewer-trust-registry.test.mjs`, `docs/MPS-REVIEWER-TRUST-REGISTRY-AND-NONCE-CONTRACT.md`. Synthetic workbench contract only; the admin callback is not authentication, local hash chain is not tamper-proof, PID lock is same-host only, and Google source authenticity remains unproven. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
 
+## P1.13 — durable nonce crash-recovery fault injection (synthetic only)
+
+- [x] Add test-only deterministic fault boundaries after journal write/before fsync and after fsync/before acknowledgement.
+- [x] Launch isolated child process that exits abruptly while holding the trust-registry lock during nonce consumption.
+- [x] Reopen from a fresh process and recover stale same-host lock and journal state.
+- [x] Verify uncertain pre-fsync outcome can be reconciled without double consumption.
+- [x] Verify post-fsync acknowledgement loss preserves consumed state and rejects replay.
+- [x] Assert final nonce-consumption count is exactly one in both cases.
+- [ ] Run and inspect clean-checkout GitHub Actions; no green CI result is claimed until observed.
+- [ ] Test actual power-loss/storage semantics, multi-host coordination, transactional storage and external anchoring only in an explicitly authorized isolated infrastructure PoC.
+
+**Scope limits:** process-crash simulation only, not power loss or multi-host safety. The test fault hook is test-only. No production system, GCP resource, credential, identity provider, member data or deployment is touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
 ### P1.12 implementation review status — 2026-11-11
 
 The isolated implementation and synthetic suite are committed on `mps-v4.8-workbench`. Local Node.js verification: syntax checks passed and the trust-registry suite completed **12 PASS, 0 FAIL, 0 SKIP**. The GitHub Actions workflow now includes the P1.12 test step. At this review checkpoint, no clean-checkout workflow run/status is visible for the latest workbench commit, so CI verification is explicitly **PENDING / NOT CLAIMED**. Production `main` still resolves to baseline `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`; the workbench is 271 commits ahead, 0 behind. No PR, merge, deployment, GCP resource, identity provider, credentials, private key, member data, Apps Script deployment, or live service was changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
