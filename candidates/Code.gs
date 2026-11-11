@@ -48,7 +48,7 @@ const MPS_COL = Object.freeze({
 });
 
 // Application records are kept separately until a deposit is submitted.
-// Database Member keeps its existing 30-column schema; pending deposits are stored separately.
+// Candidate v4.8 uses 30 columns: the legacy 18 fields plus 12 appended fields. The live v4.6.1 sheet requires explicit admin migration; no automatic migration is performed. Pending deposits remain in separate sheets.
 const MPS_APPLICATIONS = Object.freeze({
   sheet: 'MPS Applications',
   headers: ['Application Ref','Created At','Nickname','Telegram Username','Country','Goal','Note','Status','Member ID','Deposit Submitted At','Telegram Status','Telegram User ID','Telegram Chat ID','Admin Note','Updated At']
