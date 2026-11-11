@@ -58,3 +58,10 @@ A local database reopen is not a power-loss, process-kill, multi-host, or disast
 No cloud resource, paid service, billing, IAM, database outside temporary test directories, identity tenant, credential, Apps Script, Sheets, Drive, Telegram, DNS, hosting, production branch, live deployment, or production member data was accessed or changed.
 
 P1.24 is a local technical persistence experiment only. It does not satisfy the operational G0–G11 release gates and does not lift the official draw NO-GO decision.
+
+
+## Verification outcome
+
+- Local Node.js 22.16.0: 9 PASS, 0 FAIL, 0 SKIP; both files passed `node --check`.
+- Clean-checkout GitHub Actions run #417 (`42964627111`) on commit `6b4c7c98d269c005671cd4647c44fbd027630c55`: **SUCCESS**. The P1.24 SQLite test step passed, all remaining synthetic suites passed, and Chromium browser checks passed; no failed or skipped steps were reported.
+- This evidence remains SYNTHETIC and does not establish production database, multi-host, process/power-loss, OIDC, cloud, or official-draw readiness.
