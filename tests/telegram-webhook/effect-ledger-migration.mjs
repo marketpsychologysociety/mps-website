@@ -47,7 +47,7 @@ export class KeyedAppendOnlyStore {
 }
 export function buildVipEffectKey(updateId,effectType) {
   const id=typeof updateId==='number'?(Number.isSafeInteger(updateId)&&updateId>=0?String(updateId):null)
-    :(typeof updateId==='string'&&/^(0|[1-9]\\d{0,19})$/.test(updateId)?updateId:null);
+    :(typeof updateId==='string'&&/^(0|[1-9]\d{0,19})$/.test(updateId)?updateId:null);
   if(id===null) throw new TypeError('INVALID_UPDATE_ID');
   if(!['VIP_TICKER_EVENT','VIP_JOIN_AUDIT'].includes(effectType)) throw new TypeError('INVALID_EFFECT_TYPE');
   return `telegram:${id}:${effectType.toLowerCase()}`;
