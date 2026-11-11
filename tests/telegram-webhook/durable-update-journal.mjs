@@ -46,7 +46,7 @@ export class DurableUpdateJournal {
       const existing = await this.store.get(id);
       if (existing && existing.payloadHash !== payloadHash) {
         const quarantined = {
-          ...existing, state: 'REVIEW', leaseExpiresAt: 0,
+          ...existing, state: 'REVIEW', leaseExpiresAt: 0, completedAt: null,
           claimToken: null, lastErrorCode: 'PAYLOAD_HASH_MISMATCH'
         };
         await this.store.put(id, quarantined);
