@@ -171,3 +171,10 @@ Run:
 node --test tests/official-draw/synthetic-external-anchor.test.mjs
 
 The test-only contract simulator defines ordered checkpoint anchors, create-only object semantics, an explicit predecessor receipt hash, deterministic receipt hashing, idempotent same-checkpoint retry, conflict rejection, and verification for missing/reordered/tampered/unknown-field anchors. It uses an in-memory provider in the test process. **It is not an external store, independent trust boundary, immutable service, cloud integration, or evidence of production retention/IAM.** The CI test proves only the contract simulator's behavior. No bucket, project, credentials, retention policy, or external resource is created.
+
+
+## P1.6 independent external evidence storage architecture (design only)
+
+See `docs/MPS-EXTERNAL-EVIDENCE-STORAGE-ARCHITECTURE.md` for the provider-neutral trust-boundary, writer/verifier/admin separation, conditional-create and exact-generation contract, retention/IAM/audit/backup/monitoring controls, verification protocol, abuse cases, provider scorecard, runbooks and release gates.
+
+No provider has been selected or connected. P1.5 remains an in-memory simulator only. A real provider must be tested in an explicitly authorized isolated account; writer and verifier identities must be independently administered. A hash or versioning feature alone does not establish immutability. No cloud resources, credentials, retention lock, production data or deployment were created. Official draw remains NO-GO; roulette remains SIMULATION ONLY.
