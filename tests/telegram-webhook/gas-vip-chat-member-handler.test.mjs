@@ -5,9 +5,9 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
 const source=readFileSync(fileURLToPath(new URL('./gas-vip-chat-member-handler.gs',import.meta.url)),'utf8');
-function harness({result='ACTIVE'}={}) {
+function harness({result='ACTIVE',isCurrentResult=true}={}) {
  let held=false,calls=[],after=[];
- const orchestrator={process(input,resolver){
+ const orchestrator={isCurrent:()=>isCurrentResult,process(input,resolver){
   calls.push(input);held=true;
   const resolved=resolver({assertActive(){assert.equal(held,true);return true;}},input);
   held=false;
@@ -71,4 +71,17 @@ test('member-to-administrator changes do not generate duplicate membership trans
  event.chat_member.old_chat_member={user:{id:987654321},status:'member',is_member:true};
  assert.equal(h.handler.process(event),'IGNORED');
  assert.equal(h.calls.length,0);
+});
+
+test('duplicate current transition retries follow-up after lock release',()=>{
+ const h=harness({result:'DUPLICATE',isCurrentResult:true});
+ assert.equal(h.handler.process(update()),'DUPLICATE');
+ assert.equal(h.after.length,2);
+ assert.equal(h.after[1].payload.targetState,'ACTIVE');
+ assert.equal(h.after[1].held,false);
+});
+test('duplicate stale transition does not repeat external follow-up',()=>{
+ const h=harness({result:'DUPLICATE',isCurrentResult:false});
+ assert.equal(h.handler.process(update()),'DUPLICATE');
+ assert.equal(h.after.length,1);
 });
