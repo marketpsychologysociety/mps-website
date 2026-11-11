@@ -32,6 +32,12 @@ test("strict create-event contract rejects identity, role, participant and unkno
   }
   assert.equal(validateCreateEvent({title_public:" ",rules_version:"v1",eligibility_policy_version:"v1"}).code,"INVALID_TITLE");
   assert.equal(validateCreateEvent({title_public:"ok",rules_version:"",eligibility_policy_version:"v1"}).code,"INVALID_VERSION");
+  const inherited = Object.create({admin:true});
+  Object.assign(inherited,{title_public:"x",rules_version:"v1",eligibility_policy_version:"v1"});
+  assert.equal(validateCreateEvent(inherited).code,"INVALID_BODY");
+  const accessor = {title_public:"x",rules_version:"v1",eligibility_policy_version:"v1"};
+  Object.defineProperty(accessor,"title_public",{get(){throw new Error("must not execute");}});
+  assert.equal(validateCreateEvent(accessor).code,"INVALID_BODY");
 });
 
 test("authorization matrix is deny-by-default and enforces distinct reviewer subject", () => {
@@ -59,6 +65,7 @@ test("public winner projection only accepts exact allowlisted PUBLISHED and VERI
   assert.equal(projectPublicWinner({...safe,private_member_id:"CANARY_PRIVATE"}),null);
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,beacon_chain_hash:{leak:"CANARY_NESTED"}}}),null);
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,participant_count:"3"}}),null);
+  assert.equal(projectPublicWinner({...safe,published_at_utc:"2026-99-99T00:00:00Z"}),null);
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,member_name:"CANARY_NAME"}}),null);
   const projected=projectPublicWinner(safe);
   assert.equal(projected.public_result_id,safe.public_result_id);
@@ -82,12 +89,15 @@ test("idempotency conflicts, stale versions, foreign owner and invalid state fai
   h.seedDraw({drawId:"draw-1",ownerSubject:"operator-A"});
   const base={drawId:"draw-1",subject:"operator-A",key:"same-key",payload:{x:1},expectedVersion:1};
   assert.equal((await h.execute({...base,subject:"operator-B"})).code,"NOT_FOUND");
-  assert.equal((await h.execute({...base,expectedVersion:0})).code,"VERSION_MISMATCH");
+  assert.equal((await h.execute({...base,expectedVersion:0})).code,"INVALID_REQUEST");
+  assert.equal((await h.execute({...base,key:7})).code,"INVALID_REQUEST");
+  assert.equal((await h.execute({...base,payload:{bad:undefined}})).code,"INVALID_PAYLOAD");
   assert.equal((await h.execute({...base,fault:"before_commit"})).code,"TRANSACTION_ABORTED");
   assert.equal(h.operationCount(),0);
   const success=await h.execute(base);
   assert.equal(success.status,202);
   assert.equal((await h.execute({...base,payload:{x:2}})).code,"IDEMPOTENCY_CONFLICT");
+  assert.equal((await h.execute({...base,expectedVersion:2})).code,"IDEMPOTENCY_CONFLICT");
   assert.equal((await h.execute({...base,key:"another-key"})).code,"INVALID_STATE");
   assert.equal(h.operationCount(),1);
 });
