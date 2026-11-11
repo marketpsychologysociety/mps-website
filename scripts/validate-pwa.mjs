@@ -14,7 +14,7 @@ const exists = file => fs.existsSync(path.join(root, file));
 const check = (condition, message) => { if (!condition) errors.push(message); };
 
 const publicConfigText = read('config.js');
-check(!/(?:bot\\d+:[A-Za-z0-9_-]{20,}|(?:BOT_TOKEN|WEBHOOK_SECRET|ADMIN_TOKEN|SUPER_ADMIN_TOKEN|PASSWORD|API_KEY)\\s*[:=]\\s*["'][^"']+["'])/i.test(publicConfigText),
+check(!/(?:bot\d+:[A-Za-z0-9_-]{20,}|(?:BOT_TOKEN|WEBHOOK_SECRET|ADMIN_TOKEN|SUPER_ADMIN_TOKEN|PASSWORD|API_KEY)\s*[:=]\s*["'][^"']+["'])/i.test(publicConfigText),
   'Public config.js must not contain bot tokens, webhook secrets, admin credentials, passwords, or API keys');
 const configSandbox = { window: {} };
 try { new vm.Script(read('config.js'), { filename: 'config.js' }).runInNewContext(configSandbox); }
