@@ -130,3 +130,34 @@ test('status writer uses the caller scope and never acquires a nested ScriptLock
  assert.equal(memberValues[27].getTime(),1760000000000);assert.equal(memberValues[28],'987654321');assert.equal(memberValues[29],'Aktif');
  assert.equal(flushed,2);
 });
+
+test('sendVipInvite_ getChatMember observation never writes VIP status',()=>{
+ const source=extract('sendVipInvite_','isSafePublicIdentity_');
+ const writes=[],memberId='MPS-ABCDEF12',userId='987654321';
+ const accessRow=[memberId,userId,userId,'test_user','Test',true,'Undangan dikirim','old-link',new Date(),null,''];
+ const memberRow=new Array(30).fill('');memberRow[7]='Berhasil';memberRow[14]='Disetujui';
+ const access={getRange:()=>({getValues:()=>[accessRow],setValue:v=>writes.push(v),setValues:v=>writes.push(v)})};
+ const db={getRange:()=>({getValues:()=>[memberRow],setValue:v=>writes.push(v),setValues:v=>writes.push(v)})};
+ let locks=0;
+ const context={
+  PropertiesService:{getScriptProperties:()=>({getProperty:key=>{
+   if(key==='MPS_PIN_DELIVERED_'+memberId)return'1';
+   if(key==='MPS_TELEGRAM_BOT_TOKEN')return'123456:TEST_TOKEN_NOT_REAL';
+   if(key==='MPS_TELEGRAM_VIP_CHAT_ID')return'-1001234567890';
+   return'';
+  }})},
+  CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})},
+  LockService:{getScriptLock:()=>({waitLock:()=>{locks++;},releaseLock:()=>{}})},
+  getTelegramAccessSheet_:()=>access,findTelegramAccessByMemberId_:()=>2,
+  getMemberSheet_:()=>db,findMemberById_:()=>2,
+  MPS:{headers:new Array(30)},MPS_COL:{registrationStatus:8,depositStatus:15},
+  UrlFetchApp:{fetch:()=>({})},
+  parseTelegramResponse_:()=>({ok:true,result:{status:'member',is_member:true}}),
+  sha256_:()=> 'a'.repeat(64),console
+ };
+ vm.createContext(context);vm.runInContext(source,context,{timeout:1000});
+ const result=context.sendVipInvite_(memberId);
+ assert.deepEqual(result,{ok:true,alreadyJoined:true});
+ assert.equal(locks,1);
+ assert.equal(writes.length,0,'getChatMember observation must not mutate access or member status');
+});
