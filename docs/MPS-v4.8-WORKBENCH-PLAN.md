@@ -781,3 +781,7 @@ An intermediate run #279 failed because the module first made keyId mandatory be
 - [ ] Complete authorized isolated GCP PoC with authenticated raw-log retrieval; no provisioning has been authorized or started.
 
 **Evidence:** `tests/official-draw/durable-reviewer-trust-registry.mjs`, `tests/official-draw/durable-reviewer-trust-registry.test.mjs`, `docs/MPS-REVIEWER-TRUST-REGISTRY-AND-NONCE-CONTRACT.md`. Synthetic workbench contract only; the admin callback is not authentication, local hash chain is not tamper-proof, PID lock is same-host only, and Google source authenticity remains unproven. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+### P1.12 implementation review status — 2026-11-11
+
+The isolated implementation and synthetic suite are committed on `mps-v4.8-workbench`. Local Node.js verification: syntax checks passed and the trust-registry suite completed **12 PASS, 0 FAIL, 0 SKIP**. The GitHub Actions workflow now includes the P1.12 test step. At this review checkpoint, no clean-checkout workflow run/status is visible for the latest workbench commit, so CI verification is explicitly **PENDING / NOT CLAIMED**. Production `main` still resolves to baseline `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`; the workbench is 271 commits ahead, 0 behind. No PR, merge, deployment, GCP resource, identity provider, credentials, private key, member data, Apps Script deployment, or live service was changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
