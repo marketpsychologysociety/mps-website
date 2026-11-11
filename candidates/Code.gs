@@ -2149,7 +2149,22 @@ function apiAdminSaveWebsiteSettings(session,payload) {
 function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
   try{
     const sh=getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
-    sh.appendRow([new Date(),clean_(role,20),sheetText_(clean_(actorRef,60)),clean_(action,60),sheetText_(clean_(targetRef,100)),clean_(result,30),sheetText_(cleanNewsText_(details,240))]);    if(sh.getLastRow()>2001)sh.deleteRows(2,sh.getLastRow()-2001);
+    sh.appendRow([new Date(),clean_(role,20),sheetText_(clean_(actorRef,60)),clean_(action,60),sheetText_(clean_(targetRef,100)),clean_(result,30),sheetText_(cleanNewsText_(details,240))]);
+    const last=sh.getLastRow();
+    if(last>2001){
+      const width=sh.getLastColumn(),hasEffectKey=width>=8&&String(sh.getRange(1,8).getDisplayValues()[0][0]||'')==='Effect Key';
+      if(!hasEffectKey)sh.deleteRows(2,last-2001);
+      else{
+        // Keyed rows are the durable deduplication ledger. Prune only older
+        // unkeyed audit rows; never delete effect-key rows or the new audit row.
+        const oldCount=Math.max(0,last-2),keys=oldCount?sh.getRange(2,8,oldCount,1).getDisplayValues():[];
+        const excess=last-2001,remove=[];
+        for(let i=0;i<keys.length&&remove.length<excess;i++)if(!String(keys[i][0]||''))remove.push(i+2);
+        const runs=[];
+        remove.forEach(function(row){const lastRun=runs[runs.length-1];if(lastRun&&row===lastRun.start+lastRun.count)lastRun.count++;else runs.push({start:row,count:1});});
+        for(let i=runs.length-1;i>=0;i--)sh.deleteRows(runs[i].start,runs[i].count);
+      }
+    }
   }catch(err){console.error('MPS audit log write failed: '+safeErrorMessage_(err));}
 }
 function apiAdminCheckSystemConfiguration(session) {
