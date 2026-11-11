@@ -189,3 +189,26 @@ test('already-invalid Telegram invite link is treated as safely revoked on repla
  vm.createContext(context);vm.runInContext(source,context,{timeout:1000});
  assert.equal(context.revokeVipInviteLink_('-1001234567890','old-invite-link'),true);
 });
+
+test('candidate chat_member bridge builds isolated adapters and forwards the original update',()=>{
+ const source=extract('processMpsVipChatMemberEvent_','apiAdminPrepareTelegramVipTransitionStorage');
+ const calls=[];let handlerConfig=null;
+ const context={
+  PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_TELEGRAM_VIP_CHAT_ID'?'-1001234567890':key==='MPS_SPREADSHEET_ID'?'isolated-db':''})},
+  createMpsGasEffectLedger_:config=>{calls.push(['ledger',config]);return{runExclusive:()=>{}};},
+  createMpsGasVipTransitionStore_:config=>{calls.push(['store',config]);return{};},
+  createMpsVipTransitionStatusWriter_:()=>({applyAccessStatus(){},applyMemberStatus(){}}),
+  createMpsGasVipTransitionOrchestrator_:config=>{calls.push(['orchestrator',config]);return{process(){return'ACTIVE';}};},
+  createMpsGasVipChatMemberHandler_:config=>{handlerConfig=config;return{process:update=>{calls.push(['update',update]);return'ACTIVE';}};},
+  resolveMpsVipChatMemberTransition_:()=>({targetState:'ACTIVE'}),
+  sha256_:()=> 'b'.repeat(64)
+ };
+ vm.createContext(context);vm.runInContext(source,context,{timeout:1000});
+ const update={update_id:123,chat_member:{date:1760000000,chat:{id:'-1001234567890'},new_chat_member:{user:{id:987654321},status:'member'}}};
+ assert.equal(context.processMpsVipChatMemberEvent_(update,update.chat_member),'ACTIVE');
+ assert.equal(calls.find(x=>x[0]==='ledger')[1].spreadsheetId,'isolated-db');
+ assert.equal(calls.find(x=>x[0]==='store')[1].spreadsheetId,'isolated-db');
+ assert.equal(calls.find(x=>x[0]==='update')[1],update);
+ assert.equal(typeof handlerConfig.resolveTransition,'function');
+ assert.equal(typeof handlerConfig.afterTransition,'function');
+});
