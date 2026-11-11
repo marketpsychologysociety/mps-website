@@ -32,14 +32,12 @@ export function verifyOffsiteRecoveryDrill(bundle,{expectedSourceCheckpoint,maxi
   requireObject(r,RESTORE_FIELDS,'restore');requireObject(a,AUDIT_FIELDS,'audit');requireObject(t,TIMING_FIELDS,'timing');
   for(const [label,v] of [['source',s],['backup',b]]) {
     for(const k of ['provider','account_id','project_id','region'])if(!nonempty(v[k]))throw fail('DRILL_SCHEMA_INVALID',label+' identity fields are required.');
-    if(!Number.isSafeInteger(v.sequence)||v.sequence<0||!sha.test(v.last_hash||v.payload_sha256||'')) {
-      if(label==='source'||!sha.test(v.payload_sha256||''))throw fail('DRILL_SCHEMA_INVALID',label+' checkpoint/digest is invalid.');
-    }
   }
+  if(!Number.isSafeInteger(s.sequence)||s.sequence<0||!sha.test(s.last_hash||''))throw fail('DRILL_SCHEMA_INVALID','Source checkpoint is invalid.');
   if(!sha.test(s.last_hash)||!sha.test(s.payload_sha256)||!Number.isSafeInteger(s.bytes)||s.bytes<0||
      !sha.test(b.payload_sha256)||!sha.test(b.object_sha256)||!nonempty(b.object_key)||!nonempty(b.generation)||
      !nonempty(b.encryption_key_ref)||!validTime(b.retention_until))throw fail('DRILL_SCHEMA_INVALID','Source or backup evidence fields are invalid.');
-  if(s.payload_sha256!==b.payload_sha256||s.bytes<=0)throw fail('DRILL_CONTENT_MISMATCH','Backup payload digest or source size does not match.');
+  if(s.payload_sha256!==b.payload_sha256||b.object_sha256!==b.payload_sha256||s.bytes<=0)throw fail('DRILL_CONTENT_MISMATCH','Backup payload/object digest or source size does not match.');
   if(s.account_id===b.account_id||s.project_id===b.project_id)throw fail('ADMIN_BOUNDARY_NOT_INDEPENDENT','Backup must be in a separate account and project from source.');
   if(s.region===b.region)throw fail('REGION_SEPARATION_NOT_MET','Backup region must differ from source region for this drill contract.');
   if(!['COMPLIANCE_LOCKED','GOVERNANCE_LOCKED'].includes(b.retention_mode))throw fail('RETENTION_NOT_IMMUTABLE','Backup retention is not evidenced as locked.');
@@ -72,8 +70,10 @@ export function verifyOffsiteRecoveryDrill(bundle,{expectedSourceCheckpoint,maxi
     throw fail('DRILL_SCHEMA_INVALID','Timing metrics are invalid.');
   if(Date.parse(t.completed_at)<Date.parse(t.started_at)||Math.abs((Date.parse(t.completed_at)-Date.parse(t.started_at))-t.duration_ms)>1000)
     throw fail('DRILL_TIMING_INVALID','Drill timing interval is inconsistent.');
+  if(Date.parse(b.retention_until)<=Date.parse(t.completed_at))throw fail('RETENTION_NOT_IMMUTABLE','Retention evidence expires before the drill completed.');
   if(t.rto_seconds>maximumRtoSeconds||t.rpo_seconds>maximumRpoSeconds)throw fail('RECOVERY_OBJECTIVE_MISSED','Observed RPO/RTO exceeds configured limits.');
-  if(expectedSourceCheckpoint&&(expectedSourceCheckpoint.sequence!==s.sequence||expectedSourceCheckpoint.last_hash!==s.last_hash))
+  if(!expectedSourceCheckpoint||!Number.isSafeInteger(expectedSourceCheckpoint.sequence)||!sha.test(expectedSourceCheckpoint.last_hash||''))throw fail('SOURCE_CHECKPOINT_MISMATCH','An independently established expected source checkpoint is required.');
+  if(expectedSourceCheckpoint.sequence!==s.sequence||expectedSourceCheckpoint.last_hash!==s.last_hash)
     throw fail('SOURCE_CHECKPOINT_MISMATCH','Drill source checkpoint differs from independently expected checkpoint.');
   return {valid:true,drill_id:bundle.drill_id,source_sequence:s.sequence,source_last_hash:s.last_hash,
     backup_project:b.project_id,restore_digest:r.restored_sha256,rpo_seconds:t.rpo_seconds,rto_seconds:t.rto_seconds,
