@@ -7,7 +7,7 @@ import vm from 'node:vm';
 const root=new URL('./',import.meta.url);
 const effectSource=readFileSync(fileURLToPath(new URL('gas-effect-ledger-adapter.gs',root)),'utf8');
 const storeSource=readFileSync(fileURLToPath(new URL('gas-vip-transition-store.gs',root)),'utf8');
-const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
+const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
 const cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
 
 function harness({missingCursor=false,failFlushAt=0,failWriteAt=0}={}) {
@@ -53,7 +53,7 @@ function harness({missingCursor=false,failFlushAt=0,failWriteAt=0}={}) {
  return {run,sheets,context,stats:()=>({held,acquired,released,flushCount,writeCount})};
 }
 const record=(key='telegram:2:100:vip_transition')=>({
- 'Intent Key':key,'Update Epoch':2,'Update ID':'100','Member ID':'MPS-ABCDEF12',
+ 'Intent Key':key,'Update Epoch':2,'Update ID':'100','Member ID':'MPS-ABCDEF12','Member Name':'Test Member',
  'Target State':'ACTIVE','Source Type':'CHAT_MEMBER','Source Date':1760000000,
  'Payload SHA-256':'a'.repeat(64),'State':'INTENT','Ticker Effect Key':key+':ticker',
  'Audit Effect Key':key+':audit','Created At':'2026-11-12T00:00:00Z',
@@ -121,3 +121,5 @@ test('cursor writes use text update IDs and reject malformed identifiers before 
  assert.equal(h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12').updateId),'90071992547409931234');
  assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'01',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'})),/VIP_TRANSITION_INVALID_UPDATE_ID/);
 });
+
+test('cursor rejects regression and conflicting transition at identical sequence',()=>{\n const h=harness();\n h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:vip_transition',updatedAt:'now'}));\n assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'999',transitionKey:'telegram:2:999:vip_transition',updatedAt:'old'})),/VIP_TRANSITION_CURSOR_REGRESSION/);\n assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:other',updatedAt:'now'})),/VIP_TRANSITION_CURSOR_COLLISION/);\n});\n
