@@ -335,6 +335,6 @@ This closes the standalone journal's synthetic test gap only. The journal is not
 
 ## P1.2 — persistent sandbox integration (2026-11-11)
 
-The workbench now contains a separate loopback-only persistent Draw API sandbox integrated with the P1.1 durable audit journal. It replays completed aggregate state records at startup and marks draws with incomplete operation intents as RECONCILIATION_REQUIRED. Child-process integration tests cover restart recovery, idempotency replay/conflict, and forced crash after intent. CI execution is pending; this is not yet a verified acceptance gate.
+The workbench contains a separate loopback-only persistent Draw API sandbox integrated with the P1.1 durable audit journal. It replays completed aggregate state records at startup and marks draws with incomplete operation intents as RECONCILIATION_REQUIRED. Four child-process API integration cases cover restart recovery, idempotency replay/conflict, concurrent execution serialization, and crash recovery after intent or in-memory mutation. Clean-checkout GitHub Actions run #194 passed the complete workflow: https://github.com/marketpsychologysociety/mps-website/actions/runs/42937158330.
 
 This remains a synthetic, single-process local-file prototype. It does not provide cross-process locking, transactional persistence, external tamper-resistant anchoring, real identity, beacon verification, fair winner selection, or production security. Keep official draw NO-GO and roulette SIMULATION ONLY.
