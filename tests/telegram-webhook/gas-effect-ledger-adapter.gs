@@ -79,8 +79,11 @@ function createMpsGasEffectLedger_(config) {
         migrate:function(kind){if(!active)throw new Error('EFFECT_SCOPE_CLOSED');return migrateLocked_(kind);},
         appendOnce:function(kind,effectKey,rowValues){if(!active)throw new Error('EFFECT_SCOPE_CLOSED');return appendOnceLocked_(kind,effectKey,rowValues);}
       });
-      try{return callback(scoped);}
-      finally{active=false;scopeActive_=false;}
+      try{
+        var result=callback(scoped);
+        if(result&&typeof result.then==='function')throw new Error('ASYNC_EFFECT_SCOPE_NOT_SUPPORTED');
+        return result;
+      }finally{active=false;scopeActive_=false;}
     });
   }
   return{migrate:migrate_,appendOnce:appendOnce_,runExclusive:runExclusive_};
