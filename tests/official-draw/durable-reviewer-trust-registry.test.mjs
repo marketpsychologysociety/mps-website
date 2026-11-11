@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { promises as fs } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
 import { DurableReviewerTrustRegistry } from './durable-reviewer-trust-registry.mjs';
@@ -150,3 +152,48 @@ test('reclaims a dead same-host lock after process crash', async t => {
   const registry=await DurableReviewerTrustRegistry.open(dir,{authorizeAdmin:auth,lockWaitMs:500,lockRetryMs:5});
   assert.equal(registry.getStats().recordCount,0); await registry.close();
 });
+
+async function crashChild(directory, stage, args) {
+  const worker = fileURLToPath(new URL('./reviewer-trust-crash-worker.mjs', import.meta.url));
+  const encoded = Buffer.from(JSON.stringify(args)).toString('base64url');
+  return await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [worker, directory, stage, encoded], { stdio: ['ignore','ignore','pipe'] });
+    let stderr = '';
+    child.stderr.setEncoding('utf8'); child.stderr.on('data', chunk => { stderr += chunk; });
+    child.once('error', reject);
+    child.once('close', (code, signal) => resolve({ code, signal, stderr }));
+  });
+}
+
+test('process crash after nonce-consumption bytes but before fsync reconciles without double consumption', async t => {
+  const {registry,dir,reopen}=await setup(t), pair=keypair(), f=await issued(registry,pair);
+  const args={bundle:f.b,attestation:f.a,expectedProjectId:f.b.source.projectId,expectedBucket:f.b.source.bucket,expectedQuerySha256:QUERY,now:NOW};
+  await registry.close();
+  const child=await crashChild(dir,'AFTER_WRITE_BEFORE_SYNC',args);
+  assert.equal(child.code,73,child.stderr);
+  const after=await reopen();
+  const initial=after.getStats().consumedNonceCount;
+  assert.ok(initial===0 || initial===1,'unexpected consumed nonce count '+initial);
+  if(initial===0) {
+    const retry=await after.verifyAndConsume(args);
+    assert.equal(retry.ok,true,retry.errors?.join(','));
+  } else {
+    const replay=await after.verifyAndConsume(args);
+    assert.equal(replay.ok,false); assert.ok(replay.errors.includes('NONCE_ALREADY_CONSUMED'));
+  }
+  assert.equal(after.getStats().consumedNonceCount,1);
+});
+
+test('process crash after nonce-consumption fsync but before acknowledgement preserves exactly-once result', async t => {
+  const {registry,dir,reopen}=await setup(t), pair=keypair(), f=await issued(registry,pair);
+  const args={bundle:f.b,attestation:f.a,expectedProjectId:f.b.source.projectId,expectedBucket:f.b.source.bucket,expectedQuerySha256:QUERY,now:NOW};
+  await registry.close();
+  const child=await crashChild(dir,'AFTER_SYNC_BEFORE_ACK',args);
+  assert.equal(child.code,73,child.stderr);
+  const after=await reopen();
+  assert.equal(after.getStats().consumedNonceCount,1);
+  const replay=await after.verifyAndConsume(args);
+  assert.equal(replay.ok,false); assert.ok(replay.errors.includes('NONCE_ALREADY_CONSUMED'));
+  assert.equal(after.getStats().consumedNonceCount,1);
+});
+
