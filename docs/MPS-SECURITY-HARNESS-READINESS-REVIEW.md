@@ -155,7 +155,7 @@ This closes the standalone journal's synthetic test gap only. The journal is not
 
 A separate test-only adapter, tests/official-draw/persistent-local-sandbox-adapter.mjs, now connects HTTP draw execution to the P1.1 durable audit journal. Completed allowlisted aggregate records rebuild synthetic draw state on process startup. An incomplete durable intent causes the associated draw to restore as RECONCILIATION_REQUIRED; the API rejects a duplicate attempt rather than silently executing again.
 
-tests/official-draw/persistent-api-integration.test.mjs exercises real child Node processes on loopback and a shared disposable temporary journal directory. It checks state and idempotency recovery after process restart, changed-payload conflict, and forced process termination after intent fsync. CI now runs this suite.
+tests/official-draw/persistent-api-integration.test.mjs now contains five child-process HTTP integration cases: process-restart state recovery, idempotency replay/conflict, concurrent execute serialization, crash after intent, crash after in-memory mutation, and durable completion with lost acknowledgement. The last case proves that a completion already fsynced is recovered as completed and replayed rather than executed again. CI runs this suite.
 
 **CI verification:** GitHub Actions run #194 on commit 234900d9c7c04248397f2c349d3336c673d2611d completed successfully from a clean checkout. The durable journal suite (including aggregate allowlist/recovery) and persistent HTTP API integration suite both passed; the full workflow also passed PWA/privacy, schema compatibility, Official Draw contract, read-only inspector, and Chromium browser checks. Run: https://github.com/marketpsychologysociety/mps-website/actions/runs/42937158330.
 
