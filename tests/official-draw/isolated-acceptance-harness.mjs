@@ -123,7 +123,7 @@ export function projectPublicWinner(record) {
   if (Reflect.ownKeys(record).some(key => typeof key !== "string")) return null;
   for (const key of Object.keys(record)) {
     const descriptor = Object.getOwnPropertyDescriptor(record,key);
-    if (!descriptor || !Object.hasOwn(descriptor,"value")) return null;
+    if (!descriptor || !Object.hasOwn(descriptor,"value") || !descriptor.enumerable) return null;
   }
   if (record.state !== "PUBLISHED" || record.verification_status !== "VERIFIED") return null;
   const proof = record.proof_summary;
@@ -133,7 +133,7 @@ export function projectPublicWinner(record) {
   if (Reflect.ownKeys(proof).some(key => typeof key !== "string")) return null;
   for (const key of Object.keys(proof)) {
     const descriptor = Object.getOwnPropertyDescriptor(proof,key);
-    if (!descriptor || !Object.hasOwn(descriptor,"value")) return null;
+    if (!descriptor || !Object.hasOwn(descriptor,"value") || !descriptor.enumerable) return null;
   }
   const inputKeys = [...PUBLIC_RESULT_KEYS, "state"].sort();
   if (Reflect.ownKeys(record).sort().join("|") !== inputKeys.join("|") ||
@@ -141,15 +141,15 @@ export function projectPublicWinner(record) {
   const boundedString = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
   if (!boundedString(record.event_title,160) || !boundedString(record.message,240) ||
       !boundedString(record.prize_public_description,240) ||
-      !boundedString(record.protocol_version,48) || !/^[A-Za-z0-9_-]{1,80}$/.test(record.public_result_id) ||
+      !boundedString(record.protocol_version,48) || typeof record.public_result_id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(record.public_result_id) ||
       typeof record.published_at_utc !== "string" || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:[.][0-9]{3})?Z$/.test(record.published_at_utc) ||
       !Number.isFinite(Date.parse(record.published_at_utc)) ||
       new Date(record.published_at_utc).toISOString() !== (record.published_at_utc.includes(".") ? record.published_at_utc : record.published_at_utc.replace("Z", ".000Z")) ||
       !Number.isSafeInteger(proof.participant_count) || proof.participant_count < 1 ||
-      !/^[0-9a-f]{64}$/.test(proof.beacon_chain_hash) ||
-      !/^[0-9]{1,32}$/.test(proof.beacon_round) ||
-      !/^[0-9a-f]{64}$/.test(proof.result_digest) ||
-      !/^[0-9a-f]{64}$/.test(proof.snapshot_commitment)) return null;
+      typeof proof.beacon_chain_hash !== "string" || !/^[0-9a-f]{64}$/.test(proof.beacon_chain_hash) ||
+      typeof proof.beacon_round !== "string" || !/^[0-9]{1,32}$/.test(proof.beacon_round) ||
+      typeof proof.result_digest !== "string" || !/^[0-9a-f]{64}$/.test(proof.result_digest) ||
+      typeof proof.snapshot_commitment !== "string" || !/^[0-9a-f]{64}$/.test(proof.snapshot_commitment)) return null;
   const { state: _internalState, ...publicRecord } = record;
   return structuredClone(publicRecord);
 }
