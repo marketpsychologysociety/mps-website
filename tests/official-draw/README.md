@@ -242,3 +242,8 @@ The local filesystem prototype records immutable Ed25519 reviewer public-key reg
 ## P1.15 — independent synthetic backup and recovery
 
 `synthetic-backup-recovery.mjs` verifies a create-only local backup, strict manifest, byte digest, full journal chain, stale/equal-sequence checkpoint rejection, and restore to a new target only. It rejects incomplete source journals without repairing them, preserves interrupted staging/restore artifacts, and never overwrites an existing target. Ten synthetic cases run in CI via `node --test tests/official-draw/synthetic-backup-recovery.test.mjs`. This is same-host local-filesystem test coverage only; it is not off-host/cloud backup, immutable retention, production disaster recovery, or proof of power-loss/multi-host safety. No cloud or production resources are created or changed. See `docs/MPS-INDEPENDENT-BACKUP-RECOVERY-VERIFICATION.md`.
+
+
+## P1.16 — off-site backup and recovery drill contract (synthetic only)
+
+`offsite-recovery-drill-contract.mjs` validates a normalized provider-neutral drill evidence envelope: separate source/backup accounts, projects and regions; six distinct privileged subjects and administrative boundaries; MFA assertions; locked-retention evidence; exact-generation restore to a new target; source preservation; independent audit coverage; RPO/RTO and an out-of-band expected checkpoint. Sixteen positive/negative synthetic tests run in CI. The validator does not authenticate provider APIs, IAM, MFA, retention, KMS, raw audit logs or the truth of normalized assertions. No cloud resource is provisioned. See `docs/MPS-OFFSITE-BACKUP-RECOVERY-DRILL-CONTRACT.md`.
