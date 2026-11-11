@@ -82,7 +82,7 @@ function makeHarness(options = {}) {
   const create = config => context.createMpsTelegramGasJournal_(Object.assign({
     spreadsheetId: 'isolated-test-spreadsheet',
     sheetName: 'MPS Telegram Update Journal',
-    leaseMs: 100
+    leaseMs: 60000
   }, config || {}));
   return { create, rows, get lockAcquisitions() { return lockAcquisitions; } };
 }
@@ -134,10 +134,10 @@ test('expired lease can be reclaimed and stale worker is fenced out', () => {
   const oldWorker = h.create();
   const first = oldWorker.claim(update(), 1000);
   const newWorker = h.create();
-  const second = newWorker.claim(update(), 1200);
+  const second = newWorker.claim(update(), 62000);
   assert.equal(second.outcome, 'CLAIMED');
-  assert.throws(() => oldWorker.finish(7001, first.row.claimToken, 1210), /STALE_OR_INVALID_CLAIM/);
-  newWorker.finish(7001, second.row.claimToken, 1220);
+  assert.throws(() => oldWorker.finish(7001, first.row.claimToken, 62100), /STALE_OR_INVALID_CLAIM/);
+  newWorker.finish(7001, second.row.claimToken, 62120);
   assert.equal(h.rows[1][3], 'DONE');
 });
 
@@ -145,7 +145,7 @@ test('lease expiry blocks a late transition even before another claim arrives', 
   const h = makeHarness();
   const journal = h.create();
   const claim = journal.claim(update(), 1000);
-  assert.throws(() => journal.finish(7001, claim.row.claimToken, 1100), /STALE_OR_INVALID_CLAIM/);
+  assert.throws(() => journal.finish(7001, claim.row.claimToken, 61000), /STALE_OR_INVALID_CLAIM/);
   assert.equal(h.rows[1][3], 'PROCESSING');
 });
 
