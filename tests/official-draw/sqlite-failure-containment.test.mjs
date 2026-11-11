@@ -38,7 +38,9 @@ test('simulated SQLITE_FULL rolls back the entire write transaction without part
   db.exec('PRAGMA page_size=1024; PRAGMA journal_mode=WAL; CREATE TABLE payloads(id INTEGER PRIMARY KEY, value TEXT NOT NULL); PRAGMA max_page_count=2;');
   db.exec('BEGIN IMMEDIATE');
   assert.throws(()=>db.prepare('INSERT INTO payloads(value) VALUES(?)').run('x'.repeat(12000)),/full|disk is full/i);
-  db.exec('ROLLBACK');
+  // SQLite may automatically roll back the active transaction on SQLITE_FULL.
+  // Assert that state directly instead of issuing a second ROLLBACK blindly.
+  assert.throws(()=>db.exec('COMMIT'),/no transaction is active/i);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM payloads').get().n,0);
   assert.equal(integrity(db),'ok');
   db.close();
