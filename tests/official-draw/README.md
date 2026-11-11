@@ -151,7 +151,7 @@ The P1.1 journal now uses an atomic filesystem lock directory around recovery an
 
 The persistent Draw API opts into a separate exclusive server-process lease. A second sandbox process pointed at the same journal directory is rejected before it starts listening. This is deliberately **single-writer**, not active-active/multi-instance service support. A crashed process leaves a lock that is reclaimed on restart only after same-host PID death is confirmed.
 
-New tests use two independent child Node processes writing 20 synthetic operations to the same journal, verify 40 intact chained records after recovery, test exclusive lease rejection/release, and test stale same-host lock recovery. The API integration suite also verifies that a second server cannot acquire the same directory lease. CI verification is pending.
+New tests use two independent child Node processes writing 20 synthetic operations to the same journal, verify 40 intact chained records after recovery, test exclusive lease rejection/release, and test stale same-host lock recovery. The API integration suite also verifies that a second server cannot acquire the same directory lease. Clean-checkout GitHub Actions run #218 on commit 788ab5cb18d4b027c9edc870808bee846346f8d8 passed the full workflow. Journal lock suite: 12 PASS, 0 FAIL, 0 SKIP; persistent API integration: 6 PASS, 0 FAIL, 0 SKIP. Chromium PWA checks also passed 15 pages and the offline/mobile/install flows. Run: https://github.com/marketpsychologysociety/mps-website/actions/runs/42938105450.
 
 Run:
 node --test tests/official-draw/durable-audit-journal.test.mjs
