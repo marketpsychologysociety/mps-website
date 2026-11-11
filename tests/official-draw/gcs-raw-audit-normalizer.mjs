@@ -105,7 +105,7 @@ export function normalizeGcsRawAuditEvidence(bundle) {
     const p = entry?.protoPayload;
     const resource = entry?.resource;
     if (!nonEmpty(entry?.logName) || !expectedLogNames.has(entry.logName)) fail('LOG_NAME_OUT_OF_SCOPE:' + i);
-    if (entry?.logName !== expectedData && entry?.logName !== expectedActivity) fail('AUDIT_LOG_CATEGORY_INVALID:' + i);
+    if (entry?.logName !== expectedData && entry?.logName !== expectedActivity && entry?.logName !== expectedPolicy) fail('AUDIT_LOG_CATEGORY_INVALID:' + i);
     if (resource?.type !== 'gcs_bucket' || resource?.labels?.project_id !== s.projectId ||
         resource?.labels?.bucket_name !== s.bucket) fail('GCS_RESOURCE_SCOPE_MISMATCH:' + i);
     if (p?.['@type'] !== auditType || p?.serviceName !== 'storage.googleapis.com' ||
