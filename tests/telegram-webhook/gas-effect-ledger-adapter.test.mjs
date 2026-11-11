@@ -44,3 +44,5 @@ test('append before explicit migration is blocked',()=>{const h=harness();assert
 test('ticker append keeps six legacy fields plus key',()=>{const h=harness({kind:'ticker',rows:[[...schemas.ticker.headers,'Effect Key']]});assert.equal(h.create().appendOnce('ticker','telegram:11:vip_ticker_event',trow()).outcome,'APPENDED');assert.deepEqual(h.rows[1],[...trow(),'telegram:11:vip_ticker_event']);});
 
 test('whitespace-padded persisted keys fail closed instead of bypassing exact-key replay',()=>{const h=harness({rows:[[...schemas.audit.headers,'Effect Key'],[...arow(),' telegram:12:vip_join_audit ']]});assert.throws(()=>h.create().appendOnce('audit','telegram:12:vip_join_audit',arow()),/EFFECT_INVALID_EXISTING_KEY/);});
+
+test('whitespace-altered legacy header fails exact schema validation',()=>{const headers=schemas.audit.headers.slice();headers[0]='Timestamp ';const h=harness({rows:[headers]});assert.throws(()=>h.create().migrate('audit'),/EFFECT_LEGACY_SCHEMA_MISMATCH/);});
