@@ -61,6 +61,9 @@ test('rejects unauthorized, self-administered and malformed key registration', a
   await assert.rejects(registry.registerKey({context:ADMIN,keyId:'reviewer-key-003',issuer:ISSUER,subject:'reviewer-subject-002',publicKeyPem:'bad',notBefore:'2026-01-01T00:00:00.000Z',notAfter:'2027-01-01T00:00:00.000Z'}),e=>e.code==='VALIDATION_ERROR');
   const privatePem=pair.privateKey.export({type:'pkcs8',format:'pem'});
   await assert.rejects(registry.registerKey({context:ADMIN,keyId:'reviewer-key-004',issuer:ISSUER,subject:'reviewer-subject-002',publicKeyPem:privatePem,notBefore:'2026-01-01T00:00:00.000Z',notAfter:'2027-01-01T00:00:00.000Z'}),e=>e.code==='VALIDATION_ERROR');
+  await register(registry,pair);
+  await registry.revokeKey({context:ADMIN,keyId:'reviewer-key-001',effectiveAt:isoAt(-10*1000)});
+  await assert.rejects(register(registry,pair,'reviewer-key-002',isoAt(365*24*60*60*1000)),e=>e.code==='KEY_MATERIAL_REUSE');
 });
 
 test('rotation preserves old keys and verifies historical evidence after expiry', async t => {
