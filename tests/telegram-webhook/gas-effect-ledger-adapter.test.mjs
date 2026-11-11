@@ -50,3 +50,77 @@ test('whitespace-altered legacy header fails exact schema validation',()=>{const
 test('append write failure before persistence leaves no row and permits safe retry',()=>{const h=harness({rows:[[...schemas.audit.headers,'Effect Key']],failSetValuesAt:1});const l=h.create();assert.throws(()=>l.appendOnce('audit','telegram:13:vip_join_audit',arow()),/SIMULATED_SET_VALUES_FAILURE/);assert.equal(h.rows.length,1);assert.equal(h.depth,0);assert.equal(h.acquired,h.released);assert.equal(h.create().appendOnce('audit','telegram:13:vip_join_audit',arow()).outcome,'APPENDED');});
 test('migration lock is released when flush fails after header persistence',()=>{const h=harness({failFlushAt:1});assert.throws(()=>h.create().migrate('audit'),/SIMULATED_FLUSH_FAILURE/);assert.equal(h.rows[0][7],'Effect Key');assert.equal(h.depth,0);assert.equal(h.acquired,h.released);});
 test('already-migrated schema rejects duplicate historical keys during migration verification',()=>{const row=[...arow(),'telegram:14:vip_join_audit'];const h=harness({rows:[[...schemas.audit.headers,'Effect Key'],row,row]});assert.throws(()=>h.create().migrate('audit'),/EFFECT_DUPLICATE_EXISTING_KEY/);assert.equal(h.depth,0);});
+
+
+// A second, shared-service V8 harness creates independent VM contexts while
+// retaining the same fake spreadsheet and lock service between invocations.
+// This is still a mock runtime, not a deployed Google Apps Script project.
+function sharedGasRuntime({kind='audit',failFlushAt=0,failWrite=''}={}){
+ const schema=schemas[kind],rows=[schema.headers.slice()];let held=false,flushes=0,opens=0;
+ const sheet={
+  getLastRow(){return rows.length;},
+  getLastColumn(){return Math.max(0,...rows.map(r=>r.length));},
+  getRange(row,col,nr=1,nc=1){return{
+   getValues(){return Array.from({length:nr},(_,r)=>Array.from({length:nc},(_,c)=>rows[row-1+r]?.[col-1+c]??''));},
+   getDisplayValues(){return this.getValues().map(line=>line.map(v=>v==null?'':String(v)));},
+   setNumberFormat(){return this;},
+   setValue(v){while(rows.length<row)rows.push([]);rows[row-1][col-1]=v;return this;},
+   setValues(values){if(failWrite==='before')throw Error('SIMULATED_WRITE_BEFORE_PERSIST');values.forEach((line,r)=>{const target=row-1+r;while(rows.length<=target)rows.push([]);while(rows[target].length<col-1)rows[target].push('');line.forEach((v,c)=>rows[target][col-1+c]=v);});if(failWrite==='after')throw Error('SIMULATED_WRITE_AFTER_PERSIST');return this;}
+  };}}
+ };
+ const services={
+  SpreadsheetApp:{
+   openById(id){opens++;if(id!=='isolated-effect-test')throw Error('WRONG_SPREADSHEET');return{getSheetByName(name){return name===schema.name?sheet:null;}};},
+   flush(){flushes++;if(failFlushAt===flushes)throw Error('SIMULATED_RUNTIME_FLUSH_FAILURE');}
+  },
+  LockService:{getScriptLock(){return{
+   waitLock(ms){if(!(ms>0))throw Error('BAD_LOCK_WAIT');if(held)throw Error('SIMULATED_LOCK_TIMEOUT');held=true;},
+   releaseLock(){if(!held)throw Error('LOCK_NOT_HELD');held=false;}
+  };}}
+ };
+ function runtime(){const context={...services};vm.runInNewContext(source,context,{timeout:1000});return context.createMpsGasEffectLedger_({spreadsheetId:'isolated-effect-test'});}
+ return{rows,runtime,hold(){if(held)throw Error('ALREADY_HELD');held=true;},release(){if(!held)throw Error('NOT_HELD');held=false;},get held(){return held;},get opens(){return opens;}};
+}
+test('independent V8 contexts reconcile persisted append using shared mock GAS services',()=>{
+ const h=sharedGasRuntime();const first=h.runtime();assert.equal(first.migrate('audit').outcome,'MIGRATED');
+ assert.equal(first.appendOnce('audit','telegram:runtime:1',arow()).outcome,'APPENDED');
+ const second=h.runtime();assert.equal(second.appendOnce('audit','telegram:runtime:1',arow()).outcome,'ALREADY_APPENDED');
+ assert.equal(h.rows.length,2);assert.equal(h.held,false);
+});
+test('simulated ScriptLock contention fails closed and retry succeeds after release',()=>{
+ const h=sharedGasRuntime();const l=h.runtime();l.migrate('audit');h.hold();
+ assert.throws(()=>l.appendOnce('audit','telegram:runtime:2',arow()),/SIMULATED_LOCK_TIMEOUT/);
+ assert.equal(h.rows.length,1);assert.equal(h.held,true);h.release();
+ assert.equal(h.runtime().appendOnce('audit','telegram:runtime:2',arow()).outcome,'APPENDED');
+ assert.equal(h.held,false);
+});
+test('runtime restart reconciles append persisted before flush acknowledgement',()=>{
+ const h=sharedGasRuntime({failFlushAt:2});const l=h.runtime();l.migrate('audit');
+ assert.throws(()=>l.appendOnce('audit','telegram:runtime:3',arow()),/SIMULATED_RUNTIME_FLUSH_FAILURE/);
+ assert.equal(h.rows.length,2);assert.equal(h.held,false);
+ assert.equal(h.runtime().appendOnce('audit','telegram:runtime:3',arow()).outcome,'ALREADY_APPENDED');
+ assert.equal(h.rows.length,2);
+});
+test('runtime restart recognizes migration header persisted before flush acknowledgement',()=>{
+ const h=sharedGasRuntime({failFlushAt:1});assert.throws(()=>h.runtime().migrate('audit'),/SIMULATED_RUNTIME_FLUSH_FAILURE/);
+ assert.equal(h.rows[0][7],'Effect Key');assert.equal(h.held,false);
+ assert.equal(h.runtime().migrate('audit').outcome,'ALREADY_MIGRATED');
+});
+test('runtime write failure before persistence releases lock and permits retry',()=>{
+ const h=sharedGasRuntime({failWrite:'before'});const l=h.runtime();l.migrate('audit');
+ assert.throws(()=>l.appendOnce('audit','telegram:runtime:4',arow()),/SIMULATED_WRITE_BEFORE_PERSIST/);
+ assert.equal(h.rows.length,1);assert.equal(h.held,false);
+ assert.equal(h.runtime().appendOnce('audit','telegram:runtime:4',arow()).outcome,'APPENDED');
+});
+test('runtime write that persists then throws is reconciled without a duplicate',()=>{
+ const h=sharedGasRuntime({failWrite:'after'});const l=h.runtime();l.migrate('audit');
+ assert.throws(()=>l.appendOnce('audit','telegram:runtime:5',arow()),/SIMULATED_WRITE_AFTER_PERSIST/);
+ assert.equal(h.rows.length,2);assert.equal(h.held,false);
+ assert.equal(h.runtime().appendOnce('audit','telegram:runtime:5',arow()).outcome,'ALREADY_APPENDED');
+ assert.equal(h.rows.length,2);
+});
+test('runtime never creates a missing target sheet and releases its lock',()=>{
+ const h=sharedGasRuntime();const l=h.runtime();
+ assert.throws(()=>l.migrate('ticker'),/EFFECT_SHEET_MISSING/);
+ assert.equal(h.held,false);assert.equal(h.rows.length,1);
+});
