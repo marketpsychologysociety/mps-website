@@ -327,7 +327,7 @@ try {
   }));
   let feedMode = 'valid';
   await feedContext.route('https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec**', route => {
-    const validEnvelope = 'window.MPS_PUBLIC_CENTER_DATA={"ok":true,"announcements":[{"ID":"ANN-TEST","Title":"Mocked safe feed title","Category":"important","Body":"Data-only feed test"}],"activity":[],"tickerSettings":{"enabled":false,"speed":34,"theme":"Neon"}};';
+    const validEnvelope = 'window.MPS_PUBLIC_CENTER_DATA={"ok":true,"announcements":[{"ID":"ANN-TEST","Title":"<img src=x onerror=window.__mpsXssExecuted=true>","Category":"important","Body":"<svg onload=window.__mpsXssExecuted=true>Data-only feed test"}],"activity":[],"tickerSettings":{"enabled":false,"speed":34,"theme":"Neon"}};';
     const body = feedMode === 'valid'
       ? validEnvelope
       : validEnvelope + 'window.__mpsRemoteCodeExecuted=true;';
@@ -344,6 +344,13 @@ try {
     .catch(() => failures.push('Data-only public-center JSON feed did not connect in mocked CORS test'));
   const safeFeedRendered = await feedPage.locator('[data-public-announcements]').innerText();
   if (!safeFeedRendered.includes('Mocked safe feed title')) failures.push('Data-only public-center JSON feed did not render safe announcement text');
+  const feedXssSafety = await feedPage.evaluate(() => ({
+    titleText: document.querySelector('[data-public-announcements] h3')?.textContent || '',
+    injectedImage: !!document.querySelector('[data-public-announcements] img'),
+    executed: window.__mpsXssExecuted === true
+  }));
+  if (!feedXssSafety.titleText.includes('<img')) failures.push('Public-center announcement text was not preserved as inert text');
+  if (feedXssSafety.injectedImage || feedXssSafety.executed) failures.push('Public-center announcement content executed HTML instead of rendering as text');
   const feedRemoteScripts = await feedPage.locator('script[src*="script.google.com"]').count();
   if (feedRemoteScripts !== 0) failures.push('Data-only public-center feed injected a remote executable script');
 
