@@ -741,3 +741,18 @@ GitHub Actions run #271 (https://github.com/marketpsychologysociety/mps-website/
 The first category-refinement test run (#268–#270) exposed a mismatch: Policy Denied log names were added to the allowed source set but omitted from a second category allowlist. The CI failure was inspected, the missing allowlist branch was corrected, and run #271 passed with the explicit Policy Denied category fixture and wrong-category negative test.
 
 **Evidence boundary:** this remains synthetic/offline structural validation. It does not authenticate Google as the source, prove export completeness, inspect actual IAM/log settings, or test real GCS. No GCP resources or production changes were made.
+
+
+## P1.11 — independent reviewer provenance attestation verifier (offline only)
+
+- [x] Add detached Ed25519 signature verification using a separately supplied pinned trust record.
+- [x] Bind signed attestation to canonical raw P1.10 evidence-bundle digest, project, bucket, time window, query digest, page/entry counts and pagination completion.
+- [x] Require reviewer subject = authenticated retrieval principal, reviewer distinct from exporter, trust-key issuer/subject match, key validity and non-revocation.
+- [x] Enforce short-lived attestation, caller-provided challenge nonce, and fail-closed scope/schema/signature checks.
+- [x] Add synthetic ephemeral-key tests, README, architecture document, and clean-checkout CI step.
+- [ ] Implement independently governed trust-key registry and key issuance/revocation lifecycle.
+- [ ] Implement durable, atomic one-time nonce issuance/consumption.
+- [ ] Integrate authenticated Cloud Logging retrieval and independently review actual GCS source records.
+- [ ] Obtain separate authorization and complete P1.8 prerequisites before provisioning any GCP resource.
+
+**Evidence:** tests/official-draw/gcs-evidence-provenance-verifier.mjs, tests/official-draw/gcs-evidence-provenance-verifier.test.mjs, docs/MPS-GCS-INDEPENDENT-PROVENANCE-ATTESTATION.md. P1.11 verifies a trusted reviewer signature and its binding to a specific evidence bundle; it does not verify a Google signature or prove the truth of reviewer assertions. The caller must run P1.10 first and durably consume nonces. Synthetic keys only; no private key, real raw log, cloud resource, credential, billing, IAM, retention lock, production data or deployment created. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
