@@ -44,9 +44,10 @@ function createMpsGasVipChatMemberHandler_(config) {
       if(!resolved.telegramUserId)resolved.telegramUserId=userId;
       return resolved;
     });
-    if(snapshot&&snapshot.ignored!==true&&typeof config.afterTransition==='function'&&
-      ['ACTIVE','LEFT','DENIED'].indexOf(result)>=0){
-      var followup=config.afterTransition({result:result,input:input,resolved:snapshot});
+    var followupEligible=['ACTIVE','LEFT','DENIED'].indexOf(result)>=0;
+    if(result==='DUPLICATE'&&snapshot&&snapshot.ignored!==true&&typeof orchestrator.isCurrent==='function')followupEligible=orchestrator.isCurrent(input,snapshot);
+    if(snapshot&&snapshot.ignored!==true&&typeof config.afterTransition==='function'&&followupEligible){
+      var followup=config.afterTransition({result:result,targetState:String(snapshot.targetState||''),input:input,resolved:snapshot});
       if(followup&&typeof followup.then==='function')throw new Error('VIP_CHAT_MEMBER_FOLLOWUP_MUST_BE_SYNCHRONOUS');
     }
     return result;
