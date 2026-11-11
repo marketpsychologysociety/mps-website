@@ -249,7 +249,7 @@ test('explicit member migration is idempotent on an exact 30-column schema',()=>
 });
 test('member migration fails closed on mismatched legacy headers or partial schema',()=>{
  const wrong=migrationHarness(['Wrong Header',...legacyMemberHeaders.slice(1)]);
- assert.throws(()=>wrong.run(),/skema 18 kolom/);
+ assert.throws(()=>wrong.run(),/Skema 18 kolom/);
  assert.equal(wrong.stats().writes,0);assert.equal(wrong.stats().releases,1);
  const partial=migrationHarness([...legacyMemberHeaders,...appendedMemberHeaders.slice(0,2)]);
  assert.throws(()=>partial.run(),/Jumlah kolom/);
