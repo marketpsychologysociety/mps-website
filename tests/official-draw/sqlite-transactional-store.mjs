@@ -18,7 +18,7 @@ export class SQLiteTransactionalStore {
     if (!validText(filename, 4096) || filename === ':memory:' || !path.isAbsolute(filename)) throw new TypeError('ABSOLUTE_DATABASE_FILE_REQUIRED');
     this.#db = new DatabaseSync(filename);
     this.#db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL;');
-    this.#db.exec(\`
+    this.#db.exec(`
       CREATE TABLE IF NOT EXISTS draw_records (
         draw_id TEXT PRIMARY KEY,
         owner_subject TEXT NOT NULL,
@@ -43,7 +43,7 @@ export class SQLiteTransactionalStore {
         delivery_state TEXT NOT NULL CHECK (delivery_state IN ('PENDING','ATTEMPTING','DELIVERED','RETRY_WAIT','DEAD_LETTER')),
         created_at_utc TEXT NOT NULL
       ) STRICT;
-    \`);
+    `);
   }
 
   #assertOpen() { if (this.#closed) throw new Error('STORE_CLOSED'); }
