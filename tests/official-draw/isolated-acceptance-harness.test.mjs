@@ -48,6 +48,11 @@ test("authorization matrix is deny-by-default and enforces distinct reviewer sub
   assert.equal(authorize({role:"DRAW_REVIEWER",action:"approve_rules",subject:"same",reviewerSubject:"same"}).code,"SEPARATION_OF_DUTIES");
   assert.equal(authorize({role:"DRAW_REVIEWER",action:"approve_rules",subject:"reviewer",reviewerSubject:"operator"}).allowed,true);
   assert.equal(authorize({role:"UNRECOGNIZED",action:"publish_result",subject:"x"}).allowed,false);
+  assert.equal(authorize(null).allowed,false);
+  assert.equal(authorize(Object.create({role:"DRAW_PUBLISHER"})).allowed,false);
+  const hostileAuth={role:"DRAW_PUBLISHER",action:"publish_result",subject:"publisher"};
+  Object.defineProperty(hostileAuth,"subject",{get(){throw new Error("must not execute");}});
+  assert.equal(authorize(hostileAuth).allowed,false);
 });
 
 test("public winner projection only accepts exact allowlisted PUBLISHED and VERIFIED record", () => {
@@ -66,6 +71,12 @@ test("public winner projection only accepts exact allowlisted PUBLISHED and VERI
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,beacon_chain_hash:{leak:"CANARY_NESTED"}}}),null);
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,participant_count:"3"}}),null);
   assert.equal(projectPublicWinner({...safe,published_at_utc:"2026-99-99T00:00:00Z"}),null);
+  const inheritedState=Object.assign(Object.create({state:"PUBLISHED"}),safe);
+  delete inheritedState.state;
+  assert.equal(projectPublicWinner(inheritedState),null);
+  const hostileRecord={...safe};
+  Object.defineProperty(hostileRecord,"message",{get(){throw new Error("must not execute");}});
+  assert.equal(projectPublicWinner(hostileRecord),null);
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,member_name:"CANARY_NAME"}}),null);
   const projected=projectPublicWinner(safe);
   assert.equal(projected.public_result_id,safe.public_result_id);
