@@ -292,7 +292,7 @@ The contract adds coverage for out-of-order leave/rejoin in both directions, sam
 
 ## 5G. Characterization tests against the actual candidate Code.gs snapshot
 
-A complete candidate Code.gs snapshot is pinned in `tests/telegram-webhook/fixtures/candidate-handler-callsite-snapshot.gs` with SHA-256 `c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba`. CI extracts and executes the actual function bodies in a Node VM with mocked Google Apps Script and Telegram dependencies; the fixture is not deployable code and is not the live deployment.
+A text-normalized candidate Code.gs snapshot derived from Library source SHA-256 `c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba` is stored in `tests/telegram-webhook/fixtures/candidate-handler-callsite-snapshot.gs`. The fixture's own SHA-256 is `70a2fb84ecef7e01eb86dcd95f1481ca3857e7953c6fbae2362b3314dcb64441`. The two hashes are intentionally distinct: the file was reconstructed through text extraction, which may normalize bytes/newlines; byte-for-byte identity is not claimed. CI extracts and executes function bodies in a Node VM with mocked Google Apps Script and Telegram dependencies; the fixture is not deployable code and is not the live deployment.
 
 The seven characterization checks cover:
 - `processTelegramUpdateCore_` chat_member branch passes only three arguments to `updateVipJoinStatus_`; neither enclosing `update_id` nor Telegram `chat_member.date` reaches the status handler.

@@ -8,9 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const source = fs.readFileSync(path.join(here, 'fixtures/candidate-handler-callsite-snapshot.gs'), 'utf8');
-const EXPECTED_SHA256 = 'c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba';
+const EXPECTED_SHA256 = '70a2fb84ecef7e01eb86dcd95f1481ca3857e7953c6fbae2362b3314dcb64441';
 const actualSha256 = crypto.createHash('sha256').update(source).digest('hex');
-assert.equal(actualSha256, EXPECTED_SHA256, 'candidate Code.gs fixture digest changed; re-audit before updating pin');
+assert.equal(actualSha256, EXPECTED_SHA256, 'normalized fixture digest changed; re-extract and re-audit before updating pin');
 
 function extractFunction(name, nextName) {
   const start = source.indexOf('function ' + name + '(');
