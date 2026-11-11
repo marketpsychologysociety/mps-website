@@ -33,7 +33,10 @@ export function canonicalJson(value, stack = new Set()) {
       const parts = [];
       for (let i = 0; i < value.length; i++) {
         if (!Object.hasOwn(value, i)) throw new TypeError("SPARSE_ARRAY");
-        parts.push(canonicalJson(value[i], stack));
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(i));
+        if (!descriptor || !Object.hasOwn(descriptor, "value")) throw new TypeError("ACCESSOR_PROPERTY");
+        if (!descriptor.enumerable) throw new TypeError("NON_ENUMERABLE_PROPERTY");
+        parts.push(canonicalJson(descriptor.value, stack));
       }
       if (Reflect.ownKeys(value).some(key => key !== "length" && !(typeof key === "string" && /^(0|[1-9][0-9]*)$/.test(key) && Number(key) < value.length))) {
         throw new TypeError("ARRAY_EXTRA_PROPERTY");
@@ -43,10 +46,13 @@ export function canonicalJson(value, stack = new Set()) {
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) throw new TypeError("NON_PLAIN_OBJECT");
     if (Object.getOwnPropertySymbols(value).length) throw new TypeError("SYMBOL_KEY");
+    const ownKeys = Reflect.ownKeys(value);
     const keys = Object.keys(value).sort();
+    if (ownKeys.length !== keys.length) throw new TypeError("NON_ENUMERABLE_PROPERTY");
     const parts = keys.map(key => {
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (!descriptor || !Object.hasOwn(descriptor, "value")) throw new TypeError("ACCESSOR_PROPERTY");
+      if (!descriptor.enumerable) throw new TypeError("NON_ENUMERABLE_PROPERTY");
       return JSON.stringify(key) + ":" + canonicalJson(descriptor.value, stack);
     });
     return "{" + parts.join(",") + "}";
