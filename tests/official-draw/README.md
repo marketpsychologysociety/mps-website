@@ -183,3 +183,12 @@ No provider has been selected or connected. P1.5 remains an in-memory simulator 
 ## P1.7 provider candidate evaluation (desk review only)
 
 See `docs/MPS-EXTERNAL-EVIDENCE-PROVIDER-EVALUATION.md` for a documented comparison of GCS, S3 and Azure Blob Storage, including native conditional-create semantics, generation/version pinning, WORM controls, audit limitations, a synthetic PoC test matrix and explicit non-actions. GCS is only a conditional first PoC candidate; S3 is the fallback comparator. No provider is selected or provisioned. No cloud resources, accounts, credentials, retention locks or production connections were created.
+
+## P1.9 — offline GCS PoC evidence-bundle verifier (test only)
+
+Run:
+`node --test tests/official-draw/gcs-poc-evidence-verifier.test.mjs`
+
+The offline verifier checks a strict normalized evidence-bundle schema, distinct principal subjects and administrative boundaries, decimal-string generation/metageneration identifiers, exact expected sequence coverage, canonical payload SHA-256, chained receipt hashes, complete declared audit coverage, writer create evidence, independent verifier read evidence, writer delete-denial evidence, and storage-admin policy-change evidence. The tests use synthetic fixture records only.
+
+**Critical evidence boundary:** this is a local/offline validator for an exported and normalized bundle. It does not call Google Cloud, authenticate Cloud Audit Logs, prove the export pipeline is complete, inspect live IAM, prove retention, or establish actual GCS behavior. The normalization/export adapter and raw source evidence require separate independent review. A passing fixture test is not a GCS PoC PASS and must never be presented as one. No GCP project, bucket, identity, credential, billing, audit sink, or production connection is created.
