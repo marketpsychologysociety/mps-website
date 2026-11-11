@@ -1788,7 +1788,7 @@ function inspectMpsVipTransitionStorageSchemas_(ss,store) {
     if(last>1){
       const keys=sh.getRange(2,headers.length+1,last-1,1).getDisplayValues();
       for(let i=0;i<keys.length;i++){
-        const key=String(keys[i][0]==null?'':keys[i][0]).trim();
+        const key=String(keys[i][0]==null?'':keys[i][0]);
         if(!key)continue;
         if(!/^[A-Za-z0-9:_-]{1,160}$/.test(key)||seen[key]){
           checks.push({name:name,ok:false,state:'EFFECT_KEY_DATA_INVALID'});return;
