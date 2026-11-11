@@ -221,6 +221,12 @@ Run: `node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs`
 
 **Clean-checkout CI evidence:** GitHub Actions workflow #305 (run ID `42947053810`) on commit `6ca41acd5e29dbadb4b46a47c68514d3d31fa714` completed **SUCCESS**. The trust-registry suite reported **14 PASS, 0 FAIL, 0 SKIP**, including both child-process crash-recovery cases. The full workflow also passed the other configured synthetic suites and Chromium browser checks. This is process-crash simulation only; it does not establish power-loss, storage-device, or multi-host guarantees.
 
+## P1.14 — ownerless registry-lock recovery (synthetic only)
+
+If a process terminates after creating `reviewer-trust.lock` but before writing `owner.json`, the lock has no verifiable PID/token owner. The registry now fails immediately with `LOCK_RECOVERY_REQUIRED` and deliberately does not delete or steal that ambiguous lock. An operator must reconcile it out of band after proving no writer is active. A regression test asserts fail-closed behavior and confirms the lock directory remains untouched.
+
+The expanded trust-registry suite now contains 15 test cases. Clean-checkout CI for P1.14 is pending until the workflow triggered by this change completes. This is not multi-host or power-loss protection.
+
 ## P1.12 — durable reviewer trust registry and single-use nonce (synthetic only)
 
 Run:
