@@ -20,3 +20,7 @@ node --test tests/telegram-webhook/*.test.mjs
 - The adapter must not be enabled against production data or wired into the production webhook without separate approval.
 - No exactly-once guarantee is claimed. Ambiguous Telegram side effects require reconciliation or REVIEW.
 - Passing these tests is not proof of deployed Apps Script quotas, persistence, concurrency, Telegram API behavior, or real-device behavior.
+
+- `fixtures/candidate-handler-callsite-snapshot.gs` — exact extracted handler call sites from a separately reviewed candidate Code.gs snapshot, pinned by source SHA-256 and line references; this is not deployable backend code.
+- `candidate-handler-callsite-characterization.test.mjs` — runs the pinned source functions in a Node VM with mocked dependencies and records the current missing `update_id`/Telegram event-time propagation across the `chat_member` and all three join-request status paths. Passing reproduces the known gap; it does not mean the gap is acceptable or fixed.
+- The candidate handler fixture is a snapshot, not the live Library file. Refresh and re-audit its provenance whenever candidate Code.gs changes.

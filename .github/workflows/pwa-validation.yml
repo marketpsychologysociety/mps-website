@@ -81,6 +81,8 @@ jobs:
         run: node --test tests/telegram-webhook/durable-effect-outbox.test.mjs
       - name: Run Telegram handler reconciliation contract tests (synthetic only)
         run: node --test tests/telegram-webhook/handler-reconciliation.test.mjs
+      - name: Run candidate Code.gs handler call-site characterization (pinned snapshot only)
+        run: node --test tests/telegram-webhook/candidate-handler-callsite-characterization.test.mjs
       - name: Run append-only Telegram effect-key migration contract tests (synthetic only)
         run: node --test tests/telegram-webhook/effect-ledger-migration.test.mjs
       - name: Run isolated Apps Script effect ledger adapter tests (mocked services only)
