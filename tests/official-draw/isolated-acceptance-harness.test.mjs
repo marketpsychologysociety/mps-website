@@ -14,6 +14,18 @@ test("canonical JSON is key-order invariant and rejects non-finite numbers", () 
   assert.throws(() => canonicalJson([,1]), /SPARSE_ARRAY/);
   const cyclic={}; cyclic.self=cyclic;
   assert.throws(() => canonicalJson(cyclic), /CYCLIC_VALUE/);
+  const hiddenObjectKey={visible:1};
+  Object.defineProperty(hiddenObjectKey,"hidden",{value:"not-hashed",enumerable:false});
+  assert.throws(() => canonicalJson(hiddenObjectKey), /NON_ENUMERABLE_PROPERTY/);
+  const accessorObject={};
+  Object.defineProperty(accessorObject,"secret",{enumerable:true,get(){throw new Error("must not execute");}});
+  assert.throws(() => canonicalJson(accessorObject), /ACCESSOR_PROPERTY/);
+  const accessorArray=[1];
+  Object.defineProperty(accessorArray,"0",{enumerable:true,get(){throw new Error("must not execute");}});
+  assert.throws(() => canonicalJson(accessorArray), /ACCESSOR_PROPERTY/);
+  const hiddenArray=[1];
+  Object.defineProperty(hiddenArray,"0",{value:1,enumerable:false});
+  assert.throws(() => canonicalJson(hiddenArray), /NON_ENUMERABLE_PROPERTY/);
 });
 
 test("strict create-event contract rejects identity, role, participant and unknown fields", () => {
