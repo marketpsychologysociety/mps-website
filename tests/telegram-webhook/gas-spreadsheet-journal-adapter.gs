@@ -201,7 +201,7 @@ function createMpsTelegramGasJournal_(config) {
       record.claimToken = '';
       if (state === 'DONE') {
         record.completedAt = now;
-        record.effectKeys = normalizeEffects_(effectKeys || []);
+        record.effectKeys = normalizeEffects_(record.effectKeys.concat(effectKeys || []));
         record.lastErrorCode = '';
       } else {
         record.lastErrorCode = sanitizeCode_(errorCode);
