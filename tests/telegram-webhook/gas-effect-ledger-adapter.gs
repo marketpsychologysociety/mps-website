@@ -76,6 +76,7 @@ function createMpsGasEffectLedger_(config) {
       scopeActive_=true;
       var active=true;
       var scoped=Object.freeze({
+        assertActive:function(){if(!active)throw new Error('EFFECT_SCOPE_CLOSED');return true;},
         migrate:function(kind){if(!active)throw new Error('EFFECT_SCOPE_CLOSED');return migrateLocked_(kind);},
         appendOnce:function(kind,effectKey,rowValues){if(!active)throw new Error('EFFECT_SCOPE_CLOSED');return appendOnceLocked_(kind,effectKey,rowValues);}
       });
