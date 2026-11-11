@@ -73,9 +73,11 @@ export function verifyGcsEvidenceProvenance(bundle, attestation, trust, options 
     errors.push('REVIEWER_IDENTITY_MISMATCH');
   }
   if (trust.revoked) errors.push('TRUST_KEY_REVOKED');
+  // Key validity is evaluated at signature issuance time. Routine expiry or rotation
+  // must not invalidate historical evidence signed while the key was valid.
+  // Effective revocation is resolved by the durable registry before this call.
   if (!isoTime(trust.notBefore) || !isoTime(trust.notAfter) ||
-      issued < Date.parse(trust.notBefore) || issued > Date.parse(trust.notAfter) ||
-      now < Date.parse(trust.notBefore) || now > Date.parse(trust.notAfter)) errors.push('TRUST_KEY_OUTSIDE_VALIDITY');
+      issued < Date.parse(trust.notBefore) || issued > Date.parse(trust.notAfter)) errors.push('TRUST_KEY_OUTSIDE_VALIDITY');
   if (!isoTime(p.issuedAt) || !isoTime(p.expiresAt) || issued > now || expires <= now ||
       expires <= issued || expires - issued > 24 * 60 * 60 * 1000) errors.push('ATTESTATION_TIME_INVALID');
   if (!nonEmpty(p.nonce) || p.nonce !== options.expectedNonce) errors.push('NONCE_MISMATCH');
