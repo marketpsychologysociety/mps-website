@@ -1603,7 +1603,8 @@ function sendVipInvite_(memberId) {
       const check=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChatMember',{method:'post',payload:{chat_id:group,user_id:String(v[1])},muteHttpExceptions:true});
       const data=parseTelegramResponse_(check),status=data.ok&&data.result?String(data.result.status||''):'';membershipVerified=!!data.ok;
       if(status==='member'||status==='administrator'||status==='creator'||(status==='restricted'&&data.result.is_member===true)){
-        const lk=LockService.getScriptLock();lk.waitLock(8000);try{const fresh=findTelegramAccessByMemberId_(getTelegramAccessSheet_(),memberId);if(fresh){getTelegramAccessSheet_().getRange(fresh,7).setValue('Aktif');getTelegramAccessSheet_().getRange(fresh,10).setValue(new Date());}const db=getMemberSheet_(),mr=findMemberById_(db,memberId);if(mr){db.getRange(mr,28,1,3).setValues([[new Date(),String(v[1]),'Aktif']]);}}finally{lk.releaseLock();}
+        // getChatMember is an observation, not a status-change event.
+        // The authoritative chat_member update owns both spreadsheet status writes.
         return {ok:true,alreadyJoined:true};
       }
       if(status==='kicked')return {ok:false,error:'Akun Telegram ini sedang diblokir dari grup VIP. Admin harus meninjau blokir secara manual.'};
