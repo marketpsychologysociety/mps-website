@@ -111,6 +111,17 @@ test('same update ID with different payload is quarantined', async () => {
   assert.equal((await store.get('101')).lastErrorCode, 'PAYLOAD_HASH_MISMATCH');
 });
 
+test('payload collision after DONE is quarantined without stale completion metadata', async () => {
+  const store = new SharedMemoryJournalStore();
+  const journal = new DurableUpdateJournal(store);
+  const claim = await journal.claim(update(), 1000);
+  await journal.finish(101, claim.row.claimToken, 1100);
+  const collision = await journal.claim({ update_id: 101, message: { text: 'different completed payload' } }, 1200);
+  assert.equal(collision.outcome, 'MANUAL_REVIEW');
+  assert.equal((await store.get('101')).completedAt, null);
+  assert.equal((await journal.claim(update(), 1300)).outcome, 'MANUAL_REVIEW');
+});
+
 test('stale worker cannot finish a lease reclaimed by a newer worker', async () => {
   const store = new SharedMemoryJournalStore();
   const firstJournal = new DurableUpdateJournal(store, { leaseMs: 100, tokenFactory: () => 'worker-A' });
