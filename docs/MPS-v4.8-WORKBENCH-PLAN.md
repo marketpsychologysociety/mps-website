@@ -815,3 +815,18 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 **Verification status:** clean-checkout GitHub Actions workflow #315 (run ID `42948585112`) completed **SUCCESS** on commit `6eeeb39657db5a2219656c574aca2f48a1b92553`. The trust-registry suite, including the bounded ownerless-lock regression and both nonce crash-recovery cases, completed successfully; all other configured synthetic suites and Chromium browser checks also passed. This is CI evidence, not a separate local run.
 
 **Scope limits:** synthetic local filesystem only. This narrows a process-lock recovery failure mode but does not provide multi-host locking, power-loss guarantees, transactional durability, or production-grade storage. No production system, GCP resource, credential, identity provider, member data or deployment is touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.15 — independent backup and recovery verification (synthetic only)
+
+- [x] Add read-only journal verification for backup creation; reject incomplete trailing data without truncating source evidence.
+- [x] Create unique staging backup with create-only files, SHA-256 manifest, fsync, and atomic directory publication.
+- [x] Verify exact manifest schema, byte count, journal hash chain, and checkpoint consistency.
+- [x] Reject stale backups and equal-sequence checkpoint conflicts against the supplied current checkpoint.
+- [x] Restore only to a new path; refuse overwrite and verify exact bytes/checkpoint after restore.
+- [x] Preserve interrupted staging/restore artifacts for manual reconciliation; never auto-delete ambiguous evidence.
+- [x] Add ten synthetic fault/tamper/staleness tests and a clean-checkout CI step.
+- [ ] Provision and test a separately administered off-host backup destination only after explicit authorization.
+- [ ] Independently authenticate backup provenance, access controls, retention, encryption/key recovery, and restore drills in an authorized isolated infrastructure PoC.
+
+**Evidence:** `tests/official-draw/synthetic-backup-recovery.mjs`, `tests/official-draw/synthetic-backup-recovery.test.mjs`, `docs/MPS-INDEPENDENT-BACKUP-RECOVERY-VERIFICATION.md`. The current harness is local filesystem only; a manifest hash is not an external trust anchor, and a syntactically valid current checkpoint is not proof of independent authority. No cloud resources, credentials, member data, production integration, or deployment were created or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
