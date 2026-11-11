@@ -61,7 +61,7 @@ export function validateCreateEvent(input) {
   const allowed = new Set(["title_public", "rules_version", "eligibility_policy_version"]);
   if (!input || typeof input !== "object" || Array.isArray(input)) return { ok:false, code:"INVALID_BODY" };
   if (Object.getPrototypeOf(input) !== Object.prototype && Object.getPrototypeOf(input) !== null) return { ok:false, code:"INVALID_BODY" };
-  if (Object.getOwnPropertySymbols(input).length || Object.keys(input).some(key => !allowed.has(key))) return { ok:false, code:"UNKNOWN_FIELD" };
+  if (Reflect.ownKeys(input).some(key => typeof key !== "string" || !allowed.has(key))) return { ok:false, code:"UNKNOWN_FIELD" };
   for (const key of Object.keys(input)) {
     const descriptor = Object.getOwnPropertyDescriptor(input, key);
     if (!descriptor || !Object.hasOwn(descriptor, "value")) return { ok:false, code:"INVALID_BODY" };
@@ -81,7 +81,7 @@ export function authorize(context) {
   const prototype = Object.getPrototypeOf(context);
   if (prototype !== Object.prototype && prototype !== null) return { allowed:false, code:"FORBIDDEN" };
   const allowedKeys = new Set(["role","action","subject","ownerSubject","reviewerSubject"]);
-  if (Object.getOwnPropertySymbols(context).length || Object.keys(context).some(key => !allowedKeys.has(key))) return { allowed:false, code:"FORBIDDEN" };
+  if (Reflect.ownKeys(context).some(key => typeof key !== "string" || !allowedKeys.has(key))) return { allowed:false, code:"FORBIDDEN" };
   const values = {};
   for (const key of Object.keys(context)) {
     const descriptor = Object.getOwnPropertyDescriptor(context,key);
@@ -114,7 +114,7 @@ export function projectPublicWinner(record) {
   if (!record || typeof record !== "object" || Array.isArray(record)) return null;
   const recordPrototype = Object.getPrototypeOf(record);
   if (recordPrototype !== Object.prototype && recordPrototype !== null) return null;
-  if (Object.getOwnPropertySymbols(record).length) return null;
+  if (Reflect.ownKeys(record).some(key => typeof key !== "string")) return null;
   for (const key of Object.keys(record)) {
     const descriptor = Object.getOwnPropertyDescriptor(record,key);
     if (!descriptor || !Object.hasOwn(descriptor,"value")) return null;
@@ -124,14 +124,14 @@ export function projectPublicWinner(record) {
   if (!proof || typeof proof !== "object" || Array.isArray(proof)) return null;
   const proofPrototype = Object.getPrototypeOf(proof);
   if (proofPrototype !== Object.prototype && proofPrototype !== null) return null;
-  if (Object.getOwnPropertySymbols(proof).length) return null;
+  if (Reflect.ownKeys(proof).some(key => typeof key !== "string")) return null;
   for (const key of Object.keys(proof)) {
     const descriptor = Object.getOwnPropertyDescriptor(proof,key);
     if (!descriptor || !Object.hasOwn(descriptor,"value")) return null;
   }
   const inputKeys = [...PUBLIC_RESULT_KEYS, "state"].sort();
-  if (Object.keys(record).sort().join("|") !== inputKeys.join("|") ||
-      Object.keys(proof).sort().join("|") !== PUBLIC_PROOF_KEYS.join("|")) return null;
+  if (Reflect.ownKeys(record).sort().join("|") !== inputKeys.join("|") ||
+      Reflect.ownKeys(proof).sort().join("|") !== PUBLIC_PROOF_KEYS.join("|")) return null;
   const boundedString = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
   if (!boundedString(record.event_title,160) || !boundedString(record.message,240) ||
       !boundedString(record.prize_public_description,240) ||
