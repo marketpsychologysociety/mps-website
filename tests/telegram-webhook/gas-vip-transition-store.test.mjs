@@ -21,17 +21,31 @@ function harness({missingCursor=false,failFlushAt=0,failWriteAt=0}={}) {
  function context(){
   const services={
    SpreadsheetApp:{
-    openById(id){if(id!=='isolated-vip-ledger')throw Error('WRONG_SPREADSHEET');return{getSheetByName(name){const data=sheets.get(name);if(!data)return null;return{
-     getLastRow(){return data.length;},getLastColumn(){return Math.max(0,...data.map(x=>x.length));},
-     getRange(row,col,nr=1,nc=1){return{
-      getValues(){return Array.from({length:nr},(_,r)=>Array.from({length:nc},(_,c)=>data[row-1+r]?.[col-1+c]??''));},
-      getDisplayValues(){return this.getValues().map(line=>line.map(v=>v==null?'':String(v)));},
-      setValues(values){writeCount++;if(failWriteAt===writeCount)throw Error('SIMULATED_WRITE_BEFORE_PERSIST');values.forEach((line,r)=>{const target=row-1+r;while(data.length<=target)data.push([]);while(data[target].length<col-1)data[target].push('');line.forEach((v,c)=>data[target][col-1+c]=v);});return this;}
-     };}
-    };}}
-    ,flush(){flushCount++;if(failFlushAt===flushCount)throw Error('SIMULATED_FLUSH_AFTER_PERSIST');}
+    openById(id){
+     if(id!=='isolated-vip-ledger')throw Error('WRONG_SPREADSHEET');
+     return {getSheetByName(name){
+      const data=sheets.get(name);if(!data)return null;
+      return {
+       getLastRow(){return data.length;},
+       getLastColumn(){return Math.max(0,...data.map(x=>x.length));},
+       getRange(row,col,nr=1,nc=1){return {
+        getValues(){return Array.from({length:nr},(_,r)=>Array.from({length:nc},(_,c)=>data[row-1+r]?.[col-1+c]??''));},
+        getDisplayValues(){return this.getValues().map(line=>line.map(v=>v==null?'':String(v)));},
+        setValues(values){
+         writeCount++;if(failWriteAt===writeCount)throw Error('SIMULATED_WRITE_BEFORE_PERSIST');
+         values.forEach((line,r)=>{const target=row-1+r;while(data.length<=target)data.push([]);while(data[target].length<col-1)data[target].push('');line.forEach((v,c)=>data[target][col-1+c]=v);});
+         return this;
+        }
+       };}
+      };
+     }};
+    },
+    flush(){flushCount++;if(failFlushAt===flushCount)throw Error('SIMULATED_FLUSH_AFTER_PERSIST');}
    },
-   LockService:{getScriptLock(){return{waitLock(){if(held)throw Error('LOCK_REENTRANT');held=true;acquired++;},releaseLock(){if(!held)throw Error('LOCK_NOT_HELD');held=false;released++;}};}}
+   LockService:{getScriptLock(){return{
+    waitLock(){if(held)throw Error('LOCK_REENTRANT');held=true;acquired++;},
+    releaseLock(){if(!held)throw Error('LOCK_NOT_HELD');held=false;released++;}
+   };}}
   };
   const c={...services};vm.runInNewContext(effectSource+'\n'+storeSource+'\nthis.createLedger=createMpsGasEffectLedger_;this.createStore=createMpsGasVipTransitionStore_;',c,{timeout:1000});return c;
  }
