@@ -6,10 +6,10 @@
 
 ## Completed in this workstream
 
-- PR #12 remains open and Draft. Latest recorded PR CI run #626 completed successfully: 36/36 steps, including PWA/privacy validation, Telegram journal contract tests, mocked Apps Script spreadsheet-adapter tests, and Chromium browser checks.
+- PR #12 remains open and Draft. Latest recorded PR CI run #634 completed successfully: 36/36 steps, including PWA/privacy validation, Telegram journal contract tests, mocked Apps Script spreadsheet-adapter tests, and Chromium browser checks.
 - Telegram update journal contract now covers canonical payload hashing, duplicate deliveries, cache eviction independence, retry/review states, expired leases, fencing tokens, payload-ID collisions, reconciliation, and fail-closed behavior.
 - A separate Apps Script spreadsheet adapter candidate exists under tests/telegram-webhook. It requires an explicit spreadsheet ID and exact pre-provisioned tab schema; it is not wired into doPost/processTelegramUpdate_ and does not read Script Properties.
-- The public-center loader no longer injects the Apps Script response as executable JavaScript. It fetches with CORS, omits credentials, uses no-store caching and a timeout, validates a strict envelope, and parses with JSON.parse. Browser tests cover a mocked CORS response, malformed executable payload rejection, and inert HTML-like announcement content.
+- The public Market Pulse page has a browser regression check for Member Only labeling, static-preview disclosure, demo ticker, and absence of inline or external market-data datasets.\n- The public-center loader no longer injects the Apps Script response as executable JavaScript. It fetches with CORS, omits credentials, uses no-store caching and a timeout, validates a strict envelope, and parses with JSON.parse. Browser tests cover a mocked CORS response, malformed executable payload rejection, and inert HTML-like announcement content.
 - Public Center remains disabled by configuration. The live Apps Script CORS/redirect behavior has not been tested, so the flag must stay disabled.
 - The latest isolated Code.gs candidate was source-reviewed for masked public ticker IDs, unique-suffix disclosure, exclusion of legacy name-bearing events, masked Admin ticker projection, and member/VIP Market Pulse authorization. A local static/mocked audit passed, including 250 populations of 250 generated IDs. This is not an Apps Script runtime test and the candidate is not deployed.
 
@@ -40,5 +40,5 @@
 ## Evidence
 
 - PR #12: https://github.com/marketpsychologysociety/mps-website/pull/12
-- Latest successful CI run #626: https://github.com/marketpsychologysociety/mps-website/actions/runs/43015227051
+- Latest successful CI run #626: https://github.com/marketpsychologysociety/mps-website/actions/runs/43015586812
 - Production main remains at baseline commit 9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff.
