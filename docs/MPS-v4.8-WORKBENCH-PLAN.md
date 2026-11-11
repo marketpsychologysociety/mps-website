@@ -727,3 +727,8 @@ The first attempt on commit `70457412e1a05d0888bb9f7bf64d0c326b1a230e` failed be
 - [ ] Obtain separate authorization and complete P1.8 prerequisites before provisioning any GCP resource.
 
 **Evidence:** tests/official-draw/gcs-raw-audit-normalizer.mjs, tests/official-draw/gcs-raw-audit-normalizer.test.mjs, docs/MPS-GCS-RAW-AUDIT-EVIDENCE-NORMALIZATION.md, and the workflow step. P1.10 is a structural/offline harness only. SHA-256 binds supplied bytes to the fixture manifest but does not authenticate Google as source or prove export completeness. Actual GCS PoC remains NOT STARTED. No project, bucket, billing, IAM, service account, audit sink, credential, retention lock, production data or deployment was created. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+### P1.10 category-handling refinement
+
+The raw-log normalizer now distinguishes operation categories: object create/read require Data Access, bucket IAM-policy changes require Admin Activity, and a denied object-delete attempt may be recorded in Data Access or Policy Denied. This avoids treating a denied attempt as guaranteed to appear in only one log category. The synthetic fixture and negative category-mismatch test were updated. Actual provider output still determines the final mapping.
