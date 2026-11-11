@@ -167,3 +167,12 @@ test('current completed event may safely retry post-lock follow-up, stale duplic
  assert.equal(h.process(input('LEFT','711',1760000001)),'LEFT');
  assert.equal(h.isCurrent(first,{memberId:'MPS-ABCDEF12'}),false);
 });
+
+test('completed event replay tolerates later member display-name or ticker-safety changes',()=>{
+ const h=harness();migrate(h);
+ const original=input('ACTIVE','720',1760000000);
+ assert.equal(h.process(original),'ACTIVE');
+ assert.equal(h.process({...original,memberName:'Updated Member Name',tickerAllowed:false}),'DUPLICATE');
+ assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
+ assert.equal(h.sheets.get('MPS Audit Logs').length,2);
+});
