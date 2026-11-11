@@ -119,6 +119,15 @@ test('serialized claims prevent a second delivery from acquiring an active lease
   assert.ok(h.lockAcquisitions >= 2);
 });
 
+test('payload hashing is stable across JSON object key order', () => {
+  const h = makeHarness();
+  const journal = h.create();
+  const first = { update_id: 7002, message: { chat: { id: 99, type: 'private' }, text: '/start' } };
+  const reordered = { message: { text: '/start', chat: { type: 'private', id: 99 } }, update_id: 7002 };
+  assert.equal(journal.claim(first, 1000).outcome, 'CLAIMED');
+  assert.equal(journal.claim(reordered, 1010).outcome, 'BUSY');
+});
+
 test('same update ID with a different payload is quarantined', () => {
   const h = makeHarness();
   const journal = h.create();
