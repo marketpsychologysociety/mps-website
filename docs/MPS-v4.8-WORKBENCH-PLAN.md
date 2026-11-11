@@ -671,3 +671,21 @@ Added a real child-process crash test for the narrow failure window where a writ
 - [ ] Run the synthetic provider PoC matrix in the isolated account and independently verify evidence.
 
 **Evidence:** `docs/MPS-EXTERNAL-EVIDENCE-PROVIDER-EVALUATION.md`. Desk evaluation complete; GCS is a conditional first PoC candidate, S3 fallback, Azure third candidate. Provider selection and provisioning NOT STARTED. No resources or credentials created. Official draw remains NO-GO; roulette remains SIMULATION ONLY.
+
+### P1.7 clean-checkout CI verification — 2026-11-11
+
+GitHub Actions workflow run #249 (`42941441923`) on workbench head `9a8e4af6ecb9a9905dfc22882f3e3a5549358ba9` completed with **SUCCESS**. The complete job passed PWA/privacy validation, synthetic schema compatibility, Official Draw security contract, durable journal fault-injection, synthetic external-anchor contract, persistent Draw API restart/reconciliation, read-only schema inspector and Chromium browser checks. This verifies the repository's committed synthetic/browser suites only; it does not verify GCS, production, Apps Script runtime, real identity separation or winner selection.
+
+## P1.8 — GCS-first isolated evidence-storage PoC plan
+
+- [x] Convert the provider-neutral architecture and P1.7 desk evaluation into a GCS-specific, testable isolated PoC plan.
+- [x] Define project/admin separation and distinct writer, verifier, storage admin, audit admin and recovery roles.
+- [x] Specify create-only uploads using `ifGenerationMatch=0`, exact-generation readback, metadata caveats and the delete/recreate edge case.
+- [x] Define Data Access audit-log requirements, independent log destination, retention guardrails and cost review.
+- [x] Define 20 synthetic actual-provider acceptance tests and fail-closed reconciliation outcomes.
+- [x] Explicitly prohibit provisioning, billing enablement, credentials, production integration and irreversible Bucket Lock in this phase.
+- [ ] Confirm project owner, independent admin boundary, region/data residency, approved cost ceiling, retention test period and named separate principals.
+- [ ] Obtain separate explicit authorization before provisioning any isolated GCP project/resource.
+- [ ] Execute GCS-01 through GCS-20 against the actual disposable GCS project and obtain independent reviewer evidence.
+
+**Evidence:** `docs/MPS-GCS-ISOLATED-POC-PLAN.md`. P1.8 is complete as an execution plan only. GCS provisioning and actual-provider tests are NOT STARTED. No cloud resources, billing configuration, identities, credentials, audit sink or production connection were created. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
