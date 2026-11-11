@@ -106,7 +106,7 @@ Do not switch the production webhook to this design as part of this work item.
 ## 7. Acceptance criteria
 
 - Cache eviction does not erase durable deduplication state.
-- Two concurrent deliveries of one update ID cannot both acquire a processing lease.\n- A stale worker cannot transition a row after another worker has reclaimed its expired lease.\n- A worker cannot complete, retry, or quarantine a claim after its lease expires, even if no replacement worker has claimed it yet.\n- Reuse of an update ID with a different payload digest is quarantined for manual review.\n- Numeric update IDs outside JavaScript's safe integer range are rejected; string IDs are validated without numeric coercion.
+- Two concurrent deliveries of one update ID cannot both acquire a processing lease.\n- A stale worker cannot transition a row after another worker has reclaimed its expired lease.\n- A worker cannot complete, retry, or quarantine a claim after its lease expires, even if no replacement worker has claimed it yet.\n- Reuse of an update ID with a different payload digest is quarantined for manual review.\n- Semantically identical JSON payloads with different object-key ordering produce the same digest.\n- Numeric update IDs outside JavaScript's safe integer range are rejected; string IDs are validated without numeric coercion.
 - A completed update is not reprocessed within the retention window.
 - A stale PROCESSING row is reconciled before any retryable external mutation.
 - Ambiguous side effects become REVIEW, not blind replay.
