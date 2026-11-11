@@ -39,6 +39,8 @@ jobs:
         run: node --test tests/official-draw/gcs-raw-audit-normalizer.test.mjs
       - name: Run offline GCS evidence provenance attestation tests
         run: node --test tests/official-draw/gcs-evidence-provenance-verifier.test.mjs
+      - name: Run durable reviewer trust registry and single-use nonce tests
+        run: node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs
       - name: Run persistent Draw API process-restart and reconciliation tests
         run: node --test tests/official-draw/persistent-api-integration.test.mjs
       - name: Run read-only schema inspector tests
