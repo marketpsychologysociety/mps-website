@@ -262,3 +262,8 @@ The offline evaluator classifies normalized evidence as HEALTHY, DEGRADED, or UN
 ## P1.18 — incident response and recovery runbook (design only)
 
 See `docs/MPS-INCIDENT-RESPONSE-AND-RECOVERY-RUNBOOK.md` for severity classification, first-response evidence preservation, eight incident playbooks, two-person recovery gates, safe stop conditions, closure criteria and privacy-safe communication templates. It is not activated operational procedure: actual MPS owners, contacts, response targets, approved RPO/RTO, evidence retention and tabletop validation remain pending. No live incident or production action was performed.
+
+
+## P1.19 — synthetic incident tabletop evaluator
+
+`tabletop-exercise.mjs` and `tabletop-exercise.test.mjs` validate fictional response decisions for all eight P1.18 incident scenarios. The evaluator is not an incident simulator or operational control: it performs no provider, notification, backup, key, identity, or production action. See `docs/MPS-P1.19-INCIDENT-TABLETOP-EXERCISE.md`. CI command: `node --test tests/official-draw/tabletop-exercise.test.mjs`.
