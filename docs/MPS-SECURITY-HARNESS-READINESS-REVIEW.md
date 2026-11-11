@@ -9,7 +9,7 @@
 
 The existing `tests/official-draw/security-contract.test.mjs` is an adapter-based integration-test scaffold. It is not a backend, a security simulator, or evidence that the official draw API is secure.
 
-The repository workbench still contains no official Draw API implementation or production-intended backend package. A deliberately narrow synthetic loopback sandbox has since been added at `tests/official-draw/local-sandbox-adapter.mjs`. It runs a real local HTTP server and exercises a small set of authorization and state guards, but uses in-memory fixtures and synthetic bearer tokens. It is not the eventual Draw API, does not implement OIDC, durable persistence, a tamper-evident journal, a beacon verifier, or winner selection.
+The repository workbench still contains no official Draw API implementation or production-intended backend package. A deliberately narrow synthetic loopback sandbox has since been added at `tests/official-draw/local-sandbox-adapter.mjs`. It runs a real local HTTP server and exercises a small set of authorization and state guards, plus anonymous public projection collection/detail routes backed by a synthetic private fixture and strict allowlist serializer. It uses in-memory fixtures and synthetic bearer tokens. It is not the eventual Draw API, does not implement OIDC, durable persistence, a tamper-evident journal, a beacon verifier, or winner selection.
 
 **Decision:** The sandbox is useful for negative contract checks only. Its green tests must not be interpreted as evidence that the eventual service or production environment is secure.
 
@@ -28,7 +28,7 @@ The scaffold currently:
 - skips backend integration cases when no adapter is supplied;
 - defines scenarios for actor spoofing, same-subject dual control, insufficient role, required/stale version checks, idempotency conflict, cross-owner read and execute attempts, public projection privacy, and publication of unverified results.
 
-The local adapter binds to `127.0.0.1:4178`, uses fixed synthetic tokens, and stores state only in memory. It now rejects execution by a non-owner operator and requires current `If-Match` versions for approval, execution, and publication. The privacy scenario explicitly reports **SKIP** when no published projection fixture exists; a null projection is not treated as a successful privacy test.
+The local adapter binds to `127.0.0.1:4178`, uses fixed synthetic tokens, and stores state only in memory. It now rejects execution by a non-owner operator and requires current `If-Match` versions for approval, execution, and publication. The privacy scenario now seeds a synthetic private record, serializes a public allowlist projection, and calls both anonymous collection/detail routes over loopback HTTP. It checks canaries for name, raw ID, phone, email, Telegram, MT5, deposit, proof document, PIN, token, and participant reference; it also checks exact response field allowlists and empty/unknown-result behavior.
 
 The README correctly states that SKIP is not PASS and that adapter source must be reviewed before execution.
 
@@ -89,7 +89,7 @@ Passing this suite alone is not a security certification and does not authorize 
 
 ## 6. Current status
 
-A local test run was performed against a reconstructed working copy of the fetched sandbox and harness source (not a clean repository checkout): **8 PASS, 1 SKIP, 0 FAIL**. The skipped case is public-projection privacy because no published projection fixture or public serialization route exists. The container could not resolve GitHub for a clean checkout, so this is not represented as an exact-checkout or CI run.
+Before the public-projection fixture was added, a local test run against a reconstructed working copy recorded **8 PASS, 1 SKIP, 0 FAIL**. The privacy SKIP was the known gap addressed by the latest workbench change. The new test suite has been wired into the branch's GitHub Actions workflow; its result must be read from the resulting workflow run before claiming the new test passes. No clean-checkout/CI result for the updated suite is claimed yet.
 
 | Area | Status |
 |---|---|
@@ -97,10 +97,10 @@ A local test run was performed against a reconstructed working copy of the fetch
 | API and data contract | Documented |
 | Adapter-based integration scaffold | Present |
 | Synthetic loopback sandbox adapter | Present; in-memory and test-only |
-| Narrow local sandbox contract run | 8 PASS, 1 SKIP on reconstructed working copy; not CI |
+| Earlier narrow sandbox contract run | 8 PASS, 1 SKIP on reconstructed working copy; superseded by privacy-fixture update |\n| Public projection fixture and serializer | Implemented in isolated sandbox; CI result pending |\n| Canary privacy test through public HTTP routes | Added; CI result pending |
 | Official Draw API implementation in inspected workbench | Not found |
 | OIDC / durable persistence / journal | Not implemented |
-| Public projection privacy test | SKIP until real fixture/path exists |
+| Public projection privacy test | Implemented in synthetic sandbox; production/cache/browser coverage still absent |
 | Cryptographic verifier integration | Not implemented |
 | Official winner draw | **BLOCKED** |
 | Frontend roulette | **SIMULATION ONLY** |
