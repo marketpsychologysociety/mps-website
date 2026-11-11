@@ -134,6 +134,10 @@ function createMpsTelegramGasJournal_(config) {
     try { validId = validateId_(record.updateId) === record.updateId; } catch (idErr) { validId = false; }
     var processingValid = record.state !== 'PROCESSING' ||
       (!!record.claimToken && record.leaseExpiresAt > record.lastAttemptAt);
+    var attemptsValid = isFinite(record.attemptCount) && Math.floor(record.attemptCount) === record.attemptCount &&
+      (record.state === 'RECEIVED' ? record.attemptCount >= 0 : record.attemptCount >= 1);
+    var lastAttemptValid = isFinite(record.lastAttemptAt) &&
+      (record.state === 'RECEIVED' ? record.lastAttemptAt >= 0 : record.lastAttemptAt > 0);
     var terminalValid = record.state === 'PROCESSING' ||
       (!record.claimToken && record.leaseExpiresAt === 0);
     var completionValid = record.state === 'DONE' ? record.completedAt > 0 : record.completedAt === 0;
@@ -141,10 +145,8 @@ function createMpsTelegramGasJournal_(config) {
     if (!validId || !/^[a-f0-9]{64}$/.test(record.payloadHash) ||
         !allowedStates[record.state] || !allowedUpdateTypes[record.updateType] ||
         !isFinite(record.firstSeenAt) || record.firstSeenAt <= 0 ||
-        !isFinite(record.lastAttemptAt) || record.lastAttemptAt <= 0 ||
-        !isFinite(record.leaseExpiresAt) || !isFinite(record.completedAt) ||
-        !isFinite(record.attemptCount) || Math.floor(record.attemptCount) !== record.attemptCount ||
-        record.attemptCount < 1 || !processingValid || !terminalValid || !completionValid || !errorValid) {
+        !lastAttemptValid || !isFinite(record.leaseExpiresAt) || !isFinite(record.completedAt) ||
+        !attemptsValid || !processingValid || !terminalValid || !completionValid || !errorValid) {
       throw new Error('JOURNAL_ROW_CORRUPT');
     }
     return record;
