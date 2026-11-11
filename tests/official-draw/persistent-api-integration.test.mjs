@@ -147,3 +147,34 @@ test('concurrent execute requests cannot create two transitions for one draw', a
   assert.equal(status.body.data.state, 'DRAWN_UNVERIFIED');
   assert.equal(status.body.data.version, 2);
 });
+
+
+test('crash after in-memory state mutation but before completion remains fail-closed after restart', async t => {
+  const directory = await fixture(t);
+  let child = startSandbox(directory);
+  await waitForHealth(child);
+  const seeded = await api('POST', '/__test/seed-draw', { body: {} });
+  assert.equal(seeded.status, 201);
+  const drawId = seeded.body.data.draw_id;
+  await stopSandbox(child);
+
+  child = startSandbox(directory, 'after_state_mutation');
+  await waitForHealth(child);
+  const crashExit = new Promise(resolve => child.once('exit', resolve));
+  await assert.rejects(api('POST', '/api/v1/draws/' + drawId + '/execute', {
+    body: {}, key: 'crash-after-mutation-001', version: 1
+  }));
+  assert.equal(await crashExit, 87);
+
+  child = startSandbox(directory);
+  await waitForHealth(child);
+  t.after(() => stopSandbox(child));
+  const status = await api('GET', '/api/v1/draws/' + drawId + '/status');
+  assert.equal(status.status, 200);
+  assert.equal(status.body.data.state, 'RECONCILIATION_REQUIRED');
+  const retry = await api('POST', '/api/v1/draws/' + drawId + '/execute', {
+    body: {}, key: 'crash-after-mutation-001', version: 2
+  });
+  assert.equal(retry.status, 409);
+  assert.equal(retry.body.error.code, 'RECONCILIATION_REQUIRED');
+});
