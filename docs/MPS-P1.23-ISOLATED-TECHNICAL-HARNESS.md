@@ -73,3 +73,10 @@ A further source review identified canonicalization and projection edge cases th
 - Regression cases were added for hidden object fields, object/array getters, non-enumerable array elements, hidden public fields and malformed proof types.
 
 These are source-level changes and regression assertions only. They must not be described as passing until the P1.23 test command has actually completed in CI or a local Node.js runtime. The synthetic scope and all operational NO-GO gates remain unchanged.
+
+
+## CI failure diagnosis and correction
+
+The first observed P1.23 CI execution on the hardened source completed the first five checks successfully, then reported **6 passed / 1 failed** in the seven-test suite. The failing assertion expected `INVALID_STATE` after a successful draw transition but reused `expectedVersion: 1`; the harness correctly rejected the stale version first with `VERSION_MISMATCH`. The test fixture has been corrected to use the current version (`expectedVersion: 2`) when specifically asserting the subsequent invalid-state condition. This is a test-fixture correction; the production model's version-before-state guard is unchanged.
+
+A new CI run is required to establish the corrected result. Until that run completes, P1.23 remains **not yet CI-passed**.
