@@ -12,7 +12,7 @@ Google's documented LogEntry envelope includes fields such as logName, resource,
 
 The module accepts a strict outer bundle:
 - schemaVersion: mps-gcs-raw-audit/v1.
-- source: project ID, bucket, UTC window bounds, explicit allowed project-level log names, pagination completion marker, final token state, and an external export reference.
+- source: project ID, bucket, UTC window bounds, explicit allowed project-level data_access, activity, and policy log names, pagination completion marker, final token state, and an external export reference.
 - expectedPrincipals: expected writer, verifier, and storage-admin principal emails from the independently maintained PoC roster.
 - expectedObjects: exact synthetic evidence object names expected in the run.
 - pages: ordered page manifest with page index, request/response page-token hashes, entry count, and digest of ordered raw-entry digests.
@@ -27,7 +27,7 @@ The normalizer fails closed on:
 - wrong gcs_bucket project/bucket labels, wrong Cloud Storage service or AuditLog type, unsupported audit method, missing timestamps/insert ID/principal, duplicate insert IDs, or event outside the requested time window;
 - principal mismatch against the expected role roster, object resource outside the expected bucket/object set, successful rather than denied writer delete attempt, or missing successful create/read evidence for each expected object.
 
-It recognizes a deliberately narrow method-name mapping for object create/insert, get/download, delete, and bucket IAM-policy/update events. Real GCS PoC output must first be inspected to confirm the actual method names and resource-name forms for the exact API calls used. Unrecognized variants are rejected rather than guessed. authorizationInfo is treated as optional evidence; denial is recognized from status code 7 or an explicit granted:false. A real-provider test must observe the actual denial record rather than assume every denied attempt is logged in a particular category.
+It recognizes a deliberately narrow method-name mapping for object create/insert, get/download, delete, and bucket IAM-policy/update events. Create/read must map to Data Access, bucket policy changes to Admin Activity, and a denied object delete may be found in Data Access or Policy Denied logs. The exact category and method/resource fields must be observed in the actual PoC; the normalizer does not assume every denied attempt appears in one category. Unrecognized variants are rejected rather than guessed. authorizationInfo is optional evidence; denial is recognized from status code 7 or an explicit granted:false.
 
 The normalizer extracts only the fields needed by the next verifier. It does not copy request bodies, custom audit metadata, caller IPs, user agents, or arbitrary payload fields into normalized output.
 
