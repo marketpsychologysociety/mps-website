@@ -25,7 +25,9 @@ function harness({result='ACTIVE'}={}) {
  return{handler,calls,after,held:()=>held};
 }
 const update=(status='member',date=1760000000)=>({update_id:123456789,chat_member:{
- chat:{id:'-1001234567890'},date,new_chat_member:{user:{id:987654321},status,is_member:status==='member'}
+ chat:{id:'-1001234567890'},date,
+ old_chat_member:{user:{id:987654321},status:status==='left'?'member':'left',is_member:status==='left'},
+ new_chat_member:{user:{id:987654321},status,is_member:status==='member'}
 }});
 
 test('preserves Telegram update_id, original event date, user and payload hash',()=>{
@@ -36,6 +38,7 @@ test('preserves Telegram update_id, original event date, user and payload hash',
  assert.equal(h.calls[0].telegramUserId,'987654321');
  assert.equal(h.calls[0].payloadSha256,'f'.repeat(64));
  assert.equal(h.calls[0].sourceType,'CHAT_MEMBER');
+ assert.equal(h.calls[0].wasMember,false);
 });
 test('resolver runs under orchestrator scope and external follow-up runs after lock release',()=>{
  const h=harness();h.handler.process(update());
@@ -58,5 +61,14 @@ test('membership states classify active, leave and ignored transitions',()=>{
  const active=harness();active.handler.process(update('member'));
  assert.equal(active.calls[0].targetState,'');
  const left=harness({result:'LEFT'});assert.equal(left.handler.process(update('left')),'LEFT');
+ assert.equal(left.calls[0].wasMember,true);
  const unknown=harness();assert.equal(unknown.handler.process(update('kicked-but-not-valid')),'IGNORED');
+});
+
+test('member-to-administrator changes do not generate duplicate membership transitions',()=>{
+ const h=harness();
+ const event=update('administrator');
+ event.chat_member.old_chat_member={user:{id:987654321},status:'member',is_member:true};
+ assert.equal(h.handler.process(event),'IGNORED');
+ assert.equal(h.calls.length,0);
 });
