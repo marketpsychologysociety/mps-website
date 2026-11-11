@@ -14,7 +14,7 @@ function createMpsGasVipChatMemberHandler_(config) {
     if(!update||typeof update!=='object'||!update.chat_member)return 'IGNORED';
     var event=update.chat_member,chat=event.chat||{},user=event.new_chat_member&&event.new_chat_member.user;
     var chatId=String(chat.id==null?'':chat.id),userId=String(user&&user.id!=null?user.id:'');
-    if(!chatId||!userId||!/^\\d{1,20}$/.test(userId))throw new Error('VIP_CHAT_MEMBER_ID_INVALID');
+    if(!chatId||!userId||!/^\d{1,20}$/.test(userId))throw new Error('VIP_CHAT_MEMBER_ID_INVALID');
     if(config.vipChatId&&chatId!==String(config.vipChatId))return 'IGNORED';
     var updateId=update.update_id;
     if(updateId==null)throw new Error('VIP_CHAT_MEMBER_UPDATE_ID_REQUIRED');
