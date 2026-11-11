@@ -642,3 +642,10 @@ Not completed: distributed locking, multi-host operation, transactional DB, exte
 ## P1.4 synthetic journal-lock crash recovery test — 2026-11-11
 
 Added a real child-process crash test for the narrow failure window where a writer dies after writing an INTENT record but before fsync/acknowledgement, while still holding the journal lock. Recovery must verify the dead same-host PID, atomically quarantine the stale lock, replay the complete record if present, and reject a duplicate intent through the existing idempotency scope. The test is synthetic and runs only in a disposable local directory. It is evidence for this specific process-crash path, not power-loss guarantees, cross-host coordination, network filesystem semantics, or production security. GitHub Actions run #231 is the required clean-checkout verification for this addition; record its final outcome before marking the test complete.
+
+
+## P1.5 — external journal-anchor contract prototype (2026-11-11)
+
+**Implemented in isolated workbench:** a synthetic in-memory provider contract and five tests for ordered checkpoints, create-only semantics, chained receipts, idempotent retries, conflicts, missing predecessors, tamper detection, and strict field allowlists. CI runs this test suite from clean checkout.
+
+**Not implemented:** real external storage, independent security boundary, IAM, immutable retention, monitoring, backup/restore, cloud resources, or production integration. Provider choice and retention governance remain decisions for later approval. No external resources or credentials were created. Official draw remains NO-GO; roulette remains simulation only.
