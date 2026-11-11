@@ -219,6 +219,8 @@ The P1.12 trust-registry test suite now includes two child-process fault-injecti
 
 Run: `node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs`
 
+**Clean-checkout CI evidence:** GitHub Actions workflow #305 (run ID `42947053810`) on commit `6ca41acd5e29dbadb4b46a47c68514d3d31fa714` completed **SUCCESS**. The trust-registry suite reported **14 PASS, 0 FAIL, 0 SKIP**, including both child-process crash-recovery cases. The full workflow also passed the other configured synthetic suites and Chromium browser checks. This is process-crash simulation only; it does not establish power-loss, storage-device, or multi-host guarantees.
+
 ## P1.12 — durable reviewer trust registry and single-use nonce (synthetic only)
 
 Run:
