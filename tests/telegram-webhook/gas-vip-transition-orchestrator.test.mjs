@@ -7,7 +7,7 @@ import vm from 'node:vm';
 const root=new URL('./',import.meta.url);
 const sources=['gas-effect-ledger-adapter.gs','gas-vip-transition-store.gs','gas-vip-transition-orchestrator.gs']
   .map(name=>readFileSync(fileURLToPath(new URL(name,root)),'utf8')).join('\n');
-const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
+const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Telegram User ID','Target State','Source Type','Source Date','Payload SHA-256','Ticker Allowed','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
 const cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
 const auditHeaders=['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details'];
 const tickerHeaders=['Event ID','Created At','Member ID','Member Name','Event Text','Status'];
@@ -80,7 +80,7 @@ function harness({crashAt=''}={}) {
  return{process:input=>orchestrator().process(input),migrateEffects,sheets,stats:()=>({held,acquired,released}),resetCounts};
 }
 const input=(targetState='ACTIVE',updateId='700',sourceDate=1760000000)=>({
- updateId,epoch:0,sourceDate,memberId:'MPS-ABCDEF12',memberName:'Test Member',
+ updateId,epoch:0,sourceDate,memberId:'MPS-ABCDEF12',memberName:'Test Member',telegramUserId:'987654321',tickerAllowed:true,
  targetState,sourceType:'CHAT_MEMBER',payloadSha256:'a'.repeat(64)
 });
 function migrate(h){h.migrateEffects();}
@@ -93,7 +93,7 @@ for(const phase of phases)test('actual GAS adapters recover activation after '+p
  assert.throws(()=>h.process(input()),new RegExp('SIMULATED_CRASH_'+phase));
  assert.equal(h.process(input()),'DUPLICATE');
  const intents=h.sheets.get('MPS Telegram VIP Transition Intents');
- assert.equal(intents.length,2);assert.equal(intents[1][9],'COMPLETED');
+ assert.equal(intents.length,2);assert.equal(intents[1][11],'COMPLETED');
  assert.equal(h.sheets.get('MPS VIP Access State').length,2);
  assert.equal(h.sheets.get('MPS Member State').length,2);
  assert.equal(h.sheets.get('MPS VIP Access State')[1][1],'ACTIVE');
