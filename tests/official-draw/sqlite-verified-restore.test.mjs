@@ -41,7 +41,8 @@ test('restores only after manifest, separately supplied digest evidence and SQLi
  assert.equal(result.sha256,f.manifest.sha256);
  const restored=new DatabaseSync(target);
  assert.equal(restored.prepare('PRAGMA integrity_check').get().integrity_check,'ok');
- assert.deepEqual(restored.prepare('SELECT id,synthetic_ref,state FROM participants ORDER BY id').all(),
+ assert.deepEqual(restored.prepare('SELECT id,synthetic_ref,state FROM participants ORDER BY id').all()
+  .map(row=>({id:row.id,synthetic_ref:row.synthetic_ref,state:row.state})),
   [{id:1,synthetic_ref:'SYN-001',state:'ELIGIBLE'},{id:2,synthetic_ref:'SYN-002',state:'ELIGIBLE'}]);
  restored.close();
 });
