@@ -46,3 +46,13 @@ A passing suite establishes only that these synthetic functions satisfy their as
 ## Next safe work
 
 The next implementation increment should be a genuinely isolated persistence/API adapter with a real transactional datastore and separately authenticated test identities, only after its environment, ownership, data boundary, and cost are approved. Do not label a local in-memory model as database integration. Real provider, OIDC/MFA, cryptographic beacon verification, independent audit provenance, off-site restore and human dual-control evidence remain separate gates.
+
+
+## Verification record
+
+- All four P1.23 artifacts were fetched back from the workbench after writes: harness module, test module, this specification and the CI workflow; the README and workbench plan were also read back.
+- Source review caught and corrected three harness defects before final readback: public projection initially retained an internal-state allowlist mismatch; the UTC timestamp pattern was corrected to allow optional milliseconds; owner/reviewer identity context now fails closed when missing.
+- Additional negative cases cover unsupported canonical JSON values, sparse arrays, cyclic values, malformed nested proof fields, missing owner subject and missing independent reviewer subject.
+- The P1.22 clean-checkout workflow run #363 (42961399082) has now been independently checked and completed **SUCCESS**, including all existing synthetic suites and Chromium checks. This run predates the P1.23 harness.
+- The P1.23 workflow step is committed and present in the workbench workflow. A completed CI result for the P1.23 commit is not yet available in the evidence checked for this record; do not count the P1.23 suite as CI-passed until that run is confirmed.
+- Workbench remains isolated from main; no merge, deployment, cloud resource, database, member data or production configuration was changed.
