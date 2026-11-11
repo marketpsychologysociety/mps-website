@@ -98,6 +98,19 @@ test('partial trailing record is discarded but tampered complete record fails cl
   await assert.rejects(DurableAuditJournal.open(dir), error => error.code === 'JOURNAL_INTEGRITY_ERROR');
 });
 
+test('unknown journal record fields fail closed on recovery', async t => {
+  const { dir, journal } = await setup(t);
+  await journal.beginOperation(input());
+  await journal.close();
+  const file = path.join(dir, 'audit.journal.jsonl');
+  const rows = (await fs.readFile(file, 'utf8')).trimEnd().split('\n');
+  const record = JSON.parse(rows[0]);
+  record.unexpected_private_payload = 'SYNTHETIC_CANARY';
+  rows[0] = JSON.stringify(record);
+  await fs.writeFile(file, rows.join('\n') + '\n');
+  await assert.rejects(DurableAuditJournal.open(dir), error => error.code === 'JOURNAL_INTEGRITY_ERROR');
+});
+
 test('completion requires intent and rejects private or unknown fields', async t => {
   const { journal } = await setup(t);
   await assert.rejects(journal.completeOperation({ operationId: 'missing', result: { state: 'DONE' } }),
