@@ -361,6 +361,8 @@ test('read-only schema preflight enforces super-admin before reading database',(
 });
 test('candidate Index exposes guarded migration controls only for super-admin and requires explicit confirmations',()=>{
  assert.match(candidateIndex,/<section class="panel" id="memberSchemaMaintenance" data-super-admin-only/);
+ assert.match(candidateIndex,/if\(\/sesi admin\/i\.test\(message\)\)\{state\.adminSession='';state\.adminRole='';state\.memberSchemaPreflight=null;/);
+ assert.match(candidateIndex,/state\.adminSession='';state\.adminRole='';state\.memberSchemaPreflight=null;\$\('migrateMemberSchemaV480'\)\.disabled=true;\$\('prepareVipTransitionStorage'\)\.disabled=true;/);
  assert.match(candidateIndex,/<button class="btn secondary" id="inspectMemberSchemaV480" type="button">/);
  assert.match(candidateIndex,/<button class="btn" id="migrateMemberSchemaV480" type="button" disabled>/);
  assert.match(candidateIndex,/<button class="btn secondary" id="prepareVipTransitionStorage" type="button" disabled>/);
