@@ -81,14 +81,14 @@ export class DurableUpdateJournal {
   }
 
   async retry(id, claimToken, now = Date.now(), errorCode = 'TRANSIENT') {
-    return this.#transition(id, claimToken, row => ({
+    return this.#transition(id, claimToken, now, row => ({
       ...row, state: 'RETRYABLE', leaseExpiresAt: 0, claimToken: null,
       lastErrorCode: sanitizeCode(errorCode)
     }));
   }
 
   async review(id, claimToken, now = Date.now(), errorCode = 'AMBIGUOUS') {
-    return this.#transition(id, claimToken, row => ({
+    return this.#transition(id, claimToken, now, row => ({
       ...row, state: 'REVIEW', leaseExpiresAt: 0, claimToken: null,
       lastErrorCode: sanitizeCode(errorCode)
     }));
