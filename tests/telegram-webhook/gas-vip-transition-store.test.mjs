@@ -146,3 +146,11 @@ test('intent repository rejects non-chat-member source and invalid initial state
  assert.throws(()=>h.run((s,tx)=>s.insertIntent(tx,{...record(),'Source Type':'CHAT_JOIN_REQUEST'})),/VIP_TRANSITION_UNSUPPORTED_SOURCE_TYPE/);
  assert.throws(()=>h.run((s,tx)=>s.insertIntent(tx,{...record(),'State':'COMPLETED'})),/VIP_TRANSITION_INVALID_INITIAL_STATE/);
 });
+
+
+test('cursor accepts later source date even when ingress epoch is lower after Telegram ID reset',()=>{
+ const h=harness();
+ h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:5,sourceDate:1760000000,updateId:'900',transitionKey:'telegram:5:900:vip_transition',updatedAt:'first'}));
+ assert.equal(h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:0,sourceDate:1760000001,updateId:'2',transitionKey:'telegram:0:2:vip_transition',updatedAt:'later'})).outcome,'UPDATED');
+ assert.equal(h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12')).updateId,'2');
+});
