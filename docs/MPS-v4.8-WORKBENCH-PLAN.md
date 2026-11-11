@@ -930,4 +930,4 @@ P1.23 CI correction note: initial hardened-source CI execution found one test-fi
 
 ## P1.23 verification outcome
 
-P1.23 verification update: clean-checkout GitHub Actions run #402 (42964135867) completed SUCCESS after correcting the stale expectedVersion in the invalid-state test fixture. P1.23 harness and all other workflow steps, including Chromium browser checks, passed. This is synthetic/CI evidence only and does not satisfy operational G0–G11 gates or authorize an official draw.
+P1.23 verification update: clean-checkout GitHub Actions run #403 (42964135867) completed SUCCESS after correcting the stale expectedVersion in the invalid-state test fixture. P1.23 harness and all other workflow steps, including Chromium browser checks, passed. This is synthetic/CI evidence only and does not satisfy operational G0–G11 gates or authorize an official draw.
