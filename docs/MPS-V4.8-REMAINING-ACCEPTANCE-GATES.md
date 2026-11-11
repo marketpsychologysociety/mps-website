@@ -5,7 +5,7 @@
 
 ## Verified in the workbench
 
-- [x] PR CI run #43020068718 and push CI run #43020058642 both completed successfully on commit `0fb6bcd084da82a04fac9b6d2663f0c833254f3a`; each run completed all 36 workflow steps, including Chromium browser checks. Earlier PR/push runs #43020051845 and #43019115922/#43019109915 also passed on their respective commits.
+- [x] PR CI run #43020895489 and push CI run #43020908759 both completed successfully on commit `7d171fa1e403077700fbe63b5f1e5424306f3c76`; each run completed all 37 workflow steps, including both Telegram contract suites and Chromium browser checks. The effect-outbox suite passed in both runs.
 - [x] The earlier PR CI run #646 also completed all 36 steps successfully on its then-current commit.
 - [x] Telegram update-journal contract suite contains 17 tests; the new digit-string regression covers canonical 20-digit IDs, zero, leading-zero rejection, empty input, and overlength input.
 - [x] Mocked Apps Script spreadsheet adapter suite contains 17 tests.
@@ -77,7 +77,7 @@ The Apps Script adapter and new effect-outbox contract are not wired into the we
 - [Draft PR #12](https://github.com/marketpsychologysociety/mps-website/pull/12)
 - [PR CI #648 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43018302173)
 - [Push CI #647 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43018294614)
-- [Latest PR CI #43020068718 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43020068718)
-- [Latest push CI #43020058642 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43020058642)
+- [Latest PR CI #43020895489 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43020895489)
+- [Latest push CI #43020908759 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43020908759)
 - [Previous PR CI #646 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43016135631)
 - Production `main` baseline: `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`.
