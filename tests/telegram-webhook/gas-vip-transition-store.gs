@@ -37,8 +37,9 @@ function createMpsGasVipTransitionStore_(config) {
   function insertIntent(tx,record){
     active_(tx);if(!record||typeof record!=='object')throw new Error('VIP_TRANSITION_INVALID_INTENT');
     var key=key_(record['Intent Key']),sh=sheet_(intentName,intentHeaders,tx),rows=rows_(sh,intentHeaders.length);
-    if(uniqueRow_(rows,0,key)>=0)return{outcome:'EXISTS',record:intentObject_(rows[uniqueRow_(rows,0,key)])};
+    var existingIndex=uniqueRow_(rows,0,key);
     var values=[key].concat(intentFields.map(function(h){return record[h]===undefined?'':record[h];}));
+    if(existingIndex>=0){var prior=rows[existingIndex];var same=prior.length===values.length&&prior.every(function(v,i){return String(v==null?'':v)===String(values[i]==null?'':values[i]);});return{outcome:same?'EXISTS':'REVIEW_COLLISION',record:intentObject_(prior)};}
     sh.getRange(sh.getLastRow()+1,1,1,intentHeaders.length).setValues([values]);SpreadsheetApp.flush();
     return{outcome:'INSERTED',row:sh.getLastRow(),record:intentObject_(values)};
   }
@@ -55,8 +56,11 @@ function createMpsGasVipTransitionStore_(config) {
   }
   function writeCursor(tx,record){
     active_(tx);if(!record||typeof record!=='object')throw new Error('VIP_TRANSITION_INVALID_CURSOR');
-    var id=member_(record.memberId),sh=sheet_(cursorName,cursorHeaders,tx),rows=rows_(sh,cursorHeaders.length),i=uniqueRow_(rows,0,id);
-    var values=[id,record.epoch,String(record.updateId),key_(record.transitionKey),record.updatedAt];
+    var id=member_(record.memberId),epoch=Number(record.epoch),updateId=String(record.updateId==null?'':record.updateId);
+    if(!Number.isSafeInteger(epoch)||epoch<0)throw new Error('VIP_TRANSITION_INVALID_EPOCH');
+    if(!/^(0|[1-9]\\d{0,19})$/.test(updateId))throw new Error('VIP_TRANSITION_INVALID_UPDATE_ID');
+    var sh=sheet_(cursorName,cursorHeaders,tx),rows=rows_(sh,cursorHeaders.length),i=uniqueRow_(rows,0,id);
+    var values=[id,epoch,updateId,key_(record.transitionKey),record.updatedAt];
     if(i<0){sh.getRange(sh.getLastRow()+1,1,1,cursorHeaders.length).setValues([values]);SpreadsheetApp.flush();return{outcome:'INSERTED'};}
     sh.getRange(i+2,1,1,cursorHeaders.length).setValues([values]);SpreadsheetApp.flush();return{outcome:'UPDATED'};
   }
