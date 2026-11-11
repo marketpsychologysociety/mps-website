@@ -11,19 +11,13 @@ const modules=moduleNames.map(name=>readFileSync(fileURLToPath(new URL(name,root
 function extractFunction(source,name){
  const start=source.indexOf('function '+name+'(');
  if(start<0)throw new Error('CANDIDATE_FUNCTION_MISSING:'+name);
- const brace=source.indexOf('{',start);let depth=0,quote='',escape=false,lineComment=false,blockComment=false;
- for(let i=brace;i<source.length;i++){
-  const ch=source[i],next=source[i+1];
-  if(lineComment){if(ch==='\n')lineComment=false;continue;}
-  if(blockComment){if(ch==='*'&&next==='/'){blockComment=false;i++;}continue;}
-  if(quote){if(escape){escape=false;continue;}if(ch==='\\\\'){escape=true;continue;}if(ch===quote)quote='';continue;}
-  if(ch==='/'&&next==='/'){lineComment=true;i++;continue;}
-  if(ch==='/'&&next==='*'){blockComment=true;i++;continue;}
-  if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue;}
-  if(ch==='{')depth++;
-  if(ch==='}'&&--depth===0)return source.slice(start,i+1);
- }
- throw new Error('CANDIDATE_FUNCTION_UNCLOSED:'+name);
+ const nextFunction=source.indexOf('\nfunction ',start+1);
+ const nextDoc=source.indexOf('\n/**',start+1);
+ const ends=[nextFunction,nextDoc].filter(index=>index>=0);
+ const end=ends.length?Math.min(...ends):source.length;
+ const block=source.slice(start,end).trim();
+ if(!block.endsWith('}'))throw new Error('CANDIDATE_FUNCTION_UNCLOSED:'+name);
+ return block;
 }
 const candidateFunctions=[
  'getMpsExistingVipAccessSheetForTransition_','findUniqueMpsTransitionRow_',
