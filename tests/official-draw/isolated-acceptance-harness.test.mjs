@@ -37,6 +37,8 @@ test("strict create-event contract rejects identity, role, participant and unkno
 test("authorization matrix is deny-by-default and enforces distinct reviewer subject", () => {
   assert.equal(authorize({role:"DRAW_AUDITOR",action:"execute_draw",subject:"aud"}).code,"FORBIDDEN");
   assert.equal(authorize({role:"DRAW_OPERATOR",action:"execute_draw",subject:"op",ownerSubject:"other"}).code,"NOT_RESOURCE_OWNER");
+  assert.equal(authorize({role:"DRAW_OPERATOR",action:"execute_draw",subject:"op"}).code,"NOT_RESOURCE_OWNER");
+  assert.equal(authorize({role:"DRAW_REVIEWER",action:"approve_rules",subject:"reviewer"}).code,"SEPARATION_OF_DUTIES");
   assert.equal(authorize({role:"DRAW_REVIEWER",action:"approve_rules",subject:"same",reviewerSubject:"same"}).code,"SEPARATION_OF_DUTIES");
   assert.equal(authorize({role:"DRAW_REVIEWER",action:"approve_rules",subject:"reviewer",reviewerSubject:"operator"}).allowed,true);
   assert.equal(authorize({role:"UNRECOGNIZED",action:"publish_result",subject:"x"}).allowed,false);
