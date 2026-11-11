@@ -373,3 +373,13 @@ node --test tests/official-draw/recovery-checkpoint-attestation.test.mjs
 ```
 
 A pure offline Ed25519 verifier binds an exact P1.29 logical checkpoint digest to an opaque source/checkpoint ID, reviewer key identity, exporter separation, and caller-supplied one-time nonce. Exact payload/trust/checkpoint schemas, canonical serialization, signature, key validity/revocation, scope, nonce equality, and bounded attestation lifetime fail closed. Twelve synthetic tests cover valid signature, checkpoint/scope/nonce tampering, reviewer/exporter collision, revocation, signature corruption, time bounds, unknown fields and malformed context. This verifier does not authenticate a human, prove reviewer assertions, authenticate the database source, prove checkpoint completeness, or issue/consume nonces; production requires separately governed trust and durable atomic nonce consumption. See `docs/MPS-P1.30-SIGNED-RECOVERY-CHECKPOINT-ATTESTATION.md`. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.31 — durable recovery-checkpoint nonce integration (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/recovery-checkpoint-nonce-integration.test.mjs
+```
+
+Connects the P1.30 Ed25519 checkpoint verifier to the durable reviewer trust registry. Registered reviewer keys only; SHA-256 nonce lookup; issuance/expiry and effective-time revocation checks; signature/checkpoint verification; then durable nonce consumption under the cross-process registry lock. Invalid signatures do not burn a nonce; successful verification appends attestation/checkpoint digests, not plaintext nonce. Six tests cover successful consumption, invalid-signature retry, restart replay, concurrent independent registry instances, historical revocation handling, and expiry/privacy. The registry remains local same-host synthetic infrastructure with an injected authorization seam and no external hash anchor; it does not provide real OIDC/MFA, source authenticity, multi-host safety, or production recovery. See `docs/MPS-P1.31-DURABLE-RECOVERY-CHECKPOINT-NONCE-INTEGRATION.md`. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
