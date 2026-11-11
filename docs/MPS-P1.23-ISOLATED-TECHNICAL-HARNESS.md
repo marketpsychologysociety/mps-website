@@ -56,3 +56,6 @@ The next implementation increment should be a genuinely isolated persistence/API
 - The P1.22 clean-checkout workflow run #363 (42961399082) has now been independently checked and completed **SUCCESS**, including all existing synthetic suites and Chromium checks. This run predates the P1.23 harness.
 - The P1.23 workflow step is committed and present in the workbench workflow. A completed CI result for the P1.23 commit is not yet available in the evidence checked for this record; do not count the P1.23 suite as CI-passed until that run is confirmed.
 - Workbench remains isolated from main; no merge, deployment, cloud resource, database, member data or production configuration was changed.
+
+- Follow-up review hardened authorization and public projection against null, inherited, accessor-based, symbol-keyed and non-enumerable properties; request validation now rejects hidden extra fields. The synthetic tests include these hostile object-shape cases and impossible calendar timestamps.
+- Idempotency scoping now uses an unambiguous tuple encoding and fingerprints the expected version as part of the request. Invalid key/version/payload types fail closed. This remains an in-memory synthetic model, not durable idempotency.
