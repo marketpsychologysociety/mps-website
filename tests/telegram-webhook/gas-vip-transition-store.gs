@@ -40,7 +40,7 @@ function createMpsGasVipTransitionStore_(config) {
     var epoch=Number(record['Update Epoch']),updateId=String(record['Update ID']==null?'':record['Update ID']);
     var sourceDate=Number(record['Source Date']),memberId=member_(record['Member ID']);
     if(!Number.isSafeInteger(epoch)||epoch<0)throw new Error('VIP_TRANSITION_INVALID_EPOCH');
-    if(!/^(0|[1-9]\\d{0,19})$/.test(updateId))throw new Error('VIP_TRANSITION_INVALID_UPDATE_ID');
+    if(!/^(0|[1-9]\d{0,19})$/.test(updateId))throw new Error('VIP_TRANSITION_INVALID_UPDATE_ID');
     if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_TRANSITION_INVALID_SOURCE_DATE');
     if(record['Target State']!=='ACTIVE'&&record['Target State']!=='LEFT')throw new Error('VIP_TRANSITION_INVALID_TARGET_STATE');
     if(record['Source Type']!=='CHAT_MEMBER')throw new Error('VIP_TRANSITION_UNSUPPORTED_SOURCE_TYPE');
@@ -78,7 +78,7 @@ function createMpsGasVipTransitionStore_(config) {
     var values=[id,epoch,sourceDate,updateId,transitionKey,record.updatedAt];
     if(i<0){sh.getRange(sh.getLastRow()+1,1,1,cursorHeaders.length).setValues([values]);SpreadsheetApp.flush();return{outcome:'INSERTED'};}
     var prior=rows[i],priorEpoch=Number(prior[1]),priorDate=Number(prior[2]),priorId=String(prior[3]);
-    if(!Number.isSafeInteger(priorEpoch)||priorEpoch<0||!Number.isSafeInteger(priorDate)||priorDate<=0||!/^(0|[1-9]\\d{0,19})$/.test(priorId))throw new Error('VIP_TRANSITION_CURSOR_CORRUPT');
+    if(!Number.isSafeInteger(priorEpoch)||priorEpoch<0||!Number.isSafeInteger(priorDate)||priorDate<=0||!/^(0|[1-9]\d{0,19})$/.test(priorId))throw new Error('VIP_TRANSITION_CURSOR_CORRUPT');
     key_(prior[4]);
     function cmpId(a,b){return a.length!==b.length?(a.length>b.length?1:-1):(a===b?0:(a>b?1:-1));}
     var order=epoch!==priorEpoch?(epoch>priorEpoch?1:-1):(sourceDate!==priorDate?(sourceDate>priorDate?1:-1):cmpId(updateId,priorId));
