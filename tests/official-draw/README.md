@@ -158,3 +158,8 @@ node --test tests/official-draw/durable-audit-journal.test.mjs
 node --test tests/official-draw/persistent-api-integration.test.mjs
 
 Remaining limits: local filesystem semantics only; no distributed/network filesystem guarantees, multi-host coordination, transactional database, external immutable journal anchor, backup/restore, OIDC/MFA, beacon verifier, unbiased selection, or production suitability. Official winner draw remains BLOCKED / NO-GO; roulette remains SIMULATION ONLY.
+
+
+## P1.4 crash-while-lock-held recovery test (test only)
+
+A new child-process crash test terminates a synthetic writer immediately after its INTENT bytes are written but before fsync/acknowledgement, while the writer still owns the journal lock. A fresh process must confirm the previous PID is absent, atomically quarantine the stale same-host lock, recover the journal, and replay the same idempotency scope without appending a second intent. The test uses a disposable temporary directory and synthetic identifiers only. It does not establish power-loss durability, cross-host/network-filesystem safety, or production tamper resistance. The test is included in the existing durable journal CI step; do not treat the complete workflow as passed until the associated run finishes successfully.
