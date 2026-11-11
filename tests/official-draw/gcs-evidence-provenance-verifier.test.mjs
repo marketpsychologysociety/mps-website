@@ -35,6 +35,7 @@ function fixture() {
   };
   const payload = {
     schemaVersion: 'mps-gcs-provenance-attestation/v1',
+    keyId: trustBase.keyId,
     issuer: trustBase.issuer,
     reviewerSubject: trustBase.subject,
     exporterSubject: 'exporter-subject-001',
@@ -149,4 +150,12 @@ test('fails closed on malformed schemas and missing verifier context', () => {
   assert.ok(verifyGcsEvidenceProvenance(f.bundle, f.attestation, f.trust, f.options).errors.includes('ATTESTATION_SCHEMA_INVALID'));
   const g = fixture();
   assert.ok(verifyGcsEvidenceProvenance(g.bundle, g.attestation, g.trust, {}).errors.includes('VERIFIER_CONTEXT_INVALID'));
+});
+
+
+test('rejects a key identifier that does not match the pinned trust record', () => {
+  const f = fixture();
+  f.payload.keyId = 'untrusted-key-version';
+  f.attestation = { payload: f.payload, signature: sign(null, Buffer.from(provenanceCanonicalJson(f.payload)), privateKey).toString('base64') };
+  assert.ok(verifyGcsEvidenceProvenance(f.bundle, f.attestation, f.trust, f.options).errors.includes('TRUST_KEY_ID_MISMATCH'));
 });
