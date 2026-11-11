@@ -732,3 +732,12 @@ The first attempt on commit `70457412e1a05d0888bb9f7bf64d0c326b1a230e` failed be
 ### P1.10 category-handling refinement
 
 The raw-log normalizer now distinguishes operation categories: object create/read require Data Access, bucket IAM-policy changes require Admin Activity, and a denied object-delete attempt may be recorded in Data Access or Policy Denied. This avoids treating a denied attempt as guaranteed to appear in only one log category. The synthetic fixture and negative category-mismatch test were updated. Actual provider output still determines the final mapping.
+
+
+### P1.10 clean-checkout CI verification — 2026-11-11
+
+GitHub Actions run #271 (https://github.com/marketpsychologysociety/mps-website/actions/runs/42943234050) on commit 75d760d4b4980155a2c0e213f96b9579015a9a70 completed **SUCCESS** from clean checkout. The raw audit normalizer suite reported **12 PASS, 0 FAIL, 0 SKIP**. The complete workflow also passed PWA/privacy validation, schema compatibility, Official Draw synthetic contract, durable journal fault injection, external-anchor contract, P1.9 offline GCS bundle verifier, persistent Draw API restart/reconciliation, read-only schema inspector, and Chromium browser checks.
+
+The first category-refinement test run (#268–#270) exposed a mismatch: Policy Denied log names were added to the allowed source set but omitted from a second category allowlist. The CI failure was inspected, the missing allowlist branch was corrected, and run #271 passed with the explicit Policy Denied category fixture and wrong-category negative test.
+
+**Evidence boundary:** this remains synthetic/offline structural validation. It does not authenticate Google as the source, prove export completeness, inspect actual IAM/log settings, or test real GCS. No GCP resources or production changes were made.
