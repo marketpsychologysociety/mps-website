@@ -40,8 +40,9 @@ export function normalizeGcsRawAuditEvidence(bundle) {
   }
   const expectedData = 'projects/' + s.projectId + '/logs/cloudaudit.googleapis.com%2Fdata_access';
   const expectedActivity = 'projects/' + s.projectId + '/logs/cloudaudit.googleapis.com%2Factivity';
+  const expectedPolicy = 'projects/' + s.projectId + '/logs/cloudaudit.googleapis.com%2Fpolicy';
   if (!Array.isArray(s.expectedLogNames) || s.expectedLogNames.length === 0 ||
-      s.expectedLogNames.some(n => ![expectedData, expectedActivity].includes(n)) ||
+      s.expectedLogNames.some(n => ![expectedData, expectedActivity, expectedPolicy].includes(n)) ||
       new Set(s.expectedLogNames).size !== s.expectedLogNames.length) fail('EXPECTED_LOG_NAMES_INVALID');
   if (s.paginationComplete !== true || s.finalNextPageToken !== null) fail('PAGINATION_INCOMPLETE');
   if (!exactKeys(bundle.expectedPrincipals, ['writer','verifier','storageAdmin']) ||
@@ -125,6 +126,9 @@ export function normalizeGcsRawAuditEvidence(bundle) {
     else if (/storage\.objects\.(delete)$/.test(p?.methodName || '')) action = 'OBJECT_DELETE';
     else if (/storage\.buckets\.(setIamPolicy|update)$/.test(p?.methodName || '')) action = 'POLICY_CHANGE';
     if (!action) { fail('AUDIT_METHOD_UNMAPPED:' + i); continue; }
+    const categoryMatches = action === 'POLICY_CHANGE' ? entry.logName === expectedActivity :
+      action === 'OBJECT_DELETE' ? [expectedData, expectedPolicy].includes(entry.logName) : entry.logName === expectedData;
+    if (!categoryMatches) fail('AUDIT_CATEGORY_ACTION_MISMATCH:' + i);
 
     let expectedRole = null;
     if (action === 'OBJECT_CREATE' || action === 'OBJECT_DELETE') expectedRole = 'writer';
