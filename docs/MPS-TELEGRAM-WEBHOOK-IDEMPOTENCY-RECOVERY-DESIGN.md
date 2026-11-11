@@ -101,7 +101,7 @@ Suggested outbox columns: Effect Key (unique), Update ID, Effect Type (allowlist
 - Monitor journal row count, processing lease age, retry count, REVIEW count, and write/read failures.
 - Define an operator runbook for stuck leases, REVIEW resolution, backup, restore, and journal integrity checks.
 
-## 6. Migration and rollout gates
+## 7. Migration and rollout gates
 
 The migration must be additive and reversible before activation:
 
@@ -116,7 +116,7 @@ The migration must be additive and reversible before activation:
 
 Do not switch the production webhook to this design as part of this work item.
 
-## 7. Acceptance criteria
+## 8. Acceptance criteria
 
 - Cache eviction does not erase durable deduplication state.
 - Two concurrent deliveries of one update ID cannot both acquire a processing lease.\n- A stale worker cannot transition a row after another worker has reclaimed its expired lease.\n- A worker cannot complete, retry, or quarantine a claim after its lease expires, even if no replacement worker has claimed it yet.\n- Reuse of an update ID with a different payload digest is quarantined for manual review.\n- Semantically identical JSON payloads with different object-key ordering produce the same digest.\n- Numeric update IDs outside JavaScript's safe integer range are rejected; string IDs are validated without numeric coercion.
@@ -130,7 +130,7 @@ Do not switch the production webhook to this design as part of this work item.
 - Tests prove recovery after simulated crashes on both sides of external API calls.
 - Runtime behavior is verified in an isolated Apps Script project and test spreadsheet before any production proposal.
 
-## 8. Current implementation gap
+## 9. Current implementation gap
 
 The local candidate currently uses CacheService for update-level PROCESSING/DONE state. The code comment correctly acknowledges that CacheService may evict entries early and is not an exactly-once guarantee. This design document does not silently upgrade that implementation: durable journal code, isolated spreadsheet provisioning, runtime tests, Telegram test-bot tests, and operational monitoring remain unimplemented.
 
