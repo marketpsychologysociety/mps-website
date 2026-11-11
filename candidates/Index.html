@@ -661,11 +661,20 @@
       if(!preflight||preflight.ok!==true||preflight.state!=='READY_30'||preflight.provisioningReady!==true){showNotice($('memberSchemaPreflightResult'),'Database Member dan seluruh skema storage transisi harus lolos preflight sebelum provisioning.','error');return}
       if(!confirm('KONFIRMASI PROVISIONING VIP TRANSITION STORAGE\n\nTindakan ini dapat membuat dua sheet transisi baru serta menambahkan kolom Effect Key pada audit/ticker log yang sudah ada. Data member tidak dimigrasikan oleh langkah ini. Lanjutkan hanya setelah backup dan persetujuan operasional?'))return;
       setBusy(button,true,'PREPARE VIP TRANSITION STORAGE');
+      setMemberSchemaPreflight(null);
       try{
         const result=await api('apiAdminPrepareTelegramVipTransitionStorage',state.adminSession);
         if(!result||result.ok!==true)throw new Error((result&&result.message)||'Provisioning tidak terkonfirmasi berhasil.');
-        showNotice($('memberSchemaPreflightResult'),result.message,'success');
+        const verify=await api('apiAdminInspectMemberSchemaV480',state.adminSession);
+        if(!verify||verify.ok!==true||verify.state!=='READY_30'||verify.provisioningReady!==true)throw new Error('Provisioning dilaporkan selesai, tetapi preflight ulang belum mengonfirmasi seluruh storage VIP siap. Jangan aktifkan webhook; periksa hasil preflight.');
+        setMemberSchemaPreflight(verify);
+        showNotice($('memberSchemaPreflightResult'),result.message+' Verifikasi ulang: '+verify.message,'success');
       }catch(err){
+        setMemberSchemaPreflight(null);
+        try{
+          const refresh=await api('apiAdminInspectMemberSchemaV480',state.adminSession);
+          if(refresh&&typeof refresh.state==='string')setMemberSchemaPreflight(refresh);
+        }catch(ignore){}
         showNotice($('memberSchemaPreflightResult'),err.message,'error');
       }finally{
         setBusy(button,false,'PREPARE VIP TRANSITION STORAGE');
