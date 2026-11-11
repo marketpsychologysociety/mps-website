@@ -106,6 +106,17 @@ A separate synthetic contract candidate is maintained in `tests/telegram-webhook
 
 This is a state-machine contract backed only by a shared in-memory test store. It is not a spreadsheet adapter, not integrated with the webhook, and does not make Telegram sendMessage exactly-once. The external side-effect crash window remains unresolved without provider idempotency or authoritative read-back.
 
+### Handler replay and transition contract candidate
+
+A separate pure helper and synthetic test suite are maintained in `tests/telegram-webhook/handler-reconciliation.mjs` and `handler-reconciliation.test.mjs`. The tests define (but do not integrate) the following safeguards:
+
+- a consumed application/legacy link is acknowledged as already verified only when the persisted link, access row, Telegram user ID, private chat ID, and Application Ref/member ID all match;
+- a different Telegram identity or chat remains rejected; inconsistent application state is quarantined for review;
+- VIP activation is modeled as a transition from non-member to member, not as a one-time flag on the member record;
+- ticker and audit effect keys include the Telegram update ID, so the same update replay has stable keys while a later reactivation can create a new event.
+
+Read-only review of the isolated Code.gs candidate found that these safeguards are not yet integrated: consumed links are rejected before same-identity reconciliation, and `updateVipJoinStatus_` writes active status before ticker/audit writes while receiving no update ID. The helper tests are not Apps Script runtime tests and do not prove the production handler behavior.
+
 ## 6. Recovery and retention
 
 - Expired PROCESSING leases are candidates for recovery, not proof that the previous attempt had no side effects.
