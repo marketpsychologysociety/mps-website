@@ -23,7 +23,7 @@ async function waitForHealth(child) {
   }
   throw new Error('Persistent sandbox did not become healthy.');
 }
-function startSandbox(directory, crashStage = '', faultStage = '') {
+function startSandbox(directory, crashStage = '', faultStage = '', captureStderr = false) {
   const moduleUrl = pathToFileURL(adapterPath).href;
   const child = spawn(process.execPath, ['--input-type=module', '-e', 'import(' + JSON.stringify(moduleUrl) + ')'], {
     cwd: here,
@@ -33,7 +33,7 @@ function startSandbox(directory, crashStage = '', faultStage = '') {
       ...(crashStage ? { MPS_DRAW_CRASH_STAGE: crashStage } : { MPS_DRAW_CRASH_STAGE: '' }),
       ...(faultStage ? { MPS_DRAW_JOURNAL_FAULT_STAGE: faultStage } : { MPS_DRAW_JOURNAL_FAULT_STAGE: '' })
     },
-    stdio: 'ignore'
+    stdio: captureStderr ? ['ignore', 'ignore', 'pipe'] : 'ignore'
   });
   return child;
 }
@@ -211,4 +211,29 @@ test('lost acknowledgement after completion fsync is recovered as completed, not
   });
   assert.equal(replay.status, 200);
   assert.equal(replay.body.operation.replayed, true);
+});
+
+
+test('a second sandbox process cannot acquire the same journal writer lease', async t => {
+  const directory = await fixture(t);
+  const first = startSandbox(directory);
+  await waitForHealth(first);
+  t.after(() => stopSandbox(first));
+
+  const second = startSandbox(directory, '', '', true);
+  let stderr = '';
+  second.stderr.setEncoding('utf8');
+  second.stderr.on('data', chunk => { stderr += chunk; });
+  const exitCode = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      second.kill('SIGKILL');
+      reject(new Error('Second sandbox did not fail closed on the existing process lease.'));
+    }, 4000);
+    second.once('error', error => { clearTimeout(timer); reject(error); });
+    second.once('exit', code => { clearTimeout(timer); resolve(code); });
+  });
+  assert.notEqual(exitCode, 0);
+  assert.match(stderr, /JOURNAL_LOCKED/);
+  const health = await fetch(baseUrl + '/health');
+  assert.equal(health.status, 200);
 });
