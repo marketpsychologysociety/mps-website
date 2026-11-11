@@ -904,3 +904,17 @@ See `docs/MPS-P1.21-SECURITY-ARCHITECTURE-IMPLEMENTATION-BLUEPRINT.md` for the t
 ## P1.22 — isolated technical acceptance specification
 
 See `docs/MPS-P1.22-ISOLATED-TECHNICAL-ACCEPTANCE-SPEC.md` for canonical types/serialization, logical relational entities and constraints, transaction boundaries, API endpoint request contracts, role matrix, OIDC/session acceptance, evidence adapter, beacon/selection invariants, 40 traceable acceptance tests and evidence-class rules. This is a documentation-only specification. No service, schema migration, database, identity tenant, cloud provider, credentials, member-data connection or production deployment was created. Operational G0–G11 remain unpassed; official draw remains **NO-GO** and roulette **SIMULATION ONLY**.
+
+
+## P1.23 — isolated technical acceptance harness (synthetic only)
+
+- [x] Add canonical JSON and digest contract tests with strict plain-object and finite-number handling.
+- [x] Add strict event request allowlist and deny-by-default synthetic authorization matrix.
+- [x] Add ownership and separation-of-duties assertions.
+- [x] Add exact public winner projection allowlist and fail-closed state checks.
+- [x] Add deterministic in-memory idempotency, version/state, serialized concurrency and lost-ack replay model.
+- [x] Add a dedicated CI test step and document evidence limitations.
+- [ ] Implement a separately authorized isolated persistence/API integration using a real transactional datastore and individually authenticated synthetic identities.
+- [ ] Independently verify OIDC/MFA, transactional outbox, provider evidence, beacon proof, audit provenance, off-site recovery and operational dual control.
+
+**Evidence:** `tests/official-draw/isolated-acceptance-harness.mjs`, `tests/official-draw/isolated-acceptance-harness.test.mjs`, and `docs/MPS-P1.23-ISOLATED-TECHNICAL-HARNESS.md`. Evidence class is **SYNTHETIC** only. In-memory behavior is not a transactional database or durable integration. No member data, production credentials, cloud/provider resource, database, Apps Script deployment, live endpoint or production configuration was used or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
