@@ -124,3 +124,39 @@ test('runtime never creates a missing target sheet and releases its lock',()=>{
  assert.throws(()=>l.migrate('ticker'),/EFFECT_SHEET_MISSING/);
  assert.equal(h.held,false);assert.equal(h.rows.length,1);
 });
+
+
+test('single runExclusive scope owns one ScriptLock across migration and multiple effects',()=>{
+ const h=harness(),ledger=h.create();let scoped;
+ const result=ledger.runExclusive(tx=>{
+  scoped=tx;
+  assert.equal(tx.migrate('audit').outcome,'MIGRATED');
+  const first=tx.appendOnce('audit','telegram:scope:1',arow());
+  const second=tx.appendOnce('audit','telegram:scope:2',arow().map((v,i)=>i===3?'SECOND_EFFECT':v));
+  assert.equal(first.outcome,'APPENDED');assert.equal(second.outcome,'APPENDED');
+  assert.throws(()=>ledger.appendOnce('audit','telegram:nested:blocked',arow()),/NESTED_EFFECT_LOCK_ACQUISITION/);
+  assert.throws(()=>ledger.migrate('audit'),/NESTED_EFFECT_LOCK_ACQUISITION/);
+  return 'COMMITTED';
+ });
+ assert.equal(result,'COMMITTED');assert.equal(h.rows.length,3);
+ assert.equal(h.acquired,1);assert.equal(h.released,1);assert.equal(h.depth,0);
+ assert.throws(()=>scoped.appendOnce('audit','telegram:scope:late',arow()),/EFFECT_SCOPE_CLOSED/);
+ assert.equal(h.rows.length,3);
+});
+test('runExclusive releases ScriptLock and invalidates scoped capability when callback throws',()=>{
+ const h=harness({rows:[[...schemas.audit.headers,'Effect Key']]}),ledger=h.create();let scoped;
+ assert.throws(()=>ledger.runExclusive(tx=>{scoped=tx;tx.appendOnce('audit','telegram:scope:error',arow());throw Error('HANDLER_ABORT');}),/HANDLER_ABORT/);
+ assert.equal(h.depth,0);assert.equal(h.acquired,h.released);
+ assert.throws(()=>scoped.appendOnce('audit','telegram:scope:late-error',arow()),/EFFECT_SCOPE_CLOSED/);
+ assert.equal(h.rows.length,2);
+});
+test('runExclusive rejects nested scopes before a second lock acquisition',()=>{
+ const h=harness({rows:[[...schemas.audit.headers,'Effect Key']]}),ledger=h.create();
+ assert.throws(()=>ledger.runExclusive(()=>ledger.runExclusive(()=>null)),/NESTED_EFFECT_LOCK_ACQUISITION/);
+ assert.equal(h.acquired,1);assert.equal(h.released,1);assert.equal(h.depth,0);
+});
+test('runExclusive requires a callback and does not mutate on invalid input',()=>{
+ const h=harness(),ledger=h.create();
+ assert.throws(()=>ledger.runExclusive(null),/EFFECT_SCOPE_CALLBACK_REQUIRED/);
+ assert.equal(h.acquired,0);assert.equal(h.rows.length,1);
+});
