@@ -309,7 +309,17 @@ P1.23 verification update: corrected clean-checkout CI run #403 (42964135867) co
 
 ## P1.24 — SQLite transactional persistence (synthetic only)
 
-Added a local file-backed SQLite adapter and nine tests for atomic draw/idempotency/outbox writes, canonical idempotency replay, rollback, database constraints, and reopen-after-lost-ack behavior. Uses Node's built-in experimental `node:sqlite`; no external package or production DB. Local Node 22.16.0 run: 9 PASS, 0 FAIL, 0 SKIP. CI verification pending. See `docs/MPS-P1.24-SQLITE-TRANSACTIONAL-PERSISTENCE.md`.
+Added a local file-backed SQLite adapter and nine tests for atomic draw/idempotency/outbox writes, canonical idempotency replay, rollback, database constraints, and reopen-after-lost-ack behavior. Uses Node's built-in experimental `node:sqlite`; no external package or production DB. Local Node 22.16.0 run: 9 PASS, 0 FAIL, 0 SKIP. CI verification run #420 (`42964752762`) SUCCESS, including the SQLite suite and Chromium checks. See `docs/MPS-P1.24-SQLITE-TRANSACTIONAL-PERSISTENCE.md`.
 
 
 P1.24 verification: local Node 22.16.0 tests 9 PASS / 0 FAIL / 0 SKIP; clean-checkout CI run #417 (`42964627111`) SUCCESS, including the SQLite step, all other synthetic suites and Chromium browser checks. No production or cloud integration was performed.
+
+
+## P1.25 — SQLite cross-process contention and crash recovery (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/sqlite-process-contention.test.mjs
+```
+
+Five child-process tests exercise independent SQLite connections, competing state-version updates, same-key replay, conflicting-payload rejection, exit before COMMIT, and exit after COMMIT but before a response. The worker uses temporary synthetic database files and is restricted to local test execution. Controlled child-process exit is not a physical power-loss test. Local Node 22.16.0 result: 5 PASS, 0 FAIL, 0 SKIP; clean-checkout CI verification pending. See `docs/MPS-P1.25-SQLITE-CROSS-PROCESS-CONTENTION.md`.
