@@ -77,7 +77,7 @@ function harness({crashAt=''}={}) {
  function orchestrator(){return context.makeOrchestrator({ledger:makeLedger(),store:wrappedStore,statusWriter});}
  function migrateEffects(){return ledger.runExclusive(tx=>{tx.migrate('audit');tx.migrate('ticker');});}
  function resetCounts(){acquired=0;released=0;}
- return{process:(input,resolveTransition)=>orchestrator().process(input,resolveTransition),migrateEffects,sheets,stats:()=>({held,acquired,released}),resetCounts};
+ return{process:(input,resolveTransition)=>orchestrator().process(input,resolveTransition),isCurrent:(input,resolved)=>orchestrator().isCurrent(input,resolved),migrateEffects,sheets,stats:()=>({held,acquired,released}),resetCounts};
 }
 const input=(targetState='ACTIVE',updateId='700',sourceDate=1760000000)=>({
  updateId,epoch:0,sourceDate,memberId:'MPS-ABCDEF12',memberName:'Test Member',telegramUserId:'987654321',tickerAllowed:true,
@@ -157,4 +157,13 @@ test('transition resolver executes inside the one exclusive lock and may supply 
  });
  assert.equal(called,true);assert.equal(result,'ACTIVE');
  assert.equal(h.stats().acquired,1);assert.equal(h.stats().released,1);
+});
+
+test('current completed event may safely retry post-lock follow-up, stale duplicate may not',()=>{
+ const h=harness();migrate(h);
+ const first=input('ACTIVE','710',1760000000);
+ assert.equal(h.process(first),'ACTIVE');
+ assert.equal(h.isCurrent(first,{memberId:'MPS-ABCDEF12'}),true);
+ assert.equal(h.process(input('LEFT','711',1760000001)),'LEFT');
+ assert.equal(h.isCurrent(first,{memberId:'MPS-ABCDEF12'}),false);
 });
