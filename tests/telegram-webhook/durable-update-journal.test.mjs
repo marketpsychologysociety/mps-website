@@ -94,6 +94,14 @@ test('invalid and unsafe numeric update IDs fail closed', async () => {
   await assert.rejects(() => journal.claim(update(Number.MAX_SAFE_INTEGER + 1), 1000), /INVALID_UPDATE_ID/);
 });
 
+test('payload hashing is stable across JSON object key order', async () => {
+  const journal = new DurableUpdateJournal(new SharedMemoryJournalStore());
+  const first = { update_id: 103, message: { chat: { id: 7, type: 'private' }, text: '/start' } };
+  const reordered = { message: { text: '/start', chat: { type: 'private', id: 7 } }, update_id: 103 };
+  assert.equal((await journal.claim(first, 1000)).outcome, 'CLAIMED');
+  assert.equal((await journal.claim(reordered, 1100)).outcome, 'BUSY');
+});
+
 test('same update ID with different payload is quarantined', async () => {
   const store = new SharedMemoryJournalStore();
   const journal = new DurableUpdateJournal(store);
