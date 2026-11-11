@@ -3055,7 +3055,7 @@ function createMpsGasVipChatMemberHandler_(config) {
     if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_CHAT_MEMBER_SOURCE_DATE_REQUIRED');
     var status=String(event.new_chat_member.status||'');
     var isMember=event.new_chat_member.is_member===true;
-    function membership_(member){if(!member)return null;var s=String(member.status||'');return s==='member'||s==='administrator'||s==='creator'||(s==='restricted'&&member.is_member===true);}
+    function membership_(member){if(!member)return null;var s=String(member.status||'');if(s==='member'||s==='administrator'||s==='creator')return true;if(s==='left'||s==='kicked')return false;if(s==='restricted')return member.is_member===true?true:(member.is_member===false?false:null);return null;}
     var active=membership_(event.new_chat_member)===true;
     var left=membership_(event.new_chat_member)===false;
     var oldMember=membership_(event.old_chat_member);
