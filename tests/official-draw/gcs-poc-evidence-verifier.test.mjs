@@ -89,7 +89,8 @@ test('rejects malformed schema and floating-point generation identifiers', () =>
 test('rejects missing administrative policy audit evidence', () => {
   const b = fixture(); b.auditEvents = b.auditEvents.filter(e => e.action !== 'POLICY_CHANGE');
   assert.ok(verifyGcsPocEvidenceBundle(b).errors.includes('ADMIN_POLICY_AUDIT_MISSING'));
-});\n
+});
+
 test('fails closed without throwing on malformed object collection', () => {
   const b = fixture(); b.objects = { unexpected: 'not-an-array' };
   assert.ok(verifyGcsPocEvidenceBundle(b).errors.includes('OBJECT_SET_EMPTY'));
