@@ -289,3 +289,31 @@ test('unauthorized restricted active user is banned and unbanned only after live
  assert.equal(calls.length,3);
  assert.ok(calls[0].includes('getChatMember'));assert.ok(calls[1].includes('banChatMember'));assert.ok(calls[2].includes('unbanChatMember'));
 });
+
+function auditPruneHarness({allKeyed=false}={}) {
+ const rows=[['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details','Effect Key']];
+ for(let i=0;i<2001;i++)rows.push([new Date(1760000000000+i),'SYSTEM','actor','ACTION','target','SUCCESS','legacy detail',allKeyed?'effect-'+i:(i===0?'durable-effect':'')]);
+ const sheet={
+  getLastRow:()=>rows.length,getLastColumn:()=>8,
+  appendRow:row=>rows.push(row.slice()),
+  getRange:(r,col,nr=1,nc=1)=>({
+   getDisplayValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>String(rows[r-1+ri]?.[col-1+ci]??'')))
+  }),
+  deleteRows:(start,count)=>rows.splice(start-1,count)
+ };
+ const context={getMpsContentSheet_:()=>sheet,clean_:v=>String(v),sheetText_:v=>String(v),cleanNewsText_:v=>String(v),safeErrorMessage_:e=>String(e),console};
+ vm.createContext(context);vm.runInContext(extract('recordMpsAudit_','apiAdminCheckSystemConfiguration'),context,{timeout:1000});
+ return{run:()=>context.recordMpsAudit_('ADMIN','actor','ACTION','target','SUCCESS','detail'),rows};
+}
+test('audit pruning never deletes keyed effect-ledger rows',()=>{
+ const h=auditPruneHarness();h.run();
+ assert.equal(h.rows.length,2001);
+ assert.equal(h.rows.some(r=>r[7]==='durable-effect'),true);
+ assert.equal(h.rows[h.rows.length-1][3],'ACTION');
+});
+test('audit pruning may exceed soft cap rather than delete durable keyed rows',()=>{
+ const h=auditPruneHarness({allKeyed:true});h.run();
+ assert.equal(h.rows.length,2003);
+ assert.equal(h.rows.slice(1,-1).every(r=>String(r[7]).startsWith('effect-')),true);
+ assert.equal(h.rows[h.rows.length-1][3],'ACTION');
+});
