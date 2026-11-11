@@ -61,13 +61,20 @@ function createMpsGasVipTransitionStore_(config) {
     if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_TRANSITION_INVALID_SOURCE_DATE');
     if(!/^(0|[1-9]\d{0,19})$/.test(updateId))throw new Error('VIP_TRANSITION_INVALID_UPDATE_ID');
     var sh=sheet_(cursorName,cursorHeaders,tx),rows=rows_(sh,cursorHeaders.length),i=uniqueRow_(rows,0,id);
-    var values=[id,epoch,sourceDate,updateId,key_(record.transitionKey),record.updatedAt];
+    var transitionKey=key_(record.transitionKey);
+    var values=[id,epoch,sourceDate,updateId,transitionKey,record.updatedAt];
     if(i<0){sh.getRange(sh.getLastRow()+1,1,1,cursorHeaders.length).setValues([values]);SpreadsheetApp.flush();return{outcome:'INSERTED'};}
+    var prior=rows[i],priorEpoch=Number(prior[1]),priorDate=Number(prior[2]),priorId=String(prior[3]);
+    function cmpId(a,b){return a.length!==b.length?(a.length>b.length?1:-1):(a===b?0:(a>b?1:-1));}
+    var order=epoch!==priorEpoch?(epoch>priorEpoch?1:-1):(sourceDate!==priorDate?(sourceDate>priorDate?1:-1):cmpId(updateId,priorId));
+    if(order<0)throw new Error('VIP_TRANSITION_CURSOR_REGRESSION');
+    if(order===0&&String(prior[4])!==transitionKey)throw new Error('VIP_TRANSITION_CURSOR_COLLISION');
+    if(order===0)return{outcome:'ALREADY_CURRENT'};
     sh.getRange(i+2,1,1,cursorHeaders.length).setValues([values]);SpreadsheetApp.flush();return{outcome:'UPDATED'};
   }
   function findPending(tx,memberId){
     var id=member_(memberId),sh=sheet_(intentName,intentHeaders,tx),rows=rows_(sh,intentHeaders.length);
-    var found=[];rows.forEach(function(row){if(String(row[3])===id&&['INTENT','STATUS_APPLIED'].indexOf(String(row[8]))>=0)found.push(intentObject_(row));});
+    var found=[];rows.forEach(function(row){if(String(row[3])===id&&['INTENT','STATUS_APPLIED'].indexOf(String(row[9]))>=0)found.push(intentObject_(row));});
     if(found.length>1)throw new Error('VIP_TRANSITION_MULTIPLE_PENDING');
     return found.length?found[0]:null;
   }
