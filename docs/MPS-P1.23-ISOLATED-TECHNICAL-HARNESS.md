@@ -61,3 +61,15 @@ The next implementation increment should be a genuinely isolated persistence/API
 - Idempotency scoping now uses an unambiguous tuple encoding and fingerprints the expected version as part of the request. Invalid key/version/payload types fail closed. This remains an in-memory synthetic model, not durable idempotency.
 
 - Cross-check against the P1.22 authorization matrix removed an overbroad synthetic grant: `DRAW_SECURITY_ADMIN` is not permitted to create draw events; `SERVICE_IDENTITY` cannot approve rules; publisher cannot execute draws. The harness remains a deliberately narrow subset, not the complete P1.22 matrix.
+
+
+## Follow-up hardening review
+
+A further source review identified canonicalization and projection edge cases that could otherwise make a synthetic digest ambiguous or accept an object that does not serialize as expected:
+
+- Canonical JSON now rejects non-enumerable object properties rather than silently omitting them from the digest.
+- Array element access uses own data descriptors; accessor-backed and non-enumerable array indices are rejected without invoking getters.
+- Public winner projection now requires enumerable own data properties throughout the record and proof, and requires string types before applying identifier/hash/round patterns.
+- Regression cases were added for hidden object fields, object/array getters, non-enumerable array elements, hidden public fields and malformed proof types.
+
+These are source-level changes and regression assertions only. They must not be described as passing until the P1.23 test command has actually completed in CI or a local Node.js runtime. The synthetic scope and all operational NO-GO gates remain unchanged.
