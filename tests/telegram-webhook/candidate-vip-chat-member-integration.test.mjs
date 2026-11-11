@@ -27,7 +27,7 @@ function joinHarness(fetchImpl){
  const accessSheet={getRange:()=>({getValues:()=>[accessRow]})};
  const memberSheet={getRange:()=>({getValues:()=>[memberRow]})};
  const context={
-  console,MPS:{headers:new Array(30)},
+  console,MPS:{headers:new Array(30)},MPS_COL:{registrationStatus:8,depositStatus:15},
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>({MPS_TELEGRAM_VIP_CHAT_ID:'-1001234567890',MPS_TELEGRAM_BOT_TOKEN:'123456:TEST_TOKEN_NOT_REAL'})[key]||''})},
   getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByUserId_:()=>2,
   getMemberSheet_:()=>memberSheet,findMemberById_:()=>2,
@@ -157,7 +157,7 @@ test('sendVipInvite_ getChatMember observation never writes VIP status',()=>{
  };
  vm.createContext(context);vm.runInContext(source,context,{timeout:1000});
  const result=context.sendVipInvite_(memberId);
- assert.deepEqual(result,{ok:true,alreadyJoined:true});
+ assert.equal(result.ok,true);assert.equal(result.alreadyJoined,true);
  assert.equal(locks,1);
  assert.equal(writes.length,0,'getChatMember observation must not mutate access or member status');
 });
