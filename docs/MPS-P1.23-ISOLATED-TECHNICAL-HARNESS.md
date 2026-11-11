@@ -1,0 +1,48 @@
+# P1.23 — isolated technical acceptance harness
+
+**Evidence class:** SYNTHETIC  
+**Status:** local contract harness added; operational integrations remain untested  
+**Production decision:** official winner draw **BLOCKED / NO-GO**; roulette **SIMULATION ONLY**
+
+## Scope delivered
+
+P1.23 adds a Node.js built-in-only harness at:
+
+- `tests/official-draw/isolated-acceptance-harness.mjs`
+- `tests/official-draw/isolated-acceptance-harness.test.mjs`
+
+The harness is deliberately independent of member data, cloud providers, external packages, Apps Script, production endpoints and credentials. It models only a narrow subset of P1.22 acceptance invariants.
+
+Coverage:
+
+1. Canonical JSON serialization with sorted object keys, plain-object enforcement and rejection of non-finite numbers.
+2. SHA-256 digest over canonical synthetic payloads.
+3. Strict event-creation input allowlist; identity, role, participant and unknown fields are rejected.
+4. Deny-by-default role/action matrix, object ownership and same-subject separation-of-duties checks.
+5. Public winner projection accepts only PUBLISHED + VERIFIED records with exact public/proof field allowlists; internal state is stripped.
+6. Synthetic serialized execution model checks owner, expected version, allowed state, idempotency replay/conflict and a serialized concurrent request pair.
+7. Fault points before commit and after commit/before acknowledgement, including replay of a committed operation after lost acknowledgement.
+8. Synthetic outbox remains PENDING; no notification is sent.
+
+A dedicated CI step runs:
+
+`node --test tests/official-draw/isolated-acceptance-harness.test.mjs`
+
+## Important limits
+
+This harness is not the future Draw API and must not be mistaken for a database transaction implementation:
+
+- Authorization receives synthetic role/subject values; no OIDC, MFA, token signature, issuer, audience, session or CSRF validation is implemented.
+- The in-memory Maps and promise queue are a deterministic contract model only. They do not provide durable commits, database isolation, cross-process locking, crash recovery or transactional outbox semantics.
+- The fault points simulate return paths; they do not kill a process or test filesystem/power-loss behavior.
+- The SHA-256 digest is not a signature, beacon proof, participant-roster commitment or unbiased winner-selection protocol.
+- Public projection tests do not exercise Apps Script, the live CMS, browser caches or a deployed public endpoint.
+- No real participant/member data, PII, credentials, tokens, provider accounts, cloud resources, database, IAM, KMS, audit sink, deployment or production configuration is used or changed.
+
+## Acceptance result interpretation
+
+A passing suite establishes only that these synthetic functions satisfy their asserted contracts. It is not evidence of operational G0–G11 readiness and does not lift any production release blocker.
+
+## Next safe work
+
+The next implementation increment should be a genuinely isolated persistence/API adapter with a real transactional datastore and separately authenticated test identities, only after its environment, ownership, data boundary, and cost are approved. Do not label a local in-memory model as database integration. Real provider, OIDC/MFA, cryptographic beacon verification, independent audit provenance, off-site restore and human dual-control evidence remain separate gates.
