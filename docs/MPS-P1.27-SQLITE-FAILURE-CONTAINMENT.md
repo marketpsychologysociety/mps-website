@@ -1,7 +1,7 @@
 # P1.27 — SQLite Failure Containment and Fail-Closed Integrity
 
 **Evidence class:** SYNTHETIC  
-**Status:** implementation and clean-checkout verification pending  
+**Status:** four focused failure-containment tests pass in clean-checkout CI run #450  
 **Production decision:** official winner draw **BLOCKED / NO-GO**; roulette **SIMULATION ONLY**
 
 ## Objective
@@ -34,3 +34,10 @@ Pending clean-checkout CI. This suite uses local temporary files and a deliberat
 - No production DB, cloud project, IAM, billing, credentials, Apps Script, Sheets, Drive, Telegram, DNS, hosting or deployment was accessed or changed.
 
 P1.27 is a synthetic failure-containment experiment only. It does not satisfy operational G0–G11 gates and does not change the official-draw **NO-GO** decision.
+
+
+## Verification outcome
+
+Clean-checkout GitHub Actions run #450 (`42966585359`) on commit `0d5e7161d90725b061bd8f7623d1eaecf1e6f7bf`: **SUCCESS**. P1.27 tests: 4 PASS, 0 FAIL, 0 SKIP; the complete workflow, including Chromium browser checks, succeeded with no failed or skipped steps.
+
+An earlier CI attempt exposed an incorrect test assumption: on the simulated `SQLITE_FULL` condition, SQLite had already rolled back the active transaction, so issuing another `ROLLBACK` correctly failed with “no transaction is active.” The test was corrected to assert SQLite's observed automatic rollback and verify zero partial rows, integrity `ok`, and the same result after reopening. The implementation was not weakened.
