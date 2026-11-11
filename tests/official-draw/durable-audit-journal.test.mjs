@@ -197,3 +197,28 @@ test('dead same-host lock owner is atomically quarantined before recovery', asyn
   assert.equal(journal.getStats().record_count, 0);
   await assert.rejects(fs.stat(lockPath), error => error.code === 'ENOENT');
 });
+
+
+test('ownerless and foreign-host lock directories fail closed without lock stealing', async t => {
+  const ownerless = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-journal-ownerless-'));
+  t.after(() => fs.rm(ownerless, { recursive: true, force: true }));
+  await fs.mkdir(path.join(ownerless, 'journal.lock'), { mode: 0o700 });
+  await assert.rejects(
+    DurableAuditJournal.open(ownerless, { lockWaitMs: 25, lockRetryMs: 5 }),
+    error => error.code === 'LOCK_RECOVERY_REQUIRED'
+  );
+
+  const foreign = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-journal-foreign-lock-'));
+  t.after(() => fs.rm(foreign, { recursive: true, force: true }));
+  const foreignLock = path.join(foreign, 'journal.lock');
+  await fs.mkdir(foreignLock, { mode: 0o700 });
+  await fs.writeFile(path.join(foreignLock, 'owner.json'), JSON.stringify({
+    pid: 2147483647, hostname: 'different-host.invalid', token: 'synthetic-foreign-owner',
+    started_at: new Date(0).toISOString()
+  }), { mode: 0o600 });
+  await assert.rejects(
+    DurableAuditJournal.open(foreign, { lockWaitMs: 25, lockRetryMs: 5 }),
+    error => error.code === 'JOURNAL_LOCKED'
+  );
+  assert.equal((await fs.readdir(foreignLock)).includes('owner.json'), true);
+});
