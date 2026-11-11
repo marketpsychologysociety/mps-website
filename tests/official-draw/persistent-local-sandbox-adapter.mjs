@@ -30,6 +30,7 @@ const equal = (a, b) => {
 };
 let journal = await DurableAuditJournal.open(journalDir);
 const draws = new Map();
+const busyDraws = new Set();
 
 function applyAggregate(aggregate) {
   if (!aggregate || aggregate.kind !== 'DRAW') return;
@@ -176,6 +177,9 @@ const server = http.createServer(async (req, res) => {
       if (currentOperation.state !== 'COMPLETED') return fail(res, 409, 'RECONCILIATION_REQUIRED', 'A prior operation has an uncertain outcome; manual reconciliation is required.');
       return json(res, 200, { ok: true, data: { operation_id: currentOperation.operation_id }, operation: { state: 'COMPLETED', replayed: true }, request_id: requestId });
     }
+    if (busyDraws.has(draw.draw_id)) return fail(res, 409, 'OPERATION_IN_PROGRESS', 'Another state transition is already being processed for this draw.');
+    busyDraws.add(draw.draw_id);
+    try {
     if (!expected || expected !== String(draw.version)) return fail(res, 412, 'VERSION_PRECONDITION_FAILED', 'If-Match must equal the current draw version.');
     if (draw.state !== 'BEACON_COMMITTED') return fail(res, 409, 'PRECONDITION_FAILED', 'Draw is not ready for execution.');
     let intent;
@@ -211,6 +215,9 @@ const server = http.createServer(async (req, res) => {
       ok: true, data: { operation_id: intent.operation.operation_id },
       operation: { state: 'COMPLETED', replayed: false }, request_id: requestId
     });
+    } finally {
+      busyDraws.delete(draw.draw_id);
+    }
   }
   return fail(res, 404, 'NOT_FOUND', 'Route not found.');
 });
