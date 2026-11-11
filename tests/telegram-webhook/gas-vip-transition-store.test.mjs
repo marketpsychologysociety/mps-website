@@ -128,3 +128,21 @@ test('cursor rejects regression and conflicting transition at identical sequence
  assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'999',transitionKey:'telegram:2:999:vip_transition',updatedAt:'old'})),/VIP_TRANSITION_CURSOR_REGRESSION/);
  assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:other',updatedAt:'now'})),/VIP_TRANSITION_CURSOR_COLLISION/);
 });
+
+test('intent state machine rejects backward and unsupported state transitions',()=>{
+ const h=harness();h.run((s,tx)=>s.insertIntent(tx,record()));
+ assert.throws(()=>h.run((s,tx)=>s.updateIntent(tx,'telegram:2:100:vip_transition',{'State':'COMPLETED'})),/VIP_TRANSITION_INVALID_STATE_CHANGE/);
+ h.run((s,tx)=>s.updateIntent(tx,'telegram:2:100:vip_transition',{'State':'STATUS_APPLIED'}));
+ assert.throws(()=>h.run((s,tx)=>s.updateIntent(tx,'telegram:2:100:vip_transition',{'State':'INTENT'})),/VIP_TRANSITION_INVALID_STATE_CHANGE/);
+});
+test('malformed existing cursor is quarantined instead of overwritten',()=>{
+ const h=harness();
+ h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'100',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'}));
+ h.sheets.get('MPS Telegram VIP Member Cursor')[1][2]='not-a-date';
+ assert.throws(()=>h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000001,updateId:'101',transitionKey:'telegram:2:101:vip_transition',updatedAt:'later'})),/VIP_TRANSITION_CURSOR_CORRUPT/);
+});
+test('intent repository rejects non-chat-member source and invalid initial state',()=>{
+ const h=harness();
+ assert.throws(()=>h.run((s,tx)=>s.insertIntent(tx,{...record(),'Source Type':'CHAT_JOIN_REQUEST'})),/VIP_TRANSITION_UNSUPPORTED_SOURCE_TYPE/);
+ assert.throws(()=>h.run((s,tx)=>s.insertIntent(tx,{...record(),'State':'COMPLETED'})),/VIP_TRANSITION_INVALID_INITIAL_STATE/);
+});
