@@ -26,6 +26,43 @@ let draws = new Map();
 let idempotency = new Map();
 let operations = new Map();
 let audit = [];
+let privateProjectionFixture = null;
+let publishedProjection = null;
+
+const PRIVATE_CANARIES = Object.freeze([
+  "SYNTHETIC_PRIVATE_CANARY_NAME_7c91",
+  "SYNTHETIC_PRIVATE_CANARY_RAW_MEMBER_ID_4b20",
+  "SYNTHETIC_PRIVATE_CANARY_PHONE_6281234567890",
+  "SYNTHETIC_PRIVATE_CANARY_EMAIL_private@example.invalid",
+  "SYNTHETIC_PRIVATE_CANARY_TELEGRAM_99112233",
+  "SYNTHETIC_PRIVATE_CANARY_MT5_70001234",
+  "SYNTHETIC_PRIVATE_CANARY_DEPOSIT_987654321",
+  "SYNTHETIC_PRIVATE_CANARY_PROOF_DOC_drive_file_001",
+  "SYNTHETIC_PRIVATE_CANARY_PIN_804216",
+  "SYNTHETIC_PRIVATE_CANARY_TOKEN_bearer_secret_001",
+  "participant_synthetic_001"
+]);
+
+function serializePublicProjection(record) {
+  if (!record || record.verification_status !== "VERIFIED" || record.publication_status !== "PUBLISHED") return null;
+  const proof = record.proof_summary || {};
+  return {
+    public_result_id: record.public_result_id,
+    event_title: record.event_title,
+    prize_public_description: record.prize_public_description,
+    message: "Hasil undian telah diverifikasi dan dipublikasikan.",
+    published_at_utc: record.published_at_utc,
+    protocol_version: record.protocol_version,
+    verification_status: "VERIFIED",
+    proof_summary: {
+      participant_count: proof.participant_count,
+      snapshot_commitment: proof.snapshot_commitment,
+      beacon_chain_hash: proof.beacon_chain_hash,
+      beacon_round: proof.beacon_round,
+      result_digest: proof.result_digest
+    }
+  };
+}
 
 const hash = value => createHash("sha256").update(String(value)).digest("hex");
 const safeEqual = (a, b) => {
@@ -96,6 +133,17 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://127.0.0.1");
   if (url.pathname === "/health" && req.method === "GET") {
     return json(res, 200, { ok: true, data: { service: "mps-draw-synthetic-sandbox", mode: "TEST_ONLY" }, request_id: requestId });
+  }
+  // Public read-only projection routes intentionally run before authentication.
+  if (req.method === "GET" && url.pathname === "/api/v1/public/winners") {
+    return json(res, 200, { ok: true, request_id: requestId, data: { items: publishedProjection ? [publishedProjection] : [], count: publishedProjection ? 1 : 0 } });
+  }
+  const publicWinnerMatch = url.pathname.match(/^\/api\/v1\/public\/winners\/([^/]+)$/);
+  if (req.method === "GET" && publicWinnerMatch) {
+    if (!publishedProjection || decodeURIComponent(publicWinnerMatch[1]) !== publishedProjection.public_result_id) {
+      return fail(res, 404, "NOT_FOUND", "Published result not found.");
+    }
+    return json(res, 200, { ok: true, request_id: requestId, data: publishedProjection });
   }
   const actor = actorFor(req);
   if (!actor) return fail(res, 401, "UNAUTHENTICATED", "Valid synthetic sandbox session required.");
@@ -224,6 +272,7 @@ async function request({ method, path, actor, body, headers = {} }) {
 }
 function reset() {
   events = new Map(); draws = new Map(); idempotency = new Map(); operations = new Map(); audit = [];
+  privateProjectionFixture = null; publishedProjection = null;
 }
 function seedDrawAtState({ state, preparedBy, approvedBy }) {
   const eventId = "evt_fixture_" + randomUUID();
@@ -243,15 +292,50 @@ function seedApprovedEvent({ preparedBy, approvedBy }) {
   const seeded = seedDrawAtState({ state: "BEACON_COMMITTED", preparedBy, approvedBy });
   return { ...seeded, snapshotDigest: hash("synthetic-snapshot") };
 }
-function getPrivateCanaries() {
-  return ["SYNTHETIC_PRIVATE_CANARY_8f3a", "participant_synthetic_001"];
+function seedPublishedProjection() {
+  const canaries = [...PRIVATE_CANARIES];
+  privateProjectionFixture = {
+    public_result_id: "public_result_synthetic_001",
+    event_title: "MPS Synthetic Test Event",
+    prize_public_description: "Synthetic test prize",
+    published_at_utc: "2026-11-11T00:00:00Z",
+    protocol_version: "mps-draw-test-v1",
+    verification_status: "VERIFIED",
+    publication_status: "PUBLISHED",
+    proof_summary: {
+      participant_count: 25,
+      snapshot_commitment: "sha256:" + hash("synthetic-snapshot"),
+      beacon_chain_hash: hash("synthetic-chain"),
+      beacon_round: 123456,
+      result_digest: "sha256:" + hash("synthetic-result")
+    },
+    // Deliberately private fields: none may cross the public serializer.
+    winner_name: canaries[0],
+    member_id: canaries[1],
+    phone: canaries[2],
+    email: canaries[3],
+    telegram_id: canaries[4],
+    mt5_login: canaries[5],
+    deposit_amount: canaries[6],
+    proof_document_ref: canaries[7],
+    pin: canaries[8],
+    access_token: canaries[9],
+    participant_ref: canaries[10],
+    private_roster: canaries
+  };
+  publishedProjection = serializePublicProjection(privateProjectionFixture);
+  if (!publishedProjection) throw new Error("Synthetic public projection fixture did not satisfy publication gates.");
+  return { publicResultId: publishedProjection.public_result_id };
 }
-function getPublishedProjection() {
-  return null;
+function getPrivateCanaries() { return [...PRIVATE_CANARIES]; }
+async function getPublishedProjection(publicResultId = "public_result_synthetic_001") {
+  const collection = await request({ method: "GET", path: "/api/v1/public/winners" });
+  const detail = await request({ method: "GET", path: "/api/v1/public/winners/" + encodeURIComponent(publicResultId) });
+  return { collection, detail };
 }
 function getOperationCount(drawId) { return operations.get(drawId) || 0; }
 
 export default {
   baseUrl, actors, reset, seedApprovedEvent, seedDrawAtState, request,
-  getPrivateCanaries, getPublishedProjection, getOperationCount
+  seedPublishedProjection, getPrivateCanaries, getPublishedProjection, getOperationCount
 };
