@@ -213,6 +213,12 @@ This stage verifies a detached Ed25519 signature from an independently pinned re
 
 **Authenticity boundary:** a valid result proves that the pinned reviewer key signed claims bound to this exact bundle. It does not prove Google signed the raw logs or that reviewer claims are true. The trust key must be provisioned out of band; the caller must run P1.10 first and durably consume nonce challenges. No real keys, raw logs, GCP resources, or production connections are committed. See docs/MPS-GCS-INDEPENDENT-PROVENANCE-ATTESTATION.md.
 
+## P1.13 — reviewer nonce process-crash recovery (synthetic only)
+
+The P1.12 trust-registry test suite now includes two child-process fault-injection cases. A worker terminates with exit code 73 while holding the registry lock, first after nonce-consumption bytes are written but before fsync, and again after fsync but before acknowledgement. A fresh process must recover the stale same-host lock and journal; the pre-fsync case reconciles either an absent/incomplete or complete record without double consumption, while the post-fsync case must reject replay. Both assert exactly one final nonce consumption. The injected hook is test-only. These tests model process termination, not power loss, kernel panic, storage cache loss, or multi-host behavior.
+
+Run: `node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs`
+
 ## P1.12 — durable reviewer trust registry and single-use nonce (synthetic only)
 
 Run:
