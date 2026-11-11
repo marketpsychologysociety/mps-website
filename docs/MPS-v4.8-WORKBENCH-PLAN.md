@@ -923,3 +923,6 @@ See `docs/MPS-P1.22-ISOLATED-TECHNICAL-ACCEPTANCE-SPEC.md` for canonical types/s
 ## P1.23 follow-up review — canonicalization and public projection
 
 A second source review hardened canonical serialization against non-enumerable object properties and accessor/non-enumerable array elements, and hardened the public winner projection against hidden own fields and non-string proof identifiers. Regression assertions were added. P1.23 test execution remains unverified in the available evidence; do not mark the suite as passed until a completed run is independently confirmed. Synthetic-only scope and all production NO-GO gates remain unchanged.
+
+
+P1.23 CI correction note: initial hardened-source CI execution found one test-fixture mismatch (the invalid-state assertion supplied a stale version and correctly received VERSION_MISMATCH). The fixture was corrected to supply the current version so it exercises the state guard. Await a fresh CI result; do not mark P1.23 passed before confirmation.
