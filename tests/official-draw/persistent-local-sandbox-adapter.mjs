@@ -248,8 +248,9 @@ async function request({ method, path: route, actor, body, headers = {} }) {
   return { status: response.status, body: await response.json() };
 }
 async function shutdown() {
-  await journal.close();
+  // Stop accepting/wait for HTTP work before releasing the exclusive writer lease.
   await new Promise(resolve => server.close(resolve));
+  await journal.close();
 }
 process.once('SIGTERM', () => shutdown().finally(() => process.exit(0)));
 process.once('SIGINT', () => shutdown().finally(() => process.exit(0)));
