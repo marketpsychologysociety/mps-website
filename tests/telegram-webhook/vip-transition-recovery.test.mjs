@@ -58,4 +58,9 @@ test('a newer ingress epoch accepts a lower update ID',async()=>{
   assert.equal(await s.make().process(input('10','ACTIVE',1)),'ACTIVE');
 });
 
-test('source event date outranks a larger update ID within the same ingress epoch',async()=>{\n  const s=setup();\n  await s.make().process(input(900,'LEFT',0,1800000002));\n  assert.equal(await s.make().process(input(901,'ACTIVE',0,1800000001)),'STALE');\n  assert.equal(s.base.member('MPS-ABCDEF12').statusA,'LEFT');\n});\n
+test('source event date outranks a larger update ID within the same ingress epoch',async()=>{
+  const s=setup();
+  await s.make().process(input(900,'LEFT',0,1800000002));
+  assert.equal(await s.make().process(input(901,'ACTIVE',0,1800000001)),'STALE');
+  assert.equal(s.base.member('MPS-ABCDEF12').statusA,'LEFT');
+});
