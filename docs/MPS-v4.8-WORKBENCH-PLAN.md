@@ -660,3 +660,14 @@ Added a real child-process crash test for the narrow failure window where a writ
 - [ ] Complete synthetic abuse-case tests and review all runbooks before any production integration proposal.
 
 **Evidence:** `docs/MPS-EXTERNAL-EVIDENCE-STORAGE-ARCHITECTURE.md`. P1.6 is complete as a design artifact only; real provider integration is NOT STARTED. No cloud resources or credentials were created. Official draw remains NO-GO; roulette remains SIMULATION ONLY.
+
+
+## P1.7 — external evidence provider candidate evaluation
+
+- [x] Compare Google Cloud Storage, Amazon S3 and Azure Blob Storage against conditional create, exact-generation reads, retention/WORM, audit evidence and operational caveats.
+- [x] Record conditional first PoC candidate and fallback without selecting/provisioning a provider.
+- [ ] Confirm account/project ownership, regional/data-residency, legal retention, cost and independent admin availability.
+- [ ] Obtain explicit approval before creating any isolated provider test account or resource.
+- [ ] Run the synthetic provider PoC matrix in the isolated account and independently verify evidence.
+
+**Evidence:** `docs/MPS-EXTERNAL-EVIDENCE-PROVIDER-EVALUATION.md`. Desk evaluation complete; GCS is a conditional first PoC candidate, S3 fallback, Azure third candidate. Provider selection and provisioning NOT STARTED. No resources or credentials created. Official draw remains NO-GO; roulette remains SIMULATION ONLY.
