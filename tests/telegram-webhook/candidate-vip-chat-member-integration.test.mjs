@@ -405,6 +405,54 @@ test('VIP storage provisioning validates every target schema before creating or 
  assert.ok(source.indexOf("getMpsContentSheet_(MPS_AUDIT_LOGS.sheet")>preflight);
  assert.ok(source.indexOf("getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet")>preflight);
 });
+function vipProvisionHarness({badVipHeader=false,badMemberHeader=false}={}) {
+ let inserts=0,flushes=0,telegramAccessCalls=0,contentCalls=0,migrations=0,memberSheetCalls=0;
+ const dbHeaders=[...legacyMemberHeaders,...appendedMemberHeaders];
+ if(badMemberHeader)dbHeaders[0]='Wrong ID Header';
+ function makeSheet(rows=[]){
+  return {
+   getLastRow:()=>rows.length,getLastColumn:()=>rows[0]?rows[0].length:0,
+   getRange:(row,col,nr=1,nc=1)=>({
+    getDisplayValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>String(rows[row-1+ri]?.[col-1+ci]??''))),
+    setValues:values=>{values.forEach((line,ri)=>{while(rows.length<=row-1+ri)rows.push([]);line.forEach((v,ci)=>rows[row-1+ri][col-1+ci]=v);});}
+   })
+  };
+ }
+ const dbSheet=makeSheet([dbHeaders]);
+ const sheets={};
+ const badVip=makeSheet([['Wrong VIP Header']]);
+ const ss={
+  getSheetByName:name=>name==='Database Member'?dbSheet:(name==='VIP Access'&&badVipHeader?badVip:(sheets[name]||null)),
+  insertSheet:name=>{inserts++;const sh=makeSheet();sheets[name]=sh;return sh;}
+ };
+ const context={
+  MPS:{headers:[...legacyMemberHeaders,...appendedMemberHeaders]},
+  MPS_AUDIT_LOGS:{sheet:'MPS Audit Logs',headers:['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details']},
+  MPS_VIP_TICKER_EVENTS:{sheet:'MPS VIP Ticker Events',headers:['Event ID','Created At','Member ID','Member Name','Event Text','Status']},
+  requireSuperAdmin_:()=>true,
+  PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_SPREADSHEET_ID'?'isolated-db':''})},
+  createMpsGasEffectLedger_:()=>({runExclusive:callback=>callback({migrate:()=>{migrations++;return{outcome:'MIGRATED'};}})}),
+  createMpsGasVipTransitionStore_:()=>({headers:{intents:intentHeaders,cursor:cursorHeaders}}),
+  SpreadsheetApp:{openById:id=>{assert.equal(id,'isolated-db');return ss;},flush:()=>{flushes++;}},
+  getMemberSheet_:()=>{memberSheetCalls++;return dbSheet;},
+  getTelegramAccessSheet_:()=>{telegramAccessCalls++;return makeSheet();},
+  getMpsContentSheet_:()=>{contentCalls++;return makeSheet();},
+  console
+ };
+ vm.createContext(context);vm.runInContext(schemaStorageInspectorSource,context,{timeout:1000});vm.runInContext(extract('apiAdminPrepareTelegramVipTransitionStorage','kickMpsUnauthorizedUser_'),context,{timeout:1000});
+ return{run:()=>context.apiAdminPrepareTelegramVipTransitionStorage('admin-session'),stats:()=>({inserts,flushes,telegramAccessCalls,contentCalls,migrations,memberSheetCalls})};
+}
+test('VIP provisioning aborts before every write when an existing storage schema is mismatched',()=>{
+ const h=vipProvisionHarness({badVipHeader:true});
+ assert.throws(()=>h.run(),/VIP_TRANSITION_PREFLIGHT_FAILED/);
+ assert.deepEqual(h.stats(),{inserts:0,flushes:0,telegramAccessCalls:0,contentCalls:0,migrations:0,memberSheetCalls:0});
+});
+test('VIP provisioning verifies the exact 30-column member schema and creates only the two transition tabs',()=>{
+ const h=vipProvisionHarness();
+ const result=h.run();
+ assert.equal(result.ok,true);
+ assert.deepEqual(h.stats(),{inserts:2,flushes:2,telegramAccessCalls:1,contentCalls:2,migrations:2,memberSheetCalls:1});
+});
 test('candidate Index exposes guarded migration controls only for super-admin and requires explicit confirmations',()=>{
  assert.match(candidateIndex,/<section class="panel" id="memberSchemaMaintenance" data-super-admin-only/);
  assert.match(candidateIndex,/if\(\/sesi admin\/i\.test\(message\)\)\{state\.adminSession='';state\.adminRole='';state\.memberSchemaPreflight=null;/);
