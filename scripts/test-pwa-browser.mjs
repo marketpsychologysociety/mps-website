@@ -289,6 +289,15 @@ try {
   const announcementResponse = await page.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
   if (!announcementResponse || announcementResponse.status() !== 200) failures.push('Announcement Center did not return HTTP 200');
   const announcementTitle = await page.title();
+  const publicCenterSafety = await page.evaluate(() => ({
+    enabled: window.MPS_CONFIG?.publicCenter?.enabled,
+    remoteScripts: [...document.scripts].filter(script => {
+      if (!script.src) return false;
+      try { return new URL(script.src).hostname === 'script.google.com'; } catch { return false; }
+    }).length
+  }));
+  if (publicCenterSafety.enabled !== false) failures.push('Public Center feature flag must remain disabled in the static prototype');
+  if (publicCenterSafety.remoteScripts !== 0) failures.push('Public Center injected a remote Apps Script executable into the page');
   if (!announcementTitle.includes('Announcement Center')) failures.push('Announcement Center title is missing');
   const tickerButton = page.locator('.ticker-toggle');
   await tickerButton.click();
