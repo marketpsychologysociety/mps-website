@@ -1739,7 +1739,7 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
     afterTransition:function(context){
       const r=context.resolved;
       if(context.targetState==='ACTIVE'){
-        if(r.tickerAllowed)CacheService.getScriptCache().remove('mps_public_center_v480');
+        CacheService.getScriptCache().remove('mps_public_center_v480');
         if(r.inviteToRevoke&&!revokeVipInviteLink_(groupId,r.inviteToRevoke)){
           sendTelegram_('⚠️ PERINGATAN MPS: member '+r.memberId+' sudah bergabung, tetapi tautan undangan lama gagal dicabut. Periksa invite link VIP Community.');
         }
@@ -3054,7 +3054,7 @@ function createMpsGasVipTransitionOrchestrator_(config) {
       var existing=store.readIntent(tx,intentKey);
       if(existing){
         if(String(existing['Payload SHA-256'])!==payloadHash||String(existing['Member ID'])!==memberId||
-          String(existing['Target State'])!==target||Number(existing['Source Date'])!==sourceDate||String(existing['Member Name'])!==effectiveName||String(existing['Telegram User ID'])!==telegramUserId||existing['Ticker Allowed']!==tickerAllowed){
+          String(existing['Target State'])!==target||Number(existing['Source Date'])!==sourceDate||String(existing['Telegram User ID'])!==telegramUserId){
           throw new Error('VIP_TRANSITION_INTENT_COLLISION');
         }
         if(String(existing.State)==='COMPLETED')return 'DUPLICATE';
