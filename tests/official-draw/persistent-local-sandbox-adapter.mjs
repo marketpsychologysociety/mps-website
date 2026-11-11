@@ -28,7 +28,13 @@ const equal = (a, b) => {
   const x = Buffer.from(String(a)), y = Buffer.from(String(b));
   return x.length === y.length && timingSafeEqual(x, y);
 };
-let journal = await DurableAuditJournal.open(journalDir);
+const journalFaultStage = process.env.MPS_DRAW_JOURNAL_FAULT_STAGE || '';
+let journal = await DurableAuditJournal.open(journalDir, {
+  faultInjector: (stage, record) => Boolean(
+    journalFaultStage && stage === journalFaultStage &&
+    record.type === 'COMPLETION' && !record.idempotency_key.startsWith('fixture:')
+  )
+});
 const draws = new Map();
 const busyDraws = new Set();
 
