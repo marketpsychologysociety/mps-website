@@ -168,3 +168,10 @@ Implemented in workbench and clean-checkout CI verified: GitHub Actions run #218
 New tests use two independent child Node processes to append 20 synthetic operations to one journal and verify all 40 INTENT/COMPLETION records and the hash chain. Additional tests cover exclusive lease rejection/release, stale PID lock recovery, and a second API process being refused. This is single-writer process fencing, not active-active multi-instance support.
 
 Important residual constraints: local filesystem only; PID-based stale-owner recovery is same-host only; no distributed/network filesystem guarantee, transactional database, external hash anchor, backup/restore, OIDC/MFA, beacon verifier, unbiased winner selection, or production security. Official draw remains BLOCKED / NO-GO; roulette remains SIMULATION ONLY.
+
+
+## P1.6 — independent external evidence storage architecture (2026-11-11)
+
+The provider-neutral design is documented in `docs/MPS-EXTERNAL-EVIDENCE-STORAGE-ARCHITECTURE.md`. It specifies distinct writer, independent read-only verifier, storage administrator and backup/recovery roles; conditional create-only writes; exact object-generation retrieval; provider-side audit evidence; retention governance; independent backup/restore; policy/IAM monitoring; failure reconciliation; and a provider acceptance scorecard.
+
+**Status:** Design artifact only. No real provider adapter, cloud account/project, bucket, IAM policy, service account, retention policy/lock, backup, monitoring resource or credential was created. The P1.5 in-memory simulator is not evidence of external immutability or administrative independence. Provider integration remains NOT STARTED; official winner draw remains NO-GO and roulette remains SIMULATION ONLY.
