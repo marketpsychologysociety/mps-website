@@ -926,3 +926,8 @@ A second source review hardened canonical serialization against non-enumerable o
 
 
 P1.23 CI correction note: initial hardened-source CI execution found one test-fixture mismatch (the invalid-state assertion supplied a stale version and correctly received VERSION_MISMATCH). The fixture was corrected to supply the current version so it exercises the state guard. Await a fresh CI result; do not mark P1.23 passed before confirmation.
+
+
+## P1.23 verification outcome
+
+P1.23 verification update: clean-checkout GitHub Actions run #402 (42964135867) completed SUCCESS after correcting the stale expectedVersion in the invalid-state test fixture. P1.23 harness and all other workflow steps, including Chromium browser checks, passed. This is synthetic/CI evidence only and does not satisfy operational G0–G11 gates or authorize an official draw.
