@@ -105,3 +105,15 @@ The Apps Script adapter, effect-outbox contract, and handler-reconciliation cont
 - [ ] Run the adapter in a separate real Apps Script project and isolated spreadsheet, including true concurrent executions, forced execution termination, persistence/flush behavior, quota/latency, backup/restore, and permission checks.
 - [ ] Review deterministic row-value construction at each future integration point; the one-column schema detects key reuse with different row payloads by exact legacy-row comparison and requires callers to keep replay values stable.
 - [ ] Only after runtime acceptance, integrate into isolated Code.gs candidate and test handler update-ID propagation/reconciliation. No Code.gs integration or production migration is authorized by this stage.
+
+
+### Telegram effect-ledger integration review — source findings only
+
+- [x] Review the isolated Code.gs call graph for update-ID propagation, activation transitions, audit/ticker writers, and legacy readers.
+- [x] Document a critical nested-ScriptLock hazard: updateVipJoinStatus_ currently holds the script lock while calling ticker/audit writers; directly invoking the new adapter's lock-acquiring appendOnce() there would attempt recursive lock acquisition.
+- [x] Document deterministic row-value requirements, audit-row retention risk, and the fact that audit/ticker keys do not deduplicate Telegram DMs, invite revocation, moderation actions, or admin alerts.
+- [ ] Select and implement a single lock-ownership design, then test it with mocked Apps Script and Telegram adapters.
+- [ ] Propagate update_id through chat-member and join-request call chains; derive genuine activation transitions from Telegram's old/new membership state rather than only the already-mutated database flag.
+- [ ] Integrate stable ticker/audit effects into the isolated Code.gs candidate only after the above tests pass.
+
+See docs/MPS-TELEGRAM-EFFECT-LEDGER-INTEGRATION-PLAN.md. These are static source-review findings and an integration plan, not runtime acceptance. No Code.gs change or live resource change was made.
