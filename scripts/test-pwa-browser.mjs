@@ -321,11 +321,12 @@ try {
   const testConfig = originalConfig
     .replace('enabled: false', 'enabled: true')
     .replace(/endpoint: "https:\/\/script\.google\.com\/macros\/s\/[^"]+\/exec"/, 'endpoint: "' + testEndpoint + '"');
+  await feedContext.route('https://**/*', route => route.abort());
   await feedContext.route('**/config.js', route => route.fulfill({
     status: 200, contentType: 'text/javascript; charset=utf-8', body: testConfig
   }));
   let feedMode = 'valid';
-  await feedContext.route('https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec?**', route => {
+  await feedContext.route('https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec**', route => {
     const validEnvelope = 'window.MPS_PUBLIC_CENTER_DATA={"ok":true,"announcements":[{"ID":"ANN-TEST","Title":"Mocked safe feed title","Category":"important","Body":"Data-only feed test"}],"activity":[],"tickerSettings":{"enabled":false,"speed":34,"theme":"Neon"}};';
     const body = feedMode === 'valid'
       ? validEnvelope
