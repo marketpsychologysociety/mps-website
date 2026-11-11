@@ -145,11 +145,11 @@ test('recovers committed state after incomplete trailing record', async t => {
   const bytes=await fs.readFile(path.join(dir,'reviewer-trust.jsonl'),'utf8'); assert.equal(bytes.endsWith('\n'),true); assert.equal(bytes.includes('partial'),false);
 });
 
-test('fails closed immediately when lock directory exists without an owner record', async t => {
+test('fails closed after bounded grace when lock directory exists without an owner record', async t => {
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'mps-trust-ownerless-lock-')); t.after(()=>fs.rm(dir,{recursive:true,force:true}));
   await fs.mkdir(path.join(dir,'reviewer-trust.lock'),{mode:0o700});
   await assert.rejects(
-    DurableReviewerTrustRegistry.open(dir,{authorizeAdmin:auth,lockWaitMs:1000,lockRetryMs:5}),
+    DurableReviewerTrustRegistry.open(dir,{authorizeAdmin:auth,lockWaitMs:30,lockRetryMs:5}),
     e=>e.code==='LOCK_RECOVERY_REQUIRED'
   );
   assert.equal(await fs.stat(path.join(dir,'reviewer-trust.lock')).then(s=>s.isDirectory()),true);
