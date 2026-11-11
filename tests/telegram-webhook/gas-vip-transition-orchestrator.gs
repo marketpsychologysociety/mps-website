@@ -91,7 +91,8 @@ function createMpsGasVipTransitionOrchestrator_(config) {
     var target=String(input.targetState||'');
     if(!Number.isSafeInteger(epoch)||epoch<0)throw new Error('VIP_INVALID_EPOCH');
     if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_INVALID_SOURCE_DATE');
-    if(!memberId||memberId.length>128)throw new Error('VIP_INVALID_MEMBER');
+    if(!memberId&&typeof resolveTransition!=='function')throw new Error('VIP_INVALID_MEMBER');
+    if(memberId.length>128)throw new Error('VIP_INVALID_MEMBER');
     if(target&&!['ACTIVE','LEFT','DENIED'].includes(target))throw new Error('VIP_INVALID_TARGET_STATE');
     if(input.sourceType!=='CHAT_MEMBER')throw new Error('VIP_UNSUPPORTED_SOURCE_TYPE');
     var payloadHash=String(input.payloadSha256||'').toLowerCase();
