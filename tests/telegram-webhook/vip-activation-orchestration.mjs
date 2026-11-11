@@ -1,13 +1,29 @@
 /**
  * Synthetic VIP activation orchestration contract.
- * This models durable intent -> member status -> keyed ticker/audit effects -> completion.
+ * Models durable intent -> ordered member transition -> keyed ticker/audit effects -> completion.
  * In-memory stores only; not an Apps Script persistence adapter.
  */
-const validId = value => /^(0|[1-9]\d{0,19})$/.test(String(value));
+const validId = value => /^(0|[1-9]\\d{0,19})$/.test(String(value));
 const keyFor = (updateId, effect) => {
   if (!validId(updateId)) throw new TypeError('INVALID_UPDATE_ID');
   return 'telegram:' + String(updateId) + ':' + effect;
 };
+function compareSequence(a, b) {
+  if (!b) return 1;
+  if (a.occurredAt !== b.occurredAt) return a.occurredAt > b.occurredAt ? 1 : -1;
+  const left = String(a.updateId), right = String(b.updateId);
+  if (left.length !== right.length) return left.length > right.length ? 1 : -1;
+  return left === right ? 0 : left > right ? 1 : -1;
+}
+function sequenceOf(updateId, occurredAt) {
+  if (!Number.isFinite(occurredAt) || occurredAt < 0) throw new TypeError('INVALID_EVENT_TIMESTAMP');
+  return { occurredAt, updateId: String(updateId) };
+}
+function sameIntent(existing, input) {
+  return existing.memberId === String(input.memberId) &&
+    existing.occurredAt === input.occurredAt &&
+    existing.tickerName === String(input.tickerName);
+}
 
 export class SharedActivationStore {
   constructor(shared) {
@@ -21,12 +37,16 @@ export class SharedActivationStore {
     await prior;
     try { return await fn(); } finally { release(); }
   }
-  async member(id) { return structuredClone(this.data.members.get(String(id)) ?? { status: 'LEFT' }); }
+  async member(id) {
+    return structuredClone(this.data.members.get(String(id)) ??
+      { status: 'LEFT', lastEvent: null });
+  }
   async putMember(id, value) { this.data.members.set(String(id), structuredClone(value)); }
   async intent(key) { return structuredClone(this.data.intents.get(key) ?? null); }
   async putIntent(key, value) { this.data.intents.set(key, structuredClone(value)); }
   async pendingForMember(id) {
-    const row = [...this.data.intents.values()].find(x => x.memberId === String(id) && x.state !== 'COMPLETED');
+    const row = [...this.data.intents.values()].find(x =>
+      x.memberId === String(id) && !['COMPLETED', 'SUPERSEDED'].includes(x.state));
     return structuredClone(row ?? null);
   }
 }
@@ -63,51 +83,92 @@ export class VipActivationOrchestrator {
   }
   async process({ updateId, memberId, status, tickerName, occurredAt }) {
     if (!validId(updateId)) throw new TypeError('INVALID_UPDATE_ID');
-    if (!memberId || !tickerName || !Number.isFinite(occurredAt)) throw new TypeError('INVALID_ACTIVATION_INPUT');
+    if (!memberId || !tickerName) throw new TypeError('INVALID_ACTIVATION_INPUT');
+    const sequence = sequenceOf(updateId, occurredAt);
     await this.recover(memberId);
-    if (status === 'left' || status === 'kicked') {
-      await this.store.atomic(async () => {
+
+    const isLeave = status === 'left' || status === 'kicked';
+    const isActive = ['member', 'administrator', 'creator'].includes(status);
+    if (!isLeave && !isActive) return 'IGNORED';
+
+    if (isLeave) {
+      return this.store.atomic(async () => {
         const member = await this.store.member(memberId);
-        await this.store.putMember(memberId, { ...member, status: 'LEFT' });
+        if (compareSequence(sequence, member.lastEvent) <= 0) return 'STALE_EVENT';
+        await this.store.putMember(memberId, {
+          ...member, status: 'LEFT', lastEvent: sequence,
+          lastTransition: 'LEAVE'
+        });
+        return 'LEFT';
       });
-      return 'LEFT';
     }
-    if (!['member', 'administrator', 'creator'].includes(status)) return 'IGNORED';
+
     const key = keyFor(updateId, 'vip_activation');
-    const intent = await this.store.atomic(async () => {
+    const decision = await this.store.atomic(async () => {
       const existing = await this.store.intent(key);
-      if (existing) return existing.state === 'COMPLETED' ? null : existing;
+      if (existing) {
+        if (!sameIntent(existing, { memberId, occurredAt, tickerName })) {
+          return { outcome: 'REVIEW_COLLISION' };
+        }
+        if (existing.state === 'COMPLETED') return { outcome: 'DUPLICATE_UPDATE' };
+        if (existing.state === 'SUPERSEDED') return { outcome: 'STALE_EVENT' };
+        return { outcome: 'RESUME', intent: existing };
+      }
       const member = await this.store.member(memberId);
-      if (member.status === 'ACTIVE') return null;
-      const next = {
+      if (compareSequence(sequence, member.lastEvent) <= 0) {
+        return { outcome: 'STALE_EVENT' };
+      }
+      if (member.status === 'ACTIVE') {
+        await this.store.putMember(memberId, {
+          ...member, lastEvent: sequence, lastTransition: 'ACTIVE_CONFIRMED'
+        });
+        return { outcome: 'ALREADY_ACTIVE' };
+      }
+      const intent = {
         key, updateId: String(updateId), memberId: String(memberId),
-        tickerName: String(tickerName), occurredAt,
+        tickerName: String(tickerName), occurredAt, sequence,
         state: 'INTENT', tickerKey: keyFor(updateId, 'vip_ticker'),
         auditKey: keyFor(updateId, 'vip_audit')
       };
-      await this.store.putIntent(key, next);
-      return next;
+      await this.store.putIntent(key, intent);
+      return { outcome: 'INTENT', intent };
     });
-    if (!intent) return 'ALREADY_ACTIVE';
-    await this.finishIntent(intent);
-    return 'ACTIVATED';
+
+    if (decision.outcome === 'REVIEW_COLLISION') throw new Error('ACTIVATION_INTENT_COLLISION');
+    if (decision.outcome !== 'INTENT' && decision.outcome !== 'RESUME') return decision.outcome;
+    const applied = await this.finishIntent(decision.intent);
+    return applied ? 'ACTIVATED' : 'STALE_EVENT';
   }
+
   async recover(memberId) {
     const pending = await this.store.pendingForMember(memberId);
     if (pending) await this.finishIntent(pending);
   }
+
   async finishIntent(initial) {
     let intent = await this.store.intent(initial.key);
-    if (!intent || intent.state === 'COMPLETED') return;
+    if (!intent || ['COMPLETED', 'SUPERSEDED'].includes(intent.state)) return false;
     if (intent.state === 'INTENT') {
-      await this.store.atomic(async () => {
+      const applied = await this.store.atomic(async () => {
+        const latestIntent = await this.store.intent(intent.key);
+        if (!latestIntent || latestIntent.state !== 'INTENT') return false;
         const member = await this.store.member(intent.memberId);
-        await this.store.putMember(intent.memberId, { ...member, status: 'ACTIVE', activatedBy: intent.updateId });
-        await this.store.putIntent(intent.key, { ...intent, state: 'STATUS_APPLIED' });
+        if (compareSequence(latestIntent.sequence, member.lastEvent) <= 0) {
+          await this.store.putIntent(intent.key, { ...latestIntent, state: 'SUPERSEDED' });
+          return false;
+        }
+        await this.store.putMember(intent.memberId, {
+          ...member, status: 'ACTIVE', activatedBy: intent.updateId,
+          lastEvent: latestIntent.sequence, lastTransition: 'ACTIVATION'
+        });
+        await this.store.putIntent(intent.key, { ...latestIntent, state: 'STATUS_APPLIED' });
+        return true;
       });
+      if (!applied) return false;
       this.crash('AFTER_STATUS');
     }
     intent = await this.store.intent(initial.key);
+    if (!intent || intent.state !== 'STATUS_APPLIED') return false;
     const ticker = {
       eventId: 'VIP-' + intent.updateId, createdAt: intent.occurredAt,
       memberId: intent.memberId, memberName: intent.tickerName,
@@ -126,8 +187,11 @@ export class VipActivationOrchestrator {
     this.crash('AFTER_AUDIT');
     await this.store.atomic(async () => {
       const latest = await this.store.intent(intent.key);
-      await this.store.putIntent(intent.key, { ...latest, state: 'COMPLETED' });
+      if (latest?.state === 'STATUS_APPLIED') {
+        await this.store.putIntent(intent.key, { ...latest, state: 'COMPLETED' });
+      }
     });
     this.crash('AFTER_COMPLETE');
+    return true;
   }
 }

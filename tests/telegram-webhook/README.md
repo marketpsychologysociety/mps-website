@@ -24,3 +24,5 @@ node --test tests/telegram-webhook/*.test.mjs
 - `fixtures/candidate-handler-callsite-snapshot.gs` — exact extracted handler call sites from a separately reviewed candidate Code.gs snapshot, pinned by source SHA-256 and line references; this is not deployable backend code.
 - `candidate-handler-callsite-characterization.test.mjs` — runs the pinned source functions in a Node VM with mocked dependencies and records the current missing `update_id`/Telegram event-time propagation across the `chat_member` and all three join-request status paths. Passing reproduces the known gap; it does not mean the gap is acceptable or fixed.
 - The candidate handler fixture is a snapshot, not the live Library file. Refresh and re-audit its provenance whenever candidate Code.gs changes.
+
+- `vip-activation-orchestration.mjs` now models a per-member event cursor persisted with member state. It orders state-changing membership events by Telegram event timestamp, then canonical decimal `update_id` as a same-second tie-break. Stale leave/rejoin updates are rejected before they can overwrite newer state. This is an in-memory contract model, not durable Apps Script storage.
