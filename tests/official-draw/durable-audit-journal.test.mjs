@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
@@ -7,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { DurableAuditJournal } from './durable-audit-journal.mjs';
 
 const digest = value => createHash('sha256').update(value).digest('hex');
+const workerPath = path.join(path.dirname(new URL(import.meta.url).pathname), 'journal-lock-worker.mjs');
 const input = extra => ({
   operationId: 'op_synthetic_001', idempotencyKey: 'idem_synthetic_001',
   actorSubject: 'subject_synthetic_operator_A', targetId: 'draw_synthetic_001',
@@ -146,4 +148,52 @@ test('allowlisted aggregate state is replayable and unknown aggregate fields are
   const recovered = await DurableAuditJournal.open(dir);
   t.after(() => recovered.close());
   assert.equal(recovered.getOperations()[0].result.aggregate.state, 'BEACON_COMMITTED');
+});
+
+
+test('independent Node processes serialize journal appends without lost records', async t => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-journal-multiprocess-'));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const runWorker = prefix => new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [workerPath, dir, prefix], { stdio: 'ignore' });
+    child.once('error', reject);
+    child.once('exit', (code, signal) => {
+      if (code === 0) resolve();
+      else reject(new Error('Journal worker failed: code=' + code + ' signal=' + signal));
+    });
+  });
+  await Promise.all([runWorker('worker_a'), runWorker('worker_b')]);
+  const recovered = await DurableAuditJournal.open(dir);
+  t.after(() => recovered.close());
+  assert.equal(recovered.getStats().operation_count, 20);
+  assert.equal(recovered.getStats().record_count, 40);
+  assert.equal(recovered.getOperations().filter(item => item.state === 'COMPLETED').length, 20);
+});
+
+test('exclusive server lease rejects a second writer process and releases cleanly', async t => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-journal-server-lease-'));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const first = await DurableAuditJournal.open(dir, { exclusiveProcessLease: true, lockWaitMs: 25, lockRetryMs: 5 });
+  await assert.rejects(
+    DurableAuditJournal.open(dir, { exclusiveProcessLease: true, lockWaitMs: 35, lockRetryMs: 5 }),
+    error => error.code === 'JOURNAL_LOCKED'
+  );
+  await first.close();
+  const next = await DurableAuditJournal.open(dir, { exclusiveProcessLease: true, lockWaitMs: 100, lockRetryMs: 5 });
+  await next.close();
+});
+
+test('dead same-host lock owner is atomically quarantined before recovery', async t => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-journal-stale-lock-'));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const lockPath = path.join(dir, 'journal.lock');
+  await fs.mkdir(lockPath, { mode: 0o700 });
+  await fs.writeFile(path.join(lockPath, 'owner.json'), JSON.stringify({
+    pid: 2147483647, hostname: os.hostname(), token: 'synthetic-dead-owner',
+    started_at: new Date(0).toISOString()
+  }), { mode: 0o600 });
+  const journal = await DurableAuditJournal.open(dir, { lockWaitMs: 500, lockRetryMs: 5 });
+  t.after(() => journal.close());
+  assert.equal(journal.getStats().record_count, 0);
+  await assert.rejects(fs.stat(lockPath), error => error.code === 'ENOENT');
 });
