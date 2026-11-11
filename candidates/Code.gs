@@ -2967,14 +2967,14 @@ function createMpsGasVipTransitionOrchestrator_(config) {
     store.updateIntent(tx,key,{'State':'COMPLETED','Updated At':nowIso,'Last Error Code':''});
     return 'COMPLETED';
   }
-  function process(input){
+  function process(input,resolveOverride){
     input=input||{};
     var updateId=decimal_(input.updateId),epoch=Number(input.epoch);
     var sourceDate=Number(input.sourceDate),memberId=String(input.memberId||'').trim();
     var target=String(input.targetState||'');
     if(!Number.isSafeInteger(epoch)||epoch<0)throw new Error('VIP_INVALID_EPOCH');
     if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_INVALID_SOURCE_DATE');
-    if(!memberId&&typeof resolveTransition!=='function')throw new Error('VIP_INVALID_MEMBER');
+    if(!memberId&&typeof resolveTransition!=='function'&&typeof resolveOverride!=='function')throw new Error('VIP_INVALID_MEMBER');
     if(memberId.length>128)throw new Error('VIP_INVALID_MEMBER');
     if(target&&!['ACTIVE','LEFT','DENIED'].includes(target))throw new Error('VIP_INVALID_TARGET_STATE');
     if(input.sourceType!=='CHAT_MEMBER')throw new Error('VIP_UNSUPPORTED_SOURCE_TYPE');
@@ -2983,7 +2983,8 @@ function createMpsGasVipTransitionOrchestrator_(config) {
     var intentKey=key_(epoch,updateId),timestampIso=new Date(sourceDate*1000).toISOString();
     return ledger.runExclusive(function(tx){
       tx.assertActive();
-      var resolved=typeof resolveTransition==='function'?resolveTransition(tx,input):input;
+      var resolver=typeof resolveOverride==='function'?resolveOverride:resolveTransition;
+      var resolved=typeof resolver==='function'?resolver(tx,input):input;
       if(!resolved||resolved.ignored===true)return 'IGNORED';
       var effectiveMemberId=String(resolved.memberId||memberId).trim();
       var effectiveTarget=String(resolved.targetState||target);
