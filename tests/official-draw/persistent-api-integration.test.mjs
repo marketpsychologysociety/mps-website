@@ -23,14 +23,15 @@ async function waitForHealth(child) {
   }
   throw new Error('Persistent sandbox did not become healthy.');
 }
-function startSandbox(directory, crashStage = '') {
+function startSandbox(directory, crashStage = '', faultStage = '') {
   const moduleUrl = pathToFileURL(adapterPath).href;
   const child = spawn(process.execPath, ['--input-type=module', '-e', 'import(' + JSON.stringify(moduleUrl) + ')'], {
     cwd: here,
     env: {
       ...process.env,
       MPS_DRAW_JOURNAL_DIR: directory,
-      ...(crashStage ? { MPS_DRAW_CRASH_STAGE: crashStage } : { MPS_DRAW_CRASH_STAGE: '' })
+      ...(crashStage ? { MPS_DRAW_CRASH_STAGE: crashStage } : { MPS_DRAW_CRASH_STAGE: '' }),
+      ...(faultStage ? { MPS_DRAW_JOURNAL_FAULT_STAGE: faultStage } : { MPS_DRAW_JOURNAL_FAULT_STAGE: '' })
     },
     stdio: 'ignore'
   });
@@ -177,4 +178,37 @@ test('crash after in-memory state mutation but before completion remains fail-cl
   });
   assert.equal(retry.status, 409);
   assert.equal(retry.body.error.code, 'RECONCILIATION_REQUIRED');
+});
+
+
+test('lost acknowledgement after completion fsync is recovered as completed, not rerun', async t => {
+  const directory = await fixture(t);
+  let child = startSandbox(directory);
+  await waitForHealth(child);
+  const seeded = await api('POST', '/__test/seed-draw', { body: {} });
+  assert.equal(seeded.status, 201);
+  const drawId = seeded.body.data.draw_id;
+  await stopSandbox(child);
+
+  child = startSandbox(directory, '', 'after_sync_before_ack');
+  await waitForHealth(child);
+  const uncertain = await api('POST', '/api/v1/draws/' + drawId + '/execute', {
+    body: {}, key: 'lost-completion-ack-001', version: 1
+  });
+  assert.equal(uncertain.status, 503);
+  assert.equal(uncertain.body.error.code, 'ACKNOWLEDGMENT_LOST');
+  await stopSandbox(child);
+
+  child = startSandbox(directory);
+  await waitForHealth(child);
+  t.after(() => stopSandbox(child));
+  const status = await api('GET', '/api/v1/draws/' + drawId + '/status');
+  assert.equal(status.status, 200);
+  assert.equal(status.body.data.state, 'DRAWN_UNVERIFIED');
+  assert.equal(status.body.data.version, 2);
+  const replay = await api('POST', '/api/v1/draws/' + drawId + '/execute', {
+    body: {}, key: 'lost-completion-ack-001', version: 1
+  });
+  assert.equal(replay.status, 200);
+  assert.equal(replay.body.operation.replayed, true);
 });
