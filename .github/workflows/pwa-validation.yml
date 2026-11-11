@@ -75,6 +75,8 @@ jobs:
         run: node --test tests/official-draw/tabletop-exercise.test.mjs
       - name: Run Telegram webhook durable idempotency and crash-recovery contract tests (synthetic only)
         run: node --test tests/telegram-webhook/durable-update-journal.test.mjs
+      - name: Run isolated Apps Script spreadsheet journal adapter tests (mocked services only)
+        run: node --test tests/telegram-webhook/gas-spreadsheet-journal-adapter.test.mjs
       - name: Run read-only schema inspector tests
         run: node scripts/test-readonly-schema-inspector.mjs
       - name: Install Playwright and Chromium
