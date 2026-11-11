@@ -83,10 +83,10 @@ export function authorize({ role, action, subject, ownerSubject, reviewerSubject
     read_audit: ["DRAW_AUDITOR"]
   };
   if (!(matrix[action] || []).includes(role)) return { allowed:false, code:"FORBIDDEN" };
-  if (["freeze_snapshot","execute_draw"].includes(action) && ownerSubject && ownerSubject !== subject) {
+  if (["freeze_snapshot","execute_draw"].includes(action) && (!ownerSubject || ownerSubject !== subject)) {
     return { allowed:false, code:"NOT_RESOURCE_OWNER" };
   }
-  if (action === "approve_rules" && reviewerSubject && reviewerSubject === subject) {
+  if (action === "approve_rules" && (!reviewerSubject || reviewerSubject === subject)) {
     return { allowed:false, code:"SEPARATION_OF_DUTIES" };
   }
   return { allowed:true, code:"OK" };
