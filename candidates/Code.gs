@@ -1768,12 +1768,12 @@ function apiAdminPrepareTelegramVipTransitionStorage(session) {
   requireSuperAdmin_(session);
   const spreadsheetId=String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||'');
   if(!spreadsheetId)throw new Error('MPS_SPREADSHEET_ID belum dikonfigurasi.');
-  getMemberSheet_();getTelegramAccessSheet_();
-  getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
-  getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
   const ledger=createMpsGasEffectLedger_({spreadsheetId:spreadsheetId});
   const store=createMpsGasVipTransitionStore_({spreadsheetId:spreadsheetId});
   ledger.runExclusive(function(tx){
+    getMemberSheet_();getTelegramAccessSheet_();
+    getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
+    getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
     tx.migrate('audit');tx.migrate('ticker');
     const ss=SpreadsheetApp.openById(spreadsheetId);
     function ensure_(name,headers){
