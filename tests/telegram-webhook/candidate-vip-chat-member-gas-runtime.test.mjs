@@ -155,5 +155,5 @@ test('candidate ignores member-to-admin role changes because membership remains 
  assert.equal(h.process(event(7200,1760000200,'member','administrator')),'IGNORED');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,1);
  assert.equal(h.sheets.get('MPS Audit Logs').length,1);
- assert.equal(h.stats().acquired,2,'only the two explicit setup migrations acquired locks');
+ assert.equal(h.stats().acquired,1,'both explicit setup migrations share one ScriptLock scope');
 });
