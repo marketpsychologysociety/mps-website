@@ -97,7 +97,9 @@ Before the public-projection fixture was added, a local test run against a recon
 | API and data contract | Documented |
 | Adapter-based integration scaffold | Present |
 | Synthetic loopback sandbox adapter | Present; in-memory and test-only |
-| Earlier narrow sandbox contract run | 8 PASS, 1 SKIP on reconstructed working copy; superseded by privacy-fixture update |\n| Public projection fixture and serializer | Implemented in isolated sandbox; CI result pending |\n| Canary privacy test through public HTTP routes | Added; CI result pending |
+| Earlier narrow sandbox contract run | 8 PASS, 1 SKIP on reconstructed working copy; superseded by privacy-fixture update |
+| Public projection fixture and serializer | Implemented in isolated sandbox; CI result pending |
+| Canary privacy test through public HTTP routes | Added; CI result pending |
 | Official Draw API implementation in inspected workbench | Not found |
 | OIDC / durable persistence / journal | Not implemented |
 | Public projection privacy test | Implemented in synthetic sandbox; production/cache/browser coverage still absent |
