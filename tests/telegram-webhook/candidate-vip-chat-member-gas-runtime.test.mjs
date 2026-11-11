@@ -60,6 +60,7 @@ function runtime({eligible=true}={}){
    getRange(row,col,nr=1,nc=1){return{
     getValues(){return Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>rows[row-1+ri]?.[col-1+ci]??''));},
     getDisplayValues(){return this.getValues().map(line=>line.map(v=>v==null?'':String(v)));},
+    setNumberFormat(){return this;},
     setValue(value){while(rows.length<row)rows.push([]);while(rows[row-1].length<col)rows[row-1].push('');rows[row-1][col-1]=value;return this;},
     setValues(values){values.forEach((line,ri)=>{while(rows.length<row+ri)rows.push([]);while(rows[row-1+ri].length<col-1)rows[row-1+ri].push('');line.forEach((v,ci)=>rows[row-1+ri][col-1+ci]=v);});return this;}
    }; }
