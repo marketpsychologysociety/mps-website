@@ -202,3 +202,13 @@ node --test tests/official-draw/gcs-raw-audit-normalizer.test.mjs
 The normalizer accepts exact raw JSON strings plus a page manifest and checks raw-byte SHA-256, page-token continuity/completion, page counts/digests, project and bucket scope, Cloud Audit Log envelope, timestamps, insert IDs, expected actor roles, recognized operation names, and create/read/delete-denial evidence. It emits a narrow normalized event projection. Fixtures are synthetic only.
 
 **Authenticity limitation:** sourceAuthenticated is always false. Hashes, JSON parsing, and an export reference do not authenticate Google as the source or prove that an export is complete. A separately authenticated Cloud Logging retrieval or provider-verifiable custody evidence and independent reconciliation are still mandatory. Actual GCS method names/resource-name forms must be confirmed against real PoC records; unknown variants fail closed. No GCP resources or production connections are created. See docs/MPS-GCS-RAW-AUDIT-EVIDENCE-NORMALIZATION.md.
+
+
+## P1.11 — independent reviewer provenance attestation (offline only)
+
+Run:
+node --test tests/official-draw/gcs-evidence-provenance-verifier.test.mjs
+
+This stage verifies a detached Ed25519 signature from an independently pinned reviewer key, binds the signature to the canonical P1.10 raw evidence bundle, and checks reviewer/exporter separation, project/bucket/query scope, retrieval window, page/entry counts, pagination completion, trust-key validity/revocation, expiry, and a caller-supplied one-time nonce. Tests use ephemeral synthetic keys only.
+
+**Authenticity boundary:** a valid result proves that the pinned reviewer key signed claims bound to this exact bundle. It does not prove Google signed the raw logs or that reviewer claims are true. The trust key must be provisioned out of band; the caller must run P1.10 first and durably consume nonce challenges. No real keys, raw logs, GCP resources, or production connections are committed. See docs/MPS-GCS-INDEPENDENT-PROVENANCE-ATTESTATION.md.
