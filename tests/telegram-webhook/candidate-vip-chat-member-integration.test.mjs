@@ -320,19 +320,38 @@ test('audit pruning may exceed soft cap rather than delete durable keyed rows',(
 });
 
 
+const schemaStorageInspectorSource=extract('inspectMpsVipTransitionStorageSchemas_','apiAdminInspectMemberSchemaV480');
 const schemaPreflightSource=extract('apiAdminInspectMemberSchemaV480','apiAdminMigrateMemberSheetToV480');
-function schemaPreflightHarness(headers,{sheetExists=true,adminAllowed=true}={}) {
+const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Telegram User ID','Target State','Source Type','Source Date','Payload SHA-256','Ticker Allowed','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
+const cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
+const accessHeaders=['ID Member','Telegram User ID','Chat ID','Username','Nama Depan','Terhubung','Status VIP','Invite Link','Invite Expiry','Joined At','Error Terakhir'];
+function schemaPreflightHarness(headers,{sheetExists=true,adminAllowed=true,storageSheets={}}={}) {
  let reads=0,writes=0,locks=0;
- const sheet={getLastColumn:()=>headers.length,getRange:(row,col,nr,nc)=>({getDisplayValues:()=>{reads++;return [headers.slice(col-1,col-1+nc)];},setValues:()=>{writes++;}})};
+ const dbSheet={getLastColumn:()=>headers.length,getRange:(row,col,nr,nc)=>({getDisplayValues:()=>{reads++;return [headers.slice(col-1,col-1+nc)];},setValues:()=>{writes++;}})};
+ const ss={getSheetByName:name=>name==='Database Member'?(sheetExists?dbSheet:null):(storageSheets[name]||null)};
  const context={
   MPS:{headers:[...legacyMemberHeaders,...appendedMemberHeaders]},
+  MPS_AUDIT_LOGS:{sheet:'MPS Audit Logs',headers:['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details']},
+  MPS_VIP_TICKER_EVENTS:{sheet:'MPS VIP Ticker Events',headers:['Event ID','Created At','Member ID','Member Name','Event Text','Status']},
   requireSuperAdmin_:()=>{if(!adminAllowed)throw new Error('SUPER_ADMIN_REQUIRED');},
-  openDatabase_:()=>({getSheetByName:name=>{assert.equal(name,'Database Member');return sheetExists?sheet:null;}}),
+  openDatabase_:()=>ss,
+  PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_SPREADSHEET_ID'?'isolated-db':''})},
+  createMpsGasVipTransitionStore_:()=>({headers:{intents:intentHeaders,cursor:cursorHeaders}}),
   LockService:{getScriptLock:()=>{locks++;throw new Error('READ_ONLY_PREFLIGHT_MUST_NOT_LOCK');}},
   SpreadsheetApp:{flush:()=>{throw new Error('READ_ONLY_PREFLIGHT_MUST_NOT_FLUSH');}}
  };
- vm.createContext(context);vm.runInContext(schemaPreflightSource,context,{timeout:1000});
+ vm.createContext(context);vm.runInContext(schemaStorageInspectorSource,context,{timeout:1000});vm.runInContext(schemaPreflightSource,context,{timeout:1000});
  return{run:()=>context.apiAdminInspectMemberSchemaV480('admin-session'),stats:()=>({reads,writes,locks})};
+}
+function storageInspectorHarness(storageSheets={}) {
+ const context={
+  MPS_AUDIT_LOGS:{sheet:'MPS Audit Logs',headers:['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details']},
+  MPS_VIP_TICKER_EVENTS:{sheet:'MPS VIP Ticker Events',headers:['Event ID','Created At','Member ID','Member Name','Event Text','Status']},
+  vmSheets:storageSheets
+ };
+ const ss={getSheetByName:name=>context.vmSheets[name]||null};
+ vm.createContext(context);vm.runInContext(schemaStorageInspectorSource,context,{timeout:1000});
+ return context.inspectMpsVipTransitionStorageSchemas_(ss,{headers:{intents:intentHeaders,cursor:cursorHeaders}});
 }
 test('read-only schema preflight recognizes exact 18-column legacy schema without writes or locks',()=>{
  const h=schemaPreflightHarness(legacyMemberHeaders);
@@ -340,13 +359,21 @@ test('read-only schema preflight recognizes exact 18-column legacy schema withou
  assert.equal(result.ok,true);assert.equal(result.state,'LEGACY_18_READY');assert.equal(result.appendable,true);assert.equal(result.provisioningReady,false);
  assert.deepEqual(h.stats(),{reads:1,writes:0,locks:0});
 });
-test('read-only schema preflight recognizes exact 30-column v4.8 schema without writes',()=>{
+test('read-only schema preflight recognizes exact 30-column v4.8 schema and all-missing storage as provisionable',()=>{
  const h=schemaPreflightHarness([...legacyMemberHeaders,...appendedMemberHeaders]);
  const result=h.run();
  assert.equal(result.ok,true);assert.equal(result.state,'READY_30');assert.equal(result.appendable,false);assert.equal(result.provisioningReady,true);
+ assert.equal(result.provisioningChecks.length,5);
  assert.deepEqual(h.stats(),{reads:1,writes:0,locks:0});
 });
-test('read-only schema preflight fails closed for mismatched, partial, or missing sheets',()=>{
+test('read-only schema preflight blocks provisioning when an existing storage sheet has a mismatched header',()=>{
+ const badSheet={getLastRow:()=>1,getLastColumn:()=>1,getRange:()=>({getDisplayValues:()=>[['Wrong Header']]})};
+ const h=schemaPreflightHarness([...legacyMemberHeaders,...appendedMemberHeaders],{storageSheets:{'VIP Access':badSheet}});
+ const result=h.run();
+ assert.equal(result.ok,true);assert.equal(result.state,'READY_30');assert.equal(result.provisioningReady,false);
+ assert.match(result.message,/VIP Access/);assert.equal(h.stats().writes,0);assert.equal(h.stats().locks,0);
+});
+test('read-only schema preflight fails closed for mismatched, partial, or missing member sheets',()=>{
  const wrong=schemaPreflightHarness(['Wrong Header',...legacyMemberHeaders.slice(1)]);
  assert.equal(wrong.run().state,'SCHEMA_MISMATCH');assert.equal(wrong.stats().writes,0);
  const partial=schemaPreflightHarness([...legacyMemberHeaders,...appendedMemberHeaders.slice(0,2)]);
@@ -358,6 +385,23 @@ test('read-only schema preflight enforces super-admin before reading database',(
  const h=schemaPreflightHarness(legacyMemberHeaders,{adminAllowed:false});
  assert.throws(()=>h.run(),/SUPER_ADMIN_REQUIRED/);
  assert.deepEqual(h.stats(),{reads:0,writes:0,locks:0});
+});
+test('storage schema inspector accepts missing tabs and exact legacy/effect-key schemas but rejects duplicate effect keys',()=>{
+ const empty=storageInspectorHarness();
+ assert.equal(empty.ok,true);assert.equal(empty.checks.length,5);
+ const keyedHeaders=['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details','Effect Key'];
+ const audit={getLastRow:()=>3,getLastColumn:()=>8,getRange:(row,col,nr,nc)=>({getDisplayValues:()=>row===1?[keyedHeaders]:[['same'],['same']]})};
+ const bad=storageInspectorHarness({'MPS Audit Logs':audit});
+ assert.equal(bad.ok,false);assert.equal(bad.checks.find(x=>x.name==='MPS Audit Logs').state,'EFFECT_KEY_DATA_INVALID');
+});
+test('VIP storage provisioning validates every target schema before creating or migrating anything',()=>{
+ const source=extract('apiAdminPrepareTelegramVipTransitionStorage','kickMpsUnauthorizedUser_');
+ const preflight=source.indexOf('inspectMpsVipTransitionStorageSchemas_(ss,store)');
+ const memberCheck=source.indexOf("memberSheet.getRange(1,1,1,MPS.headers.length)");
+ const accessCreation=source.indexOf('getTelegramAccessSheet_()');
+ const auditMigration=source.indexOf("tx.migrate('audit')");
+ assert.ok(memberCheck>=0&&preflight>memberCheck);
+ assert.ok(accessCreation>preflight&&auditMigration>preflight);
 });
 test('candidate Index exposes guarded migration controls only for super-admin and requires explicit confirmations',()=>{
  assert.match(candidateIndex,/<section class="panel" id="memberSchemaMaintenance" data-super-admin-only/);
