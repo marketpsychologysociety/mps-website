@@ -31,33 +31,34 @@
     return {key:"update", label:"INFORMASI"};
   };
 
-  const loadFeed = () => new Promise((resolve, reject) => {
-    const script = document.createElement("script");
+  const loadFeed = async () => {
     const url = new URL(endpointUrl.href);
     url.searchParams.set("publicCenter", "1");
     url.searchParams.set("_", String(Date.now()));
-    let settled = false;
-    const finish = (error, data) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      script.remove();
-      try { delete window.MPS_PUBLIC_CENTER_DATA; } catch (_) { window.MPS_PUBLIC_CENTER_DATA = undefined; }
-      if (error) reject(error); else resolve(data);
-    };
-    const timer = window.setTimeout(() => finish(new Error("timeout")), 12000);
-    script.async = true;
-    script.src = url.href;
-    script.onload = () => {
-      const data = window.MPS_PUBLIC_CENTER_DATA;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await window.fetch(url.href, {
+        method: "GET",
+        mode: "cors",
+        credentials: "omit",
+        cache: "no-store",
+        redirect: "follow",
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error("feed-unavailable");
+      const body = await response.text();
+      const prefix = "window.MPS_PUBLIC_CENTER_DATA=";
+      if (!body.startsWith(prefix) || !body.endsWith(";")) throw new Error("invalid-feed-envelope");
+      const data = JSON.parse(body.slice(prefix.length, -1));
       if (!data || data.ok !== true || !Array.isArray(data.announcements) || !Array.isArray(data.activity)) {
-        finish(new Error("invalid-feed")); return;
+        throw new Error("invalid-feed");
       }
-      finish(null, data);
-    };
-    script.onerror = () => finish(new Error("feed-unavailable"));
-    document.head.appendChild(script);
-  });
+      return data;
+    } finally {
+      window.clearTimeout(timer);
+    }
+  };
 
   const renderTicker = data => {
     const ticker = document.querySelector("[data-mps-demo-ticker]");
