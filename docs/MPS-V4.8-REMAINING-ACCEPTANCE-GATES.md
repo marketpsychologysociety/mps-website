@@ -84,3 +84,14 @@ The Apps Script adapter, effect-outbox contract, and handler-reconciliation cont
 - [Latest push CI #43022358082 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43022358082)
 - [Previous PR CI #646 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43016135631)
 - Production `main` baseline: `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`.
+
+
+### Telegram effect-key schema compatibility — new isolated contract
+
+- [x] Define append-only extension preserving the legacy audit (7 columns) and ticker (6 columns) schemas.
+- [x] Add 20 synthetic tests for schema recognition, fail-closed migration planning, legacy row preservation, key collision/duplicate detection, concurrency, and crash-after-append replay.
+- [x] Add the synthetic suite to GitHub Actions.
+- [ ] Implement and review an isolated Apps Script Sheets adapter that appends the key column only through an explicit migration, under lock, with before/after snapshots and rollback evidence.
+- [ ] Verify the adapter against a separate test spreadsheet and Apps Script project, including interrupted writes, concurrent executions, malformed headers, duplicate keys, and backup/restore.
+- [ ] Integrate stable effect keys into audit/ticker writes and handler update-ID propagation only after the isolated adapter tests pass.
+
