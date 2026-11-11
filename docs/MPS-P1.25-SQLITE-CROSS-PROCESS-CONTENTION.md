@@ -1,7 +1,7 @@
 # P1.25 — SQLite Cross-Process Contention and Crash-Recovery Tests
 
 **Evidence class:** SYNTHETIC  
-**Status:** five focused child-process tests pass locally; clean-checkout CI verification pending  
+**Status:** five focused child-process tests pass locally and in clean-checkout CI run #430  
 **Production decision:** official winner draw **BLOCKED / NO-GO**; roulette **SIMULATION ONLY**
 
 ## Objective
@@ -49,3 +49,10 @@ The local test workspace used a temporary mirror of the P1.23 canonical JSON fun
 - No production database, cloud project, IAM, billing, credentials, Apps Script, Sheets, Drive, Telegram, DNS, hosting, or deployment was used or changed.
 
 P1.25 is a local synthetic concurrency/recovery experiment only. It does not satisfy operational G0–G11 gates and does not change the official draw **NO-GO** decision.
+
+
+## Verification outcome
+
+- Local Node.js 22.16.0: 5 PASS, 0 FAIL, 0 SKIP; syntax checks passed for the adapter, worker and test file.
+- Clean-checkout GitHub Actions run #430 (`42965435791`) on commit `dcd8cb59c10df9612dcc2208fc505cd95ba58d75`: **SUCCESS**. The P1.25 process-contention step passed, all other synthetic suites passed, and Chromium browser checks passed; no failed or skipped steps were reported.
+- An earlier CI attempt exposed a test-harness newline-framing mismatch; it was corrected and the final clean-checkout run #430 passed. This is recorded rather than treating the earlier failure as a successful run.
