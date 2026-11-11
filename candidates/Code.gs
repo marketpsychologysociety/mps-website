@@ -1691,7 +1691,7 @@ function resolveMpsVipChatMemberTransition_(tx,input) {
     memberId:memberId,memberName:memberName,telegramUserId:userId,targetState:targetState,
     tickerAllowed:targetState==='ACTIVE'&&input.wasMember===false&&isSafePublicIdentity_(memberName),
     inviteToRevoke:inviteToRevoke,
-    kickNeeded:targetState==='DENIED'&&status==='member',
+    kickNeeded:targetState==='DENIED'&&(status==='member'||(status==='restricted'&&input.isMember===true)),
     adminAlert:targetState==='DENIED'&&(status==='administrator'||status==='creator'),
     telegramStatus:status
   };
@@ -1826,7 +1826,7 @@ function kickMpsUnauthorizedUser_(groupId,userId){
     const current=parseTelegramResponse_(check),status=current.ok&&current.result?String(current.result.status||''):'';
     if(!current.ok)return false;
     if(status==='left'||status==='kicked'||(status==='restricted'&&current.result.is_member===false))return true;
-    if(status!=='member')return false;
+    if(status!=='member'&&!(status==='restricted'&&current.result.is_member===true))return false;
     const r=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/banChatMember',{method:'post',payload:{chat_id:groupId,user_id:String(userId)},muteHttpExceptions:true});
     const banned=parseTelegramResponse_(r);if(!banned.ok){console.error('MPS unauthorized VIP removal: '+(banned.description||'ban failed'));return false;}
     const u=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/unbanChatMember',{method:'post',payload:{chat_id:groupId,user_id:String(userId),only_if_banned:true},muteHttpExceptions:true});
