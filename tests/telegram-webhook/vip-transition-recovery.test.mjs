@@ -64,3 +64,11 @@ test('source event date outranks a larger update ID within the same ingress epoc
   assert.equal(await s.make().process(input(901,'ACTIVE',0,1800000001)),'STALE');
   assert.equal(s.base.member('MPS-ABCDEF12').statusA,'LEFT');
 });
+
+
+test('later source date wins across a lower ingress epoch and reset update ID',async()=>{
+  const s=setup();
+  await s.make().process({...input('LEFT',900,5,1800000000)});
+  assert.equal(await s.make().process({...input('ACTIVE',2,0,1800000001)}),'ACTIVE');
+  assert.equal(s.base.member('MPS-ABCDEF12').statusA,'ACTIVE');
+});
