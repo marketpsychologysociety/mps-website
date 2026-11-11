@@ -101,7 +101,7 @@ export function projectPublicWinner(record) {
   if (!boundedString(record.event_title,160) || !boundedString(record.message,240) ||
       !boundedString(record.prize_public_description,240) ||
       !boundedString(record.protocol_version,48) || !/^[A-Za-z0-9_-]{1,80}$/.test(record.public_result_id) ||
-      typeof record.published_at_utc !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\(?:\.\d{3})?Z$/.test(record.published_at_utc) ||
+      typeof record.published_at_utc !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(record.published_at_utc) ||
       !Number.isSafeInteger(proof.participant_count) || proof.participant_count < 1 ||
       !/^[0-9a-f]{64}$/.test(proof.beacon_chain_hash) ||
       !/^[0-9]{1,32}$/.test(proof.beacon_round) ||
