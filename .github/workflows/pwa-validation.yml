@@ -45,6 +45,8 @@ jobs:
         run: node --test tests/official-draw/synthetic-backup-recovery.test.mjs
       - name: Run off-site recovery drill evidence contract tests
         run: node --test tests/official-draw/offsite-recovery-drill-contract.test.mjs
+      - name: Run synthetic backup readiness monitoring and notification outbox tests
+        run: node --test tests/official-draw/backup-readiness-monitor.test.mjs
       - name: Run persistent Draw API process-restart and reconciliation tests
         run: node --test tests/official-draw/persistent-api-integration.test.mjs
       - name: Run read-only schema inspector tests
