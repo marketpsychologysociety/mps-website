@@ -18,17 +18,41 @@ const PUBLIC_PROOF_KEYS = [
   "result_digest", "snapshot_commitment"
 ].sort();
 
-export function canonicalJson(value) {
-  if (value === null || typeof value !== "object") {
-    if (typeof value === "number" && !Number.isFinite(value)) throw new TypeError("NON_FINITE_NUMBER");
+export function canonicalJson(value, stack = new Set()) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new TypeError("NON_FINITE_NUMBER");
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) return "[" + value.map(canonicalJson).join(",") + "]";
-  if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
-    throw new TypeError("NON_PLAIN_OBJECT");
+  if (typeof value !== "object") throw new TypeError("UNSUPPORTED_JSON_VALUE");
+  if (stack.has(value)) throw new TypeError("CYCLIC_VALUE");
+  stack.add(value);
+  try {
+    if (Array.isArray(value)) {
+      if (Object.getPrototypeOf(value) !== Array.prototype) throw new TypeError("NON_PLAIN_ARRAY");
+      const parts = [];
+      for (let i = 0; i < value.length; i++) {
+        if (!Object.hasOwn(value, i)) throw new TypeError("SPARSE_ARRAY");
+        parts.push(canonicalJson(value[i], stack));
+      }
+      if (Reflect.ownKeys(value).some(key => key !== "length" && !(typeof key === "string" && /^(0|[1-9][0-9]*)$/.test(key) && Number(key) < value.length))) {
+        throw new TypeError("ARRAY_EXTRA_PROPERTY");
+      }
+      return "[" + parts.join(",") + "]";
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) throw new TypeError("NON_PLAIN_OBJECT");
+    if (Object.getOwnPropertySymbols(value).length) throw new TypeError("SYMBOL_KEY");
+    const keys = Object.keys(value).sort();
+    const parts = keys.map(key => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !Object.hasOwn(descriptor, "value")) throw new TypeError("ACCESSOR_PROPERTY");
+      return JSON.stringify(key) + ":" + canonicalJson(descriptor.value, stack);
+    });
+    return "{" + parts.join(",") + "}";
+  } finally {
+    stack.delete(value);
   }
-  const keys = Object.keys(value).sort();
-  return "{" + keys.map(key => JSON.stringify(key) + ":" + canonicalJson(value[key])).join(",") + "}";
 }
 export function digestCanonical(value) {
   return createHash("sha256").update(canonicalJson(value), "utf8").digest("hex");
@@ -73,6 +97,16 @@ export function projectPublicWinner(record) {
   const inputKeys = [...PUBLIC_RESULT_KEYS, "state"].sort();
   if (!proof || Object.keys(record).sort().join("|") !== inputKeys.join("|") ||
       Object.keys(proof).sort().join("|") !== PUBLIC_PROOF_KEYS.join("|")) return null;
+  const boundedString = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
+  if (!boundedString(record.event_title,160) || !boundedString(record.message,240) ||
+      !boundedString(record.prize_public_description,240) ||
+      !boundedString(record.protocol_version,48) || !/^[A-Za-z0-9_-]{1,80}$/.test(record.public_result_id) ||
+      typeof record.published_at_utc !== "string" || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/.test(record.published_at_utc) ||
+      !Number.isSafeInteger(proof.participant_count) || proof.participant_count < 1 ||
+      !/^[0-9a-f]{64}$/.test(proof.beacon_chain_hash) ||
+      !/^[0-9]{1,32}$/.test(proof.beacon_round) ||
+      !/^[0-9a-f]{64}$/.test(proof.result_digest) ||
+      !/^[0-9a-f]{64}$/.test(proof.snapshot_commitment)) return null;
   const { state: _internalState, ...publicRecord } = record;
   return structuredClone(publicRecord);
 }
