@@ -42,8 +42,9 @@ The adapter path must resolve to a local file. The adapter must export:
 - `seedApprovedEvent({preparedBy, approvedBy})`: return `{ eventId, drawId, snapshotDigest, version }` for a synthetic event that has passed rules and snapshot approval.
 - `seedDrawAtState({state, preparedBy, approvedBy})`: return `{ eventId, drawId, version, rulesHash }` for a synthetic event/draw at the requested supported state.
 - `request({method, path, actor, body, headers})`: make one request to the local sandbox API; actor is a synthetic adapter handle, not a client-supplied identity claim.
+- `seedPublishedProjection()`: seed a published synthetic record with private canaries and return its public result ID.
 - `getPrivateCanaries()`: return synthetic canary strings seeded in private fields for leak detection.
-- `getPublishedProjection()`: return public projection JSON, or null.
+- `getPublishedProjection(publicResultId)`: call the anonymous public collection and detail HTTP routes and return both responses.
 - `getOperationCount(drawId)`: return durable operation count for the draw.
 
 The adapter source must be reviewed before execution. It must not make requests to any host other than its configured loopback base URL, and must not bypass the API under test to make assertions pass. Fixture setup may use a documented sandbox-only fixture interface; test actions themselves must traverse the real API handler and authorization middleware. The loopback URL check is a guardrail, not a substitute for reviewing adapter code or isolating the test environment.
@@ -101,9 +102,7 @@ idempotency conflicts, and refusal to publish unverified results. It is **not** 
 implementation, durable database, tamper-evident journal, production identity
 system, beacon verifier, fair winner-selection engine, or deployable Draw API.
 
-The public-projection privacy test is reported as **SKIP**, not PASS, until a real
-published-projection fixture and public serialization path exist. A null projection
-is deliberately not treated as evidence that private data cannot leak.
+The sandbox now includes a deliberately synthetic published-projection fixture, a strict allowlist serializer, and anonymous read-only collection/detail routes. The privacy test sends requests through those loopback HTTP routes and checks that private canaries (name, raw member ID, phone, email, Telegram ID, MT5 login, deposit, proof-document reference, PIN, token, and participant reference) do not appear in either response. It also checks exact public field allowlists and fail-closed behavior for empty/unknown results. This is a narrow sandbox test only; it does not prove the production CMS, Apps Script, cache, browser DOM, or a future Draw API is private.
 Its synthetic credentials are test fixtures, not secrets. Never expose the
 port, reuse its tokens, connect it to real data, or deploy this module.
 
