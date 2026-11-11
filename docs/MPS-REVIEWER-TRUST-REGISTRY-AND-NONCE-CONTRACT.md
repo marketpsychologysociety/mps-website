@@ -51,7 +51,18 @@ node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs
 
 Synthetic tests cover authorization denial, separation of duties, key registration and immutable IDs, private-key rejection, duplicate key-material rejection even after revocation, rotation and historical verification after expiry, revocation effective-time behavior, restart persistence, exactly-once nonce consumption, cross-instance replay serialization, invalid-signature retry, nonce expiry and plaintext non-storage, exact-schema/hash-chain tampering, incomplete-tail recovery, and dead same-host lock recovery. Local run at implementation review: **12 PASS, 0 FAIL, 0 SKIP**; clean-checkout GitHub Actions result is still pending/unconfirmed.
 
-## 6. Known limitations and production gates
+## 6. P1.13 crash-recovery fault-injection extension
+
+The registry accepts a test-only `testFaultInjector` seam in its local Node.js prototype. The CI suite launches a child process and terminates it while the `NONCE_CONSUMED` append is in progress at two deterministic boundaries:
+
+- `AFTER_WRITE_BEFORE_SYNC`: after journal bytes are handed to the file handle but before `fsync`. This models process termination, **not** power loss or storage-device cache loss. On restart, the complete record may be present or the trailing incomplete record may be truncated; either outcome must permit at most one eventual successful consumption.
+- `AFTER_SYNC_BEFORE_ACK`: after the journal file (and initial directory entry when applicable) has been synced, but before in-memory application/acknowledgement. Restart must recover the consumed state and reject replay.
+
+Both cases terminate the child while it owns the lock. The parent reopens the registry, exercises stale same-host PID lock recovery, reconciles the journal, and asserts the final consumed-nonce count is exactly one. These are local process-crash tests only; they do not simulate power failure, kernel panic, disk-controller cache loss, network filesystem behavior, or multi-host failover.
+
+The test-only hook is not an operational production feature and must not be wired to user-controlled input.
+
+## 7. Known limitations and production gates
 
 - Local filesystem only; no multi-host or network-filesystem guarantees, transactional database, managed backup/restore, external hash anchor, or tamper-proof retention.
 - Hash chain in the same writable file can be rewritten by an attacker able to replace the entire file and recompute hashes.
