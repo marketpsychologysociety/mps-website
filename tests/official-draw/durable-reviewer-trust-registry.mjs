@@ -13,6 +13,7 @@ const FIELDS = [
 ];
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 const iso = value => typeof value === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,9})?Z$/.test(value) && !Number.isNaN(Date.parse(value));
+const publicPem = value => typeof value === 'string' && /^-----BEGIN PUBLIC KEY-----[\s\S]+-----END PUBLIC KEY-----\s*$/.test(value) && !value.includes('PRIVATE KEY');
 const exact = (value, keys) => !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every(k => Object.hasOwn(value, k));
 const err = (code, message) => Object.assign(new Error(message), { code });
 const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']' : value && typeof value === 'object' ? '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + canonical(value[k])).join(',') + '}' : JSON.stringify(value);
@@ -122,7 +123,7 @@ export class DurableReviewerTrustRegistry {
     if (record.event === 'KEY_REGISTERED') {
       if (record.effective_at !== null || record.nonce !== null || record.nonce_digest !== null || record.attestation_digest !== null || record.bundle_digest !== null ||
           !KEY_ID_RE.test(record.key_id || '') || !SUBJECT_RE.test(record.subject || '') || typeof record.issuer !== 'string' ||
-          typeof record.public_key_pem !== 'string' || !HASH_RE.test(record.key_fingerprint || '') || !iso(record.not_before) || !iso(record.not_after) ||
+          !publicPem(record.public_key_pem) || !HASH_RE.test(record.key_fingerprint || '') || !iso(record.not_before) || !iso(record.not_after) ||
           Date.parse(record.not_before) >= Date.parse(record.not_after) || this.#keys.has(record.key_id)) throw err('REGISTRY_INTEGRITY_ERROR', 'Invalid or duplicate key registration.');
       let key; try { key = createPublicKey(record.public_key_pem); } catch { throw err('REGISTRY_INTEGRITY_ERROR', 'Registered public key is malformed.'); }
       if (key.asymmetricKeyType !== 'ed25519' || sha256(key.export({ type: 'spki', format: 'der' }).toString('base64')) !== record.key_fingerprint) throw err('REGISTRY_INTEGRITY_ERROR', 'Registered public-key fingerprint mismatch.');
@@ -179,7 +180,7 @@ export class DurableReviewerTrustRegistry {
       if (this.#closed) throw err('REGISTRY_CLOSED', 'Registry is closed.');
       await this.#reload(); const actorSubject = await this.#admin(context, 'REGISTER_KEY');
       if (!KEY_ID_RE.test(keyId || '') || !SUBJECT_RE.test(subject || '') || typeof issuer !== 'string' || !issuer.trim() ||
-          !iso(notBefore) || !iso(notAfter) || Date.parse(notBefore) >= Date.parse(notAfter) || typeof publicKeyPem !== 'string') throw err('VALIDATION_ERROR', 'Invalid key registration fields.');
+          !iso(notBefore) || !iso(notAfter) || Date.parse(notBefore) >= Date.parse(notAfter) || !publicPem(publicKeyPem)) throw err('VALIDATION_ERROR', 'Invalid key registration fields.');
       if (this.#keys.has(keyId)) throw err('KEY_ID_CONFLICT', 'Key IDs are immutable and can never be reused.');
       let key; try { key = createPublicKey(publicKeyPem); } catch { throw err('VALIDATION_ERROR', 'Public key is invalid.'); }
       if (key.asymmetricKeyType !== 'ed25519') throw err('VALIDATION_ERROR', 'Only Ed25519 public keys are accepted.');
