@@ -6,7 +6,7 @@ This runbook describes the final runtime acceptance step for the v4.8 candidate.
 
 The harness creates a new private spreadsheet named \`MPS_ISOLATED_ACCEPTANCE_<timestamp>\` itself. It does not accept a spreadsheet ID. It seeds synthetic member/access/storage rows, executes the candidate's real \`processMpsVipChatMemberEvent_\` path, restores the two Script Properties it temporarily changes, and moves only the spreadsheet it created to Trash in a \`finally\` block.
 
-The harness does not configure a Telegram bot token, make Telegram/network requests, create triggers, deploy a web app, change webhook configuration, or touch the production project/database. It requires the candidate's normal Google Apps Script services (\`SpreadsheetApp\`, \`DriveApp\`, \`PropertiesService\`, \`LockService\`, \`CacheService\`, and \`Utilities\`).
+The harness does not configure a Telegram bot token, make Telegram Bot API HTTP requests, use \`UrlFetchApp\`, create triggers, deploy a web app, change webhook configuration, or touch the production project/database. It requires the candidate's normal Google Apps Script services (\`SpreadsheetApp\`, \`DriveApp\`, \`PropertiesService\`, \`LockService\`, \`CacheService\`, and \`Utilities\`).
 
 ## Preconditions
 
