@@ -20,6 +20,7 @@ function makeHarness(options = {}) {
   let uuidCounter = 0;
   const sheet = {
     getLastRow() { return rows.length; },
+    getLastColumn() { return Math.max(0, ...rows.map(row => row.length)); },
     getRange(row, column, numRows, numColumns) {
       return {
         getValues() {
