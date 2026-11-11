@@ -103,6 +103,8 @@ jobs:
         run: node --test tests/telegram-webhook/candidate-vip-chat-member-integration.test.mjs
       - name: Run candidate VIP transition end-to-end GAS runtime acceptance (isolated mocks)
         run: node --test tests/telegram-webhook/candidate-vip-chat-member-gas-runtime.test.mjs
+      - name: Validate isolated Apps Script runtime harness safety (static only)
+        run: node --test tests/telegram-webhook/isolated-gas-acceptance.test.mjs
       - name: Run VIP activation contract against isolated GAS adapter (mocked services only)
         run: node --test tests/telegram-webhook/vip-activation-gas-adapter-integration.test.mjs
       - name: Run read-only schema inspector tests
