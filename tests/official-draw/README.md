@@ -343,3 +343,13 @@ node --test tests/official-draw/sqlite-failure-containment.test.mjs
 ```
 
 Four tests cover connection-level query-only rejection, bounded database-full rollback using `max_page_count`, corruption detection on a disposable copy while preserving the healthy source, and no silent repair/overwrite after corruption. These are controlled local simulations, not OS read-only permissions, real disk exhaustion, or an exhaustive corruption campaign. Clean-checkout GitHub Actions run #450 (`42966585359`) SUCCESS: 4 PASS, 0 FAIL, 0 SKIP, including Chromium checks. The initial SQLITE_FULL test assumed an explicit rollback was still required; CI showed SQLite had already auto-rolled back. The assertion was corrected to verify that behavior and the absence of partial rows. See `docs/MPS-P1.27-SQLITE-FAILURE-CONTAINMENT.md`.
+
+
+## P1.28 — verified SQLite backup restore and reconciliation (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/sqlite-verified-restore.test.mjs
+```
+
+Seven tests cover consistent `VACUUM INTO` snapshots, strict manifest and separately supplied expected digest checks, backup age, byte/schema/integrity validation, restore to a new target, corrupted/stale/mismatched backup rejection, no-overwrite guarantees, and interrupted-restore reconciliation. Uses temporary local SQLite files and synthetic rows only. The expected digest is generated in the same test process, not a real independent trust anchor. Clean-checkout CI verification pending. See `docs/MPS-P1.28-SQLITE-VERIFIED-RESTORE.md`.
