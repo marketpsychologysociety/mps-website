@@ -402,6 +402,8 @@ test('VIP storage provisioning validates every target schema before creating or 
  const auditMigration=source.indexOf("tx.migrate('audit')");
  assert.ok(memberCheck>=0&&preflight>memberCheck);
  assert.ok(accessCreation>preflight&&auditMigration>preflight);
+ assert.ok(source.indexOf("getMpsContentSheet_(MPS_AUDIT_LOGS.sheet")>preflight);
+ assert.ok(source.indexOf("getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet")>preflight);
 });
 test('candidate Index exposes guarded migration controls only for super-admin and requires explicit confirmations',()=>{
  assert.match(candidateIndex,/<section class="panel" id="memberSchemaMaintenance" data-super-admin-only/);
