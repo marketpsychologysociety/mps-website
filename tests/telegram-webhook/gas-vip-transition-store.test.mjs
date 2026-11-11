@@ -154,3 +154,13 @@ test('cursor accepts later source date even when ingress epoch is lower after Te
  assert.equal(h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:0,sourceDate:1760000001,updateId:'2',transitionKey:'telegram:0:2:vip_transition',updatedAt:'later'})).outcome,'UPDATED');
  assert.equal(h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12')).updateId,'2');
 });
+
+test('corrupt persisted intent and cursor are rejected on read',()=>{
+ const h=harness();
+ h.run((s,tx)=>s.insertIntent(tx,record()));
+ h.sheets.get('MPS Telegram VIP Transition Intents')[1][8]='not-a-date';
+ assert.throws(()=>h.run((s,tx)=>s.readIntent(tx,'telegram:2:100:vip_transition')),/VIP_TRANSITION_INTENT_CORRUPT/);
+ h.run((s,tx)=>s.writeCursor(tx,{memberId:'MPS-ABCDEF12',epoch:2,sourceDate:1760000000,updateId:'100',transitionKey:'telegram:2:100:vip_transition',updatedAt:'now'}));
+ h.sheets.get('MPS Telegram VIP Member Cursor')[1][3]='not-decimal';
+ assert.throws(()=>h.run((s,tx)=>s.readCursor(tx,'MPS-ABCDEF12')),/VIP_TRANSITION_CURSOR_CORRUPT/);
+});
