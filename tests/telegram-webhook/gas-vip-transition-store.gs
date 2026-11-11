@@ -11,7 +11,7 @@ function createMpsGasVipTransitionStore_(config) {
   var intentName='MPS Telegram VIP Transition Intents';
   var cursorName='MPS Telegram VIP Member Cursor';
   var intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
-  var cursorHeaders=['Member ID','Last Update Epoch','Last Update ID','Last Transition Key','Updated At'];
+  var cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
   var intentFields=['Update Epoch','Update ID','Member ID','Target State','Source Type','Source Date','Payload SHA-256','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
   function active_(tx){if(!tx||typeof tx.assertActive!=='function')throw new Error('VIP_TRANSITION_SCOPE_REQUIRED');tx.assertActive();}
   function sheet_(name,headers,tx){
@@ -52,15 +52,16 @@ function createMpsGasVipTransitionStore_(config) {
   }
   function readCursor(tx,memberId){
     var id=member_(memberId),sh=sheet_(cursorName,cursorHeaders,tx),rows=rows_(sh,cursorHeaders.length),i=uniqueRow_(rows,0,id);
-    if(i<0)return null;var row=rows[i];return{memberId:row[0],epoch:row[1],updateId:row[2],transitionKey:row[3],updatedAt:row[4]};
+    if(i<0)return null;var row=rows[i];return{memberId:row[0],epoch:row[1],sourceDate:row[2],updateId:row[3],transitionKey:row[4],updatedAt:row[5]};
   }
   function writeCursor(tx,record){
     active_(tx);if(!record||typeof record!=='object')throw new Error('VIP_TRANSITION_INVALID_CURSOR');
-    var id=member_(record.memberId),epoch=Number(record.epoch),updateId=String(record.updateId==null?'':record.updateId);
+    var id=member_(record.memberId),epoch=Number(record.epoch),sourceDate=Number(record.sourceDate),updateId=String(record.updateId==null?'':record.updateId);
     if(!Number.isSafeInteger(epoch)||epoch<0)throw new Error('VIP_TRANSITION_INVALID_EPOCH');
+    if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_TRANSITION_INVALID_SOURCE_DATE');
     if(!/^(0|[1-9]\d{0,19})$/.test(updateId))throw new Error('VIP_TRANSITION_INVALID_UPDATE_ID');
     var sh=sheet_(cursorName,cursorHeaders,tx),rows=rows_(sh,cursorHeaders.length),i=uniqueRow_(rows,0,id);
-    var values=[id,epoch,updateId,key_(record.transitionKey),record.updatedAt];
+    var values=[id,epoch,sourceDate,updateId,key_(record.transitionKey),record.updatedAt];
     if(i<0){sh.getRange(sh.getLastRow()+1,1,1,cursorHeaders.length).setValues([values]);SpreadsheetApp.flush();return{outcome:'INSERTED'};}
     sh.getRange(i+2,1,1,cursorHeaders.length).setValues([values]);SpreadsheetApp.flush();return{outcome:'UPDATED'};
   }
