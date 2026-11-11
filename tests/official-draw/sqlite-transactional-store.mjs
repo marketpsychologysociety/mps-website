@@ -102,7 +102,12 @@ export class SQLiteTransactionalStore {
         .run(operationId,subject,drawId,key,digest,JSON.stringify(result),now);
       this.#db.prepare("INSERT INTO notification_outbox(outbox_id,operation_id,event_type,delivery_state,created_at_utc) VALUES(?,?,'DRAW_EXECUTED','PENDING',?)")
         .run(outboxId,operationId,now);
+
+      // P1.25 fault points are reachable only through the isolated child-process test worker.
+      // process.exit() deliberately skips JS cleanup so SQLite must recover the open transaction.
+      if (fault === 'crash_before_commit') process.exit(86);
       this.#db.exec('COMMIT');
+      if (fault === 'crash_after_commit_before_ack') process.exit(87);
       if (fault === 'after_commit_before_ack') return { status:503, code:'ACKNOWLEDGMENT_LOST' };
       return { status:202, replayed:false, result };
     } catch (error) {
