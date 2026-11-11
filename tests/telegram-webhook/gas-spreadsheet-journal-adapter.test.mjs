@@ -210,6 +210,12 @@ test('schema mismatch fails closed without creating or repairing a tab', () => {
   assert.equal(h.rows.length, 1);
 });
 
+test('unexpected extra journal columns fail closed', () => {
+  const h = makeHarness();
+  h.rows[0].push('Unexpected Private Column');
+  assert.throws(() => h.create().claim(update(), 1000), /JOURNAL_SCHEMA_MISMATCH/);
+});
+
 test('malformed journal row metadata fails closed', () => {
   const h = makeHarness();
   const journal = h.create();
