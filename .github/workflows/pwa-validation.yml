@@ -49,7 +49,9 @@ jobs:
         run: node --test tests/official-draw/backup-readiness-monitor.test.mjs
       - name: Run persistent Draw API process-restart and reconciliation tests
         run: node --test tests/official-draw/persistent-api-integration.test.mjs
-      - name: Run synthetic incident tabletop decision evaluator tests\n        run: node --test tests/official-draw/tabletop-exercise.test.mjs\n      - name: Run read-only schema inspector tests
+      - name: Run synthetic incident tabletop decision evaluator tests
+        run: node --test tests/official-draw/tabletop-exercise.test.mjs
+      - name: Run read-only schema inspector tests
         run: node scripts/test-readonly-schema-inspector.mjs
       - name: Install Playwright and Chromium
         run: |
