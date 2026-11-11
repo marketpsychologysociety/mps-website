@@ -14,7 +14,7 @@ function createMpsGasVipTransitionOrchestrator_(config) {
 
   function decimal_(v){
     if(typeof v==='number'){if(!Number.isSafeInteger(v)||v<0)throw new Error('VIP_INVALID_UPDATE_ID');return String(v);}
-    var s=String(v==null?'':v);if(!/^(0|[1-9]\\d{0,19})$/.test(s))throw new Error('VIP_INVALID_UPDATE_ID');return s;
+    var s=String(v==null?'':v);if(!/^(0|[1-9]\d{0,19})$/.test(s))throw new Error('VIP_INVALID_UPDATE_ID');return s;
   }
   function compareDecimal_(a,b){a=String(a);b=String(b);return a.length!==b.length?(a.length>b.length?1:-1):(a===b?0:(a>b?1:-1));}
   function compare_(a,b){
