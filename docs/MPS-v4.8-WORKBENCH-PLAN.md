@@ -882,3 +882,15 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 - [ ] Approve named responders, channels, objectives and operational activation gates separately.
 
 **Evidence:** `docs/MPS-P1.19-INCIDENT-TABLETOP-EXERCISE.md`, `tests/official-draw/tabletop-exercise.mjs`, and `tests/official-draw/tabletop-exercise.test.mjs`. Synthetic evaluator only: no live incident, notification, provider, backup, key, member data, production configuration or deployment was touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.20 — production activation readiness assessment (documentation only)
+
+- [x] Consolidate mandatory G0–G11 release gates for governance, identity, dual control, durable state, external evidence, source authenticity, cryptographic draw, DR, monitoring, incident response, application integration and independent release verification.
+- [x] Classify each gate by actual evidence level; separate design/synthetic tests from operational proof.
+- [x] Record overall decision as **NO-GO / NOT OPERATIONALLY READY** with zero operational PASS gates.
+- [x] Define staged activation sequence, evidence-register requirements, stop conditions and explicit approval boundaries.
+- [ ] Complete governance approvals and real isolated identity/provider tests; these require separately authorized owners and actions.
+- [ ] Complete real off-site restore, key recovery, monitoring, responder tabletop and independent security/release review.
+
+**Evidence:** docs/MPS-P1.20-PRODUCTION-ACTIVATION-READINESS.md. Documentation-only assessment; no cloud/identity/provider resource, production system, member data, credentials, deployment or live integration was changed. Official winner draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
