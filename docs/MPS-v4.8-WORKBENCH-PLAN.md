@@ -703,3 +703,11 @@ GitHub Actions workflow run #249 (`42941441923`) on workbench head `9a8e4af6ecb9
 - [ ] Run the conformance matrix against actual GCS and obtain independent reviewer sign-off.
 
 **Evidence:** `tests/official-draw/gcs-poc-evidence-verifier.mjs`, `tests/official-draw/gcs-poc-evidence-verifier.test.mjs`, and the CI workflow step. P1.9 is an offline synthetic evidence-validation harness only; it does not connect to GCS or authenticate raw Cloud Audit Logs. Actual GCS PoC remains NOT STARTED. No cloud resources, credentials, billing configuration, production data or live integration were created. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+### P1.9 clean-checkout CI verification — 2026-11-11
+
+GitHub Actions run #259 (`42942407831`) on commit `b041cac0bef2c91bcfddf239869d85ac1fb28d7d` completed **SUCCESS**. The offline GCS evidence-bundle verifier suite passed **11 synthetic tests**, including strict schema, digest/receipt integrity, identity/admin-boundary separation, audit coverage, missing evidence and malformed object collection fail-closed behavior. The full workflow also passed the existing synthetic Draw security contract, durable journal, external-anchor contract, persistent API restart/reconciliation, schema inspector and Chromium browser suite (15 pages plus PWA/offline/mobile/install checks).
+
+The first attempt on commit `70457412e1a05d0888bb9f7bf64d0c326b1a230e` failed because a literal escaped newline was introduced in the test file during an edit. The workflow log identified the syntax error; the test source was corrected, a malformed-collection fail-closed regression test was added, and run #259 passed from clean checkout.
+
+**Evidence boundary:** all GCS verifier inputs are synthetic normalized fixtures. CI does not call GCS, authenticate raw Cloud Audit Logs, validate a live IAM policy, prove actual retention or backup behavior, or establish provider independence. Actual GCS PoC remains NOT STARTED. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
