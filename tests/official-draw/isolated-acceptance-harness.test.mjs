@@ -101,6 +101,11 @@ test("public winner projection only accepts exact allowlisted PUBLISHED and VERI
   const hiddenPrivate={...safe};
   Object.defineProperty(hiddenPrivate,"private_member_id",{value:"CANARY",enumerable:false});
   assert.equal(projectPublicWinner(hiddenPrivate),null);
+  const hiddenPublicField={...safe};
+  Object.defineProperty(hiddenPublicField,"message",{value:"hidden message",enumerable:false});
+  assert.equal(projectPublicWinner(hiddenPublicField),null);
+  assert.equal(projectPublicWinner({...safe,public_result_id:{toString(){throw new Error("must not execute");}}}),null);
+  assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,beacon_round:42}}),null);
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,member_name:"CANARY_NAME"}}),null);
   const projected=projectPublicWinner(safe);
   assert.equal(projected.public_result_id,safe.public_result_id);
