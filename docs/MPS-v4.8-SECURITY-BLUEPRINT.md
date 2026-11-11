@@ -279,3 +279,24 @@ This status record separates documented design, isolated source work, synthetic 
 The latest repository comparison records `mps-v4.8-workbench` 136 commits ahead and 0 behind `main`; production `main` remains at baseline `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`. This branch comparison is not a release or security certification.
 
 **Safety boundary:** no production deployment, database/member data, Drive ACL, Script Properties, credential, DNS/hosting setting, trigger, or Telegram webhook was changed by this status update.
+
+
+## P0 public projection privacy gate — verified update (2026-11-11)
+
+**Scope completed in the isolated workbench:** a synthetic private projection fixture now contains canary values for a name, raw member ID, phone, email, Telegram ID, MT5 login, deposit, proof-document reference, PIN, token, and participant reference. A strict allowlist serializer emits only the approved public result fields and a bounded proof summary, and only when the fixture is both VERIFIED and PUBLISHED. Anonymous collection and detail routes exercise the serializer through the local loopback HTTP server. The test checks every canary, exact top-level and nested field allowlists, and fail-closed empty/unknown-result behavior.
+
+**Clean GitHub Actions evidence:** workflow run #173, commit `56379ed9bc11a07bd01d0455fff35d8f06106b56`, completed successfully:
+- Official Draw synthetic security contract: **10 PASS, 0 FAIL, 0 SKIP**.
+- Synthetic database schema compatibility: **9/9 PASS**.
+- Read-only schema inspector: **5 scenarios PASS**.
+- Chromium PWA/browser suite: **PASS**, 15 pages plus service-worker, cache/offline, mobile navigation, Android install prompt, and iOS guidance checks.
+- Overall workflow: **SUCCESS**.
+
+The browser suite initially exposed stale assertions that still opened cache namespace v5 after the service worker had been upgraded to v6. The test script was corrected to inspect v6; the full workflow then passed. This was a test assertion mismatch, not evidence of a production cache leak.
+
+**Evidence boundary:** these results are for the exact clean GitHub Actions checkout of the isolated workbench commit and synthetic fixtures only. They do not verify the production CMS/Apps Script bridge, production member data, real cache/log pipeline, actual Draw API, OIDC, durable journal, beacon signature verification, or a fair winner-selection implementation. The Public Center backend feature flag remains disabled. Official winner draw remains **BLOCKED / NO-GO**; frontend roulette remains **SIMULATION ONLY**. No production branch, deployment, database, spreadsheet, Drive, credentials, webhook, or member data was changed.
+
+
+### Security decision after P0 sandbox verification
+
+The canary privacy gap in the **synthetic sandbox contract** is closed. This is not a production privacy acceptance: the real CMS/Apps Script bridge, shared cache behavior with real deployment responses, logs, and production authorization remain unverified. Continue with durable persistence/journal and individually authenticated identity before any privileged draw implementation. Do not enable official draw or public winner publication.

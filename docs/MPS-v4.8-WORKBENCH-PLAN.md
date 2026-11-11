@@ -561,3 +561,28 @@ This section supersedes earlier checklist assumptions where newer evidence is re
 6. Finish announcement CMS bridge and runtime tests.
 7. Resume remaining P0–P7 acceptance items; only then prepare a separate release review.
 
+
+
+## P0 public projection privacy gate — verified update (2026-11-11)
+
+**Scope completed in the isolated workbench:** a synthetic private projection fixture now contains canary values for a name, raw member ID, phone, email, Telegram ID, MT5 login, deposit, proof-document reference, PIN, token, and participant reference. A strict allowlist serializer emits only the approved public result fields and a bounded proof summary, and only when the fixture is both VERIFIED and PUBLISHED. Anonymous collection and detail routes exercise the serializer through the local loopback HTTP server. The test checks every canary, exact top-level and nested field allowlists, and fail-closed empty/unknown-result behavior.
+
+**Clean GitHub Actions evidence:** workflow run #173, commit `56379ed9bc11a07bd01d0455fff35d8f06106b56`, completed successfully:
+- Official Draw synthetic security contract: **10 PASS, 0 FAIL, 0 SKIP**.
+- Synthetic database schema compatibility: **9/9 PASS**.
+- Read-only schema inspector: **5 scenarios PASS**.
+- Chromium PWA/browser suite: **PASS**, 15 pages plus service-worker, cache/offline, mobile navigation, Android install prompt, and iOS guidance checks.
+- Overall workflow: **SUCCESS**.
+
+The browser suite initially exposed stale assertions that still opened cache namespace v5 after the service worker had been upgraded to v6. The test script was corrected to inspect v6; the full workflow then passed. This was a test assertion mismatch, not evidence of a production cache leak.
+
+**Evidence boundary:** these results are for the exact clean GitHub Actions checkout of the isolated workbench commit and synthetic fixtures only. They do not verify the production CMS/Apps Script bridge, production member data, real cache/log pipeline, actual Draw API, OIDC, durable journal, beacon signature verification, or a fair winner-selection implementation. The Public Center backend feature flag remains disabled. Official winner draw remains **BLOCKED / NO-GO**; frontend roulette remains **SIMULATION ONLY**. No production branch, deployment, database, spreadsheet, Drive, credentials, webhook, or member data was changed.
+
+
+### Updated next execution order
+
+1. Build durable synthetic Draw API persistence/journal and fault-injection tests.
+2. Implement isolated OIDC identity validation, revocation, MFA and person-level dual control.
+3. Implement pinned beacon verification and deterministic unbiased proof workflow.
+4. Complete Public Center CMS/backend bridge only after isolated Apps Script runtime validation.
+5. Continue production read-only verification and remaining P0–P7 gates; prepare a separate release review only after objective evidence exists.

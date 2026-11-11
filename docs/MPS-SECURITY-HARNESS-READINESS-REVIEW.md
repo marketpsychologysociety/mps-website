@@ -89,7 +89,7 @@ Passing this suite alone is not a security certification and does not authorize 
 
 ## 6. Current status
 
-Before the public-projection fixture was added, a local test run against a reconstructed working copy recorded **8 PASS, 1 SKIP, 0 FAIL**. The privacy SKIP was the known gap addressed by the latest workbench change. The new test suite has been wired into the branch's GitHub Actions workflow; its result must be read from the resulting workflow run before claiming the new test passes. No clean-checkout/CI result for the updated suite is claimed yet.
+Before the public-projection fixture was added, a local test run against a reconstructed working copy recorded **8 PASS, 1 SKIP, 0 FAIL**. The privacy SKIP was the known gap addressed by the latest workbench change. The updated suite was executed by GitHub Actions from a clean checkout. Workflow run #173 at commit `56379ed9bc11a07bd01d0455fff35d8f06106b56` completed successfully: Official Draw contract **10 PASS, 0 FAIL, 0 SKIP**; schema compatibility **9/9 PASS**; read-only inspector **5 scenarios PASS**; Chromium browser suite **PASS**.
 
 | Area | Status |
 |---|---|
@@ -98,11 +98,11 @@ Before the public-projection fixture was added, a local test run against a recon
 | Adapter-based integration scaffold | Present |
 | Synthetic loopback sandbox adapter | Present; in-memory and test-only |
 | Earlier narrow sandbox contract run | 8 PASS, 1 SKIP on reconstructed working copy; superseded by privacy-fixture update |
-| Public projection fixture and serializer | Implemented in isolated sandbox; CI result pending |
-| Canary privacy test through public HTTP routes | Added; CI result pending |
+| Public projection fixture and serializer | Implemented; allowlist verified in CI run #173 |
+| Canary privacy test through public HTTP routes | 10-test suite PASS; 0 SKIP in CI run #173 |
 | Official Draw API implementation in inspected workbench | Not found |
 | OIDC / durable persistence / journal | Not implemented |
-| Public projection privacy test | Implemented in synthetic sandbox; production/cache/browser coverage still absent |
+| Public projection privacy test | Synthetic API canary test PASS; production CMS/cache/log privacy remains unverified |
 | Cryptographic verifier integration | Not implemented |
 | Official winner draw | **BLOCKED** |
 | Frontend roulette | **SIMULATION ONLY** |
@@ -110,3 +110,10 @@ Before the public-projection fixture was added, a local test run against a recon
 ## 7. Safety boundary
 
 This review changes documentation only. No production branch, Apps Script deployment, database, spreadsheet, Drive file, Script Property, identity provider, cloud resource, webhook, or member record is created, modified, or accessed.
+
+
+### P0 public projection privacy gate — verified update (2026-11-11)
+
+A synthetic private fixture, strict allowlist serializer, anonymous collection/detail routes, and canary assertions are now present. The CI privacy test traverses the loopback HTTP routes, checks all synthetic canaries and exact public field sets, and checks empty/unknown results. Workflow run #173 completed successfully with **10 PASS, 0 FAIL, 0 SKIP** for the Official Draw contract suite. The full workflow also passed schema compatibility (9/9), read-only inspector (5 scenarios), and Chromium PWA/browser checks.
+
+This closes the known **sandbox** privacy-test skip only. Production CMS/Apps Script integration, production caches/logs, OIDC, durable persistence/journal, beacon verification, and official winner selection remain unimplemented or unverified. Official draw remains **BLOCKED** and roulette remains **SIMULATION ONLY**. No production system was changed.
