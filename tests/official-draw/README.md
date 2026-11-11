@@ -247,3 +247,13 @@ The local filesystem prototype records immutable Ed25519 reviewer public-key reg
 ## P1.16 — off-site backup and recovery drill contract (synthetic only)
 
 `offsite-recovery-drill-contract.mjs` validates a normalized provider-neutral drill evidence envelope: separate source/backup accounts, projects and regions; six distinct privileged subjects and administrative boundaries; MFA assertions; locked-retention evidence; exact-generation restore to a new target; source preservation; independent audit coverage; RPO/RTO and an out-of-band expected checkpoint. Sixteen positive/negative synthetic tests run in CI. The validator does not authenticate provider APIs, IAM, MFA, retention, KMS, raw audit logs or the truth of normalized assertions. No cloud resource is provisioned. See `docs/MPS-OFFSITE-BACKUP-RECOVERY-DRILL-CONTRACT.md`.
+
+
+## P1.17 — backup integrity monitoring and DR readiness (synthetic only)
+
+Run:
+`node --test tests/official-draw/backup-readiness-monitor.test.mjs`
+
+The offline evaluator classifies normalized evidence as HEALTHY, DEGRADED, or UNHEALTHY using backup freshness/checkpoint/integrity/retention, independent audit export, restore-drill and key-recovery evidence. It creates stable checkpoint-scoped alert keys and a test-only notification outbox. A notification is DELIVERED only after an explicit provider acknowledgement; retries use bounded backoff and exhaust to DEAD_LETTER. Seventeen synthetic tests cover positive/negative evidence and outbox transitions.
+
+**Limitations:** no provider authentication, real monitoring, scheduled checks, cloud alerting, email/Telegram/webhook send, production logs, credentials, member data, or deployment. A passing fixture test does not prove real backup health, provider retention, audit authenticity, key recoverability, or disaster recovery. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
