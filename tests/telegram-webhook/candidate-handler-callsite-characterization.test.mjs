@@ -10,7 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = fs.readFileSync(path.join(here, 'fixtures/candidate-handler-callsite-snapshot.gs'), 'utf8');
 const sourceSha = 'c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba';
 assert.match(fixture, new RegExp('Origin SHA-256: ' + sourceSha));
-assert.equal(crypto.createHash('sha256').update(fixture).digest('hex'), '087edea32c19db22660216e60bfd2549a56abad7adbd765728d5af1adcc8882c');
+assert.equal(crypto.createHash('sha256').update(fixture).digest('hex'), '971553a0cf9a2a8ec2d609cf6bf69a0b9da427e70f2af8bb6a666209ac6a105b');
 
 function harness(fetches = []) {
   const props = new Map([['MPS_TELEGRAM_VIP_CHAT_ID','-100123'],['MPS_TELEGRAM_BOT_TOKEN','test-token']]);
@@ -40,7 +40,7 @@ const approved={ok:true,result:true};
 const failed={ok:false,description:'temporary Telegram failure'};
 
 test('fixture provenance is pinned to the reviewed candidate source',()=>{
-  assert.match(fixture,/not a deployable Code\\.gs file/i);
+  assert.match(fixture,/not a deployable Code\.gs file/i);
   assert.match(fixture,/function processTelegramUpdateCore_/);
   assert.match(fixture,/function processVipJoinRequest_/);
 });
