@@ -70,11 +70,11 @@ export function authorize({ role, action, subject, ownerSubject, reviewerSubject
 export function projectPublicWinner(record) {
   if (!record || record.state !== "PUBLISHED" || record.verification_status !== "VERIFIED") return null;
   const proof = record.proof_summary;
-  if (!proof || Object.keys(record).some(k => !PUBLIC_RESULT_KEYS.includes(k)) ||
-      Object.keys(proof).some(k => !PUBLIC_PROOF_KEYS.includes(k)) ||
-      Object.keys(record).sort().join("|") !== PUBLIC_RESULT_KEYS.join("|") ||
+  const inputKeys = [...PUBLIC_RESULT_KEYS, "state"].sort();
+  if (!proof || Object.keys(record).sort().join("|") !== inputKeys.join("|") ||
       Object.keys(proof).sort().join("|") !== PUBLIC_PROOF_KEYS.join("|")) return null;
-  return structuredClone(record);
+  const { state: _internalState, ...publicRecord } = record;
+  return structuredClone(publicRecord);
 }
 
 /**
