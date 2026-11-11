@@ -343,7 +343,7 @@ try {
   await feedPage.waitForFunction(() => document.documentElement.dataset.mpsPublicCenter === 'connected', null, { timeout: 5000 })
     .catch(() => failures.push('Data-only public-center JSON feed did not connect in mocked CORS test'));
   const safeFeedRendered = await feedPage.locator('[data-public-announcements]').innerText();
-  if (!safeFeedRendered.includes('Mocked safe feed title')) failures.push('Data-only public-center JSON feed did not render safe announcement text');
+  if (!safeFeedRendered.includes('<img src=x')) failures.push('Data-only public-center JSON feed did not preserve HTML-like title as inert text');
   const feedXssSafety = await feedPage.evaluate(() => ({
     titleText: document.querySelector('[data-public-announcements] h3')?.textContent || '',
     injectedImage: !!document.querySelector('[data-public-announcements] img'),
