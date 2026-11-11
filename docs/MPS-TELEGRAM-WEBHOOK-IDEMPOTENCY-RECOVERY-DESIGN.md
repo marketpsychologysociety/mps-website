@@ -309,3 +309,24 @@ The seven characterization checks cover:
 These tests are intentionally *characterization tests*: they pass when the existing gap is reproduced. They do not fix the gap, prove live GAS semantics, or authorize integration. The candidate's status-first order plus non-throwing audit helper means a crash after the status mutation can leave ticker/audit effects incomplete while a retry observes an already-active member. The current handler also creates ticker IDs with a random UUID rather than a stable update-derived key. Durable intent/effect integration must explicitly address these behaviors, retain the original event timestamp and update ID on all paths, and keep one ScriptLock owner across the state/ledger write sequence.
 
 No candidate Code.gs source, production spreadsheet, Apps Script project, or deployment was changed by this characterization step.
+
+## 5F. Ordering semantics for join-request reconciliation (required handler gate)
+
+The candidate handler has three `processVipJoinRequest_` paths that call `getChatMember` and then pass the observed membership status to `updateVipJoinStatus_`: pre-approval reconciliation, failed-approval retry reconciliation, and successful approval. These are not equivalent evidence sources:
+
+- A Telegram `chat_member` update is an event notification. Its `update_id` identifies its place in the bot's update stream; `chat_member.date` is event metadata.
+- A `chat_join_request` update is a request event. Its `update_id` orders that request in the update stream; `chat_join_request.date` is the request's original timestamp.
+- A `getChatMember` response is a point-in-time remote-state observation made during handler execution. It is **not** a Telegram update and has no corresponding `update_id`. The request's older `update_id` or `date` must not be relabelled as the observation's sequence/time.
+
+Therefore, the current model rule “order state-changing Telegram events by ingress epoch + canonical decimal update_id” applies only to actual update-derived transitions. Do not feed a `getChatMember` snapshot into the same event cursor as though it were the join-request event. Doing so could let an old request overwrite a newer leave/rejoin, or make a snapshot appear older than the state it actually observed.
+
+Required behavior for integration:
+
+1. Use the incoming update's validated `update_id` and assigned durable ingress epoch for the request's own transition/effect identity.
+2. Treat `getChatMember` strictly as reconciliation evidence for deciding whether an external approve/kick action is necessary. Do not synthesize an event timestamp or update ID for that observation.
+3. If the observation says the user is already a member, do not blindly rewrite the member's ordered state cursor using the old request's sequence. If the local cursor/state is inconsistent or cannot safely be reconciled, persist a review outcome and resolve through an explicit reconciliation path.
+4. A successful approve operation may record the request-caused activation using the request update's sequence only after the operation is confirmed successful. If the API outcome is ambiguous, reconcile remote state; if that cannot establish the outcome safely, mark REVIEW rather than replaying.
+5. Every actual `chat_member` update still goes through the same per-member ordered transition gate. A later update must not be overwritten by a delayed earlier update.
+6. Never hold ScriptLock while calling Telegram. Acquire the single-owner local critical section only for durable intent, cursor, member-sheet, and keyed local-effect operations.
+
+This distinction is a release gate, not an implementation detail. Existing characterization tests prove that the candidate currently omits update metadata from all four status call paths; they do not prove that simply adding the request's `date` to all three reconciliation calls would be correct.
