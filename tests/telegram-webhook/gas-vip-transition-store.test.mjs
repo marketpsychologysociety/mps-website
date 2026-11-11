@@ -49,7 +49,7 @@ function harness({missingCursor=false,failFlushAt=0,failWriteAt=0}={}) {
   };
   const c={...services};vm.runInNewContext(effectSource+'\n'+storeSource+'\nthis.createLedger=createMpsGasEffectLedger_;this.createStore=createMpsGasVipTransitionStore_;',c,{timeout:1000});return c;
  }
- function run(fn){const c=context(),ledger=c.createLedger({spreadsheetId:'isolated-vip-ledger'}),store=c.createStore({spreadsheetId:'isolated-vip-ledger'});return ledger.runExclusive(tx=>fn(store,tx));}
+ function run(fn){const c=h.context(),ledger=c.createLedger({spreadsheetId:'isolated-vip-ledger'}),store=c.createStore({spreadsheetId:'isolated-vip-ledger'});return ledger.runExclusive(tx=>fn(store,tx));}
  return {run,sheets,context,stats:()=>({held,acquired,released,flushCount,writeCount})};
 }
 const record=(key='telegram:2:100:vip_transition')=>({
