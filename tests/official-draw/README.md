@@ -323,3 +323,13 @@ node --test tests/official-draw/sqlite-process-contention.test.mjs
 ```
 
 Five child-process tests exercise independent SQLite connections, competing state-version updates, same-key replay, conflicting-payload rejection, exit before COMMIT, and exit after COMMIT but before a response. The worker uses temporary synthetic database files and is restricted to local test execution. Controlled child-process exit is not a physical power-loss test. Local Node 22.16.0 result: 5 PASS, 0 FAIL, 0 SKIP; clean-checkout CI run #430 (`42965435791`) SUCCESS, including all synthetic suites and Chromium browser checks. See `docs/MPS-P1.25-SQLITE-CROSS-PROCESS-CONTENTION.md`.
+
+
+## P1.26 — SQLite lock, WAL, snapshot and backup boundaries (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/sqlite-operational-boundaries.test.mjs
+```
+
+Six tests cover bounded writer lock contention, WAL snapshot consistency across concurrent commits, checkpoint blocking while a reader is active, checkpoint completion after release, logical snapshot backup including committed WAL data, refusal to overwrite an existing backup destination, and PASSIVE checkpoint/integrity checks. Uses temporary local SQLite files and fixed child-worker modes only. Local and clean-checkout CI verification pending. See `docs/MPS-P1.26-SQLITE-OPERATIONAL-BOUNDARIES.md`.
