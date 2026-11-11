@@ -34,6 +34,8 @@ jobs:
         run: node --test tests/official-draw/sqlite-operational-boundaries.test.mjs
       - name: Run P1.27 SQLite failure-containment tests (synthetic only)
         run: node --test tests/official-draw/sqlite-failure-containment.test.mjs
+      - name: Run P1.28 verified SQLite restore tests (synthetic only)
+        run: node --test tests/official-draw/sqlite-verified-restore.test.mjs
       - name: Run official draw synthetic security contract
         env:
           MPS_DRAW_TEST_ALLOW_LOCAL: "1"
