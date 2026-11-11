@@ -150,7 +150,7 @@ test('DENIED chat_member transition writes audit only and never emits public tic
  assert.equal(h.sheets.get('MPS Audit Logs')[1][5],'WARNING');
 });
 test('transition resolver executes inside the one exclusive lock and may supply the member identity',()=>{
- const h=harness();migrate(h);let called=false;
+ const h=harness();migrate(h);h.resetCounts();let called=false;
  const result=h.process({...input(),memberId:'',targetState:''},(tx,raw)=>{
   called=true;assert.equal(h.stats().held,true);
   return {...raw,memberId:'MPS-ABCDEF12',targetState:'ACTIVE',telegramUserId:'987654321',tickerAllowed:true};
