@@ -7,7 +7,7 @@
  */
 function createMpsGasVipTransitionOrchestrator_(config) {
   config=config||{};
-  var ledger=config.ledger,store=config.store,statusWriter=config.statusWriter;
+  var ledger=config.ledger,store=config.store,statusWriter=config.statusWriter,resolveTransition=config.resolveTransition;
   if(!ledger||typeof ledger.runExclusive!=='function')throw new Error('VIP_ORCHESTRATOR_LEDGER_REQUIRED');
   if(!store||typeof store.findPending!=='function')throw new Error('VIP_ORCHESTRATOR_STORE_REQUIRED');
   if(!statusWriter||typeof statusWriter.applyAccessStatus!=='function'||typeof statusWriter.applyMemberStatus!=='function')throw new Error('VIP_STATUS_WRITER_REQUIRED');
@@ -51,7 +51,7 @@ function createMpsGasVipTransitionOrchestrator_(config) {
         store.updateIntent(tx,key,{'State':'SUPERSEDED','Updated At':nowIso,'Last Error Code':'STALE_BEFORE_STATUS'});
         return 'SUPERSEDED';
       }
-      var statusRecord={memberId:memberId,targetState:target,sourceDate:sourceDate,updateId:updateId,transitionKey:key};
+      var statusRecord={memberId:memberId,telegramUserId:String(intent['Telegram User ID']),targetState:target,sourceDate:sourceDate,updateId:updateId,transitionKey:key};
       callWriter_(statusWriter.applyAccessStatus,tx,statusRecord);
       callWriter_(statusWriter.applyMemberStatus,tx,statusRecord);
       intent=store.updateIntent(tx,key,{'State':'STATUS_APPLIED','Updated At':nowIso,'Last Error Code':''});
@@ -70,15 +70,16 @@ function createMpsGasVipTransitionOrchestrator_(config) {
       store.writeCursor(tx,{memberId:memberId,epoch:epoch,sourceDate:sourceDate,updateId:updateId,transitionKey:key,updatedAt:nowIso});
     }
     var timestamp=new Date(sourceDate*1000),tickerKey=String(intent['Ticker Effect Key']),auditKey=String(intent['Audit Effect Key']);
-    if(target==='ACTIVE'){
+    if(target==='ACTIVE'&&intent['Ticker Allowed']===true){
       checkEffect_(tx.appendOnce('ticker',tickerKey,[
         'VIP-'+key,timestamp,memberId,String(intent['Member Name']||memberId),
         'telah bergabung ke MPS VIP Community','Visible'
       ]),'TICKER');
     }
+    var action=target==='ACTIVE'?'VIP_JOIN_CONFIRMED':(target==='LEFT'?'VIP_LEFT_CONFIRMED':'VIP_JOIN_DENIED');
+    var result=target==='DENIED'?'WARNING':'SUCCESS';
     checkEffect_(tx.appendOnce('audit',auditKey,[
-      timestamp,'TELEGRAM',memberId,target==='ACTIVE'?'VIP_JOIN_CONFIRMED':'VIP_LEFT_CONFIRMED',
-      memberId,'SUCCESS','Transition '+key+' applied from Telegram chat_member event.'
+      timestamp,'TELEGRAM',memberId,action,memberId,result,'Transition '+key+' applied from Telegram chat_member event.'
     ]),'AUDIT');
     store.updateIntent(tx,key,{'State':'COMPLETED','Updated At':nowIso,'Last Error Code':''});
     return 'COMPLETED';
@@ -91,19 +92,30 @@ function createMpsGasVipTransitionOrchestrator_(config) {
     if(!Number.isSafeInteger(epoch)||epoch<0)throw new Error('VIP_INVALID_EPOCH');
     if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_INVALID_SOURCE_DATE');
     if(!memberId||memberId.length>128)throw new Error('VIP_INVALID_MEMBER');
-    if(target!=='ACTIVE'&&target!=='LEFT')throw new Error('VIP_INVALID_TARGET_STATE');
+    if(target&&!['ACTIVE','LEFT','DENIED'].includes(target))throw new Error('VIP_INVALID_TARGET_STATE');
     if(input.sourceType!=='CHAT_MEMBER')throw new Error('VIP_UNSUPPORTED_SOURCE_TYPE');
     var payloadHash=String(input.payloadSha256||'').toLowerCase();
     if(!/^[a-f0-9]{64}$/.test(payloadHash))throw new Error('VIP_INVALID_PAYLOAD_HASH');
     var intentKey=key_(epoch,updateId),timestampIso=new Date(sourceDate*1000).toISOString();
     return ledger.runExclusive(function(tx){
       tx.assertActive();
-      var pending=store.findPending(tx,memberId);
+      var resolved=typeof resolveTransition==='function'?resolveTransition(tx,input):input;
+      if(!resolved||resolved.ignored===true)return 'IGNORED';
+      var effectiveMemberId=String(resolved.memberId||memberId).trim();
+      var effectiveTarget=String(resolved.targetState||target);
+      var effectiveName=String(resolved.memberName||input.memberName||effectiveMemberId);
+      var telegramUserId=String(resolved.telegramUserId||input.telegramUserId||'');
+      var tickerAllowed=resolved.tickerAllowed===true;
+      if(!effectiveMemberId||effectiveMemberId.length>128)throw new Error('VIP_INVALID_MEMBER');
+      if(!['ACTIVE','LEFT','DENIED'].includes(effectiveTarget))throw new Error('VIP_INVALID_TARGET_STATE');
+      if(!/^[0-9]{1,20}$/.test(telegramUserId))throw new Error('VIP_INVALID_TELEGRAM_USER_ID');
+      var pending=store.findPending(tx,effectiveMemberId);
       if(pending)finish_(tx,pending,timestampIso);
+      memberId=effectiveMemberId;target=effectiveTarget;
       var existing=store.readIntent(tx,intentKey);
       if(existing){
         if(String(existing['Payload SHA-256'])!==payloadHash||String(existing['Member ID'])!==memberId||
-          String(existing['Target State'])!==target||Number(existing['Source Date'])!==sourceDate||String(existing['Member Name'])!==String(input.memberName||memberId)){
+          String(existing['Target State'])!==target||Number(existing['Source Date'])!==sourceDate||String(existing['Member Name'])!==effectiveName||String(existing['Telegram User ID'])!==telegramUserId||existing['Ticker Allowed']!==tickerAllowed){
           throw new Error('VIP_TRANSITION_INTENT_COLLISION');
         }
         if(String(existing.State)==='COMPLETED')return 'DUPLICATE';
@@ -115,8 +127,8 @@ function createMpsGasVipTransitionOrchestrator_(config) {
         {epoch:Number(cursor.epoch),sourceDate:Number(cursor.sourceDate),updateId:String(cursor.updateId)})<=0)return 'STALE';
       var record={
         'Intent Key':intentKey,'Update Epoch':epoch,'Update ID':updateId,'Member ID':memberId,
-        'Member Name':String(input.memberName||memberId),'Target State':target,'Source Type':'CHAT_MEMBER','Source Date':sourceDate,
-        'Payload SHA-256':payloadHash,'State':'INTENT','Ticker Effect Key':intentKey+':ticker',
+        'Member Name':effectiveName,'Telegram User ID':telegramUserId,'Target State':target,'Source Type':'CHAT_MEMBER','Source Date':sourceDate,
+        'Payload SHA-256':payloadHash,'Ticker Allowed':tickerAllowed,'State':'INTENT','Ticker Effect Key':intentKey+':ticker',
         'Audit Effect Key':intentKey+':audit','Created At':timestampIso,'Updated At':timestampIso,
         'Last Error Code':''
       };
