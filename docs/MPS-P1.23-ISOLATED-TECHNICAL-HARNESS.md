@@ -59,3 +59,5 @@ The next implementation increment should be a genuinely isolated persistence/API
 
 - Follow-up review hardened authorization and public projection against null, inherited, accessor-based, symbol-keyed and non-enumerable properties; request validation now rejects hidden extra fields. The synthetic tests include these hostile object-shape cases and impossible calendar timestamps.
 - Idempotency scoping now uses an unambiguous tuple encoding and fingerprints the expected version as part of the request. Invalid key/version/payload types fail closed. This remains an in-memory synthetic model, not durable idempotency.
+
+- Cross-check against the P1.22 authorization matrix removed an overbroad synthetic grant: `DRAW_SECURITY_ADMIN` is not permitted to create draw events; `SERVICE_IDENTITY` cannot approve rules; publisher cannot execute draws. The harness remains a deliberately narrow subset, not the complete P1.22 matrix.
