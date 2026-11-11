@@ -11,6 +11,11 @@ const registry = await DurableReviewerTrustRegistry.open(directory, {
     if (event === 'NONCE_CONSUMED' && stage === crashStage) process.exit(73);
   }
 });
-await registry.verifyAndConsume(args);
+if (args.operation === 'recovery-checkpoint') {
+  delete args.operation;
+  await registry.verifyAndConsumeRecoveryCheckpoint(args);
+} else {
+  await registry.verifyAndConsume(args);
+}
 await registry.close();
 process.exit(0);
