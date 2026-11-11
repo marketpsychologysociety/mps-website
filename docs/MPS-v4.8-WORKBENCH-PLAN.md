@@ -936,3 +936,6 @@ P1.23 verification update: clean-checkout GitHub Actions run #403 (42964135867) 
 ## P1.24 — Isolated SQLite transactional persistence
 
 A local synthetic SQLite adapter and nine tests were added to exercise real file-backed SQL transactions, state/idempotency/outbox atomicity, constraints, rollback, canonical replay, and reopen-after-lost-ack. Local Node 22.16.0 tests: 9 PASS, 0 FAIL, 0 SKIP; `node:sqlite` emits an experimental warning. Dedicated CI step added; CI result pending. No production database, cloud resource, identity provider, member data, or external notification integration.
+
+
+P1.24 verification outcome: clean-checkout GitHub Actions run #417 (`42964627111`) completed SUCCESS on commit `6b4c7c98d269c005671cd4647c44fbd027630c55`; the SQLite transaction suite and all other workflow steps, including Chromium browser checks, passed. Local Node 22.16.0 run was 9 PASS / 0 FAIL / 0 SKIP. This remains local synthetic persistence evidence only; operational G0–G11 gates and official draw NO-GO remain unchanged.
