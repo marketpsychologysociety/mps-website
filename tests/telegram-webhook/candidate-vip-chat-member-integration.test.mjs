@@ -217,7 +217,8 @@ test('candidate chat_member bridge builds isolated adapters and forwards the ori
 const legacyMemberHeaders=['ID Member','Waktu Daftar','Nama Panggilan','Username Telegram','Negara','Tujuan Bergabung','Catatan Member','Status Pendaftaran','Nama Sesuai Akun','Login MT5','Jenis Akun','Deposit Pertama (IDR)','Tanggal Deposit','Link Bukti Deposit','Status Verifikasi Deposit','Catatan Admin','Waktu Konfirmasi','Terakhir Diperbarui'];
 const appendedMemberHeaders=['Telegram Chat ID','Telegram Link Token','Telegram Linked At','PIN Hash','PIN Updated At','Telegram Link Expires At','Application Ref','VIP Invite Link','VIP Invite Expires At','VIP Joined At','VIP User ID','VIP Status'];
 function migrationHarness(initialHeaders,{adminAllowed=true}={}) {
- const rows=[initialHeaders.slice(),['MPS-OLD12345','legacy-data']];
+ const legacyRow=Array.from({length:initialHeaders.length},(_,i)=>'legacy-'+i);legacyRow[0]='MPS-OLD12345';
+ const rows=[initialHeaders.slice(),legacyRow];
  let writes=0,flushes=0,locks=0,releases=0;
  const sheet={getLastColumn:()=>rows[0].length,getLastRow:()=>rows.length,getRange:(r,col,nr=1,nc=1)=>({
   getDisplayValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>String(rows[r-1+ri]?.[col-1+ci]??''))),
@@ -234,11 +235,11 @@ function migrationHarness(initialHeaders,{adminAllowed=true}={}) {
  return{run:()=>context.apiAdminMigrateMemberSheetToV480('admin-session'),rows,stats:()=>({writes,flushes,locks,releases})};
 }
 test('explicit member migration appends 12 headers and preserves all legacy row values',()=>{
- const h=migrationHarness(legacyMemberHeaders);
+ const h=migrationHarness(legacyMemberHeaders),before=h.rows[1].slice();
  const result=h.run();
  assert.equal(result.ok,true);assert.equal(result.migrated,true);assert.equal(result.appendedColumns,12);
  assert.deepEqual(h.rows[0],[...legacyMemberHeaders,...appendedMemberHeaders]);
- assert.deepEqual(h.rows[1],['MPS-OLD12345','legacy-data']);
+ assert.deepEqual(h.rows[1],before);
  assert.deepEqual(h.stats(),{writes:1,flushes:1,locks:1,releases:1});
 });
 test('explicit member migration is idempotent on an exact 30-column schema',()=>{
