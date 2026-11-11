@@ -33,7 +33,7 @@ function makeHarness(options = {}) {
         getDisplayValues() {
           return this.getValues().map(line => line.map(value => value == null ? '' : String(value)));
         },
-        setValues(values) {
+        setNumberFormat(_format) {},\n        setValues(values) {
           for (let r = 0; r < values.length; r++) {
             const target = row - 1 + r;
             while (rows.length <= target) rows.push([]);
@@ -98,7 +98,7 @@ test('Apps Script adapter persists a minimal journal row without raw message con
   const claim = journal.claim(update(), 1000);
   assert.equal(claim.outcome, 'CLAIMED');
   assert.equal(claim.row.state, 'PROCESSING');
-  assert.equal(h.rows.length, 2);
+  assert.equal(h.rows.length, 2);\n  assert.equal(typeof h.rows[1][0], 'string');
   assert.equal(JSON.stringify(h.rows).includes('sensitive message text'), false);
   assert.match(String(h.rows[1][2]), /^[a-f0-9]{64}$/);
 });
