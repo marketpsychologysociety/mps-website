@@ -175,3 +175,10 @@ Important residual constraints: local filesystem only; PID-based stale-owner rec
 The provider-neutral design is documented in `docs/MPS-EXTERNAL-EVIDENCE-STORAGE-ARCHITECTURE.md`. It specifies distinct writer, independent read-only verifier, storage administrator and backup/recovery roles; conditional create-only writes; exact object-generation retrieval; provider-side audit evidence; retention governance; independent backup/restore; policy/IAM monitoring; failure reconciliation; and a provider acceptance scorecard.
 
 **Status:** Design artifact only. No real provider adapter, cloud account/project, bucket, IAM policy, service account, retention policy/lock, backup, monitoring resource or credential was created. The P1.5 in-memory simulator is not evidence of external immutability or administrative independence. Provider integration remains NOT STARTED; official winner draw remains NO-GO and roulette remains SIMULATION ONLY.
+
+
+## P1.7 — provider candidate desk evaluation (2026-11-11)
+
+Compared Google Cloud Storage, Amazon S3 and Azure Blob Storage against P1.6. The evaluation records native create-only conditions, generation/version pinning, WORM retention, audit-log requirements and provider-specific failure modes. GCS is a conditional first PoC candidate because `ifGenerationMatch=0` provides a clear create-only contract and generation identifiers; S3 remains the fallback comparator; Azure remains viable but version-level retention audit coverage requires additional controls. This is not a final provider selection: ownership, region/residency, legal retention, price and independently administered identities remain unverified.
+
+**Status:** Desk review only. No cloud account/project/bucket/subscription, identity, credential, key, policy, retention setting, audit sink or production connection was created. Provider selection and PoC provisioning remain NOT STARTED. Official draw remains NO-GO; roulette remains SIMULATION ONLY.
