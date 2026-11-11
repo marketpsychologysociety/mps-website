@@ -78,7 +78,20 @@ A journal is necessary but not sufficient. Every handler must define its side-ef
 
 For every external side effect, document whether it is naturally idempotent, can be reconciled by reading remote state, or requires REVIEW after an ambiguous timeout. Do not assume Telegram API methods provide idempotency keys unless Telegram documents them.
 
-## 5. Recovery and retention
+## 5. Notification and side-effect outbox
+
+The update journal and an effect outbox solve different problems. The update journal deduplicates Telegram update delivery; an outbox tracks each business effect (audit row, VIP ticker event, welcome DM, group notice, invite revocation, or admin alert) independently.
+
+Suggested outbox columns: Effect Key (unique), Update ID, Effect Type (allowlisted), Payload SHA-256, State (PENDING, PROCESSING, SENT, RETRYABLE, REVIEW), Attempt Count, Lease Expires At, Claim Token, Created At, Last Attempt At, Completed At, Provider Reference (for example Telegram message ID), and Sanitized Error Code. Do not store rendered message text, member PII, credentials, or raw webhook payloads.
+
+- Local deterministic writes (such as setting a member's current status) should be idempotent upserts keyed by the effect key.
+- Effects with authoritative read-back (such as Telegram group membership) must reconcile remote state before retrying.
+- Telegram sendMessage does not provide a caller-supplied idempotency key or a reliable lookup by our effect key. If Telegram accepted a message and Apps Script terminated before persisting the response/message ID, the outcome is ambiguous. Move the effect to REVIEW; do not blindly resend unless the business explicitly chooses at-least-once delivery and accepts duplicate messages.
+- Marking an outbox item SENT only after the remote API returns success still leaves a crash window between remote success and local SENT persistence. This cannot be solved by a local outbox alone; document the chosen duplicate-versus-loss tradeoff for each notification type.
+- A business state mutation and its outbox write may span multiple spreadsheet writes. ScriptLock serializes cooperating executions but does not make those writes a database transaction. Recovery must inspect authoritative business rows and reconcile missing/pending effects.
+- The update may be marked DONE only when required business state and its effect intents are durably recorded. A notification that remains REVIEW must not cause a previously committed member-access mutation to be rolled back.
+
+## 6. Recovery and retention
 
 - Expired PROCESSING leases are candidates for recovery, not proof that the previous attempt had no side effects.
 - Recovery must run the handler's reconciliation step before repeating any external mutation.
