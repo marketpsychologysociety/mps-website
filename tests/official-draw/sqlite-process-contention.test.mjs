@@ -27,7 +27,7 @@ function launch(input) {
   const ready = new Promise(resolve => { readyResolve = resolve; });
   child.stdout.setEncoding('utf8').on('data', chunk => {
     stdout += chunk;
-    if (stdout.includes('READY\\n')) readyResolve();
+    if (stdout.includes('READY\n')) readyResolve();
   });
   child.stderr.setEncoding('utf8').on('data', chunk => { stderr += chunk; });
   const done = new Promise(resolve => child.on('close', (code, signal) => resolve({ code, signal, stdout, stderr })));
@@ -42,7 +42,7 @@ async function runPair(t, reqA, reqB) {
   await writeFile(gate, 'go');
   const results = await Promise.all([a.done, b.done]);
   for (const r of results) assert.equal(r.code, 0, r.stderr);
-  return { file, outputs: results.map(r => JSON.parse(r.stdout.trim().split('\\n').at(-1))) };
+  return { file, outputs: results.map(r => JSON.parse(r.stdout.trim().split('\n').at(-1))) };
 }
 function inspect(file) {
   const store = new SQLiteTransactionalStore(file);
