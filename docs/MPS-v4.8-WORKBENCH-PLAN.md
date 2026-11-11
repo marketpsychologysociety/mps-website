@@ -869,3 +869,16 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 - [ ] Activate operational incident response only after identity, provider evidence, monitoring, notification delivery and recovery controls are independently tested.
 
 **Evidence:** `docs/MPS-INCIDENT-RESPONSE-AND-RECOVERY-RUNBOOK.md`. This is a design artifact only. No live incident, provider notification, credential/key action, backup restore, cloud/Apps Script configuration, production change or deployment occurred. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.19 — incident tabletop exercise and recovery decision matrix (synthetic only)
+
+- [x] Convert all eight P1.18 incident playbooks into scenario injects and explicit required/prohibited decision themes.
+- [x] Define facilitator/observer roles and a TABLETOP / SYNTHETIC — NO LIVE ACTION boundary.
+- [x] Add a strict deterministic evaluator with PASS, INCOMPLETE and FAIL states; unknown fields/scenarios fail closed.
+- [x] Require evidence preservation, independent reviewer, privacy-safe record and zero production actions for PASS.
+- [x] Add tests for all eight scenarios, missing controls, prohibited decisions, privacy failure, production-action attempt and malformed submissions.
+- [ ] Conduct an authorized human tabletop and independently record outcomes; this is not performed by CI.
+- [ ] Approve named responders, channels, objectives and operational activation gates separately.
+
+**Evidence:** `docs/MPS-P1.19-INCIDENT-TABLETOP-EXERCISE.md`, `tests/official-draw/tabletop-exercise.mjs`, and `tests/official-draw/tabletop-exercise.test.mjs`. Synthetic evaluator only: no live incident, notification, provider, backup, key, member data, production configuration or deployment was touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
