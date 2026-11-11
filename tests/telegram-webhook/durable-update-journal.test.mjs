@@ -9,8 +9,8 @@ const update = (id = 101) => ({ update_id: id, message: { chat: { id: 7 }, text:
 test('completed update remains deduplicated across journal instance restart', async () => {
   const store = new SharedMemoryJournalStore();
   const first = new DurableUpdateJournal(store);
-  await first.claim(update(), 1000);
-  await first.finish(101, 1100, ['message:welcome']);
+  const claim = await first.claim(update(), 1000);
+  await first.finish(101, claim.row.claimToken, 1100, ['message:welcome']);
   const restarted = new DurableUpdateJournal(new SharedMemoryJournalStore(store.rows));
   assert.equal((await restarted.claim(update(), 1200)).outcome, 'DUPLICATE_DONE');
 });
@@ -24,9 +24,8 @@ test('concurrent duplicate deliveries allow only one active lease', async () => 
 test('cache eviction is irrelevant to durable journal state', async () => {
   const store = new SharedMemoryJournalStore();
   const journal = new DurableUpdateJournal(store);
-  await journal.claim(update(), 1000);
-  await journal.finish(101, 1100);
-  // There is deliberately no cache dependency in this adapter or state machine.
+  const claim = await journal.claim(update(), 1000);
+  await journal.finish(101, claim.row.claimToken, 1100);
   assert.equal((await new DurableUpdateJournal(store).claim(update(), 1200)).outcome, 'DUPLICATE_DONE');
 });
 
@@ -34,7 +33,7 @@ test('expired PROCESSING lease requires reconciliation before replay', async () 
   const store = new SharedMemoryJournalStore();
   const journal = new DurableUpdateJournal(store, { leaseMs: 100 });
   await journal.claim(update(), 1000);
-  let applyCount = 1; // previous process performed the remote side effect, then crashed
+  let applyCount = 1;
   const result = await executeWithReconciliation(
     new DurableUpdateJournal(store, { leaseMs: 100 }),
     update(),
@@ -69,8 +68,7 @@ test('ambiguous external state is quarantined and never blindly replayed', async
 });
 
 test('ambiguous timeout during external mutation is quarantined', async () => {
-  const store = new SharedMemoryJournalStore();
-  const journal = new DurableUpdateJournal(store);
+  const journal = new DurableUpdateJournal(new SharedMemoryJournalStore());
   const result = await executeWithReconciliation(journal, update(), {
     reconcile: async () => 'NOT_APPLIED',
     apply: async () => { const error = new Error('timeout'); error.ambiguousExternalOutcome = true; throw error; }
@@ -82,17 +80,42 @@ test('ambiguous timeout during external mutation is quarantined', async () => {
 test('transient failure remains retryable', async () => {
   const store = new SharedMemoryJournalStore();
   const journal = new DurableUpdateJournal(store);
-  await journal.claim(update(), 1000);
-  await journal.retry(101, 1100, 'network_timeout');
+  const first = await journal.claim(update(), 1000);
+  await journal.retry(101, first.row.claimToken, 1100, 'network_timeout');
   const retry = await journal.claim(update(), 1200);
   assert.equal(retry.outcome, 'CLAIMED');
   assert.equal(retry.recovered, true);
   assert.equal(retry.row.attemptCount, 2);
 });
 
-test('invalid update IDs fail closed', async () => {
+test('invalid and unsafe numeric update IDs fail closed', async () => {
   const journal = new DurableUpdateJournal(new SharedMemoryJournalStore());
   await assert.rejects(() => journal.claim(update('1 OR 1=1'), 1000), /INVALID_UPDATE_ID/);
+  await assert.rejects(() => journal.claim(update(Number.MAX_SAFE_INTEGER + 1), 1000), /INVALID_UPDATE_ID/);
+});
+
+test('same update ID with different payload is quarantined', async () => {
+  const store = new SharedMemoryJournalStore();
+  const journal = new DurableUpdateJournal(store);
+  await journal.claim(update(), 1000);
+  const collision = await journal.claim({ update_id: 101, message: { text: 'different content' } }, 1100);
+  assert.equal(collision.outcome, 'MANUAL_REVIEW');
+  assert.equal((await store.get('101')).lastErrorCode, 'PAYLOAD_HASH_MISMATCH');
+});
+
+test('stale worker cannot finish a lease reclaimed by a newer worker', async () => {
+  const store = new SharedMemoryJournalStore();
+  const firstJournal = new DurableUpdateJournal(store, { leaseMs: 100, tokenFactory: () => 'worker-A' });
+  const first = await firstJournal.claim(update(), 1000);
+  const secondJournal = new DurableUpdateJournal(store, { leaseMs: 100, tokenFactory: () => 'worker-B' });
+  const second = await secondJournal.claim(update(), 1200);
+  assert.equal(second.outcome, 'CLAIMED');
+  await assert.rejects(
+    () => firstJournal.finish(101, first.row.claimToken, 1210),
+    /STALE_OR_INVALID_CLAIM/
+  );
+  await secondJournal.finish(101, second.row.claimToken, 1220);
+  assert.equal((await store.get('101')).state, 'DONE');
 });
 
 test('journal stores a digest and allowlisted metadata, never raw message text', async () => {
