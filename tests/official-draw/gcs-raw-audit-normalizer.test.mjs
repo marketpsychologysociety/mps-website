@@ -14,7 +14,7 @@ function fixture() {
   };
   const log = (action, principal, resourceName, statusCode = 0) => ({
     logName: 'projects/' + projectId + '/logs/cloudaudit.googleapis.com%2F' +
-      (action === 'POLICY_CHANGE' ? 'activity' : 'data_access'),
+      (action === 'POLICY_CHANGE' ? 'activity' : action === 'OBJECT_DELETE' ? 'policy' : 'data_access'),
     resource: { type: 'gcs_bucket', labels: { project_id: projectId, bucket_name: bucket } },
     timestamp: '2026-11-11T01:00:00.000Z',
     receiveTimestamp: '2026-11-11T01:00:01.000Z',
@@ -51,7 +51,8 @@ function fixture() {
       windowEnd: '2026-11-11T01:01:00.000Z',
       expectedLogNames: [
         'projects/' + projectId + '/logs/cloudaudit.googleapis.com%2Fdata_access',
-        'projects/' + projectId + '/logs/cloudaudit.googleapis.com%2Factivity'
+        'projects/' + projectId + '/logs/cloudaudit.googleapis.com%2Factivity',
+        'projects/' + projectId + '/logs/cloudaudit.googleapis.com%2Fpolicy'
       ],
       paginationComplete: true, finalNextPageToken: null,
       independentExportRef: 'synthetic-export-001'
@@ -174,4 +175,15 @@ test('fails closed on an empty raw export and duplicate insertIds', () => {
   dup.rawEntries[1].rawSha256 = gcsRawAuditSha256(dup.rawEntries[1].rawJson);
   dup.pages[0].responseSha256 = gcsRawAuditSha256(gcsRawAuditCanonicalJson(dup.rawEntries.map(x => x.rawSha256)));
   assert.ok(normalizeGcsRawAuditEvidence(dup).errors.includes('INSERT_ID_MISSING_OR_DUPLICATE:1'));
+});
+
+
+test('rejects operation recorded under the wrong audit category', () => {
+  const b = fixture();
+  const entry = JSON.parse(b.rawEntries[0].rawJson);
+  entry.logName = 'projects/' + b.source.projectId + '/logs/cloudaudit.googleapis.com%2Factivity';
+  b.rawEntries[0].rawJson = JSON.stringify(entry);
+  b.rawEntries[0].rawSha256 = gcsRawAuditSha256(b.rawEntries[0].rawJson);
+  b.pages[0].responseSha256 = gcsRawAuditSha256(gcsRawAuditCanonicalJson(b.rawEntries.map(x => x.rawSha256)));
+  assert.ok(normalizeGcsRawAuditEvidence(b).errors.includes('AUDIT_CATEGORY_ACTION_MISMATCH:0'));
 });
