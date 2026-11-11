@@ -51,6 +51,9 @@ test("authorization matrix is deny-by-default and enforces distinct reviewer sub
   assert.equal(authorize({role:"DRAW_REVIEWER",action:"approve_rules",subject:"same",reviewerSubject:"same"}).code,"SEPARATION_OF_DUTIES");
   assert.equal(authorize({role:"DRAW_REVIEWER",action:"approve_rules",subject:"reviewer",reviewerSubject:"operator"}).allowed,true);
   assert.equal(authorize({role:"UNRECOGNIZED",action:"publish_result",subject:"x"}).allowed,false);
+  assert.equal(authorize({role:"DRAW_SECURITY_ADMIN",action:"create_event",subject:"security-admin"}).allowed,false);
+  assert.equal(authorize({role:"SERVICE_IDENTITY",action:"approve_rules",subject:"service",reviewerSubject:"operator"}).allowed,false);
+  assert.equal(authorize({role:"DRAW_PUBLISHER",action:"execute_draw",subject:"publisher",ownerSubject:"publisher"}).allowed,false);
   assert.equal(authorize(null).allowed,false);
   assert.equal(authorize(Object.create({role:"DRAW_PUBLISHER"})).allowed,false);
   const hostileAuth={role:"DRAW_PUBLISHER",action:"publish_result",subject:"publisher"};
