@@ -300,3 +300,8 @@ The canonical JSON harness now rejects hidden object properties and accessor/non
 
 
 P1.23 CI diagnosis: the first observed hardened-source run reported 6/7 passing. The sole failure was a stale expected-version value in the invalid-state test fixture; the test now uses the current version to reach the intended state guard. The corrected CI result is pending and must be checked before P1.23 is marked passed.
+
+
+## P1.23 verification outcome
+
+P1.23 verification update: corrected clean-checkout CI run #402 (42964135867) completed SUCCESS. P1.23 harness, all downstream synthetic checks, and Chromium browser checks passed; no failed or skipped steps were reported. The earlier stale-version assertion fixture was corrected without changing the harness's version-before-state guard.
