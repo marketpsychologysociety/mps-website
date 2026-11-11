@@ -80,3 +80,9 @@ These are source-level changes and regression assertions only. They must not be 
 The first observed P1.23 CI execution on the hardened source completed the first five checks successfully, then reported **6 passed / 1 failed** in the seven-test suite. The failing assertion expected `INVALID_STATE` after a successful draw transition but reused `expectedVersion: 1`; the harness correctly rejected the stale version first with `VERSION_MISMATCH`. The test fixture has been corrected to use the current version (`expectedVersion: 2`) when specifically asserting the subsequent invalid-state condition. This is a test-fixture correction; the production model's version-before-state guard is unchanged.
 
 A new CI run is required to establish the corrected result. Until that run completes, P1.23 remains **not yet CI-passed**.
+
+
+## P1.23 verification outcome
+
+- Corrected clean-checkout CI run #402 (42964135867) completed **SUCCESS** after the fixture correction. The P1.23 isolated harness step passed, all subsequent synthetic security/persistence/evidence checks passed, and Chromium browser checks passed. No failed or skipped steps were reported in that run.
+- The initial failure was a test fixture supplying stale expectedVersion=1 to the invalid-state assertion after the draw had advanced to version 2. The fixture now supplies expectedVersion=2; production guard order and behavior were not weakened.
