@@ -894,3 +894,8 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 - [ ] Complete real off-site restore, key recovery, monitoring, responder tabletop and independent security/release review.
 
 **Evidence:** docs/MPS-P1.20-PRODUCTION-ACTIVATION-READINESS.md. Documentation-only assessment; no cloud/identity/provider resource, production system, member data, credentials, deployment or live integration was changed. Official winner draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.21 — security architecture implementation blueprint
+
+See `docs/MPS-P1.21-SECURITY-ARCHITECTURE-IMPLEMENTATION-BLUEPRINT.md` for the target trust boundaries, component contracts, dependency-ordered phases A–J, G0–G11 evidence mapping, required test layers, stop/rollback/reconciliation rules and explicit cost/irreversibility approval gates. This is a documentation-only implementation blueprint. It does not provision identity, cloud, database, storage, monitoring or beacon services and does not authorize production integration. Operational G0–G11 gates remain unpassed; official draw remains **NO-GO** and roulette **SIMULATION ONLY**.
