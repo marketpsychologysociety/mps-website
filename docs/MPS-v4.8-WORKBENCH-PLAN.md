@@ -756,3 +756,12 @@ The first category-refinement test run (#268–#270) exposed a mismatch: Policy 
 - [ ] Obtain separate authorization and complete P1.8 prerequisites before provisioning any GCP resource.
 
 **Evidence:** tests/official-draw/gcs-evidence-provenance-verifier.mjs, tests/official-draw/gcs-evidence-provenance-verifier.test.mjs, docs/MPS-GCS-INDEPENDENT-PROVENANCE-ATTESTATION.md. P1.11 verifies a trusted reviewer signature and its binding to a specific evidence bundle; it does not verify a Google signature or prove the truth of reviewer assertions. The caller must run P1.10 first and durably consume nonces. Synthetic keys only; no private key, real raw log, cloud resource, credential, billing, IAM, retention lock, production data or deployment created. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+### P1.11 clean-checkout CI verification — 2026-11-11
+
+GitHub Actions run #280 (https://github.com/marketpsychologysociety/mps-website/actions/runs/42944136778) on code/test commit 02b08f45ac773e89e699eaedfbb4f74607a6f5ca completed **SUCCESS**. Provenance verifier tests: **14 PASS, 0 FAIL, 0 SKIP**. The complete workflow also passed PWA/privacy, schema compatibility, synthetic Draw security contract, durable journal fault injection, external-anchor contract, P1.9 GCS bundle verifier, P1.10 raw audit normalizer, persistent API restart/reconciliation, schema inspector and Chromium browser checks. Documentation-only commit a03c414f49b2e755200187ebd46146d7c7b48f83 then passed full CI run #282 (https://github.com/marketpsychologysociety/mps-website/actions/runs/42944169367).
+
+An intermediate run #279 failed because the module first made keyId mandatory before the corresponding test fixture had been updated. The test fixture was then updated to include keyId and a dedicated mismatched-key-ID negative case; run #280 passed clean checkout. This is retained as a test-development correction, not hidden.
+
+**Evidence boundary:** synthetic ephemeral Ed25519 keys only. No real reviewer key, key registry, identity provider, durable nonce service, authenticated GCP retrieval, GCP resource or production integration exists. A valid result verifies the trusted reviewer's signature over the exact bundle; it does not cryptographically authenticate Google or prove the reviewer's assertions are true. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
