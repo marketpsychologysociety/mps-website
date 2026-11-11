@@ -30,9 +30,21 @@ function createMpsGasVipTransitionStore_(config) {
   function key_(value){var s=String(value==null?'':value);if(!/^[A-Za-z0-9:_-]{1,160}$/.test(s))throw new Error('VIP_TRANSITION_INVALID_KEY');return s;}
   function member_(value){var s=String(value==null?'':value).trim();if(!s||s.length>128)throw new Error('VIP_TRANSITION_INVALID_MEMBER');return s;}
   function intentObject_(row){var o={};intentHeaders.forEach(function(h,i){o[h]=row[i];});return o;}
+  function validateIntent_(o){
+    if(!o||key_(o['Intent Key'])!==String(o['Intent Key']))throw new Error('VIP_TRANSITION_INTENT_CORRUPT');
+    var epoch=Number(o['Update Epoch']),sourceDate=Number(o['Source Date']),updateId=String(o['Update ID']||'');
+    if(!Number.isSafeInteger(epoch)||epoch<0||!Number.isSafeInteger(sourceDate)||sourceDate<=0||!/^(0|[1-9]\d{0,19})$/.test(updateId))throw new Error('VIP_TRANSITION_INTENT_CORRUPT');
+    member_(o['Member ID']);
+    if(!/^[0-9]{1,20}$/.test(String(o['Telegram User ID']||''))||!['ACTIVE','LEFT','DENIED'].includes(String(o['Target State']))||o['Source Type']!=='CHAT_MEMBER')throw new Error('VIP_TRANSITION_INTENT_CORRUPT');
+    if(!/^[a-f0-9]{64}$/.test(String(o['Payload SHA-256']||''))||typeof o['Ticker Allowed']!=='boolean')throw new Error('VIP_TRANSITION_INTENT_CORRUPT');
+    if(['INTENT','STATUS_APPLIED','COMPLETED','SUPERSEDED'].indexOf(String(o.State))<0)throw new Error('VIP_TRANSITION_INTENT_CORRUPT');
+    key_(o['Ticker Effect Key']);key_(o['Audit Effect Key']);
+    if(String(o['Member Name']||'').length>128)throw new Error('VIP_TRANSITION_INTENT_CORRUPT');
+    return o;
+  }
   function readIntent(tx,intentKey){
     var key=key_(intentKey),sh=sheet_(intentName,intentHeaders,tx),rows=rows_(sh,intentHeaders.length),i=uniqueRow_(rows,0,key);
-    return i<0?null:intentObject_(rows[i]);
+    return i<0?null:validateIntent_(intentObject_(rows[i]));
   }
   function insertIntent(tx,record){
     active_(tx);if(!record||typeof record!=='object')throw new Error('VIP_TRANSITION_INVALID_INTENT');
@@ -59,7 +71,8 @@ function createMpsGasVipTransitionStore_(config) {
   function updateIntent(tx,intentKey,patch){
     active_(tx);var key=key_(intentKey),sh=sheet_(intentName,intentHeaders,tx),rows=rows_(sh,intentHeaders.length),i=uniqueRow_(rows,0,key);
     if(i<0)throw new Error('VIP_TRANSITION_INTENT_NOT_FOUND');
-    var currentState=String(rows[i][11]),nextState=patch&&patch.State;
+    var current=validateIntent_(intentObject_(rows[i]));
+    var currentState=String(current.State),nextState=patch&&patch.State;
     if(nextState!==undefined){var allowed={INTENT:['INTENT','STATUS_APPLIED','SUPERSEDED'],STATUS_APPLIED:['STATUS_APPLIED','COMPLETED'],COMPLETED:['COMPLETED'],SUPERSEDED:['SUPERSEDED']};if(!allowed[currentState]||allowed[currentState].indexOf(String(nextState))<0)throw new Error('VIP_TRANSITION_INVALID_STATE_CHANGE');}
     Object.keys(patch||{}).forEach(function(field){var col=intentHeaders.indexOf(field);if(col<=0)throw new Error('VIP_TRANSITION_FIELD_NOT_WRITABLE');rows[i][col]=patch[field];});
     sh.getRange(i+2,1,1,intentHeaders.length).setValues([rows[i]]);SpreadsheetApp.flush();
@@ -67,7 +80,9 @@ function createMpsGasVipTransitionStore_(config) {
   }
   function readCursor(tx,memberId){
     var id=member_(memberId),sh=sheet_(cursorName,cursorHeaders,tx),rows=rows_(sh,cursorHeaders.length),i=uniqueRow_(rows,0,id);
-    if(i<0)return null;var row=rows[i];return{memberId:row[0],epoch:row[1],sourceDate:row[2],updateId:row[3],transitionKey:row[4],updatedAt:row[5]};
+    if(i<0)return null;var row=rows[i],epoch=Number(row[1]),sourceDate=Number(row[2]),updateId=String(row[3]||''),transitionKey=key_(row[4]);
+    if(!Number.isSafeInteger(epoch)||epoch<0||!Number.isSafeInteger(sourceDate)||sourceDate<=0||!/^(0|[1-9]\d{0,19})$/.test(updateId))throw new Error('VIP_TRANSITION_CURSOR_CORRUPT');
+    return{memberId:row[0],epoch:epoch,sourceDate:sourceDate,updateId:updateId,transitionKey:transitionKey,updatedAt:row[5]};
   }
   function writeCursor(tx,record){
     active_(tx);if(!record||typeof record!=='object')throw new Error('VIP_TRANSITION_INVALID_CURSOR');
@@ -91,7 +106,7 @@ function createMpsGasVipTransitionStore_(config) {
   }
   function findPending(tx,memberId){
     var id=member_(memberId),sh=sheet_(intentName,intentHeaders,tx),rows=rows_(sh,intentHeaders.length);
-    var found=[];rows.forEach(function(row){if(String(row[3])===id&&['INTENT','STATUS_APPLIED'].indexOf(String(row[11]))>=0)found.push(intentObject_(row));});
+    var found=[];rows.forEach(function(row){if(String(row[3])===id&&['INTENT','STATUS_APPLIED'].indexOf(String(row[11]))>=0)found.push(validateIntent_(intentObject_(row)));});
     if(found.length>1)throw new Error('VIP_TRANSITION_MULTIPLE_PENDING');
     return found.length?found[0]:null;
   }
