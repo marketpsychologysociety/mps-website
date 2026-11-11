@@ -30,6 +30,8 @@ const equal = (a, b) => {
 };
 const journalFaultStage = process.env.MPS_DRAW_JOURNAL_FAULT_STAGE || '';
 let journal = await DurableAuditJournal.open(journalDir, {
+  exclusiveProcessLease: true,
+  lockWaitMs: 250,
   faultInjector: (stage, record) => Boolean(
     journalFaultStage && stage === journalFaultStage &&
     record.type === 'COMPLETION' && !record.idempotency_key.startsWith('fixture:')
