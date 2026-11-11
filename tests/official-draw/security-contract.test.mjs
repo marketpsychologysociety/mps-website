@@ -110,7 +110,7 @@ integration("same immutable subject cannot satisfy independent approval through 
   assert.equal(result.body?.error?.code, "SEPARATION_OF_DUTIES");
 });
 
-integration("revoked or insufficient actor cannot execute a draw", async () => {
+integration("actor with insufficient role cannot execute a draw", async () => {
   const seeded = await adapter.seedApprovedEvent({
     preparedBy: adapter.actors.operatorA,
     approvedBy: adapter.actors.reviewerB
@@ -123,6 +123,25 @@ integration("revoked or insufficient actor cannot execute a draw", async () => {
     body: {}
   });
   assert.equal(result.status, 403);
+  assert.equal(await adapter.getOperationCount(seeded.drawId), 0);
+});
+
+integration("state-changing execution requires the current If-Match version", async () => {
+  const seeded = await adapter.seedApprovedEvent({
+    preparedBy: adapter.actors.operatorA,
+    approvedBy: adapter.actors.reviewerB
+  });
+  const path = `/api/v1/draws/${encodeURIComponent(seeded.drawId)}/execute`;
+  const missing = await adapter.request({
+    method: "POST", path, actor: adapter.actors.operatorA,
+    headers: { "Idempotency-Key": "test-version-missing" }, body: {}
+  });
+  assert.equal(missing.status, 412);
+  const stale = await adapter.request({
+    method: "POST", path, actor: adapter.actors.operatorA,
+    headers: { "Idempotency-Key": "test-version-stale", "If-Match": "0" }, body: {}
+  });
+  assert.equal(stale.status, 412);
   assert.equal(await adapter.getOperationCount(seeded.drawId), 0);
 });
 
