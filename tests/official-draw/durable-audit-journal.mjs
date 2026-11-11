@@ -354,7 +354,9 @@ export class DurableAuditJournal {
   }
 
   beginOperation({ operationId = `op_${randomUUID()}`, idempotencyKey, actorSubject, targetId, payloadDigest, failAt = null }) {
-    return this.#serial(async () => {
+    return this.#serial(() => this.#withFileLock(async () => {
+      if (this.closed) throw journalError('JOURNAL_CLOSED', 'Journal is closed.');
+      await this.#reload();
       validateText(operationId, 'operationId');
       validateText(idempotencyKey, 'idempotencyKey', 128);
       validateText(actorSubject, 'actorSubject');
@@ -375,11 +377,13 @@ export class DurableAuditJournal {
       const source = { operation_id: operationId, idempotency_key: idempotencyKey, actor_subject: actorSubject, target_id: targetId, payload_digest: payloadDigest };
       const record = await this.#append('INTENT', source, null, failAt);
       return { created: true, operation: this.#publicOperation(this.operations.get(record.operation_id)) };
-    });
+    }));
   }
 
   completeOperation({ operationId, result, failAt = null }) {
-    return this.#serial(async () => {
+    return this.#serial(() => this.#withFileLock(async () => {
+      if (this.closed) throw journalError('JOURNAL_CLOSED', 'Journal is closed.');
+      await this.#reload();
       validateText(operationId, 'operationId');
       const current = this.operations.get(operationId);
       if (!current) throw journalError('NOT_FOUND', 'Operation intent does not exist.');
@@ -388,7 +392,7 @@ export class DurableAuditJournal {
       const source = current.intent;
       await this.#append('COMPLETION', source, safeResult, failAt);
       return { created: true, operation: this.#publicOperation(this.operations.get(operationId)) };
-    });
+    }));
   }
 
   #publicOperation(operation) {
@@ -419,5 +423,10 @@ export class DurableAuditJournal {
   async close() {
     await this.tail;
     this.closed = true;
+    if (this.processLease) {
+      const lease = this.processLease;
+      this.processLease = null;
+      await this.#releaseLock(lease);
+    }
   }
 }
