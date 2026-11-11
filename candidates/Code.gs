@@ -1755,6 +1755,28 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
   return handler.process(update);
 }
 /**
+ * Read-only schema preflight for the explicit v4.8 member-sheet migration.
+ * This function never writes, formats, migrates, provisions, or acquires a lock.
+ */
+function apiAdminInspectMemberSchemaV480(session) {
+  requireSuperAdmin_(session);
+  const ss=openDatabase_();
+  const sh=ss.getSheetByName('Database Member');
+  if(!sh)return {ok:false,state:'MISSING_SHEET',actualColumns:0,expectedLegacyColumns:18,expectedV480Columns:MPS.headers.length,appendable:false,provisioningReady:false,message:'Sheet Database Member tidak ditemukan. Tidak ada perubahan dilakukan.'};
+  const actualColumns=sh.getLastColumn();
+  const legacy=MPS.headers.slice(0,18),full=MPS.headers.slice();
+  let headers=[];
+  if(actualColumns>0)headers=sh.getRange(1,1,1,actualColumns).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+  if(actualColumns===18&&legacy.every(function(h,i){return headers[i]===h;})){
+    return {ok:true,state:'LEGACY_18_READY',actualColumns:18,expectedLegacyColumns:18,expectedV480Columns:full.length,appendable:true,provisioningReady:false,message:'Skema legacy v4.6.1 cocok. Migrasi append-only 12 kolom dapat dijalankan setelah konfirmasi eksplisit.'};
+  }
+  if(actualColumns===full.length&&full.every(function(h,i){return headers[i]===h;})){
+    return {ok:true,state:'READY_30',actualColumns:actualColumns,expectedLegacyColumns:18,expectedV480Columns:full.length,appendable:false,provisioningReady:true,message:'Skema Database Member sudah cocok dengan v4.8. Provisioning storage transisi dapat dijalankan secara terpisah.'};
+  }
+  return {ok:false,state:'SCHEMA_MISMATCH',actualColumns:actualColumns,expectedLegacyColumns:18,expectedV480Columns:full.length,appendable:false,provisioningReady:false,message:'Skema tidak cocok dengan format legacy 18 kolom atau v4.8 30 kolom. Migrasi dan provisioning dinonaktifkan; tidak ada perubahan dilakukan.'};
+}
+
+/**
  * Explicit append-only Database Member migration: legacy v4.6.1 (18 columns)
  * to the v4.8 candidate schema (30 columns). Existing first 18 headers and all
  * member rows are preserved; only headers in columns 19-30 are appended.
