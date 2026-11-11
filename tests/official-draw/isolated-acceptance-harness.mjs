@@ -93,7 +93,7 @@ export function authorize(context) {
     return { allowed:false, code:"FORBIDDEN" };
   }
   const matrix = {
-    create_event: ["DRAW_OPERATOR","DRAW_SECURITY_ADMIN"],
+    create_event: ["DRAW_OPERATOR"],
     approve_rules: ["DRAW_REVIEWER"],
     freeze_snapshot: ["DRAW_OPERATOR"],
     execute_draw: ["DRAW_OPERATOR"],
