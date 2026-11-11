@@ -28,7 +28,7 @@ Every record is sequence-numbered and linked through a SHA-256 hash chain. The f
 - Key validity is evaluated at the attestation's \`issuedAt\`, not at the later verification time. An attestation signed while the key was valid remains historically verifiable after normal key expiry.
 - Revocation includes an explicit \`effectiveAt\`. Attestations issued before that instant may remain historically verifiable; attestations issued at or after it are rejected.
 - A real compromise response may require a separately governed retroactive compromise timestamp and evidence re-evaluation. This prototype does not infer compromise time or decide whether prior signatures remain trustworthy.
-- Duplicate registration, duplicate revocation, unknown key IDs, malformed keys, invalid validity windows, and unauthorized admin actions fail closed.
+- Duplicate registration, duplicate revocation, unknown key IDs, malformed keys, invalid validity windows, unauthorized admin actions, private-key PEM input, and reuse of a previously registered public-key fingerprint fail closed.
 
 ## 4. Single-use nonce protocol
 
@@ -49,7 +49,7 @@ Run:
 node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs
 \`\`\`
 
-Synthetic tests cover authorization denial, separation of duties, key registration and immutable IDs, rotation and historical verification after expiry, revocation effective-time behavior, restart persistence, exactly-once nonce consumption, cross-instance replay serialization, invalid-signature retry, nonce expiry and plaintext non-storage, exact-schema/hash-chain tampering, incomplete-tail recovery, and dead same-host lock recovery.
+Synthetic tests cover authorization denial, separation of duties, key registration and immutable IDs, private-key rejection, duplicate key-material rejection even after revocation, rotation and historical verification after expiry, revocation effective-time behavior, restart persistence, exactly-once nonce consumption, cross-instance replay serialization, invalid-signature retry, nonce expiry and plaintext non-storage, exact-schema/hash-chain tampering, incomplete-tail recovery, and dead same-host lock recovery. Local run at implementation review: **12 PASS, 0 FAIL, 0 SKIP**; clean-checkout GitHub Actions result is still pending/unconfirmed.
 
 ## 6. Known limitations and production gates
 
