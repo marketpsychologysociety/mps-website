@@ -225,6 +225,41 @@ The synthetic suite is `tests/telegram-webhook/vip-activation-orchestration.mjs`
 
 **Critical scope limit:** these tests use shared in-memory stores and a serialized fake atomic boundary. They prove the proposed state-machine behavior only; they do not prove that Google Sheets can atomically persist the intent and member status, that ScriptLock ownership is safe in the current Code.gs call graph, or that actual Apps Script execution recovers after a process termination. The production design still needs a durable intent store and an explicit lock-ownership strategy that avoids nested ScriptLock acquisition. Do not treat this contract as authorization to integrate or migrate a live sheet.
 
+## 5E. Deeper source audit of the isolated candidate Code.gs
+
+This audit was performed against the Library candidate `Code.gs` (2,576 lines; SHA-256 `c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba`; retrieved 2026-11-11). It is a source review only; the file is not deployed or changed by this audit.
+
+### Confirmed call paths and propagation gaps
+
+- `processTelegramUpdate_` does read `update.update_id` and uses a ScriptCache lease key `mps_tg_update_<id>`. Its ScriptLock is released before `processTelegramUpdateCore_` runs, so this outer cache lock is not held while the VIP status handler acquires its own lock. Cache remains best-effort and is not a durable dedupe ledger.
+- `processTelegramUpdateCore_` reads `update.update_id` but sets `updateKey = ''`; its internal cache writes are therefore disabled. More importantly, the update ID is not forwarded to either `processVipJoinRequest_` or `updateVipJoinStatus_`.
+- The direct `chat_member` branch calls `updateVipJoinStatus_(userId, status, isMember)` without the update ID or Telegram's `chat_member.date`.
+- `processVipJoinRequest_` has three status-handler paths: the pre-approval `getChatMember` reconciliation, the post-error retry reconciliation, and the successful approval path. All call `updateVipJoinStatus_` with only three arguments. The join request's `date` and enclosing update ID are not propagated.
+- The current status handler therefore cannot form stable update-scoped effect keys or preserve the original event timestamp. It writes `new Date()` for local status timestamps; the ticker builder creates a random UUID-based event ID and another `new Date()`; the audit builder also uses execution time.
+- The status handler has no per-member last-applied update sequence guard. A delayed older `chat_member` event can therefore overwrite a newer leave/join state unless ordering is added to the durable intent/reconciliation design.
+
+### Effect durability and retention
+
+- The activation path sets the access row to `Aktif` and updates the member row before appending ticker and audit effects. Both effects are conditional on `wasActive === false`. If execution stops after the status mutation, replay can see `Aktif` and skip both missing effects.
+- `recordMpsAudit_` catches and logs all write errors instead of returning a verified result or propagating a failure. It also prunes audit rows above 2,001 rows. It cannot safely serve as the durable idempotency ledger.
+- `recordMpsVipTickerEvent_` appends a new random event row with no stable dedupe key. Neither helper currently has an idempotent keyed append contract.
+
+### Lock call-graph review
+
+- `processTelegramUpdate_` uses short ScriptLock sections for the cache lease and releases each before invoking core processing.
+- `updateVipJoinStatus_` acquires one ScriptLock around its local access/member sheet mutations and the current ticker/audit helper calls. In the inspected helper bodies, `getTelegramAccessSheet_`, `getMemberSheet_`, `recordMpsVipTickerEvent_`, and `recordMpsAudit_` do not themselves acquire ScriptLock. This narrows the earlier nested-lock concern for this specific current call path; it does not establish that every future helper or adapter integration is lock-free.
+- Telegram network calls for kick/revoke/admin notifications occur after the status handler releases its lock. `processVipJoinRequest_` performs Telegram API calls before or between status-handler invocations, not while holding the status handler's lock.
+
+### Required gates before touching the candidate
+
+1. Thread validated `update_id` and the original event timestamp through all four status call paths, including both join-request reconciliation paths.
+2. Persist an update-scoped activation/leave intent before changing member status, and use a durable per-member ordering guard so stale updates cannot overwrite newer state.
+3. Make ticker and audit effects deterministic and keyed; make required-effect failures observable; keep idempotency history outside the pruned audit log.
+4. Test crash/replay after every sheet write, duplicate delivery, changed-payload key collision, out-of-order leave/rejoin, and all four call paths against extracted candidate handler functions.
+5. Audit the complete reachable helper graph again after integration; preserve the single-owner lock capability and keep Telegram/Drive/network calls outside the lock.
+
+**Decision:** do not integrate the adapter into candidate Code.gs yet. The latest adapter-plus-spreadsheet-model test passing does not satisfy these handler-level gates, and no production or candidate Code.gs mutation is authorized by this audit.
+
 ## 5D. Single-owner ScriptLock boundary — adapter candidate
 
 The isolated adapter now has a scoped `runExclusive(callback)` entry point. It acquires the Apps Script project ScriptLock once, then supplies a temporary capability containing lock-held `migrate` and `appendOnce` operations. Public adapter methods detect accidental same-instance nested acquisition and fail immediately. The scoped capability is invalidated when the callback returns or throws, so it cannot be retained and used after the lock is released.
