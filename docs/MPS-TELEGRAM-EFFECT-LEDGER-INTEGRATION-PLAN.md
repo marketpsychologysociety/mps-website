@@ -38,7 +38,7 @@ A future integration should pass the exact update_id through every path:
 
 For chat_member, use Telegram's old_chat_member and new_chat_member states to derive whether the update is an actual non-member → member transition. Do not infer that transition only from the current database wasActive flag: after a crash between the status write and effect append, a replay sees the new active status and would otherwise skip the missing effect.
 
-Use stable update-scoped keys, with separate types for ticker and audit, e.g. telegram:<update_id>:vip_ticker_event and telegram:<update_id>:vip_join_audit. A later genuine leave/rejoin has a different Telegram update ID and therefore a new key. Repeated delivery of the same update reuses the same key.
+Use stable update-scoped keys that include the durable ingress epoch and update ID, with separate types for ticker and audit, e.g. telegram:<epoch>:<update_id>:vip_ticker_event and telegram:<epoch>:<update_id>:vip_join_audit. Telegram documents sequential update IDs for restoring out-of-order delivery, but a new ID is chosen randomly after at least one week without updates. Persist the epoch on first receipt; retries reuse it. A later genuine leave/rejoin has a distinct update ID (or epoch+ID) and therefore a new key. Repeated delivery of the same update reuses the same key.
 
 ## 4. Deterministic row payload requirement
 

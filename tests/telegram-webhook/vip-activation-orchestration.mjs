@@ -6,24 +6,31 @@
 const validId = value => typeof value === 'number'
   ? Number.isSafeInteger(value) && value >= 0
   : typeof value === 'string' && /^(0|[1-9]\d{0,19})$/.test(value);
-const keyFor = (updateId, effect) => {
+const keyFor = (epoch, updateId, effect) => {
+  if (!Number.isSafeInteger(epoch) || epoch < 0) throw new TypeError('INVALID_UPDATE_EPOCH');
   if (!validId(updateId)) throw new TypeError('INVALID_UPDATE_ID');
-  return 'telegram:' + String(updateId) + ':' + effect;
+  return 'telegram:' + String(epoch) + ':' + String(updateId) + ':' + effect;
 };
-function compareSequence(a, b) {
-  if (!b) return 1;
-  if (a.occurredAt !== b.occurredAt) return a.occurredAt > b.occurredAt ? 1 : -1;
-  const left = String(a.updateId), right = String(b.updateId);
+function compareDecimalIds(leftValue, rightValue) {
+  const left = String(leftValue), right = String(rightValue);
   if (left.length !== right.length) return left.length > right.length ? 1 : -1;
   return left === right ? 0 : left > right ? 1 : -1;
 }
-function sequenceOf(updateId, occurredAt) {
-  if (!Number.isFinite(occurredAt) || occurredAt < 0) throw new TypeError('INVALID_EVENT_TIMESTAMP');
-  return { occurredAt, updateId: String(updateId) };
+function compareSequence(a, b) {
+  if (!b) return 1;
+  if (a.epoch !== b.epoch) return a.epoch > b.epoch ? 1 : -1;
+  return compareDecimalIds(a.updateId, b.updateId);
+}
+function sequenceOf(epoch, updateId, sourceDate, sourceType) {
+  if (!Number.isSafeInteger(epoch) || epoch < 0) throw new TypeError('INVALID_UPDATE_EPOCH');
+  if (sourceDate != null && (!Number.isSafeInteger(sourceDate) || sourceDate < 0)) throw new TypeError('INVALID_SOURCE_DATE');
+  return { epoch, updateId: String(updateId), sourceDate: sourceDate == null ? null : sourceDate, sourceType: String(sourceType || 'UNKNOWN') };
 }
 function sameIntent(existing, input) {
   return existing.memberId === String(input.memberId) &&
-    existing.occurredAt === input.occurredAt &&
+    existing.epoch === input.epoch &&
+    existing.sourceDate === (input.sourceDate == null ? null : input.sourceDate) &&
+    existing.sourceType === String(input.sourceType || 'UNKNOWN') &&
     existing.tickerName === String(input.tickerName);
 }
 
@@ -83,10 +90,11 @@ export class VipActivationOrchestrator {
     this.onPhase(phase);
     if (this.failAt === phase) throw new Error('SIMULATED_CRASH_' + phase);
   }
-  async process({ updateId, memberId, status, tickerName, occurredAt }) {
+  async process({ updateId, epoch = 0, memberId, status, tickerName, sourceDate = null, sourceType = 'UNKNOWN', receivedAt = 1760000000 }) {
     if (!validId(updateId)) throw new TypeError('INVALID_UPDATE_ID');
     if (!memberId || !tickerName) throw new TypeError('INVALID_ACTIVATION_INPUT');
-    const sequence = sequenceOf(updateId, occurredAt);
+    if (!Number.isSafeInteger(receivedAt) || receivedAt <= 0) throw new TypeError('INVALID_RECEIVED_AT');
+    const sequence = sequenceOf(epoch, updateId, sourceDate, sourceType);
     await this.recover(memberId);
 
     const isLeave = status === 'left' || status === 'kicked';
@@ -105,11 +113,11 @@ export class VipActivationOrchestrator {
       });
     }
 
-    const key = keyFor(updateId, 'vip_activation');
+    const key = keyFor(epoch, updateId, 'vip_activation');
     const decision = await this.store.atomic(async () => {
       const existing = await this.store.intent(key);
       if (existing) {
-        if (!sameIntent(existing, { memberId, occurredAt, tickerName })) {
+        if (!sameIntent(existing, { memberId, epoch, sourceDate, sourceType, tickerName })) {
           return { outcome: 'REVIEW_COLLISION' };
         }
         if (existing.state === 'COMPLETED') return { outcome: 'DUPLICATE_UPDATE' };
@@ -127,10 +135,11 @@ export class VipActivationOrchestrator {
         return { outcome: 'ALREADY_ACTIVE' };
       }
       const intent = {
-        key, updateId: String(updateId), memberId: String(memberId),
-        tickerName: String(tickerName), occurredAt, sequence,
-        state: 'INTENT', tickerKey: keyFor(updateId, 'vip_ticker'),
-        auditKey: keyFor(updateId, 'vip_audit')
+        key, epoch, updateId: String(updateId), memberId: String(memberId),
+        tickerName: String(tickerName), sourceDate, sourceType: String(sourceType || 'UNKNOWN'),
+        receivedAt, sequence,
+        state: 'INTENT', tickerKey: keyFor(epoch, updateId, 'vip_ticker'),
+        auditKey: keyFor(epoch, updateId, 'vip_audit')
       };
       await this.store.putIntent(key, intent);
       return { outcome: 'INTENT', intent };
@@ -176,7 +185,7 @@ export class VipActivationOrchestrator {
     if (intent.state === 'COMPLETED') return true;
     if (intent.state !== 'STATUS_APPLIED') return false;
     const ticker = {
-      eventId: 'VIP-' + intent.updateId, createdAt: intent.occurredAt,
+      eventId: 'VIP-' + intent.epoch + '-' + intent.updateId, createdAt: intent.receivedAt,
       memberId: intent.memberId, memberName: intent.tickerName,
       eventText: 'joined MPS VIP Community', status: 'Visible'
     };
@@ -184,7 +193,7 @@ export class VipActivationOrchestrator {
     if (tickerResult === 'REVIEW_KEY_COLLISION') throw new Error('EFFECT_KEY_COLLISION_TICKER');
     this.crash('AFTER_TICKER');
     const audit = {
-      timestamp: intent.occurredAt, actor: intent.memberId,
+      timestamp: intent.receivedAt, actor: intent.memberId,
       action: 'VIP_JOIN_APPROVED', target: intent.memberId,
       result: 'SUCCESS', details: 'Approved Telegram VIP activation'
     };

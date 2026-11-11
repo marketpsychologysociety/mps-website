@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SharedActivationStore, SharedKeyedEffectStore, VipActivationOrchestrator } from './vip-activation-orchestration.mjs';
 
-const event = (updateId=100, status='member', occurredAt=1760000000) => ({
-  updateId, memberId:'MPS-ABCDEF12', status, tickerName:'Test Member', occurredAt
+const event = (updateId=100, status='member', sourceDate=1760000000, epoch=0, sourceType='CHAT_MEMBER_CHANGE') => ({
+  updateId, epoch, memberId:'MPS-ABCDEF12', status, tickerName:'Test Member',
+  sourceDate, sourceType, receivedAt:1760000000
 });
 function setup() {
   const store = new SharedActivationStore();
@@ -20,7 +21,7 @@ test('activation persists intent before status and effects, then persists sequen
   assert.deepEqual(phases,['AFTER_STATUS','AFTER_TICKER','AFTER_AUDIT','AFTER_COMPLETE']);
   const member=await s.store.member(event().memberId);
   assert.equal(member.status,'ACTIVE');
-  assert.deepEqual(member.lastEvent,{occurredAt:1760000000,updateId:'100'});
+  assert.deepEqual(member.lastEvent,{epoch:0,updateId:'100',sourceDate:1760000000,sourceType:'CHAT_MEMBER_CHANGE'});
   assert.equal(s.effects.rows.size,2);
 });
 
@@ -80,7 +81,7 @@ test('delayed old leave cannot overwrite a newer rejoin', async () => {
   const s=setup();
   await s.make().process(event(700,'left',1760000000));
   assert.equal(await s.make().process(event(701,'member',1760000001)),'ACTIVATED');
-  assert.equal(await s.make().process(event(699,'left',1759999999)),'STALE_EVENT');
+  assert.equal(await s.make().process(event(699,'left',1760009999)),'STALE_EVENT');
   const member=await s.store.member(event().memberId);
   assert.equal(member.status,'ACTIVE');
   assert.equal(member.lastEvent.updateId,'701');
@@ -96,18 +97,22 @@ test('delayed old activation cannot overwrite a newer leave', async () => {
   assert.equal(s.effects.rows.size,0);
 });
 
-test('same-second event order uses update ID as a deterministic tie-break', async () => {
+test('update ID order overrides different source dates across update types', async () => {
   const s=setup();
-  await s.make().process(event(900,'member',1760000000));
-  assert.equal(await s.make().process(event(899,'left',1760000000)),'STALE_EVENT');
-  assert.equal((await s.store.member(event().memberId)).status,'ACTIVE');
+  await s.make().process(event(900,'left',1760001000));
+  assert.equal(await s.make().process(event(901,'member',1760000000,0,'CHAT_JOIN_REQUEST_SENT')),'ACTIVATED');
+  const member=await s.store.member(event().memberId);
+  assert.equal(member.status,'ACTIVE');
+  assert.equal(member.lastEvent.updateId,'901');
 });
 
-test('later Telegram event timestamp permits update ID reset after inactivity', async () => {
+test('a new ingress epoch permits a lower random update ID after Telegram inactivity', async () => {
   const s=setup();
-  await s.make().process(event('999999999999','left',1760000000));
-  assert.equal(await s.make().process(event('10','member',1760000001)),'ACTIVATED');
-  assert.equal((await s.store.member(event().memberId)).status,'ACTIVE');
+  await s.make().process(event('999999999999','left',1760000000,0));
+  assert.equal(await s.make().process(event('10','member',1760000001,1)),'ACTIVATED');
+  const member=await s.store.member(event().memberId);
+  assert.equal(member.status,'ACTIVE');
+  assert.equal(member.lastEvent.epoch,1);
 });
 
 test('stale event comparison survives adapter recreation via persisted member cursor', async () => {
@@ -121,7 +126,7 @@ test('stale event comparison survives adapter recreation via persisted member cu
 test('same effect key with changed deterministic payload fails for review', async () => {
   const s=setup();
   await s.make().process(event(500));
-  assert.equal(await s.effects.appendOnce('telegram:500:vip_ticker',{different:true}),'REVIEW_KEY_COLLISION');
+  assert.equal(await s.effects.appendOnce('telegram:0:500:vip_ticker',{different:true}),'REVIEW_KEY_COLLISION');
 });
 
 test('same update ID with different intent payload is quarantined', async () => {
@@ -137,10 +142,10 @@ test('missing, malformed, or unsafe update IDs fail closed', async () => {
   await assert.rejects(()=>s.make().process({...event(),updateId:Number.MAX_SAFE_INTEGER+1}),/INVALID_UPDATE_ID/);
 });
 
-test('missing or invalid event timestamp fails closed', async () => {
+test('invalid epoch or invalid source date fails closed', async () => {
   const s=setup();
-  await assert.rejects(()=>s.make().process({...event(),occurredAt:undefined}),/INVALID_EVENT_TIMESTAMP/);
-  await assert.rejects(()=>s.make().process({...event(),occurredAt:-1}),/INVALID_EVENT_TIMESTAMP/);
+  await assert.rejects(()=>s.make().process({...event(),epoch:-1}),/INVALID_UPDATE_EPOCH/);
+  await assert.rejects(()=>s.make().process({...event(),sourceDate:-1}),/INVALID_SOURCE_DATE/);
 });
 
 test('concurrent duplicate deliveries create one intent and one set of effects', async () => {
