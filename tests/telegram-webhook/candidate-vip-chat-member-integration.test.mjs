@@ -165,3 +165,27 @@ test('sendVipInvite_ getChatMember observation never writes VIP status',()=>{
  assert.equal(locks,1);
  assert.equal(writes.length,0,'getChatMember observation must not mutate access or member status');
 });
+
+test('unauthorized kick replay does not unban a user already left or manually kicked',()=>{
+ const source=extract('kickMpsUnauthorizedUser_','revokeVipInviteLink_');
+ const calls=[];
+ const context={
+  PropertiesService:{getScriptProperties:()=>({getProperty:()=> '123456:TEST_TOKEN_NOT_REAL'})},
+  UrlFetchApp:{fetch:(url)=>{calls.push(url);return{};}},
+  parseTelegramResponse_:()=>({ok:true,result:{status:'kicked'}}),console
+ };
+ vm.createContext(context);vm.runInContext(source,context,{timeout:1000});
+ assert.equal(context.kickMpsUnauthorizedUser_('-1001234567890','987654321'),true);
+ assert.equal(calls.length,1);
+ assert.ok(calls[0].includes('getChatMember'));
+});
+test('already-invalid Telegram invite link is treated as safely revoked on replay',()=>{
+ const source=extract('revokeVipInviteLink_','testTelegram_');
+ const context={
+  PropertiesService:{getScriptProperties:()=>({getProperty:()=> '123456:TEST_TOKEN_NOT_REAL'})},
+  UrlFetchApp:{fetch:()=>({})},
+  parseTelegramResponse_:()=>({ok:false,description:'INVITE_HASH_INVALID'})
+ };
+ vm.createContext(context);vm.runInContext(source,context,{timeout:1000});
+ assert.equal(context.revokeVipInviteLink_('-1001234567890','old-invite-link'),true);
+});
