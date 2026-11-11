@@ -295,21 +295,6 @@ The synthetic model now covers delayed old leave after newer rejoin, delayed old
 
 **Integration gate:** epoch assignment must happen once at webhook ingress and be stored with the update journal row. Retries reuse the stored epoch. The reset/idle boundary must be tested against webhook backlog, retries, and Apps Script outages. Missing/invalid update IDs fail closed or enter manual review; execution time must not be substituted for Telegram event dates.
 
-## 5G. Characterization tests against the actual candidate Code.gs snapshot
-
-A text-normalized candidate Code.gs snapshot derived from Library source SHA-256 `c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba` is stored in `tests/telegram-webhook/fixtures/candidate-handler-callsite-snapshot.gs`. The fixture's own SHA-256 is `70a2fb84ecef7e01eb86dcd95f1481ca3857e7953c6fbae2362b3314dcb64441`. The two hashes are intentionally distinct: the file was reconstructed through text extraction, which may normalize bytes/newlines; byte-for-byte identity is not claimed. CI extracts and executes function bodies in a Node VM with mocked Google Apps Script and Telegram dependencies; the fixture is not deployable code and is not the live deployment.
-
-The seven characterization checks cover:
-- `processTelegramUpdateCore_` chat_member branch passes only three arguments to `updateVipJoinStatus_`; neither enclosing `update_id` nor Telegram `chat_member.date` reaches the status handler.
-- `processVipJoinRequest_` pre-approval reconciliation, failed-approval retry reconciliation, and successful-approval branch each pass only three arguments; the enclosing update ID and `chat_join_request.date` are unavailable to the status handler.
-- `updateVipJoinStatus_` performs access/member status writes before invoking ticker and audit builders, within one ScriptLock owner in the tested activation path.
-- `recordMpsAudit_` catches and logs persistence exceptions rather than propagating them, so required audit writes cannot currently be treated as a reliable completion gate.
-- Fixture digest remains pinned to the reviewed candidate source.
-
-These tests are intentionally *characterization tests*: they pass when the existing gap is reproduced. They do not fix the gap, prove live GAS semantics, or authorize integration. The candidate's status-first order plus non-throwing audit helper means a crash after the status mutation can leave ticker/audit effects incomplete while a retry observes an already-active member. The current handler also creates ticker IDs with a random UUID rather than a stable update-derived key. Durable intent/effect integration must explicitly address these behaviors, retain the original event timestamp and update ID on all paths, and keep one ScriptLock owner across the state/ledger write sequence.
-
-No candidate Code.gs source, production spreadsheet, Apps Script project, or deployment was changed by this characterization step.
-
 ## 5F. Ordering semantics for join-request reconciliation (required handler gate)
 
 The candidate handler has three `processVipJoinRequest_` paths that call `getChatMember` and then pass the observed membership status to `updateVipJoinStatus_`: pre-approval reconciliation, failed-approval retry reconciliation, and successful approval. These are not equivalent evidence sources:
@@ -330,3 +315,19 @@ Required behavior for integration:
 6. Never hold ScriptLock while calling Telegram. Acquire the single-owner local critical section only for durable intent, cursor, member-sheet, and keyed local-effect operations.
 
 This distinction is a release gate, not an implementation detail. Existing characterization tests prove that the candidate currently omits update metadata from all four status call paths; they do not prove that simply adding the request's `date` to all three reconciliation calls would be correct.
+
+
+## 5G. Characterization tests against the actual candidate Code.gs snapshot
+
+A text-normalized candidate Code.gs snapshot derived from Library source SHA-256 `c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba` is stored in `tests/telegram-webhook/fixtures/candidate-handler-callsite-snapshot.gs`. The fixture's own SHA-256 is `70a2fb84ecef7e01eb86dcd95f1481ca3857e7953c6fbae2362b3314dcb64441`. The two hashes are intentionally distinct: the file was reconstructed through text extraction, which may normalize bytes/newlines; byte-for-byte identity is not claimed. CI extracts and executes function bodies in a Node VM with mocked Google Apps Script and Telegram dependencies; the fixture is not deployable code and is not the live deployment.
+
+The seven characterization checks cover:
+- `processTelegramUpdateCore_` chat_member branch passes only three arguments to `updateVipJoinStatus_`; neither enclosing `update_id` nor Telegram `chat_member.date` reaches the status handler.
+- `processVipJoinRequest_` pre-approval reconciliation, failed-approval retry reconciliation, and successful-approval branch each pass only three arguments; the enclosing update ID and `chat_join_request.date` are unavailable to the status handler.
+- `updateVipJoinStatus_` performs access/member status writes before invoking ticker and audit builders, within one ScriptLock owner in the tested activation path.
+- `recordMpsAudit_` catches and logs persistence exceptions rather than propagating them, so required audit writes cannot currently be treated as a reliable completion gate.
+- Fixture digest remains pinned to the reviewed candidate source.
+
+These tests are intentionally *characterization tests*: they pass when the existing gap is reproduced. They do not fix the gap, prove live GAS semantics, or authorize integration. The candidate's status-first order plus non-throwing audit helper means a crash after the status mutation can leave ticker/audit effects incomplete while a retry observes an already-active member. The current handler also creates ticker IDs with a random UUID rather than a stable update-derived key. Durable intent/effect integration must explicitly address these behaviors, retain the original event timestamp and update ID on all paths, and keep one ScriptLock owner across the state/ledger write sequence.
+
+No candidate Code.gs source, production spreadsheet, Apps Script project, or deployment was changed by this characterization step.
