@@ -124,7 +124,7 @@ export class DurableReviewerTrustRegistry {
       if (record.effective_at !== null || record.nonce !== null || record.nonce_digest !== null || record.attestation_digest !== null || record.bundle_digest !== null ||
           !KEY_ID_RE.test(record.key_id || '') || !SUBJECT_RE.test(record.subject || '') || typeof record.issuer !== 'string' ||
           !publicPem(record.public_key_pem) || !HASH_RE.test(record.key_fingerprint || '') || !iso(record.not_before) || !iso(record.not_after) ||
-          Date.parse(record.not_before) >= Date.parse(record.not_after) || this.#keys.has(record.key_id)) throw err('REGISTRY_INTEGRITY_ERROR', 'Invalid or duplicate key registration.');
+          Date.parse(record.not_before) >= Date.parse(record.not_after) || this.#keys.has(record.key_id) || [...this.#keys.values()].some(existing => existing.key_fingerprint === record.key_fingerprint)) throw err('REGISTRY_INTEGRITY_ERROR', 'Invalid or duplicate key registration.');
       let key; try { key = createPublicKey(record.public_key_pem); } catch { throw err('REGISTRY_INTEGRITY_ERROR', 'Registered public key is malformed.'); }
       if (key.asymmetricKeyType !== 'ed25519' || sha256(key.export({ type: 'spki', format: 'der' }).toString('base64')) !== record.key_fingerprint) throw err('REGISTRY_INTEGRITY_ERROR', 'Registered public-key fingerprint mismatch.');
       this.#keys.set(record.key_id, { ...record, revokedAt: null });
@@ -186,6 +186,7 @@ export class DurableReviewerTrustRegistry {
       if (key.asymmetricKeyType !== 'ed25519') throw err('VALIDATION_ERROR', 'Only Ed25519 public keys are accepted.');
       if (actorSubject === subject) throw err('SEPARATION_OF_DUTIES', 'Trust administrator cannot register their own reviewer identity.');
       const fingerprint = sha256(key.export({ type: 'spki', format: 'der' }).toString('base64'));
+      if ([...this.#keys.values()].some(existing => existing.key_fingerprint === fingerprint)) throw err('KEY_MATERIAL_REUSE', 'A public key fingerprint already exists in this registry; generate a new key pair for rotation.');
       await this.#append('KEY_REGISTERED', { actorSubject, keyId, issuer, subject, publicKeyPem, keyFingerprint: fingerprint, notBefore, notAfter });
       return { keyId, issuer, subject, fingerprint, status: 'ACTIVE' };
     }));
