@@ -118,6 +118,17 @@ test('stale worker cannot finish a lease reclaimed by a newer worker', async () 
   assert.equal((await store.get('101')).state, 'DONE');
 });
 
+test('expired lease cannot be completed even before another worker reclaims it', async () => {
+  const store = new SharedMemoryJournalStore();
+  const journal = new DurableUpdateJournal(store, { leaseMs: 100, tokenFactory: () => 'worker-expired' });
+  const claim = await journal.claim(update(), 1000);
+  await assert.rejects(
+    () => journal.finish(101, claim.row.claimToken, 1100),
+    /STALE_OR_INVALID_CLAIM/
+  );
+  assert.equal((await store.get('101')).state, 'PROCESSING');
+});
+
 test('journal stores a digest and allowlisted metadata, never raw message text', async () => {
   const store = new SharedMemoryJournalStore();
   const journal = new DurableUpdateJournal(store);
