@@ -765,3 +765,19 @@ GitHub Actions run #280 (https://github.com/marketpsychologysociety/mps-website/
 An intermediate run #279 failed because the module first made keyId mandatory before the corresponding test fixture had been updated. The test fixture was then updated to include keyId and a dedicated mismatched-key-ID negative case; run #280 passed clean checkout. This is retained as a test-development correction, not hidden.
 
 **Evidence boundary:** synthetic ephemeral Ed25519 keys only. No real reviewer key, key registry, identity provider, durable nonce service, authenticated GCP retrieval, GCP resource or production integration exists. A valid result verifies the trusted reviewer's signature over the exact bundle; it does not cryptographically authenticate Google or prove the reviewer's assertions are true. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+## P1.12 — durable reviewer trust registry and single-use nonce (synthetic only)
+
+- [x] Immutable Ed25519 reviewer-key registration with unique key IDs and public-key fingerprint validation.
+- [x] Key rotation with historic key retention; validity evaluated at signing time.
+- [x] Effective-time revocation and rejection of signatures issued at/after revocation.
+- [x] Admin authorization seam, separation-of-duties check, and fail-closed unauthorized operations.
+- [x] Durable random 256-bit nonce issuance; only nonce digest persisted.
+- [x] Signature + exact evidence-bundle verification followed by atomic single-use nonce consumption.
+- [x] Same-host cross-instance lock, fsync/hash-chain journal, restart recovery, stale dead-PID lock quarantine.
+- [x] Negative/replay/concurrency/tamper/expiry/recovery tests and CI workflow integration.
+- [ ] Replace local journal with independently administered transactional storage and external integrity anchor.
+- [ ] Implement real OIDC/JWKS/MFA identity validation, admin/key ceremony, compromise/recovery governance and independent review.
+- [ ] Complete authorized isolated GCP PoC with authenticated raw-log retrieval; no provisioning has been authorized or started.
+
+**Evidence:** `tests/official-draw/durable-reviewer-trust-registry.mjs`, `tests/official-draw/durable-reviewer-trust-registry.test.mjs`, `docs/MPS-REVIEWER-TRUST-REGISTRY-AND-NONCE-CONTRACT.md`. Synthetic workbench contract only; the admin callback is not authentication, local hash chain is not tamper-proof, PID lock is same-host only, and Google source authenticity remains unproven. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
