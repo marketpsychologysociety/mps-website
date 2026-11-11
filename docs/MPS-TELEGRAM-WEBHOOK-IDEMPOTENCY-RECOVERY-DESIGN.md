@@ -331,3 +331,67 @@ The seven characterization checks cover:
 These tests are intentionally *characterization tests*: they pass when the existing gap is reproduced. They do not fix the gap, prove live GAS semantics, or authorize integration. The candidate's status-first order plus non-throwing audit helper means a crash after the status mutation can leave ticker/audit effects incomplete while a retry observes an already-active member. The current handler also creates ticker IDs with a random UUID rather than a stable update-derived key. Durable intent/effect integration must explicitly address these behaviors, retain the original event timestamp and update ID on all paths, and keep one ScriptLock owner across the state/ledger write sequence.
 
 No candidate Code.gs source, production spreadsheet, Apps Script project, or deployment was changed by this characterization step.
+
+## 5H. Durable per-member transition ledger (activation and leave)
+
+The update journal in section 3 deduplicates the Telegram update as a whole. It does not by itself recover a partially applied VIP state transition. A separate per-member transition intent is required for **both activation and leave/kick** transitions; protecting only activation leaves a crash window on the reverse transition.
+
+### Proposed isolated sheet schemas
+
+Provision only in an isolated test spreadsheet after explicit migration approval. Preserve existing member/access sheets and their current columns.
+
+**`MPS Telegram VIP Transition Intents`** — one append-only intent row per state-changing Telegram update:
+
+| Column | Purpose |
+|---|---|
+| Intent Key | Unique text key: `telegram:<epoch>:<update_id>:vip_transition` |
+| Update ID | Canonical decimal text; never spreadsheet numeric coercion |
+| Update Epoch | Durable ingress epoch assigned at first receipt |
+| Member ID | Internal MPS member reference |
+| Target State | ACTIVE or LEFT |
+| Source Type | CHAT_MEMBER or CHAT_JOIN_REQUEST |
+| Source Date | Optional original Telegram date (evidence only; not the cross-type ordering key) |
+| Payload SHA-256 | Digest from the update journal |
+| State | INTENT, STATUS_APPLIED, COMPLETED, SUPERSEDED, or REVIEW |
+| Ticker Effect Key | Stable key, blank when not applicable |
+| Audit Effect Key | Stable key, blank when not applicable |
+| Created At / Updated At | Backend timestamps |
+| Last Error Code | Sanitized allowlisted code only |
+
+**`MPS Telegram VIP Member Cursor`** — one row per member, used only for ordering:
+
+| Column | Purpose |
+|---|---|
+| Member ID | Unique internal member reference |
+| Last Update Epoch | Monotonic ingress epoch |
+| Last Update ID | Canonical decimal text |
+| Last Transition Key | Intent key that advanced the cursor |
+| Updated At | Backend timestamp |
+
+The cursor is not a replacement for the existing member/access status fields. Those remain the business-state records; the cursor records which Telegram update was last applied. Do not duplicate names, phone numbers, chat text, or credentials in either ledger.
+
+### Single-owner write/recovery protocol
+
+Under one ScriptLock critical section, using one scoped transaction capability passed through every helper:
+
+1. Recover any unfinished transition intent for the member before accepting a newer transition.
+2. Find or create the deterministic intent. Reuse with a different member, target state, source type, or payload digest is a collision and enters REVIEW.
+3. Compare the incoming `(epoch, update_id)` with the persisted member cursor. Older/equal updates become SUPERSEDED/duplicate and cannot mutate status.
+4. Persist INTENT before changing either existing member/access status row.
+5. Apply the desired status idempotently to both existing status records; then advance the cursor to the intent's sequence and persist STATUS_APPLIED.
+6. Append applicable ticker/audit effects using their deterministic keys and same-row key columns. A key collision is REVIEW; a retry with the same key and same payload is a no-op.
+7. Persist COMPLETED only after required local status and keyed local effects are confirmed.
+8. Release ScriptLock before any Telegram network call. External actions remain separately reconciled; the local intent is not a transaction over Telegram.
+
+If execution stops after any individual sheet write, the next handler for that member must resume the pending intent first. Recovery re-reads the authoritative member/access rows and cursor, reapplies missing idempotent local writes, and either completes the intent or marks it REVIEW. If a newer cursor already exists, the older pending intent is marked SUPERSEDED and must not roll state backward.
+
+### Additional acceptance tests now required
+
+- Crash after intent append, after the first status sheet write, after the second status sheet write, after cursor write, after ticker append, after audit append, and before completion.
+- Recover each crash with a newly constructed handler/adapter instance and prove both existing status rows, cursor, intent state, and keyed effect rows converge without duplicates.
+- A pending older intent must be recovered or superseded before a newer update for the same member can mutate status.
+- Leave/kick uses the same durable intent and cursor protocol as activation; a crash cannot leave the two existing status records disagreeing indefinitely.
+- An old activation cannot overtake a newer leave, and an old leave cannot overtake a newer activation.
+- Any partial status mismatch that cannot be safely repaired is REVIEW, never silently accepted.
+
+**Current gap:** the synthetic VIP orchestration model currently persists a durable intent for activation, but its leave path updates member state/cursor directly without a corresponding durable transition intent or crash-injection coverage. Therefore the model is not yet an acceptance proof for leave recovery. This must be corrected before the handler design can pass its transition-recovery gate.
