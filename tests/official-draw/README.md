@@ -95,9 +95,15 @@ node --test tests/official-draw/security-contract.test.mjs
 ```
 
 The sandbox is intended to exercise real local HTTP routing and middleware
-boundaries for a narrow set of negative/contract tests. It is **not** an OIDC
+boundaries for a narrow set of negative/contract tests. It checks operator ownership
+on draw execution, expected-version (`If-Match`) preconditions, role separation,
+idempotency conflicts, and refusal to publish unverified results. It is **not** an OIDC
 implementation, durable database, tamper-evident journal, production identity
 system, beacon verifier, fair winner-selection engine, or deployable Draw API.
+
+The public-projection privacy test is reported as **SKIP**, not PASS, until a real
+published-projection fixture and public serialization path exist. A null projection
+is deliberately not treated as evidence that private data cannot leak.
 Its synthetic credentials are test fixtures, not secrets. Never expose the
 port, reuse its tokens, connect it to real data, or deploy this module.
 
