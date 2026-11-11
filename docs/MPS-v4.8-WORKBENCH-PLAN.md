@@ -711,3 +711,19 @@ GitHub Actions run #259 (`42942407831`) on commit `b041cac0bef2c91bcfddf239869d8
 The first attempt on commit `70457412e1a05d0888bb9f7bf64d0c326b1a230e` failed because a literal escaped newline was introduced in the test file during an edit. The workflow log identified the syntax error; the test source was corrected, a malformed-collection fail-closed regression test was added, and run #259 passed from clean checkout.
 
 **Evidence boundary:** all GCS verifier inputs are synthetic normalized fixtures. CI does not call GCS, authenticate raw Cloud Audit Logs, validate a live IAM policy, prove actual retention or backup behavior, or establish provider independence. Actual GCS PoC remains NOT STARTED. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.10 — raw Cloud Audit Logs normalization harness (offline only)
+
+- [x] Add exact-raw-JSON capture envelope and SHA-256 byte-integrity checks.
+- [x] Validate project/bucket/log scope, GCS resource labels, AuditLog type/service, timestamps, insert IDs and expected actor roles.
+- [x] Validate page indexes, page-token hash continuity, completion marker, page counts and per-page ordered digest.
+- [x] Map a deliberately narrow set of GCS object create/read/delete and bucket policy methods; reject unknown variants.
+- [x] Require expected synthetic object create/read evidence and an observed writer delete-denial record.
+- [x] Keep normalized projection minimal and force sourceAuthenticated=false.
+- [x] Add synthetic negative tests, documentation and clean-checkout CI step.
+- [ ] Independently authenticate the raw source through a separate Cloud Logging/API session or provider-verifiable custody evidence.
+- [ ] Confirm exact GCS method names/resource-name forms and denied-operation log behavior against actual isolated PoC records.
+- [ ] Obtain separate authorization and complete P1.8 prerequisites before provisioning any GCP resource.
+
+**Evidence:** tests/official-draw/gcs-raw-audit-normalizer.mjs, tests/official-draw/gcs-raw-audit-normalizer.test.mjs, docs/MPS-GCS-RAW-AUDIT-EVIDENCE-NORMALIZATION.md, and the workflow step. P1.10 is a structural/offline harness only. SHA-256 binds supplied bytes to the fixture manifest but does not authenticate Google as source or prove export completeness. Actual GCS PoC remains NOT STARTED. No project, bucket, billing, IAM, service account, audit sink, credential, retention lock, production data or deployment was created. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
