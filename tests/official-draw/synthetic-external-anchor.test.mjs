@@ -1,15 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { SyntheticAnchorProvider, createSyntheticAnchor, verifySyntheticAnchors } from './synthetic-external-anchor.mjs';
 
-const h = value => requireHash(value);
-function requireHash(value) {
-  return (awaitHash => awaitHash)(value);
-}
-const hash = value => {
-  const crypto = require('node:crypto');
-  return crypto.createHash('sha256').update(value).digest('hex');
-};
+const hash = value => createHash('sha256').update(value).digest('hex');
 
 test('create-only anchors chain ordered journal checkpoints and verify', async () => {
   const provider = new SyntheticAnchorProvider();
