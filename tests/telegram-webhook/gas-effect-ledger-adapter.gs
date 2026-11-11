@@ -33,7 +33,7 @@ function createMpsGasEffectLedger_(config) {
       if(seen[key])throw new Error('EFFECT_DUPLICATE_EXISTING_KEY');seen[key]=true;
     });
   }
-  function migrate_(kind){return withLock_(function(){
+  function migrateLocked_(kind){
     var s=schema_(kind),sh=sheet_(s),state=validateSchema_(kind,sh,false);
     if(state.migrated){validateKeys_(sh,state.keyColumn);return{outcome:'ALREADY_MIGRATED',keyColumn:state.keyColumn};}
     var last=sh.getLastRow();
@@ -41,9 +41,9 @@ function createMpsGasEffectLedger_(config) {
     sh.getRange(1,state.keyColumn).setValue(keyHeader);SpreadsheetApp.flush();
     var confirmed=validateSchema_(kind,sh,true);validateKeys_(sh,confirmed.keyColumn);
     return{outcome:'MIGRATED',keyColumn:confirmed.keyColumn};
-  });}
+  }
   function canonical_(v){if(Array.isArray(v))return v.map(canonical_);if(v&&typeof v==='object'){var o={};Object.keys(v).sort().forEach(function(k){o[k]=canonical_(v[k]);});return o;}return v;}
-  function appendOnce_(kind,effectKey,rowValues){return withLock_(function(){
+  function appendOnceLocked_(kind,effectKey,rowValues){
     var s=schema_(kind),sh=sheet_(s),state=validateSchema_(kind,sh,true);validateKeys_(sh,state.keyColumn);
     var key=String(effectKey==null?'':effectKey);
     if(!/^[A-Za-z0-9:_-]{1,160}$/.test(key))throw new Error('INVALID_EFFECT_KEY');
@@ -59,6 +59,29 @@ function createMpsGasEffectLedger_(config) {
     sh.getRange(target,state.keyColumn).setNumberFormat('@');
     sh.getRange(target,1,1,state.keyColumn).setValues([values]);SpreadsheetApp.flush();
     return{outcome:'APPENDED',row:target};
-  });}
-  return{migrate:migrate_,appendOnce:appendOnce_};
+  }
+  var scopeActive_=false;
+  function migrate_(kind){
+    if(scopeActive_)throw new Error('NESTED_EFFECT_LOCK_ACQUISITION');
+    return withLock_(function(){return migrateLocked_(kind);});
+  }
+  function appendOnce_(kind,effectKey,rowValues){
+    if(scopeActive_)throw new Error('NESTED_EFFECT_LOCK_ACQUISITION');
+    return withLock_(function(){return appendOnceLocked_(kind,effectKey,rowValues);});
+  }
+  function runExclusive_(callback){
+    if(typeof callback!=='function')throw new Error('EFFECT_SCOPE_CALLBACK_REQUIRED');
+    if(scopeActive_)throw new Error('NESTED_EFFECT_LOCK_ACQUISITION');
+    return withLock_(function(){
+      scopeActive_=true;
+      var active=true;
+      var scoped=Object.freeze({
+        migrate:function(kind){if(!active)throw new Error('EFFECT_SCOPE_CLOSED');return migrateLocked_(kind);},
+        appendOnce:function(kind,effectKey,rowValues){if(!active)throw new Error('EFFECT_SCOPE_CLOSED');return appendOnceLocked_(kind,effectKey,rowValues);}
+      });
+      try{return callback(scoped);}
+      finally{active=false;scopeActive_=false;}
+    });
+  }
+  return{migrate:migrate_,appendOnce:appendOnce_,runExclusive:runExclusive_};
 }
