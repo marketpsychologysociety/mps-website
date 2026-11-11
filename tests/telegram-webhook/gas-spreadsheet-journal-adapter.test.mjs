@@ -182,6 +182,14 @@ test('schema mismatch fails closed without creating or repairing a tab', () => {
   assert.equal(h.rows.length, 1);
 });
 
+test('malformed journal row metadata fails closed', () => {
+  const h = makeHarness();
+  const journal = h.create();
+  journal.claim(update(), 1000);
+  h.rows[1][1] = 'UNTRUSTED_UPDATE_TYPE';
+  assert.throws(() => journal.claim(update(), 1010), /JOURNAL_ROW_CORRUPT/);
+});
+
 test('duplicate update ID rows are treated as journal corruption', () => {
   const h = makeHarness();
   const journal = h.create();
