@@ -37,3 +37,10 @@
 ## Release gate
 
 This matrix is a source-review finding list, not proof of runtime behavior. Before integration, wire the tested replay classifier and transition effect keys into the isolated Code.gs candidate; then test each reconciliation branch using mocked spreadsheet and Telegram adapters, and finally test the candidate in a separate Apps Script project, isolated spreadsheet, and Telegram test bot/group. No production handler should be switched to the journal adapter until those tests pass and a separate production migration is explicitly approved.
+
+
+## Append-only audit/ticker compatibility proposal (not implemented)
+
+The candidate's legacy readers consume the first seven audit columns and first six ticker columns. To avoid breaking those consumers, the proposed migration preserves every existing header and appends one \`Effect Key\` column: audit column 8, ticker column 7. Old rows remain unchanged with blank keys; no historical keys are guessed. New effect rows must persist the deterministic update/effect key in the same row as the event, and check-and-append must be serialized by the same Apps Script script lock.
+
+The contract suite \`tests/telegram-webhook/effect-ledger-migration.test.mjs\` currently passes 20 synthetic tests, including schema mismatch/unknown-column fail-closed cases, duplicate key detection, payload collision quarantine, concurrent append attempts, reactivation-specific keys, and a crash after append before acknowledgement. This is not a real Sheets adapter and does not prove Sheets durability or lock behavior. It has not changed \`Code.gs\`, a spreadsheet, or any live resource. A separate explicit migration function and isolated Apps Script/Spreadsheet runtime test are still required.
