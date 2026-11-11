@@ -127,3 +127,23 @@ test('crash after durable intent fails closed as RECONCILIATION_REQUIRED after r
   assert.equal(retry.status, 409);
   assert.equal(retry.body.error.code, 'RECONCILIATION_REQUIRED');
 });
+
+
+test('concurrent execute requests cannot create two transitions for one draw', async t => {
+  const directory = await fixture(t);
+  const child = startSandbox(directory);
+  await waitForHealth(child);
+  t.after(() => stopSandbox(child));
+  const seeded = await api('POST', '/__test/seed-draw', { body: {} });
+  assert.equal(seeded.status, 201);
+  const drawId = seeded.body.data.draw_id;
+  const results = await Promise.all([
+    api('POST', '/api/v1/draws/' + drawId + '/execute', { body: {}, key: 'concurrent-a', version: 1 }),
+    api('POST', '/api/v1/draws/' + drawId + '/execute', { body: {}, key: 'concurrent-b', version: 1 })
+  ]);
+  assert.equal(results.filter(item => item.status === 202).length, 1);
+  assert.equal(results.filter(item => item.status === 409).length, 1);
+  const status = await api('GET', '/api/v1/draws/' + drawId + '/status');
+  assert.equal(status.body.data.state, 'DRAWN_UNVERIFIED');
+  assert.equal(status.body.data.version, 2);
+});
