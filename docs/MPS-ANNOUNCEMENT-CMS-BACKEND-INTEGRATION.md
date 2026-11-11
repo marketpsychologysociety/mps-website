@@ -42,6 +42,10 @@ That behavior violates the final requirement: **never show real names, display n
 - Preserve old history only as restricted internal audit material if policy requires it; default old events to hidden and do not backfill them into the new ticker.
 - Test the serialized public API response, not only the rendered UI, for names, aliases, full IDs, Telegram identifiers, MT5, contact details, and payment information.
 
+### Test lineage caution
+
+The older Library artifact MPS_Calculator_VIP_Integration_Test.mjs contains assertions from the earlier public-name ticker policy (including an expectation that PublicAlias contains a member name). Those assertions conflict with the later privacy requirement and the current masked-ID-only candidate projection. Do not use that older test as the acceptance gate for the current privacy behavior; replace it with a privacy-specific test against the exact candidate Code.gs before release. The public website CI in this PR does not execute the private Apps Script candidate.
+
 ## 3. Existing candidate capability map
 
 | Area | Candidate evidence | Integration decision |
