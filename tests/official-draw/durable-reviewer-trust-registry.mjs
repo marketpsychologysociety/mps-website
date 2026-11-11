@@ -78,7 +78,14 @@ export class DurableReviewerTrustRegistry {
             }
           }
         } catch (ownerError) {
-          if (ownerError.code === 'ENOENT') throw err('LOCK_RECOVERY_REQUIRED', 'Registry lock exists without an owner record; refusing to steal an ambiguous lock. Manual reconciliation required.');
+          if (ownerError.code === 'ENOENT') {
+            // A competing process may have created the directory but not yet
+            // written owner.json. Give that atomic-acquisition window a bounded
+            // grace period; never steal the lock if the owner remains unknown.
+            if (Date.now() >= deadline) throw err('LOCK_RECOVERY_REQUIRED', 'Registry lock owner record remained absent; refusing to steal an ambiguous lock. Manual reconciliation required.');
+            await new Promise(resolve => setTimeout(resolve, this.#lockRetryMs));
+            continue;
+          }
           if (ownerError.code !== 'EEXIST') throw err('LOCK_RECOVERY_REQUIRED', 'Registry lock owner is missing or malformed; manual reconciliation required.');
         }
         if (Date.now() >= deadline) throw err('REGISTRY_LOCKED', 'Trust registry is locked by a live or foreign owner; no timeout-based lock stealing is allowed.');
