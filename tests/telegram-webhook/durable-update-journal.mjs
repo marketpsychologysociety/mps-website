@@ -2,8 +2,18 @@ import { createHash, randomUUID } from 'node:crypto';
 
 const STATES = new Set(['RECEIVED', 'PROCESSING', 'RETRYABLE', 'DONE', 'REVIEW']);
 
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === 'object') {
+    const normalized = {};
+    Object.keys(value).sort().forEach(key => { normalized[key] = canonicalize(value[key]); });
+    return normalized;
+  }
+  return value;
+}
+
 function digest(value) {
-  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  return createHash('sha256').update(JSON.stringify(canonicalize(value))).digest('hex');
 }
 
 function validUpdateId(value) {
