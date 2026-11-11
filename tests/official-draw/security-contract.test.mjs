@@ -168,14 +168,27 @@ integration("cross-event identifiers do not bypass object-level authorization", 
     actor: adapter.actors.operatorA
   });
   assert.ok([403, 404].includes(result.status));
+  const execute = await adapter.request({
+    method: "POST",
+    path: `/api/v1/draws/${encodeURIComponent(other.drawId)}/execute`,
+    actor: adapter.actors.operatorA,
+    headers: { "Idempotency-Key": "test-cross-owner-execute", "If-Match": "1" },
+    body: {}
+  });
+  assert.equal(execute.status, 404);
+  assert.equal(await adapter.getOperationCount(other.drawId), 0);
   assert.notEqual(own.drawId, other.drawId);
 });
 
-integration("public projection never exposes private synthetic canaries", async () => {
+integration("public projection never exposes private synthetic canaries", async (t) => {
   const canaries = await adapter.getPrivateCanaries();
   assert.ok(Array.isArray(canaries) && canaries.length > 0);
   const projection = await adapter.getPublishedProjection();
-  const serialized = JSON.stringify(projection ?? {});
+  if (projection === null || projection === undefined) {
+    t.skip("No published public projection fixture exists; privacy serialization is not yet exercised.");
+    return;
+  }
+  const serialized = JSON.stringify(projection);
   for (const canary of canaries) {
     assert.ok(!serialized.includes(canary), `Private canary leaked: ${canary}`);
   }
