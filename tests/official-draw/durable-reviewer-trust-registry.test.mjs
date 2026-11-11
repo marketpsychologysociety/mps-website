@@ -138,11 +138,15 @@ test('fails closed on complete-record tampering and unknown journal fields', asy
   await assert.rejects(DurableReviewerTrustRegistry.open(dir,{authorizeAdmin:auth}),e=>e.code==='REGISTRY_INTEGRITY_ERROR');
 });
 
-test('recovers committed state after incomplete trailing record', async t => {
-  const {registry,dir,reopen}=await setup(t), pair=keypair(); await register(registry,pair); await registry.close();
-  await fs.appendFile(path.join(dir,'reviewer-trust.jsonl'),' {"partial":');
-  const after=await reopen(); assert.equal(after.getKey('reviewer-key-001').status,'ACTIVE');
-  const bytes=await fs.readFile(path.join(dir,'reviewer-trust.jsonl'),'utf8'); assert.equal(bytes.endsWith('\n'),true); assert.equal(bytes.includes('partial'),false);
+test('fails closed and preserves incomplete trailing record for manual reconciliation', async t => {
+  const {registry,dir}=await setup(t), pair=keypair(); await register(registry,pair); await registry.close();
+  const file=path.join(dir,'reviewer-trust.jsonl');
+  await fs.appendFile(file,' {"partial":');
+  const before=await fs.readFile(file);
+  await assert.rejects(DurableReviewerTrustRegistry.open(dir,{authorizeAdmin:auth}),e=>e.code==='REGISTRY_INTEGRITY_ERROR');
+  const after=await fs.readFile(file);
+  assert.deepEqual(after,before,'journal bytes must remain untouched');
+  assert.equal(after.includes(Buffer.from('partial')),true);
 });
 
 test('fails closed after bounded grace when lock directory exists without an owner record', async t => {
