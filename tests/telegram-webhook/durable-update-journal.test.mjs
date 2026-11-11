@@ -167,3 +167,15 @@ test('journal outage fails closed instead of invoking handler', async () => {
   }, 1000), /STORE_UNAVAILABLE/);
   assert.equal(invoked, false);
 });
+
+test('digit-string update IDs accept canonical decimal strings and reject ambiguous forms', async () => {
+  const journal = new DurableUpdateJournal(new SharedMemoryJournalStore());
+  const valid = await journal.claim(update('12345678901234567890'), 1000);
+  assert.equal(valid.outcome, 'CLAIMED');
+  assert.equal(valid.row.updateId, '12345678901234567890');
+  const zero = await journal.claim(update('0'), 1000);
+  assert.equal(zero.outcome, 'CLAIMED');
+  await assert.rejects(() => journal.claim(update('0123'), 1000), /INVALID_UPDATE_ID/);
+  await assert.rejects(() => journal.claim(update(''), 1000), /INVALID_UPDATE_ID/);
+  await assert.rejects(() => journal.claim(update('123456789012345678901'), 1000), /INVALID_UPDATE_ID/);
+});
