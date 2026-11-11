@@ -222,3 +222,30 @@ test('ownerless and foreign-host lock directories fail closed without lock steal
   );
   assert.equal((await fs.readdir(foreignLock)).includes('owner.json'), true);
 });
+
+
+test('abrupt process death while holding the journal lock is recovered without duplicate append', async t => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-journal-crash-lock-'));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const child = spawn(process.execPath, [path.join(path.dirname(new URL(import.meta.url).pathname), 'journal-crash-lock-worker.mjs'), dir], { stdio: 'ignore' });
+  const exitCode = await new Promise((resolve, reject) => {
+    child.once('error', reject);
+    child.once('exit', code => resolve(code));
+  });
+  assert.equal(exitCode, 77);
+
+  const recovered = await DurableAuditJournal.open(dir, { lockWaitMs: 1000, lockRetryMs: 5 });
+  t.after(() => recovered.close());
+  assert.equal(recovered.getStats().operation_count, 1);
+  assert.equal(recovered.getStats().record_count, 1);
+  const replay = await recovered.beginOperation({
+    operationId: 'op_after_crash_retry',
+    idempotencyKey: 'idem_crash_lock_001',
+    actorSubject: 'subject_synthetic_crash_worker',
+    targetId: 'draw_synthetic_crash_001',
+    payloadDigest: digest('synthetic-crash-payload')
+  });
+  assert.equal(replay.created, false);
+  assert.equal(replay.operation.state, 'INTENT_RECORDED');
+  assert.equal(recovered.getStats().record_count, 1);
+});
