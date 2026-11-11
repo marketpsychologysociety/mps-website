@@ -312,6 +312,48 @@ try {
   const rouletteText = await page.locator('#rouletteResult').innerText();
   if (!rouletteText.includes('Tidak ada pemenang')) failures.push('Demo roulette implied a winner or failed to disclose simulation-only behavior');
 
+  // Exercise the data-only public-center transport with a mocked CORS endpoint.
+  // The response is text that resembles JavaScript assignment syntax, but must only
+  // be parsed as JSON; appended executable code must never run in the page origin.
+  const feedContext = await browser.newContext({ serviceWorkers: 'block' });
+  const testEndpoint = 'https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec';
+  const originalConfig = fs.readFileSync(path.join(root, 'config.js'), 'utf8');
+  const testConfig = originalConfig
+    .replace('enabled: false', 'enabled: true')
+    .replace(/endpoint: "https:\/\/script\.google\.com\/macros\/s\/[^"]+\/exec"/, 'endpoint: "' + testEndpoint + '"');
+  await feedContext.route('**/config.js', route => route.fulfill({
+    status: 200, contentType: 'text/javascript; charset=utf-8', body: testConfig
+  }));
+  let feedMode = 'valid';
+  await feedContext.route('https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec?**', route => {
+    const validEnvelope = 'window.MPS_PUBLIC_CENTER_DATA={"ok":true,"announcements":[{"ID":"ANN-TEST","Title":"Mocked safe feed title","Category":"important","Body":"Data-only feed test"}],"activity":[],"tickerSettings":{"enabled":false,"speed":34,"theme":"Neon"}};';
+    const body = feedMode === 'valid'
+      ? validEnvelope
+      : validEnvelope + 'window.__mpsRemoteCodeExecuted=true;';
+    return route.fulfill({
+      status: 200,
+      headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' },
+      contentType: 'application/javascript; charset=utf-8',
+      body
+    });
+  });
+  const feedPage = await feedContext.newPage();
+  await feedPage.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
+  await feedPage.waitForFunction(() => document.documentElement.dataset.mpsPublicCenter === 'connected', null, { timeout: 5000 })
+    .catch(() => failures.push('Data-only public-center JSON feed did not connect in mocked CORS test'));
+  const safeFeedRendered = await feedPage.locator('[data-public-announcements]').innerText();
+  if (!safeFeedRendered.includes('Mocked safe feed title')) failures.push('Data-only public-center JSON feed did not render safe announcement text');
+  const feedRemoteScripts = await feedPage.locator('script[src*="script.google.com"]').count();
+  if (feedRemoteScripts !== 0) failures.push('Data-only public-center feed injected a remote executable script');
+
+  feedMode = 'malicious';
+  await feedPage.goto(base + '/announcements.html?malicious-envelope-test=1', { waitUntil: 'domcontentloaded' });
+  await feedPage.waitForFunction(() => document.documentElement.dataset.mpsPublicCenter === 'demo-fallback', null, { timeout: 5000 })
+    .catch(() => failures.push('Malformed executable feed envelope did not fail closed to demo fallback'));
+  const remoteCodeExecuted = await feedPage.evaluate(() => window.__mpsRemoteCodeExecuted === true);
+  if (remoteCodeExecuted) failures.push('Public-center loader executed appended remote JavaScript instead of rejecting the response');
+  await feedContext.close();
+
   if (mobileErrors.length) failures.push('Mobile browser page errors: ' + mobileErrors.join(' | '));
   await mobileContext.close();
 
