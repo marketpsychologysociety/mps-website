@@ -519,6 +519,15 @@ No cloud project/account, database, bucket, KMS key, audit sink, identity-provid
 - [x] Define beacon/selection invariants without claiming implementation.
 - [x] Define 40 traceable technical acceptance tests and evidence classes.
 - [x] Preserve explicit cost, irreversible-action and production boundaries.
-- [ ] Run clean-checkout CI after documentation integration.
-- [ ] Re-fetch and cross-check all changed files and workflow evidence.
-- [ ] Re-compare workbench with production main.
+- [x] Run clean-checkout CI after documentation integration (run #362 succeeded, including Chromium).
+- [x] Re-fetch and cross-check the specification, workbench plan, README and workflow result.
+- [x] Re-compare workbench with production main (335 commits ahead, 0 behind at verification).
+
+
+## 17. Verification record
+
+- GitHub Actions run #362 (`42961283938`), commit `e1f8d91627e6306aac60eef2e91a30afdf28ccdb`: **SUCCESS**, including all synthetic security/contract suites and Chromium browser checks. This validates the repository workflow, not real OIDC, cloud provider, database, audit provenance, key recovery or production behavior.
+- Specification readback SHA-256 blob `c584b0f1545c3de8fa793645169e482bbb4188ea` after role/non-action clarification.
+- At verification, workbench compared with `main`: 335 commits ahead, 0 behind; production baseline remained `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`.
+- Verification scope: repository document readback, structural checks for 40 TA cases, six canonical roles, twelve logical entities, endpoint contract presence, explicit non-action boundary and release NO-GO statement.
+- No actual provider, identity, database, member data, or production environment was exercised.
