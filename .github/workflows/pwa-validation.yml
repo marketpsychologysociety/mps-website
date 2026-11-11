@@ -91,6 +91,8 @@ jobs:
         run: node --test tests/telegram-webhook/gas-effect-ledger-adapter.test.mjs
       - name: Run synthetic VIP activation orchestration and crash-recovery tests
         run: node --test tests/telegram-webhook/vip-activation-orchestration.test.mjs
+      - name: Run durable VIP activation and leave transition recovery contract
+        run: node --test tests/telegram-webhook/vip-transition-recovery.test.mjs
       - name: Run VIP activation contract against isolated GAS adapter (mocked services only)
         run: node --test tests/telegram-webhook/vip-activation-gas-adapter-integration.test.mjs
       - name: Run read-only schema inspector tests
