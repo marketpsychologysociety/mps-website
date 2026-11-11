@@ -790,12 +790,12 @@ An intermediate run #279 failed because the module first made keyId mandatory be
 - [x] Verify uncertain pre-fsync outcome can be reconciled without double consumption.
 - [x] Verify post-fsync acknowledgement loss preserves consumed state and rejects replay.
 - [x] Assert final nonce-consumption count is exactly one in both cases.
-- [ ] Run and inspect clean-checkout GitHub Actions; no green CI result is claimed until observed.
+- [x] Run and inspect clean-checkout GitHub Actions; workflow #305 completed successfully on commit `6ca41acd5e29dbadb4b46a47c68514d3d31fa714`.
 - [ ] Test actual power-loss/storage semantics, multi-host coordination, transactional storage and external anchoring only in an explicitly authorized isolated infrastructure PoC.
 
-**Verification status:** the test suite now contains 14 cases (12 existing registry/nonce cases plus 2 child-process crash cases), and the workflow command is present. This conversation did not execute the 14-case suite locally; GitHub Actions run/status is not currently exposed by the available repository connector, so CI remains **PENDING / NOT CLAIMED**.
+**Verification status:** clean-checkout GitHub Actions workflow #305 (run ID `42947053810`) completed **SUCCESS**. The reviewer trust-registry suite reported **14 PASS, 0 FAIL, 0 SKIP**. Both child-process crash cases passed: pre-fsync uncertainty reconciled without double consumption; post-fsync acknowledgement loss preserved the consumed state and rejected replay. The same full workflow passed all other configured synthetic suites and Chromium browser checks. This is CI evidence; no separate local execution was performed in this conversation.
 
-**Scope limits:** process-crash simulation only, not power loss or multi-host safety. The test fault hook is test-only. No production system, GCP resource, credential, identity provider, member data or deployment is touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+**Scope limits:** process-crash simulation only, not power loss, kernel panic, storage-controller cache loss, or multi-host safety. The test fault hook is test-only. No production system, GCP resource, credential, identity provider, member data or deployment is touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
 
 ### P1.12 implementation review status — 2026-11-11
 
