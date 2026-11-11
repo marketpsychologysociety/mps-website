@@ -292,3 +292,8 @@ Run:
 The standalone P1.23 harness tests canonical JSON/digests, strict event request allowlists, a deny-by-default synthetic role/action matrix, ownership and separation-of-duties rules, exact public winner projection, and a serialized in-memory execution model for idempotency, version/state preconditions, concurrency and lost-ack replay. CI runs this suite as a dedicated step. See `docs/MPS-P1.23-ISOLATED-TECHNICAL-HARNESS.md`.
 
 **Critical limits:** this is SYNTHETIC evidence only. The role/subject values are fixtures, not OIDC/MFA; in-memory Maps and a promise queue are not a transactional database, durable outbox, cross-process lock or crash-recovery mechanism; fault points are simulated returns, not process/power-loss tests; SHA-256 is not a beacon signature or fair draw. No member data, production credentials, provider, cloud resource, database, Apps Script, live endpoint or production configuration was used or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+### P1.23 follow-up source hardening
+
+The canonical JSON harness now rejects hidden object properties and accessor/non-enumerable array elements; public winner projection rejects hidden own fields and enforces string types for identifiers and proof fields. Regression assertions were added. These changes are source-reviewed only until the P1.23 Node test suite has a confirmed execution result. The harness remains synthetic and does not change the official-draw NO-GO decision.
