@@ -747,7 +747,7 @@ The first category-refinement test run (#268–#270) exposed a mismatch: Policy 
 
 - [x] Add detached Ed25519 signature verification using a separately supplied pinned trust record.
 - [x] Bind signed attestation to canonical raw P1.10 evidence-bundle digest, project, bucket, time window, query digest, page/entry counts and pagination completion.
-- [x] Require reviewer subject = authenticated retrieval principal, reviewer distinct from exporter, trust-key issuer/subject match, key validity and non-revocation.
+- [x] Require signed key ID, reviewer subject = authenticated retrieval principal, reviewer distinct from exporter, trust-key issuer/subject match, key validity and non-revocation.
 - [x] Enforce short-lived attestation, caller-provided challenge nonce, and fail-closed scope/schema/signature checks.
 - [x] Add synthetic ephemeral-key tests, README, architecture document, and clean-checkout CI step.
 - [ ] Implement independently governed trust-key registry and key issuance/revocation lifecycle.
