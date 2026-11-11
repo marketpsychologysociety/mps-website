@@ -109,3 +109,18 @@ port, reuse its tokens, connect it to real data, or deploy this module.
 The sandbox's state is reset in memory before each test. Passing these tests
 would demonstrate only that these specific sandbox contracts behave as
 asserted; it would not demonstrate that a future production backend is secure.
+
+
+## Durable synthetic audit journal prototype (test only)
+
+Run the standalone persistence and fault-injection suite:
+
+```sh
+node --test tests/official-draw/durable-audit-journal.test.mjs
+```
+
+The journal uses a disposable local directory and an append-only JSONL file. It writes INTENT and COMPLETION records, fsyncs each append, verifies a sequential SHA-256 hash chain on reopen, recovers complete records, drops only an incomplete final line, rejects complete-record tampering, and enforces idempotency and a narrow completion-result field allowlist.
+
+The fault-injection tests cover failure before append, write-before-fsync ambiguity, and fsync-before-ack loss. Uncertain outcomes require closing/reopening and reconciling before writes resume.
+
+**Limitations:** this is a single-process local test prototype and is not yet connected to the HTTP sandbox state transitions. It has no multi-process lock, transactional database, external hash anchor, backup/restore, OIDC, or production hardening. A hash chain stored only in the same writable file is not tamper-proof against an attacker who can rewrite the entire file and recompute all hashes. Use synthetic metadata only; never write participant PII, proof documents, PINs, credentials, or production data.

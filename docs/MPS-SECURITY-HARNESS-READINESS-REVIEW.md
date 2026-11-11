@@ -101,7 +101,7 @@ Before the public-projection fixture was added, a local test run against a recon
 | Public projection fixture and serializer | Implemented; allowlist verified in CI run #173 |
 | Canary privacy test through public HTTP routes | 10-test suite PASS; 0 SKIP in CI run #173 |
 | Official Draw API implementation in inspected workbench | Not found |
-| OIDC / durable persistence / journal | Not implemented |
+| OIDC | Not implemented |\n| Durable synthetic journal | Local single-process prototype; API integration and CI pending |
 | Public projection privacy test | Synthetic API canary test PASS; production CMS/cache/log privacy remains unverified |
 | Cryptographic verifier integration | Not implemented |
 | Official winner draw | **BLOCKED** |
@@ -117,3 +117,19 @@ This review changes documentation only. No production branch, Apps Script deploy
 A synthetic private fixture, strict allowlist serializer, anonymous collection/detail routes, and canary assertions are now present. The CI privacy test traverses the loopback HTTP routes, checks all synthetic canaries and exact public field sets, and checks empty/unknown results. Workflow run #173 completed successfully with **10 PASS, 0 FAIL, 0 SKIP** for the Official Draw contract suite. The full workflow also passed schema compatibility (9/9), read-only inspector (5 scenarios), and Chromium PWA/browser checks.
 
 This closes the known **sandbox** privacy-test skip only. Production CMS/Apps Script integration, production caches/logs, OIDC, durable persistence/journal, beacon verification, and official winner selection remain unimplemented or unverified. Official draw remains **BLOCKED** and roulette remains **SIMULATION ONLY**. No production system was changed.
+
+
+## P1.1 — durable synthetic audit journal prototype (2026-11-11)
+
+**Implemented in isolated workbench:** `tests/official-draw/durable-audit-journal.mjs` is a local-file, append-only JSONL journal with sequential records, SHA-256 hash chaining, file fsync, initial directory fsync, recovery on reopen, durable INTENT/COMPLETION records, idempotency-key replay/conflict handling, serialized concurrent writes within one process, bounded completion-result allowlist, and fail-closed integrity validation. A truncated final line is discarded during recovery; malformed complete records and hash-chain tampering are rejected.
+
+**Fault-injection coverage:** tests inject failures before append, after write but before fsync, and after fsync but before acknowledgement. Uncertain write outcomes block further writes until reopen/reconciliation. A durable intent whose acknowledgement was lost is recovered and replayed without creating a second intent.
+
+**Local evidence:** Node.js 22 syntax checks passed; the standalone suite completed **11 PASS, 0 FAIL, 0 SKIP** against temporary directories created under the OS temp path. GitHub Actions validation is being added for this commit; CI status must be checked separately.
+
+**Important scope boundary:** this is a single-process, local-filesystem test prototype, not yet integrated into the loopback Draw API adapter or its event/draw state transitions. It has no cross-process lock, database transaction, external hash anchor, independent tamper-proof storage, backup/restore process, OIDC identity, or production hardening. A hash chain detects accidental/partial tampering but an attacker able to rewrite the whole file can recompute the chain. Do not store real participant data or secrets in it. Production official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+### P1.1 readiness status
+
+The standalone journal prototype is implemented and locally tested (11 PASS, 0 FAIL, 0 SKIP). It provides local append/fsync, hash-chain verification, reopen recovery, idempotency and injected-failure handling. It is not yet integrated with the loopback API; there is no cross-process lock, transactional database, external anchor or production durability acceptance. API-level restart/fault-injection tests remain pending.

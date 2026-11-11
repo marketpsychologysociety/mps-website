@@ -586,3 +586,24 @@ The browser suite initially exposed stale assertions that still opened cache nam
 3. Implement pinned beacon verification and deterministic unbiased proof workflow.
 4. Complete Public Center CMS/backend bridge only after isolated Apps Script runtime validation.
 5. Continue production read-only verification and remaining P0–P7 gates; prepare a separate release review only after objective evidence exists.
+
+
+## P1.1 — durable synthetic audit journal prototype (2026-11-11)
+
+**Implemented in isolated workbench:** `tests/official-draw/durable-audit-journal.mjs` is a local-file, append-only JSONL journal with sequential records, SHA-256 hash chaining, file fsync, initial directory fsync, recovery on reopen, durable INTENT/COMPLETION records, idempotency-key replay/conflict handling, serialized concurrent writes within one process, bounded completion-result allowlist, and fail-closed integrity validation. A truncated final line is discarded during recovery; malformed complete records and hash-chain tampering are rejected.
+
+**Fault-injection coverage:** tests inject failures before append, after write but before fsync, and after fsync but before acknowledgement. Uncertain write outcomes block further writes until reopen/reconciliation. A durable intent whose acknowledgement was lost is recovered and replayed without creating a second intent.
+
+**Local evidence:** Node.js 22 syntax checks passed; the standalone suite completed **11 PASS, 0 FAIL, 0 SKIP** against temporary directories created under the OS temp path. GitHub Actions validation is being added for this commit; CI status must be checked separately.
+
+**Important scope boundary:** this is a single-process, local-filesystem test prototype, not yet integrated into the loopback Draw API adapter or its event/draw state transitions. It has no cross-process lock, database transaction, external hash anchor, independent tamper-proof storage, backup/restore process, OIDC identity, or production hardening. A hash chain detects accidental/partial tampering but an attacker able to rewrite the whole file can recompute the chain. Do not store real participant data or secrets in it. Production official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+### Updated next execution order
+
+1. Integrate the journal into the loopback Draw API adapter for operation intent/completion and state recovery; add API-level restart and fault-injection tests.
+2. Add durable event/draw state persistence, single-writer/process coordination or a transactional database boundary, and reconciliation tooling.
+3. Implement isolated OIDC identity validation, revocation, MFA and person-level dual control.
+4. Implement pinned beacon verification and deterministic unbiased proof workflow.
+5. Complete Public Center CMS/backend bridge only after isolated Apps Script runtime validation.
+6. Continue production read-only verification and remaining P0–P7 gates; prepare a separate release review only after objective evidence exists.
