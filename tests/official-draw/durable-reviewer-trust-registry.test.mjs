@@ -7,7 +7,8 @@ import path from 'node:path';
 import { DurableReviewerTrustRegistry } from './durable-reviewer-trust-registry.mjs';
 import { provenanceCanonicalJson, provenanceSha256 } from './gcs-evidence-provenance-verifier.mjs';
 
-const NOW = Date.parse('2026-11-11T03:00:00.000Z');
+const NOW = Date.now() + 60_000;
+const isoAt = offset => new Date(NOW + offset).toISOString();
 const QUERY = 'a'.repeat(64);
 const ADMIN = { actorSubject: 'trust-admin-subject-001' };
 const ISSUER = 'https://identity.example.invalid/mps-reviewers';
@@ -20,26 +21,26 @@ async function setup(t) {
   t.after(() => registry.close().catch(() => {}));
   return { dir, registry, reopen: async () => { await registry.close(); registry = await DurableReviewerTrustRegistry.open(dir, { authorizeAdmin: auth, lockWaitMs: 1000, lockRetryMs: 5 }); return registry; } };
 }
-async function register(registry, pair, keyId='reviewer-key-001', notAfter='2026-11-11T03:00:00.000Z') {
+async function register(registry, pair, keyId='reviewer-key-001', notAfter=isoAt(-1000)) {
   return registry.registerKey({ context:ADMIN, keyId, issuer:ISSUER, subject:'reviewer-subject-002', publicKeyPem:pair.pem, notBefore:'2026-01-01T00:00:00.000Z', notAfter });
 }
 function bundle() {
-  return { schemaVersion:'mps-gcs-raw-audit/v1', source:{ projectId:'mps-synthetic-project', bucket:'mps-synthetic-evidence', windowStart:'2026-11-11T02:00:00.000Z', windowEnd:'2026-11-11T02:30:00.000Z', paginationComplete:true, finalNextPageToken:null }, expectedPrincipals:{ writer:'writer-subject-001', verifier:'reviewer-subject-002' }, expectedObjects:['mps/evidence/synthetic/one.json'], pages:[{pageIndex:0,entryCount:1}], rawEntries:[{pageIndex:0,rawJson:'{"synthetic":true}'}] };
+  return { schemaVersion:'mps-gcs-raw-audit/v1', source:{ projectId:'mps-synthetic-project', bucket:'mps-synthetic-evidence', windowStart:isoAt(-90*60*1000), windowEnd:isoAt(-60*60*1000), paginationComplete:true, finalNextPageToken:null }, expectedPrincipals:{ writer:'writer-subject-001', verifier:'reviewer-subject-002' }, expectedObjects:['mps/evidence/synthetic/one.json'], pages:[{pageIndex:0,entryCount:1}], rawEntries:[{pageIndex:0,rawJson:'{"synthetic":true}'}] };
 }
 function attestation(b, nonce, pair, options={}) {
   const payload = { schemaVersion:'mps-gcs-provenance-attestation/v1', keyId:options.keyId||'reviewer-key-001', issuer:ISSUER,
     reviewerSubject:'reviewer-subject-002', exporterSubject:'exporter-subject-001', retrievalPrincipal:'reviewer-subject-002',
     projectId:b.source.projectId, bucket:b.source.bucket, windowStart:b.source.windowStart, windowEnd:b.source.windowEnd,
     querySha256:QUERY, rawBundleSha256:provenanceSha256(provenanceCanonicalJson(b)), pageCount:b.pages.length, entryCount:b.rawEntries.length,
-    paginationComplete:true, retrievalMethod:'google-cloud-logging-authenticated-api-v2', retrievedAt:'2026-11-11T02:45:00.000Z',
+    paginationComplete:true, retrievalMethod:'google-cloud-logging-authenticated-api-v2', retrievedAt:isoAt(-15*60*1000),
     reviewerAuthContext:'individually-authenticated-workforce-account-with-mfa', independentSourceAccessConfirmed:true,
-    dataAccessCoverageConfirmed:true, nonce, issuedAt:options.issuedAt||'2026-11-11T02:50:00.000Z', expiresAt:options.expiresAt||'2026-11-11T03:10:00.000Z' };
+    dataAccessCoverageConfirmed:true, nonce, issuedAt:options.issuedAt||isoAt(-30*1000), expiresAt:options.expiresAt||isoAt(10*60*1000) };
   return { payload, signature:sign(null,Buffer.from(provenanceCanonicalJson(payload)),pair.privateKey).toString('base64') };
 }
 async function issued(registry, pair, opts={}) {
-  await register(registry,pair,opts.keyId||'reviewer-key-001',opts.notAfter||'2026-11-11T03:00:00.000Z');
+  await register(registry,pair,opts.keyId||'reviewer-key-001',opts.notAfter||isoAt(-1000));
   const challenge=await registry.issueNonce({context:ADMIN,ttlMs:opts.ttlMs||60*60*1000,now:opts.nonceNow??NOW-5*60*1000});
-  const b=bundle(), a=attestation(b,challenge.nonce,pair,{keyId:opts.keyId||'reviewer-key-001',issuedAt:opts.issuedAt||'2026-11-11T02:50:00.000Z',expiresAt:opts.expiresAt||'2026-11-11T03:10:00.000Z'});
+  const b=bundle(), a=attestation(b,challenge.nonce,pair,{keyId:opts.keyId||'reviewer-key-001',issuedAt:opts.issuedAt||isoAt(-30*1000),expiresAt:opts.expiresAt||isoAt(10*60*1000)});
   return {b,a,challenge};
 }
 
@@ -62,8 +63,8 @@ test('rejects unauthorized, self-administered and malformed key registration', a
 
 test('rotation preserves old keys and verifies historical evidence after expiry', async t => {
   const {registry}=await setup(t), oldPair=keypair(), newPair=keypair();
-  const old=await issued(registry,oldPair,{notAfter:'2026-11-11T03:00:00.000Z'});
-  await register(registry,newPair,'reviewer-key-002','2027-12-31T00:00:00.000Z');
+  const old=await issued(registry,oldPair,{notAfter:isoAt(-1000)});
+  await register(registry,newPair,'reviewer-key-002',isoAt(365*24*60*60*1000));
   const result=await registry.verifyAndConsume({bundle:old.b,attestation:old.a,expectedProjectId:old.b.source.projectId,expectedBucket:old.b.source.bucket,expectedQuerySha256:QUERY,now:NOW});
   assert.equal(result.ok,true,result.errors?.join(','));
   assert.equal(registry.getKey('reviewer-key-001').status,'ACTIVE');
@@ -73,20 +74,20 @@ test('rotation preserves old keys and verifies historical evidence after expiry'
 test('revocation blocks signatures at or after effective time but preserves earlier evidence', async t => {
   const {registry}=await setup(t), pair=keypair();
   const prior=await issued(registry,pair);
-  await registry.revokeKey({context:ADMIN,keyId:'reviewer-key-001',effectiveAt:'2026-11-11T02:55:00.000Z'});
+  await registry.revokeKey({context:ADMIN,keyId:'reviewer-key-001',effectiveAt:isoAt(-10*1000)});
   const priorResult=await registry.verifyAndConsume({bundle:prior.b,attestation:prior.a,expectedProjectId:prior.b.source.projectId,expectedBucket:prior.b.source.bucket,expectedQuerySha256:QUERY,now:NOW});
   assert.equal(priorResult.ok,true,priorResult.errors?.join(','));
   const nextChallenge=await registry.issueNonce({context:ADMIN,ttlMs:60*60*1000,now:NOW-5*60*1000});
-  const later=attestation(bundle(),nextChallenge.nonce,pair,{issuedAt:'2026-11-11T02:56:00.000Z',expiresAt:'2026-11-11T03:10:00.000Z'});
+  const later=attestation(bundle(),nextChallenge.nonce,pair,{issuedAt:isoAt(-5*1000),expiresAt:isoAt(10*60*1000)});
   const laterResult=await registry.verifyAndConsume({bundle:bundle(),attestation:later,expectedProjectId:'mps-synthetic-project',expectedBucket:'mps-synthetic-evidence',expectedQuerySha256:QUERY,now:NOW});
   assert.equal(laterResult.ok,false); assert.ok(laterResult.errors.includes('TRUST_KEY_REVOKED'));
 });
 
 test('rejects duplicate revocation and unknown keys', async t => {
   const {registry}=await setup(t), pair=keypair(); await register(registry,pair);
-  await assert.rejects(registry.revokeKey({context:ADMIN,keyId:'missing-key-001',effectiveAt:'2026-11-11T02:00:00.000Z'}),e=>e.code==='KEY_NOT_FOUND');
+  await assert.rejects(registry.revokeKey({context:ADMIN,keyId:'missing-key-001',effectiveAt:isoAt(-10*1000)}),e=>e.code==='KEY_NOT_FOUND');
   await registry.revokeKey({context:ADMIN,keyId:'reviewer-key-001',effectiveAt:'2026-11-11T02:00:00.000Z'});
-  await assert.rejects(registry.revokeKey({context:ADMIN,keyId:'reviewer-key-001',effectiveAt:'2026-11-11T02:01:00.000Z'}),e=>e.code==='KEY_ALREADY_REVOKED');
+  await assert.rejects(registry.revokeKey({context:ADMIN,keyId:'reviewer-key-001',effectiveAt:isoAt(-9*1000)}),e=>e.code==='KEY_ALREADY_REVOKED');
 });
 
 test('consumes a valid nonce once and preserves consumption after restart', async t => {
