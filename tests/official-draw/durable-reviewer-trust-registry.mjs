@@ -2,6 +2,7 @@ import { createHash, createPublicKey, randomBytes, randomUUID } from 'node:crypt
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { verifyRecoveryCheckpointAttestation, recoveryCheckpointSha256 } from './recovery-checkpoint-attestation.mjs';
 
 const HASH_RE = /^[a-f0-9]{64}$/;
 const KEY_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
@@ -255,6 +256,44 @@ export class DurableReviewerTrustRegistry {
       const attestationDigest = sha256(canonical(attestation));
       const bundleDigest = sha256(canonical(bundle));
       await this.#append('NONCE_CONSUMED', { actorSubject: 'system:provenance-verifier', nonce: null, nonceDigest, attestationDigest, bundleDigest });
+      return { ...result, nonceConsumed: true, nonceDigest };
+    }));
+  }
+
+  verifyAndConsumeRecoveryCheckpoint({ checkpoint, attestation, expectedCheckpointId, expectedSourceId, now = Date.now() }) {
+    return this.#serial(() => this.#withLock(async () => {
+      if (this.#closed) throw err('REGISTRY_CLOSED', 'Registry is closed.');
+      await this.#reload();
+      const payload = attestation?.payload;
+      const key = payload && this.#keys.get(payload.keyId);
+      if (!key) return { ok: false, errors: ['TRUST_KEY_NOT_REGISTERED'], checkpointAttestationVerified: false, assurance: 'UNVERIFIED' };
+      const nonceDigest = typeof payload.nonce === 'string' ? sha256(payload.nonce) : null;
+      const nonce = nonceDigest ? this.#nonces.get(nonceDigest) : null;
+      if (!nonce) return { ok: false, errors: ['NONCE_NOT_ISSUED'], checkpointAttestationVerified: false, assurance: 'UNVERIFIED' };
+      if (nonce.consumed) return { ok: false, errors: ['NONCE_ALREADY_CONSUMED'], checkpointAttestationVerified: false, assurance: 'UNVERIFIED' };
+      if (!Number.isFinite(now) || now >= Date.parse(nonce.expiresAt)) return { ok: false, errors: ['NONCE_EXPIRED'], checkpointAttestationVerified: false, assurance: 'UNVERIFIED' };
+      if (!iso(payload.issuedAt) || !iso(payload.expiresAt) ||
+          Date.parse(payload.issuedAt) < Date.parse(nonce.issuedAt) ||
+          Date.parse(payload.expiresAt) > Date.parse(nonce.expiresAt)) {
+        return { ok: false, errors: ['NONCE_TIME_SCOPE_INVALID'], checkpointAttestationVerified: false, assurance: 'UNVERIFIED' };
+      }
+      const issuedAt = Date.parse(payload.issuedAt);
+      const revokedAt = key.revokedAt ? Date.parse(key.revokedAt) : Infinity;
+      const trust = {
+        keyId: key.key_id, issuer: key.issuer, subject: key.subject,
+        publicKeyPem: key.public_key_pem, notBefore: key.not_before,
+        notAfter: key.not_after, revoked: !!key.revokedAt && issuedAt >= revokedAt
+      };
+      const result = verifyRecoveryCheckpointAttestation(checkpoint, attestation, trust, {
+        expectedCheckpointId, expectedSourceId, expectedNonce: payload.nonce, now
+      });
+      if (!result.ok) return result;
+      const attestationDigest = sha256(canonical(attestation));
+      const checkpointDigest = recoveryCheckpointSha256(checkpoint);
+      await this.#append('NONCE_CONSUMED', {
+        actorSubject: 'system:recovery-checkpoint-verifier',
+        nonce: null, nonceDigest, attestationDigest, bundleDigest: checkpointDigest
+      });
       return { ...result, nonceConsumed: true, nonceDigest };
     }));
   }
