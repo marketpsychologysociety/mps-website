@@ -142,5 +142,22 @@ function createMpsGasVipTransitionOrchestrator_(config) {
       return target;
     });
   }
-  return Object.freeze({process:process});
+  function isCurrent(input,resolved){
+    input=input||{};resolved=resolved||{};
+    var memberId=String(resolved.memberId||input.memberId||'').trim();
+    if(!memberId)return false;
+    var updateId=decimal_(input.updateId),epoch=Number(input.epoch),sourceDate=Number(input.sourceDate);
+    if(!Number.isSafeInteger(epoch)||epoch<0||!Number.isSafeInteger(sourceDate)||sourceDate<=0)return false;
+    var intentKey=key_(epoch,updateId);
+    return ledger.runExclusive(function(tx){
+      tx.assertActive();
+      var intent=store.readIntent(tx,intentKey);
+      if(!intent||String(intent.State)!=='COMPLETED'||String(intent['Member ID'])!==memberId)return false;
+      var cursor=store.readCursor(tx,memberId);
+      return !!cursor&&String(cursor.transitionKey)===intentKey&&
+        compare_({epoch:epoch,sourceDate:sourceDate,updateId:updateId},
+          {epoch:Number(cursor.epoch),sourceDate:Number(cursor.sourceDate),updateId:String(cursor.updateId)})===0;
+    });
+  }
+  return Object.freeze({process:process,isCurrent:isCurrent});
 }
