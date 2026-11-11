@@ -140,6 +140,18 @@ test('same update ID with a different payload is quarantined', () => {
   assert.equal(h.rows[1][11], 'PAYLOAD_HASH_MISMATCH');
 });
 
+test('payload collision after DONE enters a valid manual-review state', () => {
+  const h = makeHarness();
+  const journal = h.create();
+  const first = journal.claim(update(), 1000);
+  journal.finish(7001, first.row.claimToken, 1050);
+  const collision = journal.claim({ update_id: 7001, message: { text: 'changed after completion' } }, 1100);
+  assert.equal(collision.outcome, 'MANUAL_REVIEW');
+  assert.equal(h.rows[1][3], 'REVIEW');
+  assert.equal(h.rows[1][9], '');
+  assert.equal(journal.claim(update(), 1200).outcome, 'MANUAL_REVIEW');
+});
+
 test('expired lease can be reclaimed and stale worker is fenced out', () => {
   const h = makeHarness();
   const oldWorker = h.create();
