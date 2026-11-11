@@ -22,15 +22,18 @@ function createMpsGasVipChatMemberHandler_(config) {
     if(!Number.isSafeInteger(sourceDate)||sourceDate<=0)throw new Error('VIP_CHAT_MEMBER_SOURCE_DATE_REQUIRED');
     var status=String(event.new_chat_member.status||'');
     var isMember=event.new_chat_member.is_member===true;
-    var active=status==='member'||status==='administrator'||status==='creator'||(status==='restricted'&&isMember);
-    var left=status==='left'||status==='kicked'||(status==='restricted'&&event.new_chat_member.is_member===false);
+    function membership_(member){if(!member)return null;var s=String(member.status||'');return s==='member'||s==='administrator'||s==='creator'||(s==='restricted'&&member.is_member===true);}
+    var active=membership_(event.new_chat_member)===true;
+    var left=membership_(event.new_chat_member)===false;
+    var oldMember=membership_(event.old_chat_member);
     if(!active&&!left)return 'IGNORED';
+    if(oldMember!==null&&oldMember===active)return 'IGNORED';
     var snapshot=null;
     var input={
       updateId:updateId,epoch:Math.floor(sourceDate/604800),sourceDate:sourceDate,
       memberId:'',memberName:'',telegramUserId:userId,targetState:'',
       sourceType:'CHAT_MEMBER',payloadSha256:String(config.hashEvent(event)),
-      telegramStatus:status,isMember:isMember,groupChatId:chatId
+      telegramStatus:status,isMember:isMember,wasMember:oldMember,groupChatId:chatId
     };
     var result=orchestrator.process(input,function(tx,raw){
       tx.assertActive();
