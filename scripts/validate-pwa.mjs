@@ -13,6 +13,17 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const exists = file => fs.existsSync(path.join(root, file));
 const check = (condition, message) => { if (!condition) errors.push(message); };
 
+const configSandbox = { window: {} };
+try { new vm.Script(read('config.js'), { filename: 'config.js' }).runInNewContext(configSandbox); }
+catch (error) { errors.push('config.js syntax error: ' + error.message); }
+check(configSandbox.window.MPS_CONFIG?.publicCenter?.enabled === false,
+  'Public Center feature flag must remain disabled until the cross-origin script bridge is replaced and runtime-tested');
+const publicCenterLoader = read('js/public-center.js');
+const publicCenterGuard = publicCenterLoader.indexOf('config.publicCenter.enabled !== true');
+const publicCenterScriptInjection = publicCenterLoader.indexOf('document.createElement("script")');
+check(publicCenterGuard >= 0 && publicCenterScriptInjection > publicCenterGuard,
+  'Public Center loader must fail closed before any cross-origin script injection');
+
 let manifest;
 try { manifest = JSON.parse(read('manifest.webmanifest')); }
 catch (error) { errors.push('manifest.webmanifest is invalid JSON: ' + error.message); }
