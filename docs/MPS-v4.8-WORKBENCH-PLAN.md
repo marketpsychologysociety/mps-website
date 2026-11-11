@@ -979,3 +979,8 @@ Integrated the P1.30 Ed25519 checkpoint attestation verifier with the existing d
 ## P1.32 — recovery-checkpoint nonce crash recovery (synthetic only)
 
 Extended the existing child-process crash worker to exercise the P1.31 recovery-checkpoint nonce-consumption operation. Two synthetic process-exit tests cover bytes written before fsync (ambiguous append reconciled to exactly one eventual consumption) and fsync completed before acknowledgement (restart must preserve consumption and reject replay). The tests are a same-host local-filesystem contract only; they do not simulate physical power loss, kernel panic, controller cache, filesystem corruption, network filesystem or multi-host failure. No production resources/data or deployment touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**. See `docs/MPS-P1.32-RECOVERY-NONCE-CRASH-RECOVERY.md`.
+
+
+## P1.33 — trust journal integrity failure containment (synthetic only)
+
+Removed automatic truncation of incomplete trailing trust-registry journal bytes. Startup now fails closed with `REGISTRY_INTEGRITY_ERROR` and preserves the original file unchanged for manual evidence review. Five new synthetic tests cover malformed complete JSON, hash-chain predecessor mismatch, sequence gap, incomplete tail, and unknown-field tampering; the prior partial-tail test now asserts preservation rather than automatic repair. CI includes the dedicated suite. No automatic repair/quarantine/deletion. Local filesystem and unanchored hash-chain limitations remain; no production or member data touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**. See `docs/MPS-P1.33-TRUST-JOURNAL-INTEGRITY-PRESERVATION.md`.
