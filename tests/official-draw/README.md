@@ -383,3 +383,13 @@ node --test tests/official-draw/recovery-checkpoint-nonce-integration.test.mjs
 ```
 
 Connects the P1.30 Ed25519 checkpoint verifier to the durable reviewer trust registry. Registered reviewer keys only; SHA-256 nonce lookup; issuance/expiry and effective-time revocation checks; signature/checkpoint verification; then durable nonce consumption under the cross-process registry lock. Invalid signatures do not burn a nonce; successful verification appends attestation/checkpoint digests, not plaintext nonce. Six tests cover successful consumption, invalid-signature retry, restart replay, concurrent independent registry instances, historical revocation handling, and expiry/privacy. The registry remains local same-host synthetic infrastructure with an injected authorization seam and no external hash anchor; it does not provide real OIDC/MFA, source authenticity, multi-host safety, or production recovery. See `docs/MPS-P1.31-DURABLE-RECOVERY-CHECKPOINT-NONCE-INTEGRATION.md`. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.32 — recovery-checkpoint nonce crash recovery (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/recovery-checkpoint-nonce-crash.test.mjs
+```
+
+Two child-process fault-injection tests terminate while the registry lock is held: after nonce-consumption bytes are written but before fsync, and after fsync but before acknowledgement. Restart reconciliation permits retry only when no complete consumption exists; a durable consumed nonce always rejects replay. The shared crash worker now supports both GCS provenance and recovery-checkpoint operations. These are controlled same-host process exits, not physical power-loss, kernel/controller-cache, network-filesystem, or multi-host tests. See `docs/MPS-P1.32-RECOVERY-NONCE-CRASH-RECOVERY.md`. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
