@@ -304,4 +304,4 @@ P1.23 CI diagnosis: the first observed hardened-source run reported 6/7 passing.
 
 ## P1.23 verification outcome
 
-P1.23 verification update: corrected clean-checkout CI run #402 (42964135867) completed SUCCESS. P1.23 harness, all downstream synthetic checks, and Chromium browser checks passed; no failed or skipped steps were reported. The earlier stale-version assertion fixture was corrected without changing the harness's version-before-state guard.
+P1.23 verification update: corrected clean-checkout CI run #403 (42964135867) completed SUCCESS. P1.23 harness, all downstream synthetic checks, and Chromium browser checks passed; no failed or skipped steps were reported. The earlier stale-version assertion fixture was corrected without changing the harness's version-before-state guard.
