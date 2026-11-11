@@ -939,3 +939,8 @@ A local synthetic SQLite adapter and nine tests were added to exercise real file
 
 
 P1.24 verification outcome: clean-checkout GitHub Actions run #417 (`42964627111`) completed SUCCESS on commit `6b4c7c98d269c005671cd4647c44fbd027630c55`; the SQLite transaction suite and all other workflow steps, including Chromium browser checks, passed. Local Node 22.16.0 run was 9 PASS / 0 FAIL / 0 SKIP. This remains local synthetic persistence evidence only; operational G0–G11 gates and official draw NO-GO remain unchanged.
+
+
+## P1.25 — SQLite cross-process contention and crash recovery (synthetic only)
+
+Added a child-process worker and five tests against temporary file-backed SQLite databases. Independent Node processes verify that `BEGIN IMMEDIATE` serializes competing writes, stale versions cannot produce duplicate transitions, identical idempotency requests replay across processes, and conflicting payloads are rejected. Two controlled child-process exits test rollback recovery before COMMIT and durable replay after COMMIT but before response. Local Node 22.16.0: 5 PASS, 0 FAIL, 0 SKIP; clean-checkout CI verification pending. Evidence class remains SYNTHETIC; this is same-host SQLite and controlled process termination, not multi-host, network-filesystem, physical power-loss, or DR validation. No production database, cloud resource, member data, credentials, Apps Script, Sheets, Drive, Telegram, DNS, hosting or deployment was accessed or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**. See `docs/MPS-P1.25-SQLITE-CROSS-PROCESS-CONTENTION.md`.
