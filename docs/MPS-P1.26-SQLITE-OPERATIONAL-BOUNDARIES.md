@@ -1,7 +1,7 @@
 # P1.26 — SQLite Lock Boundaries, WAL Checkpoints, Read Consistency and Backup
 
 **Evidence class:** SYNTHETIC  
-**Status:** six focused operational-boundary assertions pass in clean-checkout CI run #437  
+**Status:** five focused test cases covering six operational-boundary assertions pass in clean-checkout CI run #437  
 **Production decision:** official winner draw **BLOCKED / NO-GO**; roulette **SIMULATION ONLY**
 
 ## Objective
@@ -41,4 +41,4 @@ P1.26 is a synthetic local SQLite experiment only. It does not satisfy operation
 
 ## Verification outcome
 
-Clean-checkout GitHub Actions run #437 (`42966034774`) on commit `e0ad3373e5291ab024046b9e8a008806cf89034a`: **SUCCESS**. The P1.26 operational-boundary test step and the full Chromium browser check passed; all workflow steps completed without failures or skips. The P1.26 test file contains five test cases, including multiple checkpoint assertions. This is CI evidence on GitHub's runner, not a separate local run or production test.
+Clean-checkout GitHub Actions run #437 (`42966034774`) on commit `e0ad3373e5291ab024046b9e8a008806cf89034a`: **SUCCESS**. The P1.26 operational-boundary test step and the full Chromium browser check passed; all workflow steps completed without failures or skips. The P1.26 test file contains five test cases covering six acceptance checks, including multiple checkpoint assertions. This is CI evidence on GitHub's runner, not a separate local run or production test.
