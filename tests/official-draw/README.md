@@ -393,3 +393,14 @@ node --test tests/official-draw/recovery-checkpoint-nonce-crash.test.mjs
 ```
 
 Two child-process fault-injection tests terminate while the registry lock is held: after nonce-consumption bytes are written but before fsync, and after fsync but before acknowledgement. Restart reconciliation permits retry only when no complete consumption exists; a durable consumed nonce always rejects replay. The shared crash worker now supports both GCS provenance and recovery-checkpoint operations. These are controlled same-host process exits, not physical power-loss, kernel/controller-cache, network-filesystem, or multi-host tests. See `docs/MPS-P1.32-RECOVERY-NONCE-CRASH-RECOVERY.md`. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.33 — reviewer trust journal integrity preservation (synthetic only)
+
+Run:
+```sh
+node --test tests/official-draw/reviewer-trust-integrity-preservation.test.mjs
+node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs
+```
+
+The registry loader now fails closed on incomplete trailing bytes rather than truncating them. Five tests cover malformed complete JSON, hash-chain mismatch, sequence gap, partial tail and unknown-field tampering; each asserts exact source-journal byte preservation after failed startup. No automatic repair, rename, quarantine or deletion occurs. See `docs/MPS-P1.33-TRUST-JOURNAL-INTEGRITY-PRESERVATION.md`. Local JSONL/hash-chain limitations remain; official draw is **BLOCKED / NO-GO**, roulette **SIMULATION ONLY**.
