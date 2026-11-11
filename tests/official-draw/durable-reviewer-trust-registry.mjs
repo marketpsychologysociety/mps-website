@@ -30,14 +30,15 @@ export class DurableReviewerTrustRegistry {
     return instance;
   }
 
-  #dir; #file; #lock; #authorizeAdmin; #records = []; #keys = new Map(); #nonces = new Map();
+  #dir; #file; #lock; #authorizeAdmin; #testFaultInjector; #records = []; #keys = new Map(); #nonces = new Map();
   #lastHash = '0'.repeat(64); #closed = false; #queue = Promise.resolve(); #lockWaitMs; #lockRetryMs;
 
   constructor(directory, options) {
     if (typeof directory !== 'string' || !path.isAbsolute(directory)) throw err('VALIDATION_ERROR', 'Registry directory must be an absolute local path.');
     if (typeof options.authorizeAdmin !== 'function') throw err('AUTHORIZATION_ADAPTER_REQUIRED', 'An independently authenticated admin authorization adapter is required.');
     this.#dir = directory; this.#file = path.join(directory, 'reviewer-trust.jsonl'); this.#lock = path.join(directory, 'reviewer-trust.lock');
-    this.#authorizeAdmin = options.authorizeAdmin; this.#lockWaitMs = options.lockWaitMs ?? 2000; this.#lockRetryMs = options.lockRetryMs ?? 10;
+    this.#authorizeAdmin = options.authorizeAdmin; this.#testFaultInjector = typeof options.testFaultInjector === 'function' ? options.testFaultInjector : null;
+    this.#lockWaitMs = options.lockWaitMs ?? 2000; this.#lockRetryMs = options.lockRetryMs ?? 10;
   }
 
   async #initialize() {
@@ -161,10 +162,16 @@ export class DurableReviewerTrustRegistry {
     let existed = true;
     try { await fs.access(this.#file); } catch (error) { if (error.code === 'ENOENT') existed = false; else throw error; }
     const handle = await fs.open(this.#file, 'a', 0o600);
-    try { await handle.writeFile(JSON.stringify(record) + '\n'); await handle.sync(); }
-    catch (error) { throw err('RECONCILIATION_REQUIRED', 'Registry append outcome uncertain: ' + error.message); }
+    try {
+      await handle.writeFile(JSON.stringify(record) + '\n');
+      if (this.#testFaultInjector) await this.#testFaultInjector('AFTER_WRITE_BEFORE_SYNC', event);
+      await handle.sync();
+    } catch (error) { throw err('RECONCILIATION_REQUIRED', 'Registry append outcome uncertain: ' + error.message); }
     finally { await handle.close(); }
     if (!existed) { const dirHandle = await fs.open(this.#dir, 'r'); try { await dirHandle.sync(); } finally { await dirHandle.close(); } }
+    // Test-only crash seam: process may terminate after durable fsync but before
+    // the caller receives an acknowledgement or in-memory state is updated.
+    if (this.#testFaultInjector) await this.#testFaultInjector('AFTER_SYNC_BEFORE_ACK', event);
     this.#apply(record);
     return record;
   }
