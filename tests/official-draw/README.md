@@ -272,3 +272,8 @@ See `docs/MPS-INCIDENT-RESPONSE-AND-RECOVERY-RUNBOOK.md` for severity classifica
 ## P1.20 — production activation readiness
 
 See docs/MPS-P1.20-PRODUCTION-ACTIVATION-READINESS.md for the consolidated G0–G11 gate matrix, evidence classifications, activation sequence and stop conditions. This is a documentation-only assessment. Synthetic CI is not operational proof. Current decision: **NO-GO / NOT OPERATIONALLY READY**; official draw remains blocked and roulette simulation-only.
+
+
+## P1.21 — security architecture implementation blueprint
+
+See `docs/MPS-P1.21-SECURITY-ARCHITECTURE-IMPLEMENTATION-BLUEPRINT.md` for trust boundaries, component contracts, implementation dependencies, G0–G11 operational evidence, test layers, stop/rollback rules and approval gates. Documentation only; no real identity, cloud, database, evidence provider, monitoring, beacon verifier or production integration was created. Operational readiness remains **NO-GO**; roulette remains **SIMULATION ONLY**.
