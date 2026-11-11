@@ -192,3 +192,13 @@ Run:
 The offline verifier checks a strict normalized evidence-bundle schema, distinct principal subjects and administrative boundaries, decimal-string generation/metageneration identifiers, exact expected sequence coverage, canonical payload SHA-256, chained receipt hashes, complete declared audit coverage, writer create evidence, independent verifier read evidence, writer delete-denial evidence, and storage-admin policy-change evidence. The tests use synthetic fixture records only.
 
 **Critical evidence boundary:** this is a local/offline validator for an exported and normalized bundle. It does not call Google Cloud, authenticate Cloud Audit Logs, prove the export pipeline is complete, inspect live IAM, prove retention, or establish actual GCS behavior. The normalization/export adapter and raw source evidence require separate independent review. A passing fixture test is not a GCS PoC PASS and must never be presented as one. No GCP project, bucket, identity, credential, billing, audit sink, or production connection is created.
+
+
+## P1.10 — raw GCS audit log normalizer (offline only)
+
+Run:
+node --test tests/official-draw/gcs-raw-audit-normalizer.test.mjs
+
+The normalizer accepts exact raw JSON strings plus a page manifest and checks raw-byte SHA-256, page-token continuity/completion, page counts/digests, project and bucket scope, Cloud Audit Log envelope, timestamps, insert IDs, expected actor roles, recognized operation names, and create/read/delete-denial evidence. It emits a narrow normalized event projection. Fixtures are synthetic only.
+
+**Authenticity limitation:** sourceAuthenticated is always false. Hashes, JSON parsing, and an export reference do not authenticate Google as the source or prove that an export is complete. A separately authenticated Cloud Logging retrieval or provider-verifiable custody evidence and independent reconciliation are still mandatory. Actual GCS method names/resource-name forms must be confirmed against real PoC records; unknown variants fail closed. No GCP resources or production connections are created. See docs/MPS-GCS-RAW-AUDIT-EVIDENCE-NORMALIZATION.md.
