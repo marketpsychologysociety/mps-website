@@ -15,7 +15,7 @@ function createMpsTelegramGasJournal_(config) {
   var lockWaitMs = Number(config.lockWaitMs || 10000);
   var leaseMs = Number(config.leaseMs || 600000);
   if (!spreadsheetId) throw new Error('JOURNAL_SPREADSHEET_ID_REQUIRED');
-  if (!/^[-A-Za-z0-9_]{1,120}$/.test(sheetName)) throw new Error('INVALID_JOURNAL_SHEET_NAME');
+  if (!/^[A-Za-z0-9 _-]{1,120}$/.test(sheetName)) throw new Error('INVALID_JOURNAL_SHEET_NAME');
   if (!(lockWaitMs > 0 && lockWaitMs <= 30000) || !(leaseMs >= 60000 && leaseMs <= 1800000)) {
     throw new Error('INVALID_JOURNAL_TIMING');
   }
