@@ -234,7 +234,7 @@ The feature flag remains false until CORS and redirect behavior are verified aga
 - `sw.js` cache namespace advanced to v6 and the new controller was added to the explicit public asset allowlist.
 - Route audit: all 11 public-facing routes contain exactly one ticker, one shared feed loader, config, and pause controller.
 - Local Node syntax check and synthetic DOM tests: PASS (feature-flag fail-closed behavior, masked-ID-only acceptance, generic VIP fallback, generic winner ticker copy, no JSONP callback, and textContent-only ticker rendering).
-- No real browser, GitHub Actions run, Apps Script runtime, live data, or Android test has been run for this frontend commit set.
+- GitHub Actions runs Chromium against a local static server and a mocked CORS endpoint, including malformed/executable-response rejection. This is not a live Apps Script CORS/redirect test, live-data test, Apps Script runtime test, or physical Android test.
 5. **Backend isolated implementation:** additive schema only in a separate test Apps Script project and separate test resources; no production migration.
 6. **Failure injection and security tests:** duplicate events, concurrent publish, rollback, invalid roles, direct API access, cache leakage, and draw replay.
 7. **Runtime + Android validation:** separate test Apps Script deployment, test spreadsheet/folders, test bot/group, and real Android device.
