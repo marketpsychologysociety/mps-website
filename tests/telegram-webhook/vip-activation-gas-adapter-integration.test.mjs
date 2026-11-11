@@ -12,6 +12,8 @@ function makeRuntime() {
     ticker: {name:'MPS VIP Ticker Events', headers:['Event ID','Created At','Member ID','Member Name','Event Text','Status']}
   };
   const sheets = new Map(Object.values(schemas).map(s => [s.name, [s.headers.slice()]]));
+  sheets.set('MPS Test Activation Intents', [['Intent Key','Update ID','Member ID','Event Timestamp','State']]);
+  sheets.set('MPS Test Member State', [['Member ID','VIP Status']]);
   let lockDepth = 0, lockAcquires = 0, lockReleases = 0;
   const sheetFor = name => {
     const rows = sheets.get(name);
@@ -56,20 +58,32 @@ function makeRuntime() {
   };
 }
 
-function activation(runtime, shared, update, crashAt='') {
+function findRow(rows, keyColumn, key) {
+  return rows.findIndex((row,index) => index > 0 && String(row[keyColumn] || '') === String(key));
+}
+
+function activation(runtime, update, crashAt='') {
   const ledger = runtime.newLedger();
   return ledger.runExclusive(tx => {
     tx.migrate('audit');
     tx.migrate('ticker');
+
+    const intentRows = runtime.sheets.get('MPS Test Activation Intents');
     const intentKey = 'telegram:' + update.updateId + ':vip_activation';
-    let intent = shared.intents.get(intentKey);
-    if (!intent) {
-      intent = {state:'INTENT', memberId:update.memberId, updateId:update.updateId, occurredAt:update.occurredAt};
-      shared.intents.set(intentKey, intent);
+    let intentIndex = findRow(intentRows, 0, intentKey);
+    if (intentIndex < 0) {
+      intentRows.push([intentKey, update.updateId, update.memberId, new Date(update.occurredAt), 'INTENT']);
+      intentIndex = intentRows.length - 1;
     }
     if (crashAt === 'AFTER_INTENT') throw new Error('SIMULATED_CRASH_AFTER_INTENT');
 
-    shared.memberStatus.set(update.memberId, 'ACTIVE');
+    const memberRows = runtime.sheets.get('MPS Test Member State');
+    let memberIndex = findRow(memberRows, 0, update.memberId);
+    if (memberIndex < 0) {
+      memberRows.push([update.memberId, 'ACTIVE']);
+    } else {
+      memberRows[memberIndex][1] = 'ACTIVE';
+    }
     if (crashAt === 'AFTER_STATUS') throw new Error('SIMULATED_CRASH_AFTER_STATUS');
 
     const timestamp = new Date(update.occurredAt);
@@ -87,16 +101,14 @@ function activation(runtime, shared, update, crashAt='') {
     if (audit.outcome === 'REVIEW_KEY_COLLISION') throw new Error('AUDIT_KEY_COLLISION');
     if (crashAt === 'AFTER_AUDIT') throw new Error('SIMULATED_CRASH_AFTER_AUDIT');
 
-    intent.state = 'COMPLETED';
-    shared.intents.set(intentKey, intent);
+    intentRows[intentIndex][4] = 'COMPLETED';
     if (crashAt === 'AFTER_COMPLETE') throw new Error('SIMULATED_CRASH_AFTER_COMPLETE');
     return 'COMPLETED';
   });
 }
 
 function effectRows(runtime, sheetName) {
-  const rows = runtime.sheets.get(sheetName);
-  return rows.slice(1);
+  return runtime.sheets.get(sheetName).slice(1);
 }
 
 const update = Object.freeze({
@@ -105,13 +117,16 @@ const update = Object.freeze({
 });
 
 for (const phase of ['AFTER_INTENT','AFTER_STATUS','AFTER_TICKER','AFTER_AUDIT','AFTER_COMPLETE']) {
-  test('real GAS adapter + isolated activation contract recovers crash at ' + phase + ' without duplicate rows', () => {
+  test('isolated GAS adapter + spreadsheet-state activation contract recovers crash at ' + phase + ' without duplicate rows', () => {
     const runtime = makeRuntime();
-    const shared = {intents:new Map(), memberStatus:new Map()};
-    assert.throws(() => activation(runtime, shared, update, phase), new RegExp('SIMULATED_CRASH_' + phase));
-    assert.equal(activation(runtime, shared, update), 'COMPLETED');
-    assert.equal(shared.memberStatus.get(update.memberId), 'ACTIVE');
-    assert.equal(shared.intents.get('telegram:7001:vip_activation').state, 'COMPLETED');
+    assert.throws(() => activation(runtime, update, phase), new RegExp('SIMULATED_CRASH_' + phase));
+    assert.equal(activation(runtime, update), 'COMPLETED');
+    const intentRows = runtime.sheets.get('MPS Test Activation Intents');
+    const memberRows = runtime.sheets.get('MPS Test Member State');
+    assert.equal(intentRows.length, 2);
+    assert.equal(intentRows[1][4], 'COMPLETED');
+    assert.equal(memberRows.length, 2);
+    assert.equal(memberRows[1][1], 'ACTIVE');
     assert.equal(effectRows(runtime,'MPS VIP Ticker Events').length, 1);
     assert.equal(effectRows(runtime,'MPS Audit Logs').length, 1);
     const ticker = effectRows(runtime,'MPS VIP Ticker Events')[0];
@@ -123,18 +138,16 @@ for (const phase of ['AFTER_INTENT','AFTER_STATUS','AFTER_TICKER','AFTER_AUDIT',
   });
 }
 
-test('each handler critical section uses one ScriptLock across migration and keyed effects', () => {
+test('each handler critical section uses one ScriptLock across migration, intent, status, and keyed effects', () => {
   const runtime = makeRuntime();
-  const shared = {intents:new Map(), memberStatus:new Map()};
-  activation(runtime, shared, update);
+  activation(runtime, update);
   assert.deepEqual(runtime.lockCounts(), {acquires:1,releases:1,depth:0});
 });
 
 test('replay with same key but changed payload is quarantined as a collision', () => {
   const runtime = makeRuntime();
-  const shared = {intents:new Map(), memberStatus:new Map()};
-  activation(runtime, shared, update);
+  activation(runtime, update);
   const changed = {...update, memberName:'Different Name'};
-  assert.throws(() => activation(runtime, shared, changed), /TICKER_KEY_COLLISION/);
+  assert.throws(() => activation(runtime, changed), /TICKER_KEY_COLLISION/);
   assert.equal(effectRows(runtime,'MPS VIP Ticker Events').length, 1);
 });
