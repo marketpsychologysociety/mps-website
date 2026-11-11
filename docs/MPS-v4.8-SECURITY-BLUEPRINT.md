@@ -338,3 +338,11 @@ This closes the standalone journal's synthetic test gap only. The journal is not
 The workbench contains a separate loopback-only persistent Draw API sandbox integrated with the P1.1 durable audit journal. It replays completed aggregate state records at startup and marks draws with incomplete operation intents as RECONCILIATION_REQUIRED. Five child-process API integration cases cover restart recovery, idempotency replay/conflict, concurrent execution serialization, crash recovery after intent or in-memory mutation, and recovery after durable completion with lost acknowledgement. Clean-checkout GitHub Actions run #200 passed the complete workflow: https://github.com/marketpsychologysociety/mps-website/actions/runs/42937357517.
 
 This remains a synthetic, single-process local-file prototype. It does not provide cross-process locking, transactional persistence, external tamper-resistant anchoring, real identity, beacon verification, fair winner selection, or production security. Keep official draw NO-GO and roulette SIMULATION ONLY.
+
+## P1.3 — cross-process persistence safety (2026-11-11)
+
+The workbench now adds an atomic lock-directory protocol around journal recovery and appends. Each writer reloads and verifies the hash chain under the lock before checking idempotency or writing, so separate Node processes cannot independently append using stale sequence/hash state. Ownership is bound to PID, hostname, random token, and start time; lock release verifies ownership. Same-host stale locks are quarantined only after confirming the owner PID no longer exists. Ambiguous/malformed/foreign/live locks fail closed.
+
+The persistent API also holds an exclusive process lease for its journal directory, preventing a second server process from starting against the same state. This is a deliberate single-writer safety fence, not active-active service or distributed consensus. Two-process journal append, lock recovery, lease rejection, and second-server refusal tests have been added; CI verification is pending.
+
+Residual limits: local filesystem only, no network/distributed filesystem guarantees, transactional DB, external tamper-resistant anchor, backup/restore, OIDC/MFA, beacon verifier, unbiased selection, or production security. Official draw remains NO-GO; roulette remains SIMULATION ONLY.
