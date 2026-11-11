@@ -332,3 +332,9 @@ The recovery verifier now requires an exact record-key allowlist; unknown extra 
 **GitHub Actions run #180** on commit `ec9c3df600dbd7e3509f56dc9e620309aa4fb606` completed successfully from a clean checkout: durable journal suite **8 PASS, 0 FAIL, 0 SKIP**; Official Draw contract **10 PASS**; schema compatibility **9/9**; read-only inspector **5 scenarios**; Chromium PWA/browser checks passed. Overall workflow: **SUCCESS**. The immediately preceding run #179 failed because the new canary test reached CI one commit before its matching exact-schema guard; the follow-up commit added the guard, and run #180 verified the combined change green.
 
 This closes the standalone journal's synthetic test gap only. The journal is not yet integrated into API state transitions and remains single-process local-file storage without a cross-process lock, transactional database, or external hash anchor. API-level restart/fault-injection tests remain next. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+## P1.2 — persistent sandbox integration (2026-11-11)
+
+The workbench now contains a separate loopback-only persistent Draw API sandbox integrated with the P1.1 durable audit journal. It replays completed aggregate state records at startup and marks draws with incomplete operation intents as RECONCILIATION_REQUIRED. Child-process integration tests cover restart recovery, idempotency replay/conflict, and forced crash after intent. CI execution is pending; this is not yet a verified acceptance gate.
+
+This remains a synthetic, single-process local-file prototype. It does not provide cross-process locking, transactional persistence, external tamper-resistant anchoring, real identity, beacon verification, fair winner selection, or production security. Keep official draw NO-GO and roulette SIMULATION ONLY.
