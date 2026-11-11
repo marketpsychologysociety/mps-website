@@ -160,7 +160,6 @@ const server = http.createServer(async (req, res) => {
     const draw = draws.get(decodeURIComponent(executeMatch[1]));
     if (!draw) return fail(res, 404, "NOT_FOUND", "Draw not found.");
     if (!requireRole(actor, "DRAW_OPERATOR")) return fail(res, 403, "FORBIDDEN", "Insufficient role.");
-    if (draw.state !== "BEACON_COMMITTED") return fail(res, 409, "PRECONDITION_FAILED", "Draw is not ready for execution.");
     const key = String(req.headers["idempotency-key"] || "");
     if (!key || key.length > 128) return fail(res, 400, "VALIDATION_ERROR", "Idempotency-Key is required.");
     const scope = draw.draw_id + ":" + actor.subject + ":" + key;
@@ -170,6 +169,7 @@ const server = http.createServer(async (req, res) => {
       if (prior.digest !== digest) return fail(res, 409, "IDEMPOTENCY_CONFLICT", "Idempotency key was used with a different request.");
       return json(res, 200, { ok: true, request_id: requestId, data: { operation_id: prior.operation_id }, operation: { state: "COMPLETED", replayed: true } });
     }
+    if (draw.state !== "BEACON_COMMITTED") return fail(res, 409, "PRECONDITION_FAILED", "Draw is not ready for execution.");
     const op = "op_" + randomUUID();
     idempotency.set(scope, { digest, operation_id: op });
     operations.set(draw.draw_id, (operations.get(draw.draw_id) || 0) + 1);
@@ -198,6 +198,7 @@ await new Promise((resolve, reject) => {
   server.once("error", reject);
   server.listen(PORT, HOST, resolve);
 });
+server.unref();
 
 const baseUrl = `http://${HOST}:${PORT}`;
 async function request({ method, path, actor, body, headers = {} }) {
