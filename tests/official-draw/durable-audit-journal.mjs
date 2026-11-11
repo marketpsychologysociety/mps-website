@@ -11,7 +11,8 @@ import { createHash, randomUUID } from 'node:crypto';
 const GENESIS = 'GENESIS';
 const MAX_LINE_BYTES = 64 * 1024;
 const HASH_RE = /^[a-f0-9]{64}$/;
-const RESULT_FIELDS = new Set(['state', 'status', 'code', 'synthetic', 'result_digest', 'proof_digest']);
+const RESULT_FIELDS = new Set(['state', 'status', 'code', 'synthetic', 'result_digest', 'proof_digest', 'aggregate']);
+const AGGREGATE_FIELDS = new Set(['kind', 'entity_id', 'event_id', 'state', 'version', 'owner_subject', 'created_by_subject', 'approved_by_subject', 'rules_hash', 'title_public', 'operation_count']);
 const RECORD_FIELDS = new Set(['seq', 'type', 'operation_id', 'idempotency_key', 'actor_subject', 'target_id', 'payload_digest', 'result', 'created_at', 'prev_hash', 'hash']);
 
 function sha256(value) {
@@ -56,9 +57,25 @@ function safeJson(value, field) {
     throw journalError('VALIDATION_ERROR', `${field} must be a non-empty JSON object.`);
   }
   for (const [key, item] of Object.entries(parsed)) {
-    if (!RESULT_FIELDS.has(key) || !['string', 'number', 'boolean'].includes(typeof item) ||
-        (typeof item === 'string' && item.length > 256) || (typeof item === 'number' && !Number.isFinite(item))) {
-      throw journalError('VALIDATION_ERROR', `${field} contains an unsupported field or value.`);
+    if (!RESULT_FIELDS.has(key)) throw journalError('VALIDATION_ERROR', `${field} contains an unsupported field.`);
+    if (key === 'aggregate') {
+      if (!item || typeof item !== 'object' || Array.isArray(item) ||
+          Object.keys(item).some(name => !AGGREGATE_FIELDS.has(name)) ||
+          !['EVENT', 'DRAW'].includes(item.kind) ||
+          typeof item.entity_id !== 'string' || !item.entity_id ||
+          typeof item.state !== 'string' || !item.state ||
+          !Number.isSafeInteger(item.version) || item.version < 1 ||
+          (item.kind === 'DRAW' && (typeof item.event_id !== 'string' || typeof item.owner_subject !== 'string')) ||
+          Object.entries(item).some(([name, value]) =>
+            !['string', 'number'].includes(typeof value) ||
+            (typeof value === 'string' && value.length > 256) ||
+            (typeof value === 'number' && !Number.isSafeInteger(value)))) {
+        throw journalError('VALIDATION_ERROR', `${field} aggregate violates its exact synthetic schema.`);
+      }
+    } else if (!['string', 'number', 'boolean'].includes(typeof item) ||
+        (typeof item === 'string' && item.length > 256) ||
+        (typeof item === 'number' && !Number.isFinite(item))) {
+      throw journalError('VALIDATION_ERROR', `${field} contains an unsupported value.`);
     }
   }
   return parsed;
@@ -278,6 +295,10 @@ export class DurableAuditJournal {
   getOperation(operationId) {
     const operation = this.operations.get(operationId);
     return operation ? this.#publicOperation(operation) : null;
+  }
+
+  getOperations() {
+    return [...this.operations.values()].map(operation => this.#publicOperation(operation));
   }
 
   getStats() {
