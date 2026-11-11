@@ -160,3 +160,11 @@ test('runExclusive requires a callback and does not mutate on invalid input',()=
  assert.throws(()=>ledger.runExclusive(null),/EFFECT_SCOPE_CALLBACK_REQUIRED/);
  assert.equal(h.acquired,0);assert.equal(h.rows.length,1);
 });
+
+test('runExclusive rejects Promise-returning callbacks and releases the lock synchronously',()=>{
+ const h=harness({rows:[[...schemas.audit.headers,'Effect Key']]}),ledger=h.create();let scoped;
+ assert.throws(()=>ledger.runExclusive(tx=>{scoped=tx;return Promise.resolve('too-late');}),/ASYNC_EFFECT_SCOPE_NOT_SUPPORTED/);
+ assert.equal(h.depth,0);assert.equal(h.acquired,h.released);
+ assert.throws(()=>scoped.appendOnce('audit','telegram:scope:async-late',arow()),/EFFECT_SCOPE_CLOSED/);
+ assert.equal(h.rows.length,1);
+});
