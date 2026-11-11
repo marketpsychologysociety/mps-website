@@ -220,11 +220,11 @@ Each mutation must use backend session validation, role validation, input valida
 3. **Source reconciliation:** map the logical models/API above to the exact candidate functions, sheets, roles, and UI. Resolve conflicts before editing.
 4. **CMS UI extension:** add Admin Manager screens, public ticker/feed rendering, maintenance timeline, and Winner Board with synthetic fixtures only.
 
-### Additional security gate — cross-origin script bridge
+### Additional security gate — data-only public feed transport
 
-The current isolated public-center loader injects the Apps Script endpoint as a script element and reads a global data object after load. This avoids a normal cross-origin fetch dependency, but it also means the returned JavaScript executes with the public website's origin privileges. Endpoint host/path validation does not neutralize that execution risk if the endpoint is compromised, misconfigured, or returns unexpected script.
+The first isolated loader prototype injected the Apps Script response as an executable script. That design was rejected because remote JavaScript would run with the public website's origin privileges. The current workbench loader now uses a CORS fetch with credentials omitted, no-store caching, a timeout, strict response-envelope validation, and JSON.parse; it does not inject or execute a remote script.
 
-**Do not enable the publicCenter feature flag in production while this script-tag bridge remains.** Before activation, replace it with a data-only transport whose response is parsed as JSON without executing remote code, or obtain a separately reviewed architecture that confines the remote script in a sandboxed origin. Validate CORS/redirect behavior in an isolated Apps Script deployment; do not guess that browser fetch will work. Add a regression test proving the public page cannot execute arbitrary endpoint-supplied script. The existing flag remains false.
+The feature flag remains false until CORS and redirect behavior are verified against a separate Apps Script deployment. If the data-only fetch is blocked or its response envelope differs, the page must stay in clearly labelled demo fallback mode. Do not restore script-tag/JSONP execution as a workaround. The browser regression test asserts that the feature remains disabled and no remote Apps Script executable is injected.
 
 ### Static public feed integration status (isolated workbench)
 - Added a consistent ticker and `js/public-center.js` loader to 11 public-facing routes: homepage, Announcement Center, About, Membership, System, Education, Rewards, Rebate, Contact, Market Pulse landing page, and Member Portal. The loader calls the read-only Apps Script `?publicCenter=1` bridge only when `MPS_CONFIG.publicCenter.enabled === true`.
