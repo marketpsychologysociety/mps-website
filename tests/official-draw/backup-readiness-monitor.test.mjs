@@ -153,7 +153,7 @@ test("rejects early retry, exhausted attempts and acknowledgement without active
   const s = goodSnapshot(); s.backup = null;
   const alert = buildAlertEvents(evaluateBackupReadiness(s, policy, NOW))[0];
   const record = createNotificationOutboxRecord(alert, NOW, 1);
-  assert.throws(() => beginNotificationAttempt(record, "2026-11-11T08:00:29.000Z"), /NOT_DUE/);
+  assert.throws(() => beginNotificationAttempt(record, "2026-11-11T07:59:59.999Z"), /NOT_DUE/);
   const attempting = beginNotificationAttempt(record, NOW);
   const failed = failNotificationAttempt(attempting, NOW);
   assert.equal(failed.state, "DEAD_LETTER");
