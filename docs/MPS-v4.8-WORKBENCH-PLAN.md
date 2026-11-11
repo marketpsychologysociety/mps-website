@@ -689,3 +689,17 @@ GitHub Actions workflow run #249 (`42941441923`) on workbench head `9a8e4af6ecb9
 - [ ] Execute GCS-01 through GCS-20 against the actual disposable GCS project and obtain independent reviewer evidence.
 
 **Evidence:** `docs/MPS-GCS-ISOLATED-POC-PLAN.md`. P1.8 is complete as an execution plan only. GCS provisioning and actual-provider tests are NOT STARTED. No cloud resources, billing configuration, identities, credentials, audit sink or production connection were created. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
+
+## P1.9 — offline GCS PoC evidence-bundle verification harness
+
+- [x] Add strict normalized evidence-bundle verifier for synthetic GCS PoC exports.
+- [x] Check unique writer/verifier/storage-admin/audit-admin/recovery subjects and separate administrative boundaries.
+- [x] Verify exact canonical payload digest, generation/metageneration string formats, receipt hash chain and expected checkpoint sequence set.
+- [x] Require declared Admin Activity/Data Access coverage and independent audit export.
+- [x] Require writer create audit, independent verifier read audit, writer delete-denial audit, and storage-admin policy-change audit evidence.
+- [x] Add synthetic negative tests and a clean-checkout CI step.
+- [ ] Independently review the raw-log export/normalization adapter before using any real provider evidence.
+- [ ] Obtain separate explicit authorization and complete P1.8 prerequisites before provisioning an isolated GCS project.
+- [ ] Run the conformance matrix against actual GCS and obtain independent reviewer sign-off.
+
+**Evidence:** `tests/official-draw/gcs-poc-evidence-verifier.mjs`, `tests/official-draw/gcs-poc-evidence-verifier.test.mjs`, and the CI workflow step. P1.9 is an offline synthetic evidence-validation harness only; it does not connect to GCS or authenticate raw Cloud Audit Logs. Actual GCS PoC remains NOT STARTED. No cloud resources, credentials, billing configuration, production data or live integration were created. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
