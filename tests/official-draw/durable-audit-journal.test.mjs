@@ -123,3 +123,27 @@ test('completion requires intent and rejects private or unknown fields', async t
   assert.equal((await journal.completeOperation({ operationId: 'op_synthetic_001', result: { state: 'DONE' } })).created, false);
   assert.equal(journal.getStats().record_count, 2);
 });
+
+
+test('allowlisted aggregate state is replayable and unknown aggregate fields are rejected', async t => {
+  const { dir, journal } = await setup(t);
+  await journal.beginOperation(input());
+  const aggregate = {
+    kind: 'DRAW', entity_id: 'draw_synthetic_001', event_id: 'evt_synthetic_001',
+    state: 'BEACON_COMMITTED', version: 1,
+    owner_subject: 'subject_synthetic_operator_A', operation_count: 0
+  };
+  await assert.rejects(journal.completeOperation({
+    operationId: 'op_synthetic_001',
+    result: { state: 'SEEDED', synthetic: true, aggregate: { ...aggregate, raw_member_id: 'SYNTHETIC_PRIVATE_CANARY' } }
+  }), error => error.code === 'VALIDATION_ERROR');
+  await journal.completeOperation({
+    operationId: 'op_synthetic_001',
+    result: { state: 'SEEDED', synthetic: true, aggregate }
+  });
+  assert.equal(journal.getOperations()[0].result.aggregate.entity_id, 'draw_synthetic_001');
+  await journal.close();
+  const recovered = await DurableAuditJournal.open(dir);
+  t.after(() => recovered.close());
+  assert.equal(recovered.getOperations()[0].result.aggregate.state, 'BEACON_COMMITTED');
+});
