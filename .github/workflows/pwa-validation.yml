@@ -83,6 +83,8 @@ jobs:
         run: node --test tests/telegram-webhook/handler-reconciliation.test.mjs
       - name: Run append-only Telegram effect-key migration contract tests (synthetic only)
         run: node --test tests/telegram-webhook/effect-ledger-migration.test.mjs
+      - name: Run isolated Apps Script effect ledger adapter tests (mocked services only)
+        run: node --test tests/telegram-webhook/gas-effect-ledger-adapter.test.mjs
       - name: Run read-only schema inspector tests
         run: node scripts/test-readonly-schema-inspector.mjs
       - name: Install Playwright and Chromium
