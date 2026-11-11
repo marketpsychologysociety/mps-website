@@ -46,15 +46,16 @@ Do not store Telegram bot tokens, webhook secret, raw message text, member names
 
 All lookup-and-transition operations must execute under the same Apps Script script lock:
 
-1. Validate `update_id` as a safe integer/string representation and compute the payload digest.
-2. Find the unique journal row for the update ID.
+1. Validate `update_id` as a safe integer or a digit-only string and compute SHA-256 over canonical JSON (recursively sorted object keys; array order preserved).
+2. Find the unique journal row for the update ID. If the ID exists with a different payload digest, quarantine it as REVIEW and stop.
 3. If state is DONE, return duplicate-success without re-running handlers.
 4. If PROCESSING with an unexpired lease, return a retryable conflict.
-5. If RECEIVED, RETRYABLE, or PROCESSING with an expired lease, acquire a new PROCESSING lease and increment attempt count.
+5. If RECEIVED, RETRYABLE, or PROCESSING with an expired lease, acquire a new PROCESSING lease, create a fresh unguessable claim/fencing token, and increment attempt count.
 6. Persist the transition before releasing the lock and before running business handlers.
-7. After successful handler completion, persist DONE under the lock.
-8. On a recoverable error, persist RETRYABLE and a sanitized error code.
-9. On an ambiguous external outcome, persist REVIEW rather than blindly repeating a non-idempotent action.
+7. Every finish/retry/review transition must verify the same claim token and require the lease to remain unexpired. A stale worker must not overwrite a newer claim.
+8. After successful handler completion, persist DONE under the lock.
+9. On a recoverable error, persist RETRYABLE and a sanitized error code.
+10. On an ambiguous external outcome, persist REVIEW rather than blindly repeating a non-idempotent action.
 
 If the journal is missing, malformed, duplicated, or inaccessible, do not fall back to CacheService-only processing. Fail closed and alert through an independently configured operational channel.
 
@@ -119,7 +120,8 @@ Do not switch the production webhook to this design as part of this work item.
 ## 8. Acceptance criteria
 
 - Cache eviction does not erase durable deduplication state.
-- Two concurrent deliveries of one update ID cannot both acquire a processing lease.\n- A stale worker cannot transition a row after another worker has reclaimed its expired lease.\n- A worker cannot complete, retry, or quarantine a claim after its lease expires, even if no replacement worker has claimed it yet.\n- Reuse of an update ID with a different payload digest is quarantined for manual review.\n- Semantically identical JSON payloads with different object-key ordering produce the same digest.\n- Numeric update IDs outside JavaScript's safe integer range are rejected; string IDs are validated without numeric coercion.
+- Two concurrent deliveries of one update ID cannot both acquire a processing lease.
+- A stale worker cannot transition a row after another worker has reclaimed its expired lease.\n- A worker cannot complete, retry, or quarantine a claim after its lease expires, even if no replacement worker has claimed it yet.\n- Reuse of an update ID with a different payload digest is quarantined for manual review.\n- Semantically identical JSON payloads with different object-key ordering produce the same digest.\n- Numeric update IDs outside JavaScript's safe integer range are rejected; string IDs are validated without numeric coercion.
 - A completed update is not reprocessed within the retention window.
 - A stale PROCESSING row is reconciled before any retryable external mutation.
 - Ambiguous side effects become REVIEW, not blind replay.
