@@ -288,3 +288,19 @@ Both activation and leave transitions must compare and update this cursor inside
 The contract adds coverage for out-of-order leave/rejoin in both directions, same-second update-ID tie-break, Telegram update-ID reset with a later event timestamp, cursor persistence across model recreation, duplicate update delivery, and invalid/missing event timestamps.
 
 **Important assumptions and integration gate:** the candidate handler must pass the original Telegram `chat_member.date` or `chat_join_request.date` as a normalized Unix timestamp; execution time (`new Date()`) is not an acceptable substitute. The timestamp/update-ID tuple is a proposed ordering contract, not a proven guarantee of Telegram delivery semantics. Before wiring it into Code.gs, confirm timestamp units and field availability for all four status paths, define behavior for events without a trustworthy source timestamp (fail closed/manual review), and test against a separate Apps Script project and isolated spreadsheet. This remains a synthetic in-memory model and does not prove durable cursor writes or real concurrent GAS behavior.
+
+
+## 5G. Characterization tests against the actual candidate Code.gs snapshot
+
+A complete candidate Code.gs snapshot is pinned in `tests/telegram-webhook/fixtures/candidate-handler-callsite-snapshot.gs` with SHA-256 `c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba`. CI extracts and executes the actual function bodies in a Node VM with mocked Google Apps Script and Telegram dependencies; the fixture is not deployable code and is not the live deployment.
+
+The seven characterization checks cover:
+- `processTelegramUpdateCore_` chat_member branch passes only three arguments to `updateVipJoinStatus_`; neither enclosing `update_id` nor Telegram `chat_member.date` reaches the status handler.
+- `processVipJoinRequest_` pre-approval reconciliation, failed-approval retry reconciliation, and successful-approval branch each pass only three arguments; the enclosing update ID and `chat_join_request.date` are unavailable to the status handler.
+- `updateVipJoinStatus_` performs access/member status writes before invoking ticker and audit builders, within one ScriptLock owner in the tested activation path.
+- `recordMpsAudit_` catches and logs persistence exceptions rather than propagating them, so required audit writes cannot currently be treated as a reliable completion gate.
+- Fixture digest remains pinned to the reviewed candidate source.
+
+These tests are intentionally *characterization tests*: they pass when the existing gap is reproduced. They do not fix the gap, prove live GAS semantics, or authorize integration. The candidate's status-first order plus non-throwing audit helper means a crash after the status mutation can leave ticker/audit effects incomplete while a retry observes an already-active member. The current handler also creates ticker IDs with a random UUID rather than a stable update-derived key. Durable intent/effect integration must explicitly address these behaviors, retain the original event timestamp and update ID on all paths, and keep one ScriptLock owner across the state/ledger write sequence.
+
+No candidate Code.gs source, production spreadsheet, Apps Script project, or deployment was changed by this characterization step.

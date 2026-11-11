@@ -21,8 +21,8 @@ node --test tests/telegram-webhook/*.test.mjs
 - No exactly-once guarantee is claimed. Ambiguous Telegram side effects require reconciliation or REVIEW.
 - Passing these tests is not proof of deployed Apps Script quotas, persistence, concurrency, Telegram API behavior, or real-device behavior.
 
-- `fixtures/candidate-handler-callsite-snapshot.gs` — exact extracted handler call sites from a separately reviewed candidate Code.gs snapshot, pinned by source SHA-256 and line references; this is not deployable backend code.
-- `candidate-handler-callsite-characterization.test.mjs` — runs the pinned source functions in a Node VM with mocked dependencies and records the current missing `update_id`/Telegram event-time propagation across the `chat_member` and all three join-request status paths. Passing reproduces the known gap; it does not mean the gap is acceptable or fixed.
+- `fixtures/candidate-handler-callsite-snapshot.gs` — complete read-only candidate Code.gs snapshot, pinned by SHA-256 `c9e84512fc2ac641f59f63b9b8b7fa10d113f0256f662c25ca70555a09aea8ba`; test fixture only, never deploy from this path.
+- `candidate-handler-callsite-characterization.test.mjs` — extracts and executes the actual `processTelegramUpdateCore_`, `processVipJoinRequest_`, `updateVipJoinStatus_`, and `recordMpsAudit_` function bodies from the pinned candidate snapshot in a Node VM with mocked dependencies. Seven tests characterize the four missing metadata call paths, status-before-effects ordering under one ScriptLock, and swallowed audit persistence errors. Passing reproduces known gaps; it does not mean the gaps are acceptable or fixed.
 - The candidate handler fixture is a snapshot, not the live Library file. Refresh and re-audit its provenance whenever candidate Code.gs changes.
 
 - `vip-activation-orchestration.mjs` now models a per-member event cursor persisted with member state. It orders state-changing membership events by Telegram event timestamp, then canonical decimal `update_id` as a same-second tie-break. Stale leave/rejoin updates are rejected before they can overwrite newer state. This is an in-memory contract model, not durable Apps Script storage.
