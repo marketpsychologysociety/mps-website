@@ -3,7 +3,7 @@
  * Models durable intent -> ordered member transition -> keyed ticker/audit effects -> completion.
  * In-memory stores only; not an Apps Script persistence adapter.
  */
-const validId = value => /^(0|[1-9]\\d{0,19})$/.test(String(value));
+const validId = value => /^(0|[1-9]\d{0,19})$/.test(String(value));
 const keyFor = (updateId, effect) => {
   if (!validId(updateId)) throw new TypeError('INVALID_UPDATE_ID');
   return 'telegram:' + String(updateId) + ':' + effect;
@@ -151,7 +151,9 @@ export class VipActivationOrchestrator {
     if (intent.state === 'INTENT') {
       const applied = await this.store.atomic(async () => {
         const latestIntent = await this.store.intent(intent.key);
-        if (!latestIntent || latestIntent.state !== 'INTENT') return false;
+        if (!latestIntent) return false;
+        if (latestIntent.state === 'STATUS_APPLIED' || latestIntent.state === 'COMPLETED') return true;
+        if (latestIntent.state !== 'INTENT') return false;
         const member = await this.store.member(intent.memberId);
         if (compareSequence(latestIntent.sequence, member.lastEvent) <= 0) {
           await this.store.putIntent(intent.key, { ...latestIntent, state: 'SUPERSEDED' });
@@ -168,7 +170,9 @@ export class VipActivationOrchestrator {
       this.crash('AFTER_STATUS');
     }
     intent = await this.store.intent(initial.key);
-    if (!intent || intent.state !== 'STATUS_APPLIED') return false;
+    if (!intent) return false;
+    if (intent.state === 'COMPLETED') return true;
+    if (intent.state !== 'STATUS_APPLIED') return false;
     const ticker = {
       eventId: 'VIP-' + intent.updateId, createdAt: intent.occurredAt,
       memberId: intent.memberId, memberName: intent.tickerName,
