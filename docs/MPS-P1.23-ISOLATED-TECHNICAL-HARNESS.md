@@ -50,7 +50,7 @@ The next implementation increment should be a genuinely isolated persistence/API
 
 ## Verification record
 
-- All four P1.23 artifacts were fetched back from the workbench after writes: harness module, test module, this specification and the CI workflow; the README and workbench plan were also read back.
+- All six P1.23 artifacts were fetched back from the workbench after writes: harness module, test module, this specification, CI workflow, README and workbench plan.
 - Source review caught and corrected three harness defects before final readback: public projection initially retained an internal-state allowlist mismatch; the UTC timestamp pattern was corrected to allow optional milliseconds; owner/reviewer identity context now fails closed when missing.
 - Additional negative cases cover unsupported canonical JSON values, sparse arrays, cyclic values, malformed nested proof fields, missing owner subject and missing independent reviewer subject.
 - The P1.22 clean-checkout workflow run #363 (42961399082) has now been independently checked and completed **SUCCESS**, including all existing synthetic suites and Chromium checks. This run predates the P1.23 harness.
