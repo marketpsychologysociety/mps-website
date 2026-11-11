@@ -282,3 +282,13 @@ See `docs/MPS-P1.21-SECURITY-ARCHITECTURE-IMPLEMENTATION-BLUEPRINT.md` for trust
 ## P1.22 — isolated technical acceptance specification
 
 The detailed acceptance baseline is in `docs/MPS-P1.22-ISOLATED-TECHNICAL-ACCEPTANCE-SPEC.md`. It defines the logical data model, endpoint contracts, authorization matrix, transaction invariants, OIDC/session tests, evidence adapter, beacon boundaries, and 40 technical acceptance cases. Documentation only: no live service, database, identity provider, cloud resource, credentials, production integration or member data was created/changed. Official draw remains **NO-GO**; roulette remains **SIMULATION ONLY**.
+
+
+## P1.23 — isolated technical acceptance harness (synthetic only)
+
+Run:
+`node --test tests/official-draw/isolated-acceptance-harness.test.mjs`
+
+The standalone P1.23 harness tests canonical JSON/digests, strict event request allowlists, a deny-by-default synthetic role/action matrix, ownership and separation-of-duties rules, exact public winner projection, and a serialized in-memory execution model for idempotency, version/state preconditions, concurrency and lost-ack replay. CI runs this suite as a dedicated step. See `docs/MPS-P1.23-ISOLATED-TECHNICAL-HARNESS.md`.
+
+**Critical limits:** this is SYNTHETIC evidence only. The role/subject values are fixtures, not OIDC/MFA; in-memory Maps and a promise queue are not a transactional database, durable outbox, cross-process lock or crash-recovery mechanism; fault points are simulated returns, not process/power-loss tests; SHA-256 is not a beacon signature or fair draw. No member data, production credentials, provider, cloud resource, database, Apps Script, live endpoint or production configuration was used or changed. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
