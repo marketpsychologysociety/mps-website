@@ -18,7 +18,7 @@ function digest(value) {
 
 function validUpdateId(value) {
   if (typeof value === 'number') return Number.isSafeInteger(value) && value >= 0;
-  return typeof value === 'string' && /^(0|[1-9]\\d{0,19})$/.test(value);
+  return typeof value === 'string' && /^(0|[1-9]\d{0,19})$/.test(value);
 }
 
 /**
