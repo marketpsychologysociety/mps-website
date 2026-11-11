@@ -136,7 +136,7 @@ export function projectPublicWinner(record) {
   if (!boundedString(record.event_title,160) || !boundedString(record.message,240) ||
       !boundedString(record.prize_public_description,240) ||
       !boundedString(record.protocol_version,48) || !/^[A-Za-z0-9_-]{1,80}$/.test(record.public_result_id) ||
-      typeof record.published_at_utc !== "string" || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$/.test(record.published_at_utc) ||
+      typeof record.published_at_utc !== "string" || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:[.][0-9]{3})?Z$/.test(record.published_at_utc) ||
       !Number.isFinite(Date.parse(record.published_at_utc)) ||
       new Date(record.published_at_utc).toISOString() !== (record.published_at_utc.includes(".") ? record.published_at_utc : record.published_at_utc.replace("Z", ".000Z")) ||
       !Number.isSafeInteger(proof.participant_count) || proof.participant_count < 1 ||
