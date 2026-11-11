@@ -130,9 +130,21 @@ function createMpsTelegramGasJournal_(config) {
     try { record.effectKeys = normalizeEffects_(v[10] ? JSON.parse(String(v[10])) : []); } catch (err) {
       throw new Error('JOURNAL_EFFECT_KEYS_CORRUPT');
     }
-    if (!record.updateId || !/^[a-f0-9]{64}$/.test(record.payloadHash) ||
+    var validId = false;
+    try { validId = validateId_(record.updateId) === record.updateId; } catch (idErr) { validId = false; }
+    var processingValid = record.state !== 'PROCESSING' ||
+      (!!record.claimToken && record.leaseExpiresAt > record.lastAttemptAt);
+    var terminalValid = record.state === 'PROCESSING' ||
+      (!record.claimToken && record.leaseExpiresAt === 0);
+    var completionValid = record.state === 'DONE' ? record.completedAt > 0 : record.completedAt === 0;
+    var errorValid = !record.lastErrorCode || /^[A-Z0-9_]{1,40}$/.test(record.lastErrorCode);
+    if (!validId || !/^[a-f0-9]{64}$/.test(record.payloadHash) ||
         !allowedStates[record.state] || !allowedUpdateTypes[record.updateType] ||
-        !isFinite(record.attemptCount) || Math.floor(record.attemptCount) !== record.attemptCount || record.attemptCount < 1) {
+        !isFinite(record.firstSeenAt) || record.firstSeenAt <= 0 ||
+        !isFinite(record.lastAttemptAt) || record.lastAttemptAt <= 0 ||
+        !isFinite(record.leaseExpiresAt) || !isFinite(record.completedAt) ||
+        !isFinite(record.attemptCount) || Math.floor(record.attemptCount) !== record.attemptCount ||
+        record.attemptCount < 1 || !processingValid || !terminalValid || !completionValid || !errorValid) {
       throw new Error('JOURNAL_ROW_CORRUPT');
     }
     return record;
