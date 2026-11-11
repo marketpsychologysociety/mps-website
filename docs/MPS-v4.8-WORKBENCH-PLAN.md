@@ -637,3 +637,8 @@ Implemented in workbench and clean-checkout CI verified in run #218: journal loc
 Added tests for two independent processes writing to one journal, complete record/hash-chain recovery, lease rejection/release, stale-lock recovery, and refusal of a second API server process. This is deliberately a single-writer fence, not multi-active server support. The full clean-checkout CI run #218 passed.
 
 Not completed: distributed locking, multi-host operation, transactional DB, external tamper-resistant journal anchor, backup/restore, OIDC/MFA, beacon signature verification, unbiased winner selection, official draw/publish flow, Apps Script/CMS runtime integration, production verification, and Android real-device testing. Official draw remains BLOCKED / NO-GO; roulette remains SIMULATION ONLY.
+
+
+## P1.4 synthetic journal-lock crash recovery test — 2026-11-11
+
+Added a real child-process crash test for the narrow failure window where a writer dies after writing an INTENT record but before fsync/acknowledgement, while still holding the journal lock. Recovery must verify the dead same-host PID, atomically quarantine the stale lock, replay the complete record if present, and reject a duplicate intent through the existing idempotency scope. The test is synthetic and runs only in a disposable local directory. It is evidence for this specific process-crash path, not power-loss guarantees, cross-host coordination, network filesystem semantics, or production security. GitHub Actions run #231 is the required clean-checkout verification for this addition; record its final outcome before marking the test complete.
