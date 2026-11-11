@@ -39,14 +39,14 @@ The adapter path must resolve to a local file. The adapter must export:
 - `baseUrl`: local loopback HTTP(S) URL.
 - `actors`: synthetic actor handles named `operatorA`, `reviewerB`, `reviewerSameSubjectAsA`, `publisherC`, and `auditorD`.
 - `reset()`: reset disposable synthetic state before each case.
-- `seedApprovedEvent({preparedBy, approvedBy})`: return `{ eventId, drawId, snapshotDigest }` for a synthetic event that has passed rules and snapshot approval.
-- `seedDrawAtState({state, preparedBy, approvedBy})`: return a synthetic event/draw at the requested supported state.
+- `seedApprovedEvent({preparedBy, approvedBy})`: return `{ eventId, drawId, snapshotDigest, version }` for a synthetic event that has passed rules and snapshot approval.
+- `seedDrawAtState({state, preparedBy, approvedBy})`: return `{ eventId, drawId, version, rulesHash }` for a synthetic event/draw at the requested supported state.
 - `request({method, path, actor, body, headers})`: make one request to the local sandbox API; actor is a synthetic adapter handle, not a client-supplied identity claim.
 - `getPrivateCanaries()`: return synthetic canary strings seeded in private fields for leak detection.
 - `getPublishedProjection()`: return public projection JSON, or null.
 - `getOperationCount(drawId)`: return durable operation count for the draw.
 
-The adapter must not bypass the API under test to make assertions pass. Fixture setup may use a documented sandbox-only fixture interface; test actions themselves must traverse the real API handler and authorization middleware.
+The adapter source must be reviewed before execution. It must not make requests to any host other than its configured loopback base URL, and must not bypass the API under test to make assertions pass. Fixture setup may use a documented sandbox-only fixture interface; test actions themselves must traverse the real API handler and authorization middleware. The loopback URL check is a guardrail, not a substitute for reviewing adapter code or isolating the test environment.
 
 ## Safety rules
 
