@@ -178,3 +178,8 @@ The test-only contract simulator defines ordered checkpoint anchors, create-only
 See `docs/MPS-EXTERNAL-EVIDENCE-STORAGE-ARCHITECTURE.md` for the provider-neutral trust-boundary, writer/verifier/admin separation, conditional-create and exact-generation contract, retention/IAM/audit/backup/monitoring controls, verification protocol, abuse cases, provider scorecard, runbooks and release gates.
 
 No provider has been selected or connected. P1.5 remains an in-memory simulator only. A real provider must be tested in an explicitly authorized isolated account; writer and verifier identities must be independently administered. A hash or versioning feature alone does not establish immutability. No cloud resources, credentials, retention lock, production data or deployment were created. Official draw remains NO-GO; roulette remains SIMULATION ONLY.
+
+
+## P1.7 provider candidate evaluation (desk review only)
+
+See `docs/MPS-EXTERNAL-EVIDENCE-PROVIDER-EVALUATION.md` for a documented comparison of GCS, S3 and Azure Blob Storage, including native conditional-create semantics, generation/version pinning, WORM controls, audit limitations, a synthetic PoC test matrix and explicit non-actions. GCS is only a conditional first PoC candidate; S3 is the fallback comparator. No provider is selected or provisioned. No cloud resources, accounts, credentials, retention locks or production connections were created.
