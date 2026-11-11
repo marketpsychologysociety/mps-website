@@ -857,3 +857,15 @@ The earlier checkpoint above is historical and superseded by P1.13 clean-checkou
 - CI runs `node --test tests/official-draw/backup-readiness-monitor.test.mjs`.
 - This stage does not create a scheduler, cloud monitor, alert policy, webhook, email/Telegram notification, credential, provider connection, or production integration. It does not authenticate normalized evidence or prove actual backup/DR readiness.
 - Official winner draw remains **BLOCKED / NO-GO**; MPS Lucky Roulette remains **SIMULATION ONLY**.
+
+
+## P1.18 — incident response and recovery runbook (design only)
+
+- [x] Define universal first-response, evidence preservation, severity and reconciliation rules.
+- [x] Add playbooks for missing/stale backup, digest/checkpoint tampering, retention expiry, audit export gaps, failed restore/RPO/RTO, key recovery/compromise, alert delivery failure/dead-letter, and privileged identity/journal compromise.
+- [x] Define two-person recovery authorization gates, production cutover restrictions, independent closure evidence and privacy-safe communications.
+- [ ] Approve actual MPS incident commander/roster, escalation channels, severity response targets, service-specific RPO/RTO and evidence-retention policy.
+- [ ] Run an authorized tabletop exercise using synthetic scenarios and independently record outcomes.
+- [ ] Activate operational incident response only after identity, provider evidence, monitoring, notification delivery and recovery controls are independently tested.
+
+**Evidence:** `docs/MPS-INCIDENT-RESPONSE-AND-RECOVERY-RUNBOOK.md`. This is a design artifact only. No live incident, provider notification, credential/key action, backup restore, cloud/Apps Script configuration, production change or deployment occurred. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**.
