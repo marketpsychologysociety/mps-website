@@ -649,3 +649,14 @@ Added a real child-process crash test for the narrow failure window where a writ
 **Implemented in isolated workbench:** a synthetic in-memory provider contract and five tests for ordered checkpoints, create-only semantics, chained receipts, idempotent retries, conflicts, missing predecessors, tamper detection, and strict field allowlists. CI runs this test suite from clean checkout.
 
 **Not implemented:** real external storage, independent security boundary, IAM, immutable retention, monitoring, backup/restore, cloud resources, or production integration. Provider choice and retention governance remain decisions for later approval. No external resources or credentials were created. Official draw remains NO-GO; roulette remains simulation only.
+
+
+## P1.6 — independent external evidence storage architecture
+
+- [x] Define provider-neutral architecture, writer/verifier/admin separation, object contract, retention/audit/backup/monitoring controls, verification protocol, abuse cases, provider scorecard and operational runbooks.
+- [ ] Select a provider only after documented legal, privacy, security, operational and cost review.
+- [ ] Obtain explicit authorization before creating an isolated provider test account or any cloud resources.
+- [ ] Prove conditional create, immutable generation pinning, separate principals, retention enforcement, audit completeness, independent verification and backup/restore in that isolated account.
+- [ ] Complete synthetic abuse-case tests and review all runbooks before any production integration proposal.
+
+**Evidence:** `docs/MPS-EXTERNAL-EVIDENCE-STORAGE-ARCHITECTURE.md`. P1.6 is complete as a design artifact only; real provider integration is NOT STARTED. No cloud resources or credentials were created. Official draw remains NO-GO; roulette remains SIMULATION ONLY.
