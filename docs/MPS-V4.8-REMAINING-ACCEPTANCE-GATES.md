@@ -95,3 +95,13 @@ The Apps Script adapter, effect-outbox contract, and handler-reconciliation cont
 - [ ] Verify the adapter against a separate test spreadsheet and Apps Script project, including interrupted writes, concurrent executions, malformed headers, duplicate keys, and backup/restore.
 - [ ] Integrate stable effect keys into audit/ticker writes and handler update-ID propagation only after the isolated adapter tests pass.
 
+
+
+### Isolated Apps Script effect-ledger adapter — workbench progress
+
+- [x] Add an isolated Apps Script adapter candidate for explicit append-only audit/ticker key migration and keyed append; it requires an explicit spreadsheet ID, does not create tabs, and is not wired to the webhook.
+- [x] Add 22 mocked-service tests covering audit/ticker migration, legacy-row preservation, fail-closed schema checks, missing tabs, lock handling, malformed/duplicate keys, same-key payload collision, concurrent invocation attempts, and interruption/replay after header and event-row writes.
+- [x] Add the adapter suite to GitHub Actions.
+- [ ] Run the adapter in a separate real Apps Script project and isolated spreadsheet, including true concurrent executions, forced execution termination, persistence/flush behavior, quota/latency, backup/restore, and permission checks.
+- [ ] Review deterministic row-value construction at each future integration point; the one-column schema detects key reuse with different row payloads by exact legacy-row comparison and requires callers to keep replay values stable.
+- [ ] Only after runtime acceptance, integrate into isolated Code.gs candidate and test handler update-ID propagation/reconciliation. No Code.gs integration or production migration is authorized by this stage.
