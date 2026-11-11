@@ -38,6 +38,9 @@ test("strict create-event contract rejects identity, role, participant and unkno
   const accessor = {title_public:"x",rules_version:"v1",eligibility_policy_version:"v1"};
   Object.defineProperty(accessor,"title_public",{get(){throw new Error("must not execute");}});
   assert.equal(validateCreateEvent(accessor).code,"INVALID_BODY");
+  const hiddenField={title_public:"x",rules_version:"v1",eligibility_policy_version:"v1"};
+  Object.defineProperty(hiddenField,"admin",{value:true,enumerable:false});
+  assert.equal(validateCreateEvent(hiddenField).code,"UNKNOWN_FIELD");
 });
 
 test("authorization matrix is deny-by-default and enforces distinct reviewer subject", () => {
@@ -53,6 +56,9 @@ test("authorization matrix is deny-by-default and enforces distinct reviewer sub
   const hostileAuth={role:"DRAW_PUBLISHER",action:"publish_result",subject:"publisher"};
   Object.defineProperty(hostileAuth,"subject",{get(){throw new Error("must not execute");}});
   assert.equal(authorize(hostileAuth).allowed,false);
+  const hiddenRole={role:"DRAW_PUBLISHER",action:"publish_result",subject:"publisher"};
+  Object.defineProperty(hiddenRole,"admin",{value:true,enumerable:false});
+  assert.equal(authorize(hiddenRole).allowed,false);
 });
 
 test("public winner projection only accepts exact allowlisted PUBLISHED and VERIFIED record", () => {
@@ -77,6 +83,9 @@ test("public winner projection only accepts exact allowlisted PUBLISHED and VERI
   const hostileRecord={...safe};
   Object.defineProperty(hostileRecord,"message",{get(){throw new Error("must not execute");}});
   assert.equal(projectPublicWinner(hostileRecord),null);
+  const hiddenPrivate={...safe};
+  Object.defineProperty(hiddenPrivate,"private_member_id",{value:"CANARY",enumerable:false});
+  assert.equal(projectPublicWinner(hiddenPrivate),null);
   assert.equal(projectPublicWinner({...safe,proof_summary:{...safe.proof_summary,member_name:"CANARY_NAME"}}),null);
   const projected=projectPublicWinner(safe);
   assert.equal(projected.public_result_id,safe.public_result_id);
