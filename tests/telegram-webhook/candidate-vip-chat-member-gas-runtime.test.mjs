@@ -4,10 +4,7 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
-const root=new URL('./',import.meta.url);
 const candidate=readFileSync(fileURLToPath(new URL('../../candidates/Code.gs',import.meta.url)),'utf8');
-const moduleNames=['gas-effect-ledger-adapter.gs','gas-vip-transition-store.gs','gas-vip-transition-orchestrator.gs','gas-vip-chat-member-handler.gs'];
-const modules=moduleNames.map(name=>readFileSync(fileURLToPath(new URL(name,root)),'utf8')).join('\n');
 function extractFunction(source,name){
  const start=source.indexOf('function '+name+'(');
  if(start<0)throw new Error('CANDIDATE_FUNCTION_MISSING:'+name);
@@ -20,6 +17,9 @@ function extractFunction(source,name){
  return block;
 }
 const candidateFunctions=[
+ // These are extracted from the actual candidate Code.gs, not parallel test copies.
+ 'createMpsGasEffectLedger_','createMpsGasVipTransitionStore_',
+ 'createMpsGasVipTransitionOrchestrator_','createMpsGasVipChatMemberHandler_',
  'getMpsExistingVipAccessSheetForTransition_','findUniqueMpsTransitionRow_',
  'resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_',
  'processMpsVipChatMemberEvent_'
@@ -88,7 +88,7 @@ function runtime({eligible=true}={}){
   console
  };
  vm.createContext(context);
- vm.runInContext(modules+'\n'+candidateFunctions+'\n'+
+ vm.runInContext(candidateFunctions+'\n'+
   'this.makeLedger=createMpsGasEffectLedger_;this.runCandidateVipEvent=processMpsVipChatMemberEvent_;',context,{timeout:2000});
  const ledger=context.makeLedger({spreadsheetId:'isolated-vip-runtime'});
  // Explicit isolated setup: append Effect Key headers before any webhook event.
