@@ -141,6 +141,6 @@ tests/official-draw/persistent-local-sandbox-adapter.mjs is a separate loopback-
 Run the process-restart tests with:
 node --test tests/official-draw/persistent-api-integration.test.mjs
 
-The integration suite starts and stops real child Node processes against one disposable temporary journal directory. It checks durable seed state, execute transition recovery after restart, idempotent replay, changed-payload conflict, and a forced process crash after the durable intent. An incomplete intent restores the draw as RECONCILIATION_REQUIRED; the same key cannot silently execute again.
+The four integration cases start and stop real child Node processes against one disposable temporary journal directory. They check durable seed/state recovery after restart, idempotent replay, changed-payload conflict, per-draw concurrent execution serialization, and forced crashes both after durable intent and after in-memory mutation but before completion. An incomplete intent restores the draw as RECONCILIATION_REQUIRED; the same key cannot silently execute again. The standalone journal suite also tests exact aggregate allowlisting and replay.
 
 Limitations remain material: single-process local filesystem only; no cross-process lock, transactional database, external journal anchor, OIDC/MFA, beacon verifier, unbiased selection algorithm, or production hardening. The fixture route exists only in this test adapter. Do not expose port 4179, use real data, or deploy it. Official winner draw remains BLOCKED / NO-GO and roulette remains SIMULATION ONLY.
