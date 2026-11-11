@@ -6,7 +6,7 @@
 
 ## Completed in this workstream
 
-- PR #12 remains open and Draft. Latest recorded PR CI run #636 completed successfully: 36/36 steps, including PWA/privacy validation, Telegram journal contract tests, mocked Apps Script spreadsheet-adapter tests, and Chromium browser checks.
+- PR #12 remains open and Draft. Latest recorded PR CI run #642 completed successfully: 36/36 steps, including PWA/privacy validation, Telegram journal contract tests, mocked Apps Script spreadsheet-adapter tests, and Chromium browser checks.
 - Telegram update journal contract now covers canonical payload hashing, duplicate deliveries, cache eviction independence, retry/review states, expired leases, fencing tokens, payload-ID collisions, reconciliation, and fail-closed behavior.
 - A separate Apps Script spreadsheet adapter candidate exists under tests/telegram-webhook. It requires an explicit spreadsheet ID and exact pre-provisioned tab schema; it is not wired into doPost/processTelegramUpdate_ and does not read Script Properties.
 - The public Market Pulse page has a browser regression check for Member Only labeling, static-preview disclosure, demo ticker, and absence of inline or external market-data datasets.
@@ -41,5 +41,5 @@
 ## Evidence
 
 - PR #12: https://github.com/marketpsychologysociety/mps-website/pull/12
-- Latest successful CI run #626: https://github.com/marketpsychologysociety/mps-website/actions/runs/43015754675
+- Latest successful CI run #626: https://github.com/marketpsychologysociety/mps-website/actions/runs/43015977343
 - Production main remains at baseline commit 9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff.
