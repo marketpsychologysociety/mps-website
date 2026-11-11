@@ -5,7 +5,7 @@
 
 ## Verified in the workbench
 
-- [x] PR CI run #43020895489 and push CI run #43020908759 both completed successfully on commit `7d171fa1e403077700fbe63b5f1e5424306f3c76`; each run completed all 37 workflow steps, including both Telegram contract suites and Chromium browser checks. The effect-outbox suite passed in both runs.
+- [x] Latest PR CI run #43022365652 and push CI run #43022358082 both completed successfully on commit `b841690cb14f21ad98434cd5e4dd0972a2d77986`; each completed all 38 workflow steps, including Chromium browser checks and all three Telegram contract suites.
 - [x] The earlier PR CI run #646 also completed all 36 steps successfully on its then-current commit.
 - [x] Telegram update-journal contract suite contains 17 tests; the new digit-string regression covers canonical 20-digit IDs, zero, leading-zero rejection, empty input, and overlength input.
 - [x] Mocked Apps Script spreadsheet adapter suite contains 17 tests.
@@ -80,7 +80,7 @@ The Apps Script adapter, effect-outbox contract, and handler-reconciliation cont
 - [Draft PR #12](https://github.com/marketpsychologysociety/mps-website/pull/12)
 - [PR CI #648 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43018302173)
 - [Push CI #647 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43018294614)
-- [Latest PR CI #43020895489 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43020895489)
-- [Latest push CI #43020908759 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43020908759)
+- [Latest PR CI #43022365652 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43022365652)
+- [Latest push CI #43022358082 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43022358082)
 - [Previous PR CI #646 — success](https://github.com/marketpsychologysociety/mps-website/actions/runs/43016135631)
 - Production `main` baseline: `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`.
