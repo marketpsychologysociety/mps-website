@@ -18,7 +18,7 @@ export function provenanceCanonicalJson(value) {
 }
 
 const payloadKeys = [
-  'schemaVersion','issuer','reviewerSubject','exporterSubject','retrievalPrincipal',
+  'schemaVersion','keyId','issuer','reviewerSubject','exporterSubject','retrievalPrincipal',
   'projectId','bucket','windowStart','windowEnd','querySha256','rawBundleSha256',
   'pageCount','entryCount','paginationComplete','retrievalMethod','retrievedAt',
   'reviewerAuthContext','independentSourceAccessConfirmed','dataAccessCoverageConfirmed',
@@ -68,6 +68,7 @@ export function verifyGcsEvidenceProvenance(bundle, attestation, trust, options 
   const issued = Date.parse(p.issuedAt);
   const expires = Date.parse(p.expiresAt);
   if (p.schemaVersion !== 'mps-gcs-provenance-attestation/v1') errors.push('ATTESTATION_VERSION_UNSUPPORTED');
+  if (p.keyId !== trust.keyId) errors.push('TRUST_KEY_ID_MISMATCH');
   if (p.issuer !== trust.issuer || p.reviewerSubject !== trust.subject || p.retrievalPrincipal !== p.reviewerSubject) {
     errors.push('REVIEWER_IDENTITY_MISMATCH');
   }
