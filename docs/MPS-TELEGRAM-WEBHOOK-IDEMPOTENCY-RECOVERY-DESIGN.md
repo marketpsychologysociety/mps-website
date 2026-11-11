@@ -93,6 +93,19 @@ Suggested outbox columns: Effect Key (unique), Update ID, Effect Type (allowlist
 - A business state mutation and its outbox write may span multiple spreadsheet writes. ScriptLock serializes cooperating executions but does not make those writes a database transaction. Recovery must inspect authoritative business rows and reconcile missing/pending effects.
 - The update may be marked DONE only when required business state and its effect intents are durably recorded. A notification that remains REVIEW must not cause a previously committed member-access mutation to be rolled back.
 
+### Effect outbox contract candidate
+
+A separate synthetic contract candidate is maintained in `tests/telegram-webhook/durable-effect-outbox.mjs` with tests in `durable-effect-outbox.test.mjs`. It is intentionally independent of the update journal:
+
+- deterministic effect keys identify one business transition, not merely one member; a later VIP reactivation must receive a new transition key;
+- enqueue stores an allowlisted effect type, update reference, and payload digest, not rendered message text or recipient PII;
+- duplicate enqueue with the same key and same digest is idempotent; key reuse with different content moves the row to REVIEW;
+- claims use leases and fencing tokens; SENT and REVIEW are terminal to automatic claiming;
+- expired PROCESSING effects require reconciliation: APPLIED becomes SENT, NOT_APPLIED may proceed, UNKNOWN becomes REVIEW;
+- a thrown send error is retryable only when the adapter explicitly marks `retryableNoEffect === true`; otherwise it becomes REVIEW.
+
+This is a state-machine contract backed only by a shared in-memory test store. It is not a spreadsheet adapter, not integrated with the webhook, and does not make Telegram sendMessage exactly-once. The external side-effect crash window remains unresolved without provider idempotency or authoritative read-back.
+
 ## 6. Recovery and retention
 
 - Expired PROCESSING leases are candidates for recovery, not proof that the previous attempt had no side effects.
