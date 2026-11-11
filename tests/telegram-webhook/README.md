@@ -26,3 +26,5 @@ node --test tests/telegram-webhook/*.test.mjs
 - The candidate handler fixture is a snapshot, not the live Library file. Refresh and re-audit its provenance whenever candidate Code.gs changes.
 
 - `vip-activation-orchestration.mjs` now models a per-member event cursor persisted with member state. It orders state-changing membership events by a durable ingress epoch and canonical decimal `update_id`; source dates remain type-tagged evidence and are not compared across update types. Stale leave/rejoin updates are rejected before they can overwrite newer state. This is an in-memory contract model, not durable Apps Script storage.
+
+- `update-epoch.mjs` / `update-epoch.test.mjs` — pure contract for assigning a local update epoch after a seven-day ingress-idle window. The caller must persist the assigned epoch with the journal row under the journal lock; replays reuse the stored epoch. This is not yet wired into the Apps Script adapter.

@@ -86,3 +86,12 @@ The isolated integration suite should include, at minimum:
 12. Required audit failures are surfaced to the caller rather than swallowed.
 
 Only after these tests pass should the isolated Code.gs candidate be changed. The real Apps Script project and spreadsheet acceptance drill remains a separate gate. Production migration, webhook changes, merge, and deployment each require their own explicit approval.
+
+
+## 8. Ingress epoch allocation contract
+
+The per-member ordering model requires an epoch that is assigned once at ingress, not inferred again during retries. The pure contract in `tests/telegram-webhook/update-epoch.mjs` uses the last durably recorded ingress receipt time: a new receipt less than seven days later stays in the current local epoch; a receipt at or beyond seven idle days increments the local epoch once. This local epoch boundary is an ordering namespace, not a claim that Telegram's internal reset happened at that exact moment.
+
+The caller must execute epoch allocation, update-journal append, and global stream-state write under the same ScriptLock critical section. Store both `epoch` and `receivedAt` on the update journal row. A retry/reconciliation must read and reuse that stored epoch; it must never allocate a new epoch from its retry time. If the ingress clock moves backward, state is malformed, or epoch assignment cannot be persisted, fail closed and do not run the VIP handler.
+
+The local idle boundary is intentionally conservative. Telegram retains incoming updates for no longer than 24 hours, and documents a random next update ID after at least one week without new updates. A webhook/Apps Script outage may cause a local epoch increment even if Telegram's IDs continued sequentially during the outage; this remains safe for ordering if all newly delivered backlog updates are assigned to the same local epoch and compared by update ID. The adapter integration must test backlog delivery, retries, and process restart before use.
