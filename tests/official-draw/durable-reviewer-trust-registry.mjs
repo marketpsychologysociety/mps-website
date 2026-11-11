@@ -109,12 +109,12 @@ export class DurableReviewerTrustRegistry {
     let bytes;
     try { bytes = await fs.readFile(this.#file); }
     catch (error) { if (error.code === 'ENOENT') return; throw error; }
-    const completeLength = bytes.lastIndexOf(10) + 1;
-    if (completeLength !== bytes.length) {
-      await fs.truncate(this.#file, completeLength);
-      const handle = await fs.open(this.#file, 'r+'); try { await handle.sync(); } finally { await handle.close(); }
+    // Never repair or truncate a damaged journal automatically. Preserve the
+    // exact bytes for controlled forensic review and operator-led reconciliation.
+    if (bytes.length && bytes[bytes.length - 1] !== 10) {
+      throw err('REGISTRY_INTEGRITY_ERROR', 'Incomplete trailing registry record; original journal preserved. Manual evidence review and reconciliation required.');
     }
-    const lines = bytes.subarray(0, completeLength).toString('utf8').split('\n').filter(Boolean);
+    const lines = bytes.toString('utf8').split('\n').filter(Boolean);
     for (const line of lines) {
       if (Buffer.byteLength(line) > 32768) throw err('REGISTRY_INTEGRITY_ERROR', 'Registry record exceeds the size limit.');
       let record; try { record = JSON.parse(line); } catch { throw err('REGISTRY_INTEGRITY_ERROR', 'Malformed complete registry record.'); }
