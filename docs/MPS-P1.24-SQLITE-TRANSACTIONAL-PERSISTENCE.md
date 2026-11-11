@@ -1,7 +1,7 @@
 # P1.24 — Isolated SQLite Transactional Persistence Adapter
 
 **Evidence class:** SYNTHETIC  
-**Status:** local SQLite adapter and nine focused tests added; CI verification pending  
+**Status:** local SQLite adapter and nine focused tests added; clean-checkout CI verification successful  
 **Production decision:** official winner draw **BLOCKED / NO-GO**; roulette **SIMULATION ONLY**
 
 ## Objective
