@@ -301,7 +301,7 @@ function auditPruneHarness({allKeyed=false}={}) {
   }),
   deleteRows:(start,count)=>rows.splice(start-1,count)
  };
- const context={getMpsContentSheet_:()=>sheet,clean_:v=>String(v),sheetText_:v=>String(v),cleanNewsText_:v=>String(v),safeErrorMessage_:e=>String(e),console};
+ const context={MPS_AUDIT_LOGS:{sheet:'MPS Audit Logs',headers:['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details']},getMpsContentSheet_:()=>sheet,clean_:v=>String(v),sheetText_:v=>String(v),cleanNewsText_:v=>String(v),safeErrorMessage_:e=>String(e),console};
  vm.createContext(context);vm.runInContext(extract('recordMpsAudit_','apiAdminCheckSystemConfiguration'),context,{timeout:1000});
  return{run:()=>context.recordMpsAudit_('ADMIN','actor','ACTION','target','SUCCESS','detail'),rows};
 }
