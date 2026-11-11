@@ -207,3 +207,20 @@ A read-only review of the isolated reconstructed `Code.gs` candidate identified 
 6. **Required effects must not be silently swallowed.** `recordMpsAudit_` catches and logs write failures. A required keyed effect path must return a verified outcome or propagate a classified failure so the update journal/recovery layer can retry or quarantine it. The legacy best-effort helper must not be mistaken for a durable outbox.
 
 These are source-level findings against the isolated candidate, not live runtime failures. No Code.gs integration or live spreadsheet migration has been performed. The adapter contract tests passing does not close any of these handler-level gates. Do not integrate the adapter until a separate synthetic handler/adapter orchestration suite proves lock ownership, status/effect crash recovery, deterministic replay payloads, retention behavior, and all Telegram update-ID propagation paths.
+
+
+## 5C. Synthetic VIP activation orchestration contract
+
+A separate contract model now exercises the intended recovery order for VIP member activation:
+
+1. Persist a durable, update-scoped activation intent before changing the member's active status.
+2. Apply the member status from that persisted intent.
+3. Append the ticker event using a deterministic update-scoped key and stable event timestamp.
+4. Append the audit event using its own deterministic key and the same stable event timestamp.
+5. Mark the intent completed only after both keyed append outcomes are confirmed.
+
+A later webhook delivery first attempts to recover an outstanding activation intent for that member. This covers a crash after status mutation, after ticker append, after audit append, or after the final completion write. A later distinct update while the member is already active must not create a second activation. A leave followed by a later join update must create a new activation intent and new ticker/audit keys.
+
+The synthetic suite is `tests/telegram-webhook/vip-activation-orchestration.mjs` and `vip-activation-orchestration.test.mjs`; CI runs it as a separate contract step. It includes failure injection at each phase, replay, a pending activation followed by leave, rejoin, changed-payload collision, malformed update ID, and duplicate deliveries.
+
+**Critical scope limit:** these tests use shared in-memory stores and a serialized fake atomic boundary. They prove the proposed state-machine behavior only; they do not prove that Google Sheets can atomically persist the intent and member status, that ScriptLock ownership is safe in the current Code.gs call graph, or that actual Apps Script execution recovers after a process termination. The production design still needs a durable intent store and an explicit lock-ownership strategy that avoids nested ScriptLock acquisition. Do not treat this contract as authorization to integrate or migrate a live sheet.
