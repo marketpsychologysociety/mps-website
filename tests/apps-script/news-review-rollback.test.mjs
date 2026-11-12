@@ -31,6 +31,7 @@ function harness({failWrite=false,failRollback=false,officialUrl='https://exampl
     clean_:v=>String(v??'').trim(),
     sheetText_:v=>String(v??''),
     cleanNewsText_:v=>String(v??'').trim(),
+    safeErrorMessage_:e=>String(e&&e.message||e),
     CacheService:{getScriptCache:()=>({remove:()=>{}})},
     recordMpsAudit_:()=>true,
     adminRole_:()=>'SUPER_ADMIN',adminActorRef_:()=>'SUPER_ADMIN'
