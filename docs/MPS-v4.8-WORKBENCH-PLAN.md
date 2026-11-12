@@ -512,7 +512,7 @@ This section supersedes earlier checklist assumptions where newer evidence is re
 - [x] Winner-draw security review, dual-control/audit-journal design, identity/evidence architecture, official Draw API contract, abuse-case plan (TM-01–TM-32), and security-harness readiness review documented.
 - [x] Announcement Center / Winner Board / Lucky Roulette prototype added with premium dark-neon styling, responsive layout, announcement categories, maintenance area, winner empty state, and demo-only roulette.
 - [x] Shared public-center frontend controller added. External feed remains fail-closed behind `MPS_CONFIG.publicCenter.enabled=false` until an isolated Apps Script runtime test is completed.
-- [x] Generic privacy-safe ticker integrated into 11 public routes. No real names or full member IDs are displayed; ticker uses generic text and a masked ID only when the backend privacy gate supplies a valid unique mask.
+- [x] Public VIP social-proof ticker displays the member's real approved display name (not masked) and a minimal approved event. It must never expose full member IDs, phone/email, Telegram ID/handle, MT5 login, deposit/payment amounts or dates, proof documents, PINs, or credentials. This explicit real-name policy supersedes earlier masked/generic ticker notes.
 - [x] Public feed rendering uses DOM text nodes/textContent and URL validation; ticker does not use JSONP.
 - [x] Service-worker public cache namespace advanced to v6 and the public-center script added to the explicit public asset allowlist.
 - [x] Static route audit for the 11 ticker routes completed; local JavaScript syntax and synthetic DOM checks passed.
