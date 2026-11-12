@@ -342,10 +342,10 @@ test('admin approval and website settings do not roll back committed business wr
 
 test('public VIP ticker rejects short numeric identifiers, Telegram handles and embedded @usernames',()=>{
   const start=code.indexOf('function isSafePublicIdentity_(');
-  const end=code.indexOf('\nfunction ',start+1);
+  const end=code.indexOf('\\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'public identity filter must exist');
-  const body=code.slice(start,end);
-  assert.ok(body.includes(String.raw`\\d[\\d ()-]{5,}`),'numeric identifiers of six or more digits must be filtered');
-  assert.ok(body.includes(String.raw`@[A-Z0-9_]{5,32}\\b`),'@usernames must be filtered regardless of preceding punctuation');
-  assert.ok(body.includes(String.raw`TELEGRAM\\s*(?:ID|USERNAME|USER(?:NAME)?)`),'labelled Telegram identifiers must be filtered');
+  const body=code.slice(start,end),slash=String.fromCharCode(92);
+  assert.ok(body.includes(slash+'d['+slash+'d ()-]{5,}'),'numeric identifiers of six or more digits must be filtered');
+  assert.ok(body.includes('@[A-Z0-9_]{5,32}'+slash+'b'),'@usernames must be filtered regardless of preceding punctuation');
+  assert.ok(body.includes('TELEGRAM'+slash+'s*(?:ID|USERNAME|USER(?:NAME)?)'),'labelled Telegram identifiers must be filtered');
 });
