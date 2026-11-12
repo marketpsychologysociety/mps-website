@@ -36,7 +36,7 @@ test('public activity projection exposes only approved display name and event te
 
 test('public Center does not project Market Pulse or premium calendar/news payloads',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
-  const end=source.indexOf('\\nfunction ',start+1);
+  const end=source.indexOf('\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'public Center endpoint boundaries must exist');
   const body=source.slice(start,end);
   assert.ok(body.includes('const news = []'),'public news payload must remain empty');
@@ -45,21 +45,21 @@ test('public Center does not project Market Pulse or premium calendar/news paylo
 });
 test('direct Market Pulse endpoint requires a verified member session before reading data',()=>{
   const start=source.indexOf('function apiGetMarketPulse(session) {');
-  const end=source.indexOf('\\nfunction ',start+1);
+  const end=source.indexOf('\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'Market Pulse endpoint boundaries must exist');
   const body=source.slice(start,end);
-  assert.match(body,/^function apiGetMarketPulse\\(session\\) \\{\\s*requireMember_\\(session\\);\\s*return getMarketPulseData_\\(\\);/);
+  assert.match(body,/^function apiGetMarketPulse\(session\) \{\s*requireMember_\(session\);\s*return getMarketPulseData_\(\);/);
 });
 
 test('all member-only data APIs enforce a server-side member session',()=>{
-  const functions=[...source.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const functions=[...source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{const i=functions.findIndex(m=>m[1]===name);assert.ok(i>=0,name);return source.slice(functions[i].index,functions[i+1]?.index??source.length);};
   for(const name of ['apiGetLearningList','apiGetLearningFile','apiGetMarketPulse','apiGetDashboard','apiGetHeatmap','apiGetMemberIntelligence']) {
-    assert.match(body(name),/requireMember_\\(/,name);
+    assert.match(body(name),/requireMember_\(/,name);
   }
 });
 test('VIP calculator HTML and access-check APIs enforce the paid-VIP server gate',()=>{
-  const functions=[...source.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const functions=[...source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{const i=functions.findIndex(m=>m[1]===name);assert.ok(i>=0,name);return source.slice(functions[i].index,functions[i+1]?.index??source.length);};
-  for(const name of ['apiGetVipCalculatorHtml','apiCheckVipCalculatorAccess'])assert.match(body(name),/requireVipMember_\\(/,name);
+  for(const name of ['apiGetVipCalculatorHtml','apiCheckVipCalculatorAccess'])assert.match(body(name),/requireVipMember_\(/,name);
 });
