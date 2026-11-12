@@ -339,6 +339,11 @@ test('admin approval and website settings do not roll back committed business wr
   assert.ok(catchAt>0&&invalidationAt>catchAt,'approval cache invalidation must occur after transactional catch');
   assert.match(approval,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit admin verification cache invalidation failed/);
   assert.match(settings,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit website settings cache invalidation failed/);
+  const legacy=body('adminVerifyLegacy_');
+  const legacyCatch=legacy.indexOf('}catch(err){');
+  const legacyInvalidation=legacy.indexOf('post-commit legacy verification cache invalidation');
+  assert.ok(legacyCatch>0&&legacyInvalidation>legacyCatch,'legacy approval cache invalidation must occur after transactional catch');
+  assert.match(legacy,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit legacy verification cache invalidation failed/);
 });
 
 test('public VIP ticker rejects short numeric identifiers, Telegram handles and embedded @usernames',()=>{
