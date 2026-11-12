@@ -2282,8 +2282,22 @@ function apiAdminSaveWebsiteSettings(session,payload) {
   if(!Number.isFinite(speed)||speed<10||speed>120||!['Neon','Gold','Blue','Purple'].includes(theme))throw new Error('Pengaturan kecepatan atau tema ticker tidak valid.');
   const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers,true);
   const values={VIP_TICKER_ENABLED:String(payload.enabled===true),VIP_TICKER_SPEED:String(Math.round(speed)),VIP_TICKER_THEME:theme,VIP_TICKER_PREFIX:clean_(payload.prefix||'VIP LIVE',24),VIP_TICKER_SUFFIX:clean_(payload.suffix||'bergabung ke MPS VIP Community',100)};
-  Object.keys(values).forEach(function(key){const row=findMpsContentRow_(sh,key);const data=[key,sheetText_(values[key]),new Date()];if(row)sh.getRange(row,1,1,3).setValues([data]);else sh.appendRow(data);});
-  CacheService.getScriptCache().remove('mps_public_center_v480');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_TICKER_SETTINGS_UPDATED','WEBSITE','SUCCESS','Pengaturan ticker VIP diperbarui.');return {ok:true,message:'Pengaturan ticker VIP diperbarui.'};
+  const changes=[];
+  try{
+    Object.keys(values).forEach(function(key){
+      const row=findMpsContentRow_(sh,key),data=[key,sheetText_(values[key]),new Date()];
+      if(row){const before=sh.getRange(row,1,1,3).getValues()[0];changes.push({row:row,created:false,values:before});sh.getRange(row,1,1,3).setValues([data]);}
+      else{const target=sh.getLastRow()+1;changes.push({row:target,created:true});sh.appendRow(data);}
+    });
+  }catch(err){
+    const rollbackErrors=[];
+    for(let i=changes.length-1;i>=0;i--){const change=changes[i];try{if(change.created){if(change.row<=sh.getLastRow())sh.deleteRow(change.row);}else sh.getRange(change.row,1,1,change.values.length).setValues([change.values]);}catch(e){rollbackErrors.push('pengaturan '+String(change.values&&change.values[0]||'baru')+': '+safeErrorMessage_(e));}}
+    if(rollbackErrors.length)throw new Error('Penyimpanan pengaturan ticker gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa Website Settings sebelum mencoba ulang.');
+    throw err;
+  }
+  CacheService.getScriptCache().remove('mps_public_center_v480');
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_TICKER_SETTINGS_UPDATED','WEBSITE','SUCCESS','Pengaturan ticker VIP diperbarui.');
+  return {ok:true,message:'Pengaturan ticker VIP diperbarui.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
