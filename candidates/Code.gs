@@ -1520,11 +1520,13 @@ function verifyTelegramApplication_(linkRow,link,msg) {
     depSheet.getRange(depRow,10,1,4).setValues([['Menunggu Validasi Admin',userId,chatId,now]]);
     committed=true;
   }catch(err){
-    if(accessCreated&&access&&accessRow)try{access.deleteRow(accessRow);}catch(e){console.error('Telegram application access rollback: '+safeErrorMessage_(e));}
-    else if(access&&accessRow&&accessSnapshot)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){console.error('Telegram application access rollback: '+safeErrorMessage_(e));}
-    if(depSheet&&depRow&&depSnapshot)try{depSheet.getRange(depRow,1,1,depSnapshot.length).setValues([depSnapshot]);}catch(e){console.error('Telegram deposit rollback: '+safeErrorMessage_(e));}
-    if(appSheet&&appRow&&appSnapshot)try{appSheet.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){console.error('Telegram application rollback: '+safeErrorMessage_(e));}
-    if(linkSheet&&actualLinkRow&&linkSnapshot)try{linkSheet.getRange(actualLinkRow,1,1,linkSnapshot.length).setValues([linkSnapshot]);}catch(e){console.error('Telegram link rollback: '+safeErrorMessage_(e));}
+    const rollbackErrors=[];
+    if(accessCreated&&access&&accessRow)try{access.deleteRow(accessRow);}catch(e){rollbackErrors.push('akses Telegram baru: '+safeErrorMessage_(e));}
+    else if(access&&accessRow&&accessSnapshot)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){rollbackErrors.push('akses Telegram: '+safeErrorMessage_(e));}
+    if(depSheet&&depRow&&depSnapshot)try{depSheet.getRange(depRow,1,1,depSnapshot.length).setValues([depSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
+    if(appSheet&&appRow&&appSnapshot)try{appSheet.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
+    if(linkSheet&&actualLinkRow&&linkSnapshot)try{linkSheet.getRange(actualLinkRow,1,1,linkSnapshot.length).setValues([linkSnapshot]);}catch(e){rollbackErrors.push('tautan Telegram: '+safeErrorMessage_(e));}
+    if(rollbackErrors.length)throw new Error('Verifikasi Telegram gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
     throw err;
   }finally{lock.releaseLock();}
   if(committed){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{const notice=telegramSendToChat_(chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti deposit. Member ID baru diterbitkan setelah persetujuan admin.');if(!notice.ok)recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINK_NOTICE_FAILED',appRef,'WARNING','Verifikasi tersimpan, tetapi pesan konfirmasi gagal dikirim.');}catch(e){}}
@@ -1567,12 +1569,14 @@ function verifyTelegramLinkLegacy_(token,msg) {
     if(String(memberSnapshot[MPS_COL.registrationStatus-1]||'')!=='Ditolak')memberSheet.getRange(memberRow,MPS_COL.registrationStatus).setValue('Menunggu Validasi Admin');
     committed=true;
   }catch(err){
-    if(accessCreatedRow&&access)try{access.deleteRow(accessCreatedRow);}catch(e){console.error('Telegram access rollback append: '+safeErrorMessage_(e));}
-    else if(accessRow&&accessSnapshot&&access)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){console.error('Telegram access rollback: '+safeErrorMessage_(e));}
-    if(memberRow&&memberSnapshot&&memberSheet)try{memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberSnapshot]);}catch(e){console.error('Telegram member rollback: '+safeErrorMessage_(e));}
-    if(appRow&&appSnapshot&&appSheet)try{appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).setValues([appSnapshot]);}catch(e){console.error('Telegram application rollback: '+safeErrorMessage_(e));}
-    if(linkSnapshot){const row=findMpsMemberLinkRow_(sh,tokenHash);if(row)try{sh.getRange(row,1,1,MPS_MEMBER_LINKS.headers.length).setValues([linkSnapshot]);}catch(e){console.error('Telegram link rollback: '+safeErrorMessage_(e));}}
-    if(!failureMessage)failureMessage='Verifikasi Telegram belum dapat diselesaikan. Periksa kembali status tautan atau hubungi admin MPS.';
+    const rollbackErrors=[];
+    if(accessCreatedRow&&access)try{access.deleteRow(accessCreatedRow);}catch(e){rollbackErrors.push('akses Telegram baru: '+safeErrorMessage_(e));}
+    else if(accessRow&&accessSnapshot&&access)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){rollbackErrors.push('akses Telegram: '+safeErrorMessage_(e));}
+    if(memberRow&&memberSnapshot&&memberSheet)try{memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberSnapshot]);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}
+    if(appRow&&appSnapshot&&appSheet)try{appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
+    if(linkSnapshot){const row=findMpsMemberLinkRow_(sh,tokenHash);if(row)try{sh.getRange(row,1,1,MPS_MEMBER_LINKS.headers.length).setValues([linkSnapshot]);}catch(e){rollbackErrors.push('tautan Telegram: '+safeErrorMessage_(e));}}
+    if(rollbackErrors.length)failureMessage='Verifikasi Telegram gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.';
+    else if(!failureMessage)failureMessage='Verifikasi Telegram belum dapat diselesaikan. Periksa kembali status tautan atau hubungi admin MPS.';
   }finally{lock.releaseLock();}
   if(failureMessage){try{telegramSendToChat_(chatId,failureMessage);}catch(noticeErr){console.error('Telegram legacy verification notice failed: '+safeErrorMessage_(noticeErr));}return false;}
   if(committed){
