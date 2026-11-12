@@ -477,17 +477,23 @@ function activateMemberAfterPin_(memberId) {
     memberBefore=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
     if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('Deposit belum disetujui; aktivasi ditolak.');
     if(PropertiesService.getScriptProperties().getProperty('MPS_PIN_DELIVERED_'+memberId)!=='1')throw new Error('Pengiriman PIN belum terkonfirmasi.');
-    const applicationRef=String(memberBefore[24]||'');
-    if(applicationRef){
-      apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRowByMember_(apps,memberId);
-      if(!appRow)throw new Error('Data aplikasi tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
+    const memberApplicationRef=String(memberBefore[24]||'');
+    apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRowByMember_(apps,memberId);
+    if(memberApplicationRef&&!appRow)throw new Error('Data aplikasi member tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
+    if(appRow){
       appSnapshot=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
       if(String(appSnapshot[8]||'')!==memberId)throw new Error('Relasi aplikasi dan member tidak cocok; aktivasi dibatalkan.');
       if(!['Menunggu Aktivasi','Berhasil'].includes(String(appSnapshot[7]||'')))throw new Error('Status aplikasi tidak mengizinkan aktivasi member.');
-      depSheet=getMpsDepositsSheet_();depRow=findMpsDepositRow_(depSheet,applicationRef);
-      if(!depRow)throw new Error('Data deposit tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
-      depSnapshot=depSheet.getRange(depRow,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
-      if(!['Menunggu Aktivasi','Berhasil'].includes(String(depSnapshot[9]||'')))throw new Error('Status deposit tidak mengizinkan aktivasi member.');
+      const applicationRef=String(appSnapshot[0]||memberApplicationRef);
+      if(memberApplicationRef&&applicationRef!==memberApplicationRef)throw new Error('Application Ref pada database dan sheet aplikasi tidak cocok.');
+      if(applicationRef){
+        depSheet=getMpsDepositsSheet_();depRow=findMpsDepositRow_(depSheet,applicationRef);
+        if(!depRow&&memberApplicationRef)throw new Error('Data deposit tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
+        if(depRow){
+          depSnapshot=depSheet.getRange(depRow,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
+          if(!['Menunggu Aktivasi','Menunggu Validasi Admin','Disetujui','Berhasil'].includes(String(depSnapshot[9]||'')))throw new Error('Status deposit tidak mengizinkan aktivasi member.');
+        }
+      }
     }
     const now=new Date(),memberNext=memberBefore.slice();
     memberNext[MPS_COL.registrationStatus-1]='Berhasil';memberNext[17]=now;
