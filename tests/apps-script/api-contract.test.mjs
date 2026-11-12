@@ -68,3 +68,9 @@ test('deposit proof upload requires a private folder and verifies the uploaded f
   assert.ok(body.includes('file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE)'));
   assert.ok(body.includes('file.getSharingAccess()'));
 });
+
+test('Apps Script source contains no literal Telegram token, Google API key, or PEM private key',()=>{
+  assert.doesNotMatch(code,/\\b\\d{5,15}:[A-Za-z0-9_-]{20,}\\b/);
+  assert.doesNotMatch(code,/AIza[0-9A-Za-z_-]{35}/);
+  assert.doesNotMatch(code,/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/);
+});
