@@ -183,3 +183,51 @@ test('PIN generator security limitation remains explicit and must not be represe
   assert.match(body,/bukan klaim CSPRNG/i);
   assert.ok(body.includes("padStart(6, '0')"));
 });
+
+test('admin and member login failures are rate-limited and successful login resets only the matching counter',()=>{
+  const body=name=>{
+    const start=code.indexOf('function '+name+'(');
+    const end=code.indexOf('\nfunction ',start+1);
+    assert.ok(start>=0&&end>start,'missing function boundary for '+name);
+    return code.slice(start,end);
+  };
+  const admin=body('apiAdminLogin');
+  const member=body('apiMemberLogin');
+  const limiter=body('consumeRateLimit_');
+  assert.ok(admin.includes('consumeRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds'));
+  assert.ok(admin.includes("CacheService.getScriptCache().remove(key)"));
+  assert.ok(member.includes('recordMemberLoginFailure_(key)'));
+  assert.ok(member.includes("CacheService.getScriptCache().remove(key)"));
+  assert.ok(member.includes("'mps_member_login_' + sha256_(id).slice(0, 24)"));
+  assert.ok(!member.includes("remove('mps_member_login_global')"));
+  assert.ok(limiter.includes('LockService.getScriptLock()'));
+  assert.ok(limiter.includes('cache.get(key)'));
+  assert.ok(limiter.includes('cache.put(key, String(count + 1)'));
+});
+
+test('admin and member sessions have explicit bounded cache lifetimes and credential/PIN revocation checks',()=>{
+  assert.match(code,/adminSessionSeconds:\s*3600/);
+  assert.match(code,/sessionSeconds:\s*21600/);
+  const adminStart=code.indexOf('function apiAdminLogin('),adminEnd=code.indexOf('\nfunction ',adminStart+1);
+  const admin=code.slice(adminStart,adminEnd);
+  assert.ok(admin.includes('MPS.adminSessionSeconds'));
+  const memberStart=code.indexOf('function apiMemberLogin('),memberEnd=code.indexOf('\nfunction ',memberStart+1);
+  const member=code.slice(memberStart,memberEnd);
+  assert.ok(member.includes('MPS.sessionSeconds'));
+  const guardStart=code.indexOf('function requireMember_('),guardEnd=code.indexOf('\nfunction ',guardStart+1);
+  const guard=code.slice(guardStart,guardEnd);
+  assert.ok(guard.includes("sha256_(pinRecord).slice(0,32)"));
+  assert.ok(guard.includes("r[0] !== 'Berhasil' || r[7] !== 'Disetujui'"));
+});
+
+test('member-only Learning and VIP endpoints enforce authorization in backend, not only frontend',()=>{
+  const names=['apiGetLearningList','apiGetLearningFile','apiMemberSetLearningProgress','apiGetVipCalculatorHtml','apiCheckVipCalculatorAccess'];
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
+  const body=name=>{
+    const i=functions.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  };
+  for(const name of names) assert.match(body(name),/require(?:Vip)?Member_\(/,name+' must enforce backend member authorization');
+});
+
