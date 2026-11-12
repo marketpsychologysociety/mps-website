@@ -5,6 +5,10 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
 const source=readFileSync(fileURLToPath(new URL('../../candidates/Code.gs',import.meta.url)),'utf8');
+const cacheHelperStart=source.indexOf('function removeMpsCacheBestEffort_(');
+const cacheHelperEnd=source.indexOf('\nfunction ',cacheHelperStart+1);
+assert.ok(cacheHelperStart>=0&&cacheHelperEnd>cacheHelperStart,'cache helper boundaries must exist');
+const cacheHelperSource=source.slice(cacheHelperStart,cacheHelperEnd);
 new vm.Script(source,{filename:'candidate/Code.gs'});
 const start=source.indexOf('function activateMemberAfterPin_(memberId) {');
 const end=source.indexOf('function apiAdminLogin(',start+1);
@@ -61,7 +65,7 @@ function activationHarness({legacy=false,failAt=''}={}) {
     safeErrorMessage_:e=>String(e&&e.message||e),
     console
   };
-  vm.createContext(context);vm.runInContext(activationSource,context,{timeout:1000});
+  vm.createContext(context);vm.runInContext(cacheHelperSource,context,{timeout:1000});vm.runInContext(activationSource,context,{timeout:1000});
   return {run:()=>context.activateMemberAfterPin_(memberId),member,app,deposit,stats:()=>({writeCounts,lockDepth,lockReleases})};
 }
 
@@ -133,7 +137,7 @@ function legacyRejectHarness({failAt=''}={}) {
     sendTelegram_:()=>({ok:true}),recordMpsAudit_:()=>{},adminRole_:()=>'ADMIN',adminActorRef_:()=>'ADMIN',
     safeErrorMessage_:e=>String(e&&e.message||e),sheetText_:v=>String(v??''),console
   };
-  vm.createContext(context);vm.runInContext(legacyVerifySource,context,{timeout:1000});
+  vm.createContext(context);vm.runInContext(cacheHelperSource,context,{timeout:1000});vm.runInContext(legacyVerifySource,context,{timeout:1000});
   return {run:()=>context.adminVerifyLegacy_('session',memberId,'reject','Dokumen tidak valid'),member,app,access,stats:()=>({lockDepth})};
 }
 test('legacy rejection synchronizes member, application, and Telegram access states',()=>{
