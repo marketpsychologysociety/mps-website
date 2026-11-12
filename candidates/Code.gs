@@ -174,7 +174,7 @@ function createMemberTelegramLink_(memberId,applicationRef,onPrepared) {
   const prepared={token:token,row:linkRow};
   if(typeof onPrepared==='function')onPrepared(prepared);
   const values=[hash,now,expires,'Menunggu',memberId,applicationRef,'','','','', ''];
-  sh.getRange(linkRow,1,1,values.length).setValues([values]);
+  sh.appendRow(values);
   const bot=PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_BOT_USERNAME')||'MPS_Notificationnew_bot';
   return {ok:true,token:token,row:linkRow,url:'https://t.me/'+bot.replace(/^@/,'')+'?start='+token,expiresAt:formatDateForClient_(expires),expiresIn:900};
 }
