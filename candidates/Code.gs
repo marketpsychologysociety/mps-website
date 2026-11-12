@@ -2287,8 +2287,10 @@ function apiAdminSaveWebsiteSettings(session,payload) {
   requireSuperAdmin_(session);payload=payload||{};
   const speed=Number(payload.speed),theme=String(payload.theme||'Neon');
   if(!Number.isFinite(speed)||speed<10||speed>120||!['Neon','Gold','Blue','Purple'].includes(theme))throw new Error('Pengaturan kecepatan atau tema ticker tidak valid.');
+  const prefix=clean_(payload.prefix||'VIP LIVE',24)||'VIP LIVE',suffix=clean_(payload.suffix||'bergabung ke MPS VIP Community',100)||'bergabung ke MPS VIP Community';
+  if(!isSafePublicIdentity_(prefix)||!isSafePublicIdentity_(suffix))throw new Error('Label ticker tidak boleh memuat nomor kontak, email, ID member, login MT5, atau tautan pribadi.');
   const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers,true);
-  const values={VIP_TICKER_ENABLED:String(payload.enabled===true),VIP_TICKER_SPEED:String(Math.round(speed)),VIP_TICKER_THEME:theme,VIP_TICKER_PREFIX:clean_(payload.prefix||'VIP LIVE',24),VIP_TICKER_SUFFIX:clean_(payload.suffix||'bergabung ke MPS VIP Community',100)};
+  const values={VIP_TICKER_ENABLED:String(payload.enabled===true),VIP_TICKER_SPEED:String(Math.round(speed)),VIP_TICKER_THEME:theme,VIP_TICKER_PREFIX:prefix,VIP_TICKER_SUFFIX:suffix};
   const changes=[];
   try{
     Object.keys(values).forEach(function(key){
