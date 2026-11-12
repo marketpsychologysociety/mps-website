@@ -908,7 +908,7 @@ function apiAdminIssuePin(session, memberId) {
     const access=getTelegramAccessSheet_(),ar=findTelegramAccessByMemberId_(access,memberKey);if(!ar)throw new Error('Telegram member belum terhubung.');
     const telegramRow=access.getRange(ar,1,1,11).getValues()[0];chatId=String(telegramRow[2]||'');if(!chatId||String(telegramRow[1]||'')!==chatId)throw new Error('Identitas Telegram member tidak cocok.');
     const cached=CacheService.getScriptCache().get(pendingKey);
-    if(cached){try{const pending=JSON.parse(cached);if(pending&&/^\\d{6}$/.test(String(pending.pin||''))&&Date.now()-Number(pending.createdAt)<600000)pin=String(pending.pin);}catch(ignore){}}
+    if(cached){try{const pending=JSON.parse(cached);if(pending&&/^\d{6}$/.test(String(pending.pin||''))&&Date.now()-Number(pending.createdAt)<600000)pin=String(pending.pin);}catch(ignore){}}
     if(!pin){pin=generatePin_();CacheService.getScriptCache().put(pendingKey,JSON.stringify({pin:pin,createdAt:Date.now()}),600);}
     const props=PropertiesService.getScriptProperties();
     previousPinRecord=props.getProperty(pinKey);
