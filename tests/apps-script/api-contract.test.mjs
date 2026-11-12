@@ -61,6 +61,17 @@ test('database backup verifies private access and core member-sheet headers befo
 test('all frontend API calls route through the guarded google.script.run wrapper',()=>{
   assert.match(html,/function api\(method,\.\.\.args\)[\s\S]{0,500}runner\[method\]\(\.\.\.args\)/);
 });
+
+test('post-commit cache failures cannot turn a persisted public submission into a failure response',()=>{
+  const start=code.indexOf('function submitCore_(data) {');
+  const end=code.indexOf('function registerMember_(',start+1);
+  assert.ok(start>=0&&end>start,'submitCore_ boundaries must exist');
+  const body=code.slice(start,end);
+  assert.match(body,/Persistent business writes have completed at this point/);
+  assert.match(body,/try\s*\{\s*cache\.remove\('mps_public_dashboard_v480'\);\s*\}\s*catch\s*\(cacheErr\)/);
+  assert.match(body,/try\s*\{\s*cache\.put\('mps_req_'/);
+  assert.match(body,/catch\s*\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit request cache write failed/);
+});
 test('Telegram webhook secret is read from pathInfo and never placed in query parameters',()=>{
   const start=code.indexOf('function doPost(e)');
   const end=code.indexOf('\nfunction ',start+1);
