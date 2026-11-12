@@ -346,6 +346,17 @@ test('admin approval and website settings do not roll back committed business wr
   assert.match(legacy,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit legacy verification cache invalidation failed/);
 });
 
+test('public partner click throttles run before spreadsheet reads',()=>{
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
+  const i=functions.findIndex(m=>m[1]==='apiTrackPartnerClick');
+  assert.ok(i>=0,'partner click endpoint must exist');
+  const body=code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  const globalAt=body.indexOf("consumeRateLimit_('mps_ad_click_global'");
+  const perAdAt=body.indexOf("consumeRateLimit_('mps_ad_click_'+sha256_(adId)");
+  const sheetAt=body.indexOf('getMpsContentSheet_(');
+  assert.ok(globalAt>=0&&perAdAt>globalAt&&sheetAt>perAdAt,'both aggregate and per-ad throttles must run before spreadsheet access');
+});
+
 test('post-commit cache invalidation and Telegram/PIN cache hints fail safely',()=>{
   const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{
