@@ -2639,7 +2639,7 @@ function apiSubmitAdvertisingRequest(payload) {
   if(!brand||!contact||!/^\S+@\S+\.\S+$/.test(email)||!handle||!proposal)throw new Error('Lengkapi brand, kontak, email, dan proposal.');
   if(material&&!validHttpsUrl_(material))throw new Error('URL materi harus menggunakan HTTPS.');
   if(target&&!validHttpsUrl_(target))throw new Error('URL tujuan harus menggunakan HTTPS.');
-  consumeRateLimit_('mps_ad_request_'+sha256_(email).slice(0,24),3,86400,'Email ini sudah mengirim beberapa proposal dalam 6 jam terakhir. Hubungi admin MPS.');
+  consumeRateLimit_('mps_ad_request_'+sha256_(email).slice(0,24),3,86400,'Email ini sudah mengirim beberapa proposal dalam 24 jam terakhir. Hubungi admin MPS.');
   const packageId=clean_(payload.packageId,60);
   if(packageId){const packages=readMpsContentRows_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers);if(!packages.some(function(x){return String(x['Package ID'])===packageId&&x.Status==='Active';}))throw new Error('Paket iklan tidak tersedia. Pilih paket yang masih aktif.');}
   const sh=getMpsContentSheet_(MPS_AD_REQUESTS.sheet,MPS_AD_REQUESTS.headers,true);
