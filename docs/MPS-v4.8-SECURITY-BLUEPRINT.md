@@ -237,7 +237,7 @@ This status record separates documented design, isolated source work, synthetic 
 - [x] Sandbox ownership check for draw execution and expected-version (`If-Match`) guards for approval, execution, and publication.
 - [x] Contract tests for cross-owner mutation and missing/stale version preconditions.
 - [x] Privacy test corrected to report SKIP when no actual public projection fixture exists; null output is not counted as privacy proof.
-- [x] Announcement public ticker/frontend privacy controls documented and implemented in isolated frontend workbench: generic public copy, masked-ID-only policy, strict rendering, safe link handling, no names/full IDs.
+- [x] Public VIP ticker privacy controls documented and implemented in isolated workbench: real approved member display names are intentionally visible (not masked); full member IDs and unrelated personal/account/payment data remain excluded; strict rendering and safe link handling.
 
 ### Test evidence and limitations
 
