@@ -339,7 +339,7 @@
   <script>
     'use strict';
     const INITIAL_PAGE = '<?= initialPage ?>';
-    const state = { adminSession: '', adminRole: '', memberSession: '', memberId: '', memberName: '', proofDataUrl: '', proofMime: '', proofName: '', pdfUrls: [], pulseData: null, intelligence: null, pulseAccessMode: '', pulsePair: 'EURUSD', pulseTf: 5, pulseSlot: 'S', pendingPulseUpload: null, vipCalculatorLoaded: false, vipCalculatorTimer: null, vipCalculatorLastCheck: 0, memberSchemaPreflight: null };
+    const state = { adminSession: '', adminRole: '', memberSession: '', memberId: '', memberName: '', proofDataUrl: '', proofMime: '', proofName: '', pdfUrls: [], pulseData: null, intelligence: null, pulseAccessMode: '', pulsePair: 'EURUSD', pulseTf: 5, pulseSlot: 'S', pendingPulseUpload: null, vipCalculatorLoaded: false, vipCalculatorTimer: null, vipCalculatorLastCheck: 0, vipCalculatorBridgeNonce: '', memberSchemaPreflight: null };
     const $ = (id) => document.getElementById(id);
     function showToast(message){const t=$('toast');t.textContent=message;t.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.classList.remove('show'),3600)}
     function showNotice(el,message,type){el.textContent=message;el.className='notice '+(type||'');el.classList.remove('hidden')}
@@ -351,15 +351,21 @@
     // Bridge penyimpanan untuk iframe Calculator yang sengaja diisolasi dari origin portal.
     // Hanya iframe Calculator aktif yang boleh meminta/menulis data milik Member ID sesi saat ini.
     window.addEventListener('message',e=>{
-      const frame=$('vipCalculatorFrame');if(!frame||e.source!==frame.contentWindow||!state.memberId||!e.data||typeof e.data.type!=='string')return;
-      const storageKey='mps_calc_v2_'+state.memberId;
+      const frame=$('vipCalculatorFrame');
+      if(!frame||e.source!==frame.contentWindow||e.origin!=='null'||!state.memberId||!state.vipCalculatorBridgeNonce||!e.data||typeof e.data.type!=='string'||e.data.nonce!==state.vipCalculatorBridgeNonce)return;
+      const storageKey='mps_calc_v2_'+state.memberId,nonce=state.vipCalculatorBridgeNonce;
       if(e.data.type==='mps-calc-storage-get'){
         let value=null;try{value=localStorage.getItem(storageKey)}catch(_){}
-        try{frame.contentWindow.postMessage({type:'mps-calc-storage-value',value:value},'*')}catch(_){}
+        try{frame.contentWindow.postMessage({type:'mps-calc-storage-value',value:value,nonce:nonce},'*')}catch(_){}
       }else if(e.data.type==='mps-calc-storage-set'&&typeof e.data.value==='string'&&e.data.value.length<=12000){
         try{const parsed=JSON.parse(e.data.value);if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))localStorage.setItem(storageKey,e.data.value)}catch(_){}
       }
     });
+    function createVipCalculatorBridgeNonce(){
+      if(!window.crypto||!window.crypto.getRandomValues)throw new Error('Browser tidak mendukung kanal aman Calculator. Perbarui browser.');
+      const bytes=new Uint8Array(32);window.crypto.getRandomValues(bytes);
+      return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
     function setBusy(button,busy,label){if(!button)return;button.disabled=busy;if(busy){button.dataset.oldLabel=button.textContent;button.textContent='MEMPROSES...'}else{button.textContent=label||button.dataset.oldLabel||'KIRIM'}}
     function go(page){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+page));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('mainNav').classList.remove('open');window.scrollTo({top:0,behavior:'smooth'});if(page==='dashboard')loadDashboard();if(page==='heatmap')loadHeatmap();if(page==='admin'&&state.adminSession){loadAdminQueue();if(state.adminRole==='SUPER_ADMIN')loadAdminContent();}if(page==='learning'&&(state.memberSession||state.adminSession))loadLearning();if(page==='pulse'&&(state.memberSession||state.adminSession))loadPulse();if(page==='calculator')loadVipCalculator();if(page==='news')loadNews()}
     document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
@@ -391,17 +397,19 @@
 
     async function loadVipCalculator(){
       const login=$('calculatorLoginPanel'),panel=$('calculatorPanel'),notice=$('calculatorAccessNotice'),frame=$('vipCalculatorFrame');
-      frame.srcdoc='';state.vipCalculatorLoaded=false;panel.classList.add('hidden');notice.classList.add('hidden');
+      stopVipCalculatorMonitor();state.vipCalculatorBridgeNonce='';frame.srcdoc='';state.vipCalculatorLoaded=false;panel.classList.add('hidden');notice.classList.add('hidden');
       if(!state.memberSession){login.classList.remove('hidden');return false;}
       login.classList.add('hidden');notice.textContent='Memeriksa status member dan keanggotaan VIP Telegram...';notice.classList.remove('hidden');notice.classList.remove('error');
       try{
         const result=await api('apiGetVipCalculatorHtml',state.memberSession);
         if(!result||result.ok!==true||typeof result.html!=='string'||!result.html)throw new Error('Calculator VIP tidak dapat dimuat.');
-        frame.srcdoc=result.html;state.vipCalculatorLoaded=true;panel.classList.remove('hidden');notice.classList.add('hidden');
+        const bridgeNonce=createVipCalculatorBridgeNonce(),bridgeMarker='__MPS_CALC_BRIDGE_NONCE__';
+        if(!result.html.includes(bridgeMarker))throw new Error('Versi Calculator tidak mendukung kanal penyimpanan aman.');
+        state.vipCalculatorBridgeNonce=bridgeNonce;frame.srcdoc=result.html.split(bridgeMarker).join(bridgeNonce);state.vipCalculatorLoaded=true;panel.classList.remove('hidden');notice.classList.add('hidden');
         startVipCalculatorMonitor();
         return true;
       }catch(err){
-        stopVipCalculatorMonitor();frame.srcdoc='';state.vipCalculatorLoaded=false;login.classList.remove('hidden');notice.textContent=err&&err.message?err.message:'Akses Calculator VIP ditolak.';notice.classList.add('error');notice.classList.remove('hidden');
+        stopVipCalculatorMonitor();state.vipCalculatorBridgeNonce='';frame.srcdoc='';state.vipCalculatorLoaded=false;login.classList.remove('hidden');notice.textContent=err&&err.message?err.message:'Akses Calculator VIP ditolak.';notice.classList.add('error');notice.classList.remove('hidden');
         return false;
       }
     }
@@ -411,7 +419,7 @@
       const now=Date.now();if(now-state.vipCalculatorLastCheck<15000)return;state.vipCalculatorLastCheck=now;
       try{const result=await api('apiCheckVipCalculatorAccess',state.memberSession);if(!result||result.ok!==true)throw new Error('Verifikasi ulang akses VIP gagal.');}
       catch(err){
-        stopVipCalculatorMonitor();state.vipCalculatorLoaded=false;$('vipCalculatorFrame').srcdoc='';$('calculatorPanel').classList.add('hidden');$('calculatorLoginPanel').classList.remove('hidden');
+        stopVipCalculatorMonitor();state.vipCalculatorLoaded=false;state.vipCalculatorBridgeNonce='';$('vipCalculatorFrame').srcdoc='';$('calculatorPanel').classList.add('hidden');$('calculatorLoginPanel').classList.remove('hidden');
         const notice=$('calculatorAccessNotice');notice.textContent=(err&&err.message?err.message:'Keanggotaan VIP tidak lagi dapat diverifikasi.')+' Calculator dikunci sampai akses berhasil diverifikasi kembali.';notice.classList.add('error');notice.classList.remove('hidden');
       }
     }
@@ -480,7 +488,7 @@
     $('refreshNews').addEventListener('click',async()=>{state.intelligence=null;await loadNews()});
     $('advertiseForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=$('advertiseSubmit');const d=Object.fromEntries(new FormData(f).entries());setBusy(b,true);$('advertiseResult').classList.add('hidden');try{const r=await api('apiSubmitAdvertisingRequest',d);if(!r.ok)throw new Error(r.error||'Proposal gagal dikirim.');showNotice($('advertiseResult'),'Proposal diterima. Nomor pengajuan: '+r.requestId+'. Admin MPS akan meninjau proposal sebelum ada penawaran atau penayangan.','success');f.reset()}catch(err){showNotice($('advertiseResult'),err.message,'error')}finally{setBusy(b,false,'KIRIM PROPOSAL')}});
 
-    async function logoutMember(){try{await api('apiMemberLogout',state.memberSession)}catch(e){}state.memberSession='';state.memberId='';state.intelligence=null;state.pulseData=null;state.pulseAccessMode='';state.vipCalculatorLoaded=false;$('vipCalculatorFrame').srcdoc='';$('calculatorPanel').classList.add('hidden');$('calculatorAccessNotice').classList.add('hidden');$('calculatorLoginPanel').classList.remove('hidden');state.pdfUrls.forEach(u=>URL.revokeObjectURL(u));state.pdfUrls=[];$('learningFiles').replaceChildren();$('learningPanel').classList.add('hidden');$('pulsePanel').classList.add('hidden');$('learningPublicPreview').classList.remove('hidden');$('pulsePublicPreview').classList.remove('hidden');$('memberLoginPanel').classList.remove('hidden');$('pulseLoginPanel').classList.remove('hidden');$('heatPublicPreview').classList.remove('hidden');$('heatTotal').textContent='Member Only';$('heatCountries').replaceChildren();$('heatEmpty').textContent='Heatmap hanya tersedia untuk member dengan status pendaftaran Berhasil dan deposit Disetujui.';$('dashAll').textContent='Member Only';$('dashCountries').textContent='—';$('dashboardAds').replaceChildren();$('dashboardAdsPanel').classList.add('hidden');$('countryChart').textContent='Dashboard komunitas tersedia setelah login member.';$('monthlyChart').textContent='Gabung MPS untuk melihat statistik komunitas.';if(!state.adminSession){$('newsMemberPanel').classList.add('hidden');$('newsPublicPreview').classList.remove('hidden');$('newsItems').replaceChildren();$('calendarItems').replaceChildren();$('briefingItems').replaceChildren();$('memberAds').replaceChildren()}$('memberLoginForm').reset();$('pulseLoginForm').reset();$('calculatorLoginForm').reset();showToast('Sesi member ditutup.')}
+    async function logoutMember(){stopVipCalculatorMonitor();state.vipCalculatorBridgeNonce='';try{await api('apiMemberLogout',state.memberSession)}catch(e){}state.memberSession='';state.memberId='';state.intelligence=null;state.pulseData=null;state.pulseAccessMode='';state.vipCalculatorLoaded=false;$('vipCalculatorFrame').srcdoc='';$('calculatorPanel').classList.add('hidden');$('calculatorAccessNotice').classList.add('hidden');$('calculatorLoginPanel').classList.remove('hidden');state.pdfUrls.forEach(u=>URL.revokeObjectURL(u));state.pdfUrls=[];$('learningFiles').replaceChildren();$('learningPanel').classList.add('hidden');$('pulsePanel').classList.add('hidden');$('learningPublicPreview').classList.remove('hidden');$('pulsePublicPreview').classList.remove('hidden');$('memberLoginPanel').classList.remove('hidden');$('pulseLoginPanel').classList.remove('hidden');$('heatPublicPreview').classList.remove('hidden');$('heatTotal').textContent='Member Only';$('heatCountries').replaceChildren();$('heatEmpty').textContent='Heatmap hanya tersedia untuk member dengan status pendaftaran Berhasil dan deposit Disetujui.';$('dashAll').textContent='Member Only';$('dashCountries').textContent='—';$('dashboardAds').replaceChildren();$('dashboardAdsPanel').classList.add('hidden');$('countryChart').textContent='Dashboard komunitas tersedia setelah login member.';$('monthlyChart').textContent='Gabung MPS untuk melihat statistik komunitas.';if(!state.adminSession){$('newsMemberPanel').classList.add('hidden');$('newsPublicPreview').classList.remove('hidden');$('newsItems').replaceChildren();$('calendarItems').replaceChildren();$('briefingItems').replaceChildren();$('memberAds').replaceChildren()}$('memberLoginForm').reset();$('pulseLoginForm').reset();$('calculatorLoginForm').reset();showToast('Sesi member ditutup.')}
     $('memberLogout').addEventListener('click',logoutMember);
     $('pulseLogout').addEventListener('click',async()=>{if(state.pulseAccessMode==='admin'){state.pulseData=null;state.pulseAccessMode='';$('pulsePanel').classList.add('hidden');$('pulseLoginPanel').classList.remove('hidden');showToast('Preview admin ditutup.')}else{await logoutMember()}});
     $('adminPulsePreview').addEventListener('click',async()=>{if(!state.adminSession){showToast('Login admin terlebih dahulu melalui menu Admin.');go('admin');return}state.pulseAccessMode='admin';state.pulseData=null;$('pulsePublicPreview').classList.add('hidden');$('pulseLoginPanel').classList.add('hidden');$('pulsePanel').classList.remove('hidden');$('pulseWelcome').textContent='MPS Market Pulse · PREVIEW ADMIN';await loadPulse()});
