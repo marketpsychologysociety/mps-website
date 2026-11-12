@@ -92,10 +92,12 @@ function doGet(e) {
 
 /** Backward-compatible POST endpoint; frontend utama memakai apiSubmit(). */
 function doPost(e) {
-  const params = (e && e.parameter) || {};
-  if (Object.prototype.hasOwnProperty.call(params, 'tg')) {
+  // Apps Script mengekspos pathInfo, tetapi tidak mengekspos header Telegram.
+  // Secret ditempatkan pada path acak, bukan query string yang lebih mudah tercatat di log URL.
+  const webhookPath = String(e && e.pathInfo || '').replace(/^\\/+|\\/+$/g, '');
+  if (webhookPath) {
     const expected = PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_WEBHOOK_SECRET') || '';
-    if (!expected || !constantTimeEquals_(String(params.tg || ''), expected)) {
+    if (!expected || !constantTimeEquals_(webhookPath, expected)) {
       return HtmlService.createHtmlOutput('Forbidden');
     }
     try {
@@ -1387,9 +1389,9 @@ function setupTelegram_() {
   if (!info.ok) throw new Error('Tidak dapat memeriksa konfigurasi webhook Telegram.');
   const webAppUrl = ScriptApp.getService().getUrl();
   if (!webAppUrl) throw new Error('Deploy Web App MPS terlebih dahulu sebelum mengaktifkan webhook Telegram.');
-  // Apps Script doPost tidak mengekspos header request Telegram. Karena itu secret_token
-  // juga dipertahankan sebagai query secret acak; jangan pernah menulis URL ini ke log.
-  const webhookUrl = webAppUrl + '?tg=' + encodeURIComponent(webhookSecret);
+  // Apps Script doPost tidak mengekspos header request Telegram.
+  // Gunakan pathInfo berisi secret acak; hindari query string agar tidak bocor lewat log query.
+  const webhookUrl = webAppUrl.replace(/\\/+$/, '') + '/' + encodeURIComponent(webhookSecret);
   const setResp = UrlFetchApp.fetch(base + 'setWebhook', {
     method: 'post',
     payload: {
