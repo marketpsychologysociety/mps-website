@@ -51,6 +51,7 @@ function activationHarness({legacy=false,failAt=''}={}) {
     LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;lockReleases++;}})},
     PropertiesService:{getScriptProperties:()=>({getProperty:key=>props[key]||''})},
     CacheService:{getScriptCache:()=>({remove:()=>{}})},
+    openDatabase_:()=>({getSheetByName:()=>appSheet}),
     getMemberSheet_:()=>memberSheet,getMpsApplicationsSheet_:()=>appSheet,getMpsDepositsSheet_:()=>depositSheet,
     findMemberById_:()=>2,findMpsApplicationRowByMember_:()=>2,findMpsDepositRow_:()=>2,
     pinPropertyKey_:id=>'MPS_PIN_'+id,
