@@ -346,6 +346,23 @@ test('admin approval and website settings do not roll back committed business wr
   assert.match(legacy,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit legacy verification cache invalidation failed/);
 });
 
+test('post-commit cache invalidation and Telegram/PIN cache hints fail safely',()=>{
+  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const body=name=>{
+    const i=functions.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  };
+  const remove=body('removeMpsCacheBestEffort_');
+  const put=body('putMpsCacheBestEffort_');
+  assert.match(remove,/catch\\(cacheErr\\)[\\s\\S]*return false/);
+  assert.match(put,/catch\\(cacheErr\\)[\\s\\S]*return false/);
+  assert.match(body('processMpsVipChatMemberEvent_'),/removeMpsCacheBestEffort_\\('mps_public_center_v480'/);
+  assert.match(body('markTelegramLinkConsumed_'),/putMpsCacheBestEffort_\\('mps_tg_link_'/);
+  assert.match(body('apiAdminIssuePin'),/removeMpsCacheBestEffort_\\(pendingKey/);
+  assert.doesNotMatch(code,/CacheService\\.getScriptCache\\(\\)\\.remove\\('mps_public_center_v480'\\)/);
+});
+
 test('public VIP ticker rejects short numeric identifiers, Telegram handles and embedded @usernames',()=>{
   const start=code.indexOf('function isSafePublicIdentity_(');
   const end=code.indexOf(String.fromCharCode(10)+'function ',start+1);
