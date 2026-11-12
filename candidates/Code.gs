@@ -1117,7 +1117,9 @@ function apiGetLearningList(session) {
   return listLearningFiles_(member.memberId,false);
 }
 function listLearningFiles_(memberId,isAdmin) {
-  const folderId=getLearningFolderId_(),folder=DriveApp.getFolderById(folderId),files=folder.getFiles();
+  const folderId=getLearningFolderId_(),folder=DriveApp.getFolderById(folderId);
+  if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder Learning tidak PRIVATE. Akses materi dihentikan sampai folder diamankan.');
+  const files=folder.getFiles();
   const catalogRows=readMpsContentRows_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers),catalog={};catalogRows.forEach(r=>{catalog[String(r['File ID'])]=r;});
   const progressRows=memberId&&memberId!=='ADMIN-PREVIEW'?readMpsContentRows_(MPS_LEARNING_PROGRESS.sheet,MPS_LEARNING_PROGRESS.headers):[],progress={};
   progressRows.forEach(r=>{if(String(r['Member ID'])===String(memberId))progress[String(r['File ID'])]=r;});
@@ -1286,6 +1288,8 @@ function apiAdminGetLearningFile(session, fileId) {
   const id = String(fileId || '').trim();
   if (!/^[A-Za-z0-9_-]{15,}$/.test(id)) throw new Error('File materi tidak valid.');
   const folderId = getLearningFolderId_();
+  const folder = DriveApp.getFolderById(folderId);
+  if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder Learning tidak PRIVATE. Akses file admin dihentikan sampai folder diamankan.');
   const file = DriveApp.getFileById(id);
   if (file.isTrashed() || file.getMimeType() !== MimeType.PDF || file.getSize() > MPS.maxLearningFileBytes || String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) {
     throw new Error('File tidak tersedia atau melebihi batas ukuran 8 MB.');
