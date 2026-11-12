@@ -349,3 +349,28 @@ test('public VIP ticker rejects short numeric identifiers, Telegram handles and 
   assert.ok(body.includes('@[A-Z0-9_]{5,32}'+slash+'b'),'@usernames must be filtered regardless of preceding punctuation');
   assert.ok(body.includes('TELEGRAM'+slash+'s*(?:ID|USERNAME|USER(?:NAME)?)'),'labelled Telegram identifiers must be filtered');
 });
+
+test('expensive Super Admin reads and validation endpoints are actor-throttled after authorization',()=>{
+  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const body=name=>{
+    const i=functions.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  };
+  const expected={
+    apiAdminGetLearningList:'mps_admin_learning_list_',
+    apiAdminGetLearningFile:'mps_admin_learning_file_',
+    apiAdminValidateMarketPulseUpload:'mps_admin_pulse_validate_',
+    apiAdminCheckSystemConfiguration:'mps_admin_config_check_',
+    apiAdminCheckStorageSecurity:'mps_admin_storage_audit_',
+    apiAdminGetAuditLogs:'mps_admin_audit_logs_',
+    apiAdminGetContent:'mps_admin_content_'
+  };
+  for(const [name,key] of Object.entries(expected)){
+    const source=body(name);
+    assert.match(source,/requireSuperAdmin_\\(session\\)/,name+' must remain Super Admin only');
+    assert.ok(source.includes(key),name+' must use a per-actor throttle key');
+    assert.match(source,/consumeRateLimit_\\(/,name+' must be throttled');
+    assert.ok(source.indexOf('requireSuperAdmin_')<source.indexOf('consumeRateLimit_'),name+' must authorize before consuming the throttle');
+  }
+});
