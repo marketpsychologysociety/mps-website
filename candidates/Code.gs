@@ -611,12 +611,12 @@ function apiAdminList(session) {
   const deposits=[];if(depositsSheet.getLastRow()>1){depositsSheet.getRange(2,1,depositsSheet.getLastRow()-1,MPS_DEPOSITS.headers.length).getValues().forEach(d=>{
     const ref=String(d[0]||''),app=appByRef[ref];if(!app||!['Menunggu Telegram','Menunggu Validasi Admin'].includes(String(d[9]||'')))return;
     const access=accessById[ref.toUpperCase()];
-    deposits.push({applicationRef:ref,memberId:ref,issuedMemberId:'',registeredAt:app.registeredAt,nickname:app.nickname,telegram:app.telegram,country:app.country,goal:app.goal,accountName:String(d[2]||''),mt5Login:String(d[3]||''),accountType:String(d[4]||''),amount:Number(d[5]||0),depositDate:formatDateForClient_(d[6]),proofUrl:String(d[8]||''),depositStatus:String(d[9]||''),registrationStatus:String(app.status||''),adminNote:String(d[12]||app.adminNote||''),telegramStatus:access?'Terverifikasi':'Belum Terhubung',vipStatus:access?String(access.data[6]||'Menunggu'):'Belum terhubung'});
+    deposits.push({applicationRef:ref,memberId:ref,issuedMemberId:'',registeredAt:app.registeredAt,nickname:app.nickname,telegram:app.telegram,country:app.country,goal:app.goal,accountName:String(d[2]||''),mt5Login:String(d[3]||''),accountType:String(d[4]||''),amount:Number(d[5]||0),depositDate:formatDateForClient_(d[6]),depositStatus:String(d[9]||''),registrationStatus:String(app.status||''),adminNote:String(d[12]||app.adminNote||''),telegramStatus:access?'Terverifikasi':'Belum Terhubung',vipStatus:access?String(access.data[6]||'Menunggu'):'Belum terhubung'});
   });}
   const history=[],last=sheet.getLastRow(),rows=last>1?sheet.getRange(2,1,last-1,MPS.headers.length).getValues():[];
   rows.forEach((r,i)=>{const id=String(r[MPS_COL.id-1]||'').trim();if(!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id))return;
     const appRef=String(r[24]||''),app=appByRef[appRef]||{},access=accessById[id.toUpperCase()];
-    const member={row:i+2,applicationRef:appRef,memberId:id,registeredAt:formatDateForClient_(r[1]),nickname:String(r[2]||''),telegram:String(r[3]||''),country:String(r[4]||''),goal:String(r[5]||''),registrationStatus:String(r[7]||''),accountName:String(r[8]||''),mt5Login:String(r[9]||''),accountType:String(r[10]||''),amount:Number(r[11]||0),depositDate:formatDateForClient_(r[12]),proofUrl:String(r[13]||''),depositStatus:String(r[14]||''),adminNote:String(r[15]||''),confirmedAt:formatDateForClient_(r[16]),updatedAt:formatDateForClient_(r[17]),telegramStatus:access?'Terverifikasi':'Belum Terhubung',vipStatus:access?String(access.data[6]||'Menunggu'):'Belum terhubung'};
+    const member={row:i+2,applicationRef:appRef,memberId:id,registeredAt:formatDateForClient_(r[1]),nickname:String(r[2]||''),telegram:String(r[3]||''),country:String(r[4]||''),goal:String(r[5]||''),registrationStatus:String(r[7]||''),accountName:String(r[8]||''),mt5Login:String(r[9]||''),accountType:String(r[10]||''),amount:Number(r[11]||0),depositDate:formatDateForClient_(r[12]),depositStatus:String(r[14]||''),adminNote:String(r[15]||''),confirmedAt:formatDateForClient_(r[16]),updatedAt:formatDateForClient_(r[17]),telegramStatus:access?'Terverifikasi':'Belum Terhubung',vipStatus:access?String(access.data[6]||'Menunggu'):'Belum terhubung'};
     // Historical directory is not an approval queue: omit proof links, MT5 login,
     // account details and internal row/application references from its response.
     history.push({memberId:member.memberId,registeredAt:member.registeredAt,nickname:member.nickname,telegram:member.telegram,country:member.country,registrationStatus:member.registrationStatus,amount:member.amount,depositStatus:member.depositStatus,adminNote:member.adminNote,updatedAt:member.updatedAt});
@@ -624,6 +624,31 @@ function apiAdminList(session) {
   });
   registrations.reverse();deposits.reverse();history.reverse();
   return {ok:true,registrations:registrations,deposits:deposits,members:deposits,history:history,totalMembers:history.length,totalApplications:appRows.length};
+}
+
+
+function apiAdminGetDepositProof(session,applicationRefOrMemberId) {
+  const admin=requireAdmin_(session);
+  consumeRateLimit_('mps_admin_proof_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),8,60,'Permintaan bukti deposit terlalu sering. Coba lagi sebentar.');
+  const key=clean_(applicationRefOrMemberId,48).toUpperCase();
+  let proofUrl='',expectedFileId='';
+  if(/^MPS-APP-[A-F0-9]{20}$/.test(key)){
+    const sheet=getMpsDepositsSheet_(),row=findMpsDepositRow_(sheet,key);
+    if(!row)throw new Error('Data konfirmasi deposit tidak ditemukan.');
+    const dep=sheet.getRange(row,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
+    if(String(dep[0]||'').toUpperCase()!==key||!['Menunggu Telegram','Menunggu Validasi Admin'].includes(String(dep[9]||'')))throw new Error('Bukti hanya tersedia untuk pengajuan deposit yang masih menunggu verifikasi.');
+    expectedFileId=String(dep[7]||'');proofUrl=String(dep[8]||'');
+  }else if(/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(key)){
+    const sheet=getMemberSheet_(),row=findMemberById_(sheet,key);
+    if(!row)throw new Error('Data member tidak ditemukan.');
+    const member=sheet.getRange(row,1,1,MPS.headers.length).getValues()[0];
+    if(String(member[MPS_COL.depositStatus-1]||'')!=='Menunggu verifikasi')throw new Error('Bukti hanya tersedia untuk deposit legacy yang masih menunggu verifikasi.');
+    proofUrl=String(member[MPS_COL.proofUrl-1]||'');
+  }else throw new Error('Application Ref atau ID Member tidak valid.');
+  const proof=validateProofFileForApproval_(proofUrl);
+  if(expectedFileId&&proof.fileId!==expectedFileId)throw new Error('ID file bukti tidak cocok dengan catatan deposit.');
+  const file=DriveApp.getFileById(proof.fileId),bytes=file.getBlob().getBytes();
+  return {ok:true,name:clean_(file.getName(),120),mimeType:String(file.getMimeType()),base64:Utilities.base64Encode(bytes)};
 }
 
 function apiAdminTelegramSetup(session) {
