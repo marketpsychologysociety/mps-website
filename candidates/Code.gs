@@ -1102,8 +1102,8 @@ function apiAdminSaveLearningCatalog(session,payload) {
   let inFolder=false,parents=file.getParents();while(parents.hasNext())if(parents.next().getId()===folderId)inFolder=true;
   if(!inFolder)throw new Error('PDF harus berada di folder Learning privat MPS.');
   const sh=getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers,true);
-  upsertMpsContentRow_(sh,fileId,[fileId,sheetText_(title),sheetText_(category),sheetText_(level),sheetText_(description),Math.round(order),status,new Date()]);recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_CATALOG_UPDATED',fileId,'SUCCESS','Katalog materi '+status+'.');
-  return {ok:true,message:'Katalog materi Learning diperbarui.'};
+  upsertMpsContentRow_(sh,fileId,[fileId,sheetText_(title),sheetText_(category),sheetText_(level),sheetText_(description),Math.round(order),status,new Date()]);const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_CATALOG_UPDATED',fileId,'SUCCESS','Katalog materi '+status+'.');
+  return {ok:true,message:'Katalog materi Learning diperbarui.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 function apiAdminUploadLearningFile(session,payload) {
   requireSuperAdmin_(session);payload=payload||{};
@@ -1146,8 +1146,8 @@ function apiAdminDeleteLearningFile(session,fileId) {
   const name=file.getName();if(/^MPS Market Pulse/i.test(name))throw new Error('File Market Pulse dan backup-nya dilindungi dari Learning Manager.');
   file.setTrashed(true);
   // Keep catalog metadata/status so restoring from Drive Trash preserves Draft/Hidden/Published state.
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_PDF_TRASHED',id,'SUCCESS','PDF dipindahkan ke Trash Drive; metadata katalog dipertahankan agar status akses tetap sama jika file dipulihkan.');
-  return {ok:true,message:'PDF dipindahkan ke Trash Drive. File dapat dipulihkan dari Trash.'};
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_PDF_TRASHED',id,'SUCCESS','PDF dipindahkan ke Trash Drive; metadata katalog dipertahankan agar status akses tetap sama jika file dipulihkan.');
+  return {ok:true,message:'PDF dipindahkan ke Trash Drive. File dapat dipulihkan dari Trash.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function apiAdminValidateMarketPulseUpload(session,payload) {
