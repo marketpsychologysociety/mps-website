@@ -47,15 +47,14 @@ test('all frontend API calls route through the guarded google.script.run wrapper
 });
 test('Telegram webhook secret is read from pathInfo and never placed in query parameters',()=>{
   const start=code.indexOf('function doPost(e)');
-  const end=code.indexOf('\\nfunction ',start+1);
+  const end=code.indexOf('\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'doPost boundaries must exist');
   const body=code.slice(start,end);
-  assert.match(body,/e\\s*&&\\s*e\\.pathInfo/);
-  assert.doesNotMatch(body,/e\\.parameter|params\\.tg/);
-  assert.match(code,/webAppUrl\\.replace\\([^;]+\\)\\s*\\+\\s*'\\/'\\s*\\+\\s*encodeURIComponent\\(webhookSecret\\)/);
-  assert.doesNotMatch(code,/webAppUrl\\s*\\+\\s*'\\?tg='/);
+  assert.match(body,/e\s*&&\s*e\.pathInfo/);
+  assert.doesNotMatch(body,/e\.parameter|params\.tg/);
+  assert.match(code,/webAppUrl\.replace\([^;]+\)\s*\+\s*'\/'\s*\+\s*encodeURIComponent\(webhookSecret\)/);
+  assert.doesNotMatch(code,/webAppUrl\s*\+\s*'\?tg='/);
 });
-
 test('backend router does not expose a generic unauthenticated doPost method dispatcher',()=>{
   const doPost=code.slice(code.indexOf('function doPost(e)'),code.indexOf('\nfunction doGet(e)'));
   assert.doesNotMatch(doPost,/data\.method|data\.action|this\[|globalThis\[|eval\s*\(/);
