@@ -108,6 +108,23 @@ test('Market Pulse upload verifies the created Drive file is PRIVATE before repo
   assert.ok(body.includes('DriveApp.Access.PRIVATE'));
 });
 
+test('Market Pulse member and admin endpoints enforce backend authorization and per-principal throttling',()=>{
+  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const body=name=>{
+    const i=functions.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  };
+  const member=body('apiGetMarketPulse');
+  assert.match(member,/requireMember_\\(session\\)/);
+  assert.match(member,/mps_market_pulse_/);
+  assert.match(member,/consumeRateLimit_\\(/);
+  const admin=body('apiAdminGetMarketPulse');
+  assert.match(admin,/requireAdmin_\\(session\\)/);
+  assert.match(admin,/mps_market_pulse_admin_/);
+  assert.match(admin,/consumeRateLimit_\\(/);
+});
+
 test('Learning PDF upload requires a private parent folder and verifies file privacy',()=>{
   const start=code.indexOf('function apiAdminUploadLearningFile(session,payload) {');
   const end=code.indexOf('\nfunction ',start+1);
