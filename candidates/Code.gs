@@ -2668,8 +2668,8 @@ function apiAdminReviewAdvertisingRequest(session,requestId,decision,note,paymen
     if(!row)throw new Error('Proposal iklan tidak ditemukan.');
     const status=choice==='review'?'Under Review':choice==='approve'?'Approved':'Rejected';
     sh.getRange(row,13,1,4).setValues([[status,sheetText_(clean_(note,500)),payment,new Date()]]);
-    recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_REQUEST_REVIEWED',id,'SUCCESS','Status '+status+'; pembayaran '+payment+'.');
-    return {ok:true,message:'Status proposal dan pembayaran diperbarui. Iklan belum tayang sampai materi disiapkan dan pembayaran berstatus Paid.'};
+    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_REQUEST_REVIEWED',id,'SUCCESS','Status '+status+'; pembayaran '+payment+'.');
+    return {ok:true,message:'Status proposal dan pembayaran diperbarui. Iklan belum tayang sampai materi disiapkan dan pembayaran berstatus Paid.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }finally{lock.releaseLock();}
 }
 
