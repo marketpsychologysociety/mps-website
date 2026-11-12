@@ -351,7 +351,7 @@ test('public VIP ticker rejects short numeric identifiers, Telegram handles and 
 });
 
 test('expensive Super Admin reads and validation endpoints are actor-throttled after authorization',()=>{
-  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{
     const i=functions.findIndex(m=>m[1]===name);
     assert.ok(i>=0,'missing '+name);
@@ -368,9 +368,9 @@ test('expensive Super Admin reads and validation endpoints are actor-throttled a
   };
   for(const [name,key] of Object.entries(expected)){
     const source=body(name);
-    assert.match(source,/requireSuperAdmin_\\(session\\)/,name+' must remain Super Admin only');
+    assert.match(source,/requireSuperAdmin_\(session\)/,name+' must remain Super Admin only');
     assert.ok(source.includes(key),name+' must use a per-actor throttle key');
-    assert.match(source,/consumeRateLimit_\\(/,name+' must be throttled');
+    assert.match(source,/consumeRateLimit_\(/,name+' must be throttled');
     assert.ok(source.indexOf('requireSuperAdmin_')<source.indexOf('consumeRateLimit_'),name+' must authorize before consuming the throttle');
   }
 });
