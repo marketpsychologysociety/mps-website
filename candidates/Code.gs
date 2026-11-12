@@ -2732,16 +2732,25 @@ function apiAdminSaveNewsReview(session, id, decision, category, summary) {
     const analysisRow=analysisSheet?findMpsContentRow_(analysisSheet,id):0;
     if(!analysisRow||String(analysisSheet.getRange(analysisRow,10).getDisplayValue()||'')!=='Published') throw new Error('Lengkapi dan publikasikan analisis dampak USD/XAUUSD sebelum berita diterbitkan.');
   }
-  const verification = String(sh.getRange(row,9).getDisplayValue()||''),sourceUrl=sh.getRange(row,7).getDisplayValue();
+  const before=sh.getRange(row,1,1,MPS_CONTENT.newsHeaders.length).getValues()[0];
+  const verification=String(before[8]||''),sourceUrl=String(before[6]||'');
   if(choice==='publish'&&!validHttpsUrl_(sourceUrl))throw new Error('Berita tidak dapat dipublikasikan tanpa sumber HTTPS yang dapat diperiksa.');
   if(choice==='publish'&&verification==='Official Source'&&!isMpsOfficialNewsUrl_(sourceUrl))throw new Error('Label Official Source hanya boleh digunakan untuk domain lembaga resmi yang terdaftar. Gunakan Reviewed by MPS Admin untuk media lain yang sudah diperiksa.');
-  if(choice==='publish'&&verification!=='Official Source')sh.getRange(row,9).setValue('Reviewed by MPS Admin');
-  sh.getRange(row,4).setValue(sheetText_(clean_(category||sh.getRange(row,4).getDisplayValue(),60)));
-  if (summary != null) sh.getRange(row,6).setValue(sheetText_(cleanNewsText_(summary,420)));
-  sh.getRange(row,8).setValue(choice==='publish'?'Published':'Hidden');
-  sh.getRange(row,13).setValue(new Date());
-  CacheService.getScriptCache().remove('mps_public_center_v480');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_REVIEW_'+choice.toUpperCase(),id,'SUCCESS','Status berita diubah oleh admin.');
-  return {ok:true,message:choice==='publish'?'Berita dipublikasikan.':'Berita disembunyikan.'};
+  const next=before.slice();
+  if(choice==='publish'&&verification!=='Official Source')next[8]='Reviewed by MPS Admin';
+  next[3]=sheetText_(clean_(category||before[3],60));
+  if(summary!=null)next[5]=sheetText_(cleanNewsText_(summary,420));
+  next[7]=choice==='publish'?'Published':'Hidden';
+  next[12]=new Date();
+  try{sh.getRange(row,1,1,MPS_CONTENT.newsHeaders.length).setValues([next]);}
+  catch(writeErr){
+    try{sh.getRange(row,1,1,before.length).setValues([before]);}
+    catch(rollbackErr){throw new Error('Review berita gagal dan rollback tidak lengkap: '+safeErrorMessage_(rollbackErr)+'. Periksa baris berita sebelum mencoba ulang.');}
+    throw new Error('Review berita gagal; snapshot berita berhasil dipulihkan: '+safeErrorMessage_(writeErr));
+  }
+  CacheService.getScriptCache().remove('mps_public_center_v480');
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_REVIEW_'+choice.toUpperCase(),id,'SUCCESS','Status berita diubah oleh admin.');
+  return {ok:true,message:choice==='publish'?'Berita dipublikasikan.':'Berita disembunyikan.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function apiAdminSaveAnnouncement(session,payload) {
