@@ -2326,6 +2326,12 @@ function apiGetPublicCenter() {
 }
 
 /** VIP endpoint: membutuhkan sesi member yang sudah Berhasil dan deposit Disetujui. */
+function isMpsNewsAccessible_(access, includeVipContent) {
+  const level=String(access||'MEMBER').trim().toUpperCase();
+  if(level==='VIP')return includeVipContent===true;
+  return ['PUBLIC','MEMBER'].includes(level);
+}
+
 function buildMpsMemberIntelligence_(member, includeVipContent) {
   const briefings = includeVipContent===true ? readMpsContentRows_(MPS_CONTENT.briefingSheet, MPS_CONTENT.briefingHeaders)
     .filter(function(r) { return r.Status === 'Published'; })
@@ -2336,7 +2342,7 @@ function buildMpsMemberIntelligence_(member, includeVipContent) {
   const analysisRows=readMpsContentRows_(MPS_NEWS_ANALYSIS.sheet,MPS_NEWS_ANALYSIS.headers).filter(function(r){return r.Status==='Published';});
   const analysisByNews={};analysisRows.forEach(function(r){analysisByNews[String(r['News ID'])]=r;});
   const news = readMpsContentRows_(MPS_CONTENT.newsSheet,MPS_CONTENT.newsHeaders)
-    .filter(function(r){return r.Status==='Published'&&!!analysisByNews[String(r.ID)];})
+    .filter(function(r){return r.Status==='Published'&&!!analysisByNews[String(r.ID)]&&isMpsNewsAccessible_(r.Access,includeVipContent);})
     .sort(function(a,b){return dateMs_(b['Published At'])-dateMs_(a['Published At']);}).slice(0,50)
     .map(function(r){r.Analysis=analysisByNews[String(r.ID)];return r;});
   const calendar = readMpsContentRows_(MPS_CONTENT.calendarSheet,MPS_CONTENT.calendarHeaders)
