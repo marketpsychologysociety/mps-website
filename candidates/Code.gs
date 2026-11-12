@@ -2838,7 +2838,7 @@ function apiAdminUpdateApprovedAd(session,payload) {
     const sh=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers,false),row=sh?findMpsContentRow_(sh,id):0;if(!row)throw new Error('Iklan tidak ditemukan.');
     const v=sh.getRange(row,1,1,MPS_APPROVED_ADS.headers.length).getValues()[0];if(String(v[12])!=='Paid')throw new Error('Iklan yang belum lunas tidak dapat diperbarui atau ditayangkan.');
     const values=[sheetText_(title),sheetText_(description),sheetText_(image),sheetText_(target),placement,start,end,v[11],v[12],v[13],new Date()];
-    sh.getRange(row,5,1,11).setValues([values]);CacheService.getScriptCache().remove('mps_public_center_v480');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_UPDATED',id,'SUCCESS','Materi, placement, atau jadwal iklan diperbarui.');return {ok:true,message:'Materi, placement, atau jadwal iklan diperbarui.'};
+    sh.getRange(row,5,1,11).setValues([values]);CacheService.getScriptCache().remove('mps_public_center_v480');const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_UPDATED',id,'SUCCESS','Materi, placement, atau jadwal iklan diperbarui.');return {ok:true,message:'Materi, placement, atau jadwal iklan diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }finally{lock.releaseLock();}
 }
 
