@@ -387,5 +387,5 @@ test('Admin historical member directory omits deposit proof, MT5 and internal ro
   for(const field of ['proofUrl','mt5Login','accountName','accountType','applicationRef','row','depositDate','confirmedAt','vipStatus']) {
     assert.ok(!projection.includes(field),field+' must not be sent in historical member directory');
   }
-  assert.match(body,/if\\(member\\.depositStatus==='Menunggu verifikasi'\\)deposits\\.push\\(member\\)/,'pending deposit queue must retain its review details');
+  assert.ok(body.includes("if(member.depositStatus==='Menunggu verifikasi')deposits.push(member)"),'pending deposit queue must retain its review details');
 });
