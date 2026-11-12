@@ -13,6 +13,35 @@ test('every literal frontend google.script.run API call has a matching backend f
   const missing=calls.filter(name=>!definitions.has(name));
   assert.deepEqual(missing,[]);
 });
+
+test('every administrator API except login/logout enforces a backend role guard',()=>{
+  const matches=[...code.matchAll(/\\bfunction\\s+(apiAdmin[A-Za-z0-9_$]*)\\s*\\(/g)];
+  const body=name=>{
+    const i=matches.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(matches[i].index,matches[i+1]?.index??code.length);
+  };
+  for(const match of matches) {
+    const name=match[1];
+    if(['apiAdminLogin','apiAdminLogout'].includes(name))continue;
+    assert.match(body(name),/require(?:Super)?Admin_\\(/,name+' must enforce server-side admin authorization');
+  }
+});
+
+test('ordinary Admin retains member-workflow permissions while content and file management stay Super Admin only',()=>{
+  const matches=[...code.matchAll(/\\bfunction\\s+(apiAdmin[A-Za-z0-9_$]*)\\s*\\(/g)];
+  const body=name=>{
+    const i=matches.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(matches[i].index,matches[i+1]?.index??code.length);
+  };
+  for(const name of ['apiAdminList','apiAdminVerify','apiAdminIssuePin','apiAdminRetryVipInvite','apiAdminResendRegistrationNotice','apiAdminGetDashboard','apiAdminGetHeatmap','apiAdminGetMarketPulse','apiAdminGetMemberIntelligence']) {
+    assert.match(body(name),/^function [^{]+\\{\\s*requireAdmin_\\(/,name);
+  }
+  for(const name of ['apiAdminGetLearningList','apiAdminSaveLearningCatalog','apiAdminUploadLearningFile','apiAdminDeleteLearningFile','apiAdminMigrateMemberSheetToV480','apiAdminSaveWebsiteSettings','apiAdminCheckSystemConfiguration','apiAdminCreateBackup','apiAdminGetContent','apiAdminSaveAnnouncement']) {
+    assert.match(body(name),/^function [^{]+\\{\\s*requireSuperAdmin_\\(/,name);
+  }
+});
 test('all frontend API calls route through the guarded google.script.run wrapper',()=>{
   assert.match(html,/function api\(method,\.\.\.args\)[\s\S]{0,500}runner\[method\]\(\.\.\.args\)/);
 });
