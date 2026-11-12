@@ -72,7 +72,7 @@ test('direct Market Pulse endpoint requires a verified member session before rea
   const end=source.indexOf('\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'Market Pulse endpoint boundaries must exist');
   const body=source.slice(start,end);
-  assert.match(body,/^function apiGetMarketPulse\(session\) \{\s*requireMember_\(session\);\s*return getMarketPulseData_\(\);/);
+  assert.match(body,/^function apiGetMarketPulse\(session\) \{\s*const member\s*=\s*requireMember_\(session\);\s*\/\/ Dataset historis berukuran hingga 1 MB; batasi pembacaan Drive per member\.\s*consumeRateLimit_\('mps_market_pulse_'.*?return getMarketPulseData_\(\);/s);
 });
 
 test('all member-only data APIs enforce a server-side member session',()=>{
