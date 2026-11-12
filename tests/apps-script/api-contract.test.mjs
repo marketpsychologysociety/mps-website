@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {runInNewContext} from 'node:vm';
 
 const code=readFileSync(fileURLToPath(new URL('../../candidates/Code.gs',import.meta.url)),'utf8');
 const html=readFileSync(fileURLToPath(new URL('../../candidates/Index.html',import.meta.url)),'utf8');
@@ -388,4 +389,13 @@ test('Admin historical member directory omits deposit proof, MT5 and internal ro
     assert.ok(!projection.includes(field),field+' must not be sent in historical member directory');
   }
   assert.ok(body.includes("if(member.depositStatus==='Menunggu verifikasi')deposits.push(member)"),'pending deposit queue must retain its review details');
+});
+
+test('public VIP ticker identity filter rejects representative private identifiers at runtime',()=>{
+  const start=code.indexOf('function isSafePublicIdentity_(');
+  const end=code.indexOf(String.fromCharCode(10)+'function ',start+1);
+  assert.ok(start>=0&&end>start,'public identity filter boundaries must exist');
+  const isSafe=runInNewContext('('+code.slice(start,end)+')');
+  for(const name of ['Andi Pratama','Siti Rahma','MPS VIP Member'])assert.equal(isSafe(name),true,name+' should remain displayable');
+  for(const value of ['Andi (@andi_123)','Telegram ID: 12345','TG ID 123456','MT5 Login: 12345678','andi@example.com','MPS-APP-ABCDEF1234567890','Deposit IDR 5000000','https://example.com'])assert.equal(isSafe(value),false,value+' must be filtered');
 });
