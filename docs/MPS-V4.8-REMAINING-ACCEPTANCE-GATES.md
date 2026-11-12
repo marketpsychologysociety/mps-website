@@ -47,8 +47,8 @@
 
 ### D. Backend privacy and API authorization
 
-- [ ] Replace stale legacy ticker test assertions with a privacy-specific regression suite against the exact candidate `Code.gs`.
-- [ ] Verify public ticker projection exposes only the approved real member display name (not masked) and minimal approved event; exclude full member IDs, phone/email, Telegram IDs/handles, MT5 logins, deposits/payment details, proof documents, PINs, and credentials.
+- [x] Replace stale legacy ticker test assertions with `tests/apps-script/public-ticker-privacy.test.mjs`, which exercises the exact candidate `Code.gs` identity guard and public projection.
+- [x] Static candidate regression verifies public ticker projection exposes only the approved real member display name (not masked) and minimal approved event; full member IDs, phone/email, Telegram IDs/handles, MT5 logins, deposits/payment details, proof documents, PINs, and credentials are excluded. Live isolated-runtime authorization remains open.
 - [ ] Prove direct URL and API authorization using authenticated and unauthenticated tests in an isolated Apps Script runtime. UI hiding is not an authorization control.
 - [ ] Confirm Market Pulse and other member-only data remain inaccessible through direct endpoint/API calls without the required verified member authorization.
 
