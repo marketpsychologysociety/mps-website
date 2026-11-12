@@ -534,7 +534,7 @@ function activateMemberAfterPin_(memberId) {
       if(rollbackErrors.length)throw new Error('Aktivasi gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
       throw writeErr;
     }
-    CacheService.getScriptCache().remove('mps_public_dashboard_v480');
+    removeMpsCacheBestEffort_('mps_public_dashboard_v480','member activation');
     return true;
   }finally{lock.releaseLock();}
 }
