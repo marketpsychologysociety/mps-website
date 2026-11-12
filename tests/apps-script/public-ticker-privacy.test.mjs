@@ -30,6 +30,10 @@ context.LockService={getScriptLock:()=>({waitLock:()=>{assert.equal(tickerLockDe
 context.findMpsContentRow_=()=>0;
 context.sheetText_=v=>String(v??'');
 context.CacheService={getScriptCache:()=>({remove:()=>{}})};
+const cacheHelperStart=source.indexOf('function removeMpsCacheBestEffort_(');
+const cacheHelperEnd=source.indexOf('\\nfunction ',cacheHelperStart+1);
+assert.ok(cacheHelperStart>=0&&cacheHelperEnd>cacheHelperStart,'cache helper boundaries must exist');
+vm.runInContext(source.slice(cacheHelperStart,cacheHelperEnd),context,{timeout:1000});
 context.recordMpsAudit_=()=>true;
 context.adminRole_=()=> 'SUPER_ADMIN';
 context.adminActorRef_=()=> 'SUPER_ADMIN';
