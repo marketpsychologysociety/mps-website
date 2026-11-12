@@ -139,3 +139,47 @@ test('portal frontend avoids unsafe HTML injection and dynamic code execution si
   assert.doesNotMatch(html,/\beval\s*\(|\bnew\s+Function\s*\(/);
   assert.doesNotMatch(html,/document\.write\s*\(/);
 });
+
+
+test('administrator sessions are role-bound, hashed at rest, and invalidated by credential rotation',()=>{
+  const body=name=>{
+    const start=code.indexOf('function '+name+'(');
+    const end=code.indexOf('\\nfunction ',start+1);
+    assert.ok(start>=0&&end>start,'missing function boundary for '+name);
+    return code.slice(start,end);
+  };
+  const login=body('apiAdminLogin');
+  const session=body('getAdminSession_');
+  assert.match(login,/\\['ADMIN','SUPER_ADMIN'\\]\\.includes\\(role\\)/);
+  assert.match(login,/constantTimeEquals_\\(expected, supplied\\)/);
+  assert.match(login,/sha256_\\(session\\)/,'raw session token must not be used as cache key');
+  assert.match(login,/credentialHash:sha256_\\(expected\\)/);
+  assert.match(session,/sha256_\\(s\\)/);
+  assert.match(session,/constantTimeEquals_\\(data\\.credentialHash,sha256_\\(expected\\)\\)/);
+  assert.match(session,/data\\.role==='SUPER_ADMIN'\\?'MPS_SUPER_ADMIN_TOKEN':'MPS_ADMIN_TOKEN'/);
+});
+
+test('member PIN records are salted hashes and verification uses constant-time comparison',()=>{
+  const body=name=>{
+    const start=code.indexOf('function '+name+'(');
+    const end=code.indexOf('\\nfunction ',start+1);
+    assert.ok(start>=0&&end>start,'missing function boundary for '+name);
+    return code.slice(start,end);
+  };
+  const store=body('storeMemberPin_');
+  const verify=body('verifyMemberPin_');
+  assert.match(store,/const salt = Utilities\\.getUuid\\(\\)/);
+  assert.match(store,/sha256_\\(salt \\+ ':' \\+ memberId \\+ ':' \\+ pin\\)/);
+  assert.match(store,/salt \\+ '\\$' \\+ hash/);
+  assert.match(verify,/constantTimeEquals_\\(parts\\[1\\], sha256_\\(/);
+  assert.match(body('apiAdminIssuePin'),/requireAdmin_\\(session\\)/);
+});
+
+test('PIN generator security limitation remains explicit and must not be represented as a CSPRNG',()=>{
+  const start=code.indexOf('function generatePin_(');
+  const end=code.indexOf('\\nfunction ',start+1);
+  assert.ok(start>=0&&end>start,'PIN generator function boundaries must exist');
+  const body=code.slice(start,end);
+  assert.match(body,/not a claim CSPRNG|bukan klaim CSPRNG/i);
+  assert.match(body,/padStart\\(6,'0'\\)/);
+});
