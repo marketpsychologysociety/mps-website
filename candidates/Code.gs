@@ -94,7 +94,7 @@ function doGet(e) {
 function doPost(e) {
   // Apps Script mengekspos pathInfo, tetapi tidak mengekspos header Telegram.
   // Secret ditempatkan pada path acak, bukan query string yang lebih mudah tercatat di log URL.
-  const webhookPath = String(e && e.pathInfo || '').replace(/^\\/+|\\/+$/g, '');
+  const webhookPath = String(e && e.pathInfo || '').replace(/^\/+|\/+$/g, '');
   if (webhookPath) {
     const expected = PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_WEBHOOK_SECRET') || '';
     if (!expected || !constantTimeEquals_(webhookPath, expected)) {
