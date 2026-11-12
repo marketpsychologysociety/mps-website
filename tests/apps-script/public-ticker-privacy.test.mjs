@@ -33,3 +33,20 @@ test('public activity projection exposes only approved display name and event te
   assert.match(source,/r\.Status==='Visible'&&isSafePublicIdentity_\(r\['Member Name'\]\)&&isSafePublicIdentity_\(r\['Event Text'\]\)/);
   assert.doesNotMatch(source,/publicActivity\s*=\s*activity\.map\(function\(r\)\s*\{\s*return\s*\{[^}]*Telegram User ID|publicActivity\s*=\s*activity\.map\(function\(r\)\s*\{\s*return\s*\{[^}]*Deposit Amount/i);
 });
+
+test('public Center does not project Market Pulse or premium calendar/news payloads',()=>{
+  const start=source.indexOf('function apiGetPublicCenter() {');
+  const end=source.indexOf('\\nfunction ',start+1);
+  assert.ok(start>=0&&end>start,'public Center endpoint boundaries must exist');
+  const body=source.slice(start,end);
+  assert.match(body,/const news = \\[\\]/);
+  assert.match(body,/const calendar = \\[\\]/);
+  assert.doesNotMatch(body,/getMarketPulseData_|MarketPulseData|pulseData|marketPulse:/i);
+});
+test('direct Market Pulse endpoint requires a verified member session before reading data',()=>{
+  const start=source.indexOf('function apiGetMarketPulse(session) {');
+  const end=source.indexOf('\\nfunction ',start+1);
+  assert.ok(start>=0&&end>start,'Market Pulse endpoint boundaries must exist');
+  const body=source.slice(start,end);
+  assert.match(body,/^function apiGetMarketPulse\\(session\\) \\{\\s*requireMember_\\(session\\);\\s*return getMarketPulseData_\\(\\);/);
+});
