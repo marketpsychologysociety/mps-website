@@ -2387,6 +2387,8 @@ function apiAdminCheckSystemConfiguration(session) {
   add('Admin password strength',credentialStrength(adminSecret),'Gunakan minimal 32 karakter dan sedikitnya 3 kelompok karakter (huruf kecil, huruf besar, angka, simbol). Nilai rahasia tidak ditampilkan.');
   add('Super Admin password',!!superSecret,'Keberadaan kredensial diperiksa; nilainya tidak ditampilkan.');
   add('Super Admin password strength',credentialStrength(superSecret),'Gunakan minimal 32 karakter dan sedikitnya 3 kelompok karakter (huruf kecil, huruf besar, angka, simbol). Nilai rahasia tidak ditampilkan.');
+  add('Admin MFA',false,'MFA belum diimplementasikan pada kandidat ini; akun admin masih bergantung pada token rahasia dan sesi. Jangan anggap pemeriksaan keamanan lulus untuk rilis produksi.');
+  add('Telegram webhook secret transport',false,'Webhook Apps Script saat ini memvalidasi secret melalui URL query. Batasi akses log URL dan rotasi secret jika pernah terekspos.');
   add('Pemisahan kredensial Admin',!!(adminSecret&&superSecret&&adminSecret!==superSecret),'Token Admin dan Super Admin harus berbeda.');
   const botToken=String(props.getProperty('MPS_TELEGRAM_BOT_TOKEN')||'');
   add('Telegram bot token format',/^\d{5,15}:[A-Za-z0-9_-]{20,}$/.test(botToken),'Format token diperiksa tanpa menampilkan nilainya.');
