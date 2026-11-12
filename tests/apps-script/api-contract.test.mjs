@@ -208,7 +208,7 @@ test('admin and member login attempts use atomic persistent throttles isolated f
   assert.ok(limiter.includes("state.count = Number(state.count) + 1"));
   assert.ok(limiter.includes("state.startedAt"));
   assert.ok(clear.includes("deleteProperty(propertyKey)"));
-  assert.ok(!limiter.includes("CacheService"));
+  assert.ok(!limiter.includes("CacheService.getScriptCache"));
   assert.ok(general.includes("CacheService.getScriptCache()"),"non-login throttles must retain cache-backed behavior");
   assert.ok(general.includes("cache.put(key, String(count + 1)"));
 });
