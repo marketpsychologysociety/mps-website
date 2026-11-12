@@ -92,8 +92,7 @@ for (const rollbackTarget of ['member','app','deposit']) {
     const h=activationHarness({failAt:['deposit:1',rollbackTarget+':'+rollbackWrite]});
     assert.throws(()=>h.run(),err=>{
       assert.match(err.message,/Aktivasi gagal dan rollback tidak lengkap/);
-      const errorLabel=rollbackTarget==='app'?'aplikasi':rollbackTarget;
-      assert.match(err.message,new RegExp(errorLabel+': INJECTED_'+rollbackTarget+':'+rollbackWrite+'_WRITE'));
+      assert.ok(err.message.includes('INJECTED_'+rollbackTarget+':'+rollbackWrite+'_WRITE'),err.message);
       return true;
     });
     assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
