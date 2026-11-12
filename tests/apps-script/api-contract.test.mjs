@@ -256,3 +256,26 @@ test('member-only Learning and VIP endpoints enforce authorization in backend, n
   for(const name of names) assert.match(body(name),/require(?:Vip)?Member_\(/,name+' must enforce backend member authorization');
 });
 
+
+test('member Learning and analytics endpoints enforce per-member request throttles',()=>{
+  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const body=name=>{
+    const i=functions.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  };
+  const expected={
+    apiGetLearningList:'mps_learning_list_',
+    apiGetLearningFile:'mps_learning_file_',
+    apiMemberSetLearningProgress:'mps_learning_progress_',
+    apiGetDashboard:'mps_dashboard_',
+    apiGetHeatmap:'mps_heatmap_',
+    apiGetMemberIntelligence:'mps_member_intel_'
+  };
+  for(const [name,key] of Object.entries(expected)){
+    const source=body(name);
+    assert.match(source,/requireMember_\\(/,name+' must authorize the member first');
+    assert.ok(source.includes(key),name+' must use a per-member throttle key');
+    assert.match(source,/consumeRateLimit_\\(/,name+' must enforce a request limit');
+  }
+});
