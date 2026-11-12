@@ -50,3 +50,16 @@ test('direct Market Pulse endpoint requires a verified member session before rea
   const body=source.slice(start,end);
   assert.match(body,/^function apiGetMarketPulse\\(session\\) \\{\\s*requireMember_\\(session\\);\\s*return getMarketPulseData_\\(\\);/);
 });
+
+test('all member-only data APIs enforce a server-side member session',()=>{
+  const functions=[...source.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const body=name=>{const i=functions.findIndex(m=>m[1]===name);assert.ok(i>=0,name);return source.slice(functions[i].index,functions[i+1]?.index??source.length);};
+  for(const name of ['apiGetLearningList','apiGetLearningFile','apiGetMarketPulse','apiGetDashboard','apiGetHeatmap','apiGetMemberIntelligence']) {
+    assert.match(body(name),/requireMember_\\(/,name);
+  }
+});
+test('VIP calculator HTML and access-check APIs enforce the paid-VIP server gate',()=>{
+  const functions=[...source.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const body=name=>{const i=functions.findIndex(m=>m[1]===name);assert.ok(i>=0,name);return source.slice(functions[i].index,functions[i+1]?.index??source.length);};
+  for(const name of ['apiGetVipCalculatorHtml','apiCheckVipCalculatorAccess'])assert.match(body(name),/requireVipMember_\\(/,name);
+});
