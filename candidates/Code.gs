@@ -2279,7 +2279,7 @@ function readMpsWebsiteSettings_() {
   const defaults={enabled:true,speed:34,theme:'Neon',prefix:'VIP LIVE',suffix:'bergabung ke MPS VIP Community'};
   const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers,false);if(!sh||sh.getLastRow()<2)return defaults;
   const rows=readMpsContentRows_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers),out=Object.assign({},defaults);
-  rows.forEach(function(r){const k=String(r.Key||'');if(k==='VIP_TICKER_ENABLED')out.enabled=String(r.Value)==='true';if(k==='VIP_TICKER_SPEED')out.speed=Math.max(10,Math.min(120,Number(r.Value)||34));if(k==='VIP_TICKER_THEME'&&['Neon','Gold','Blue','Purple'].includes(String(r.Value)))out.theme=String(r.Value);if(k==='VIP_TICKER_PREFIX')out.prefix=clean_(r.Value,24)||defaults.prefix;if(k==='VIP_TICKER_SUFFIX')out.suffix=clean_(r.Value,100)||defaults.suffix;});
+  rows.forEach(function(r){const k=String(r.Key||'');if(k==='VIP_TICKER_ENABLED')out.enabled=String(r.Value)==='true';if(k==='VIP_TICKER_SPEED')out.speed=Math.max(10,Math.min(120,Number(r.Value)||34));if(k==='VIP_TICKER_THEME'&&['Neon','Gold','Blue','Purple'].includes(String(r.Value)))out.theme=String(r.Value);if(k==='VIP_TICKER_PREFIX'){const v=clean_(r.Value,24);if(v&&isSafePublicIdentity_(v))out.prefix=v;}if(k==='VIP_TICKER_SUFFIX'){const v=clean_(r.Value,100);if(v&&isSafePublicIdentity_(v))out.suffix=v;}});
   return out;
 }
 function apiAdminGetWebsiteSettings(session) { requireSuperAdmin_(session);return {ok:true,settings:readMpsWebsiteSettings_()}; }
