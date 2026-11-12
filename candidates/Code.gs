@@ -1285,13 +1285,18 @@ function getLearningFolderId_() {
  * setelah sesi member lolos requireMember_().
  */
 function apiGetMarketPulse(session) {
-  requireMember_(session);
+  const member=requireMember_(session);
+  // Dataset historis berukuran hingga 1 MB; batasi pembacaan Drive per member.
+  consumeRateLimit_('mps_market_pulse_'+sha256_(member.memberId).slice(0,24),20,60,
+    'Refresh Market Pulse terlalu sering. Tunggu satu menit lalu coba kembali.');
   return getMarketPulseData_();
 }
 
 /** Preview khusus admin. Tetap wajib memiliki sesi admin yang sah di backend. */
 function apiAdminGetMarketPulse(session) {
-  requireAdmin_(session);
+  const admin=requireAdmin_(session);
+  consumeRateLimit_('mps_market_pulse_admin_'+String(admin.role||'ADMIN'),30,60,
+    'Preview Market Pulse terlalu sering. Tunggu satu menit lalu coba kembali.');
   return getMarketPulseData_();
 }
 
