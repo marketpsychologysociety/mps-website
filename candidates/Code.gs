@@ -282,10 +282,12 @@ function submitCore_(data) {
       if (result.ok) cache.put('mps_req_' + requestId, JSON.stringify({fingerprint:requestFingerprint,result:{ok:true,status:result.status||'',applicationRef:result.applicationRef||'',memberId:result.memberId||''}}), MPS.requestCacheSeconds);
     }
   } catch (err) {
+    let cleanupWarning='';
     if (uploadedFile && !proofLinkedToSheet) {
-      try { uploadedFile.setTrashed(true); } catch (ignored) {}
+      try { uploadedFile.setTrashed(true); } catch (cleanupErr) { cleanupWarning='File bukti privat mungkin masih tersimpan karena pembersihan otomatis gagal. Super Admin perlu memeriksa folder bukti.'; }
     }
     result = { ok: false, error: safeErrorMessage_(err) };
+    if(cleanupWarning)result.cleanupWarning=cleanupWarning;
     if (requestId) result.requestId = requestId;
   } finally {
     if (lock) { try { lock.releaseLock(); } catch (ignored) {} }
@@ -360,10 +362,12 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
     apps.getRange(appRow,8).setValue('Deposit Dikirim');apps.getRange(appRow,15).setValue(now);
     onProofLinked();
   }catch(err){
-    if(existing&&oldDeposit)try{deposits.getRange(existing,1,1,oldDeposit.length).setValues([oldDeposit]);}catch(ignore){}
-    else {const dr=findMpsDepositRow_(deposits,applicationRef);if(dr)try{deposits.deleteRow(dr);}catch(ignore){}}
-    try{apps.getRange(appRow,1,oldApp.length).setValues([oldApp]);}catch(ignore){}
-    if(link)try{const links=getMpsMemberLinksSheet_(),lr=findMpsMemberLinkRow_(links,sha256_(link.token));if(lr)links.getRange(lr,4).setValue('Dibatalkan');}catch(ignore){}
+    const rollbackErrors=[];
+    if(existing&&oldDeposit)try{deposits.getRange(existing,1,1,oldDeposit.length).setValues([oldDeposit]);}catch(e){rollbackErrors.push('baris deposit: '+safeErrorMessage_(e));}
+    else {const dr=findMpsDepositRow_(deposits,applicationRef);if(dr)try{deposits.deleteRow(dr);}catch(e){rollbackErrors.push('baris deposit baru: '+safeErrorMessage_(e));}}
+    try{apps.getRange(appRow,1,oldApp.length).setValues([oldApp]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
+    if(link)try{const links=getMpsMemberLinksSheet_(),lr=findMpsMemberLinkRow_(links,sha256_(link.token));if(lr)links.getRange(lr,4).setValue('Dibatalkan');}catch(e){rollbackErrors.push('tautan Telegram: '+safeErrorMessage_(e));}
+    if(rollbackErrors.length)throw new Error('Penyimpanan deposit gagal: '+safeErrorMessage_(err)+'. Rollback database tidak lengkap ('+rollbackErrors.join('; ')+'). File bukti akan dibersihkan terpisah; lakukan rekonsiliasi sebelum percobaan ulang.');
     throw err;
   }
   return {result:{ok:true,applicationRef:applicationRef,memberId:'',status:'Konfirmasi deposit tersimpan. Member ID baru diterbitkan setelah admin menyetujui pendaftaran.',telegramUrl:link.url,telegramExpiresAt:link.expiresAt},telegramMessage:''};
