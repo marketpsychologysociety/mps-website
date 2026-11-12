@@ -367,7 +367,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
     else {const dr=findMpsDepositRow_(deposits,applicationRef);if(dr)try{deposits.deleteRow(dr);}catch(e){rollbackErrors.push('baris deposit baru: '+safeErrorMessage_(e));}}
     try{apps.getRange(appRow,1,oldApp.length).setValues([oldApp]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
     if(link)try{const links=getMpsMemberLinksSheet_(),lr=findMpsMemberLinkRow_(links,sha256_(link.token));if(lr)links.getRange(lr,4).setValue('Dibatalkan');}catch(e){rollbackErrors.push('tautan Telegram baru: '+safeErrorMessage_(e));}
-    if(oldLinkSnapshots.length){const links=getMpsMemberLinksSheet_();for(let i=oldLinkSnapshots.length-1;i>=0;i--){const snap=oldLinkSnapshots[i];try{links.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan Telegram lama baris '+snap.row+': '+safeErrorMessage_(e));}}}
+    if(oldLinkSnapshots.length){let links=null;try{links=getMpsMemberLinksSheet_();}catch(e){rollbackErrors.push('sheet tautan Telegram: '+safeErrorMessage_(e));}if(links)for(let i=oldLinkSnapshots.length-1;i>=0;i--){const snap=oldLinkSnapshots[i];try{links.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan Telegram lama baris '+snap.row+': '+safeErrorMessage_(e));}}}
     if(rollbackErrors.length){const failure=new Error('Penyimpanan deposit gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). File bukti tetap privat; lakukan rekonsiliasi sebelum percobaan ulang.');failure.preserveProofFile=true;throw failure;}
     throw err;
   }
