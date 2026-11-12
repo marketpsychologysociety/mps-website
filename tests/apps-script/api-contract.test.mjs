@@ -70,13 +70,13 @@ test('deposit proof upload requires a private folder and verifies the uploaded f
 });
 
 test('Apps Script source contains no literal Telegram token, Google API key, or PEM private key',()=>{
-  assert.doesNotMatch(code,/\\b\\d{5,15}:[A-Za-z0-9_-]{20,}\\b/);
+  assert.doesNotMatch(code,/\b\d{5,15}:[A-Za-z0-9_-]{20,}\b/);
   assert.doesNotMatch(code,/AIza[0-9A-Za-z_-]{35}/);
   assert.doesNotMatch(code,/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/);
 });
 
 test('portal frontend avoids unsafe HTML injection and dynamic code execution sinks',()=>{
-  assert.doesNotMatch(html,/\\b(?:innerHTML|outerHTML|insertAdjacentHTML)\\b/);
-  assert.doesNotMatch(html,/\\beval\\s*\\(|\\bnew\\s+Function\\s*\\(/);
-  assert.doesNotMatch(html,/document\\.write\\s*\\(/);
+  assert.doesNotMatch(html,/\b(?:innerHTML|outerHTML|insertAdjacentHTML)\b/);
+  assert.doesNotMatch(html,/\beval\s*\(|\bnew\s+Function\s*\(/);
+  assert.doesNotMatch(html,/document\.write\s*\(/);
 });
