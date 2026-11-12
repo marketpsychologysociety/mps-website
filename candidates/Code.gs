@@ -1546,7 +1546,7 @@ function verifyTelegramApplication_(linkRow,link,msg) {
     if(rollbackErrors.length)throw new Error('Verifikasi Telegram gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
     throw err;
   }finally{lock.releaseLock();}
-  if(committed){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{const notice=telegramSendToChat_(chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti deposit. Member ID baru diterbitkan setelah persetujuan admin.');if(!notice.ok)recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINK_NOTICE_FAILED',appRef,'WARNING','Verifikasi tersimpan, tetapi pesan konfirmasi gagal dikirim.');}catch(e){}}
+  if(committed){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{const notice=telegramSendToChat_(chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti deposit. Member ID baru diterbitkan setelah persetujuan admin.');if(!notice.ok)recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINK_NOTICE_FAILED',appRef,'WARNING','Verifikasi tersimpan, tetapi pesan konfirmasi gagal dikirim.');}catch(e){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINK_NOTICE_FAILED',appRef,'WARNING','Verifikasi tersimpan, tetapi pengiriman pesan konfirmasi mengalami error.');}}
   return committed;
 }
 
