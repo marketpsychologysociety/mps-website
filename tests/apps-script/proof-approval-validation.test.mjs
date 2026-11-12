@@ -31,7 +31,7 @@ function harness({mime='image/png',bytes=[137,80,78,71,13,10,26,10,0],filePrivat
   vm.createContext(context);
   vm.runInContext(helperSource,context,{timeout:1000});
   vm.runInContext(approvalSource,context,{timeout:1000});
-  return {run:()=>context.validateProofFileForApproval_('https://drive.google.com/file/d/'+fileId+'/view'),file};
+  return {run:(url='https://drive.google.com/file/d/'+fileId+'/view')=>context.validateProofFileForApproval_(url),file};
 }
 
 test('approval accepts a private in-folder PNG with a matching file signature',()=>{
@@ -54,7 +54,7 @@ test('approval rejects trashed, oversized, and out-of-folder proof files',()=>{
   assert.throws(()=>harness({inFolder:false}).run(),/File bukti tidak berada di folder/);
 });
 test('approval rejects malformed and non-Google-Drive proof URLs',()=>{
-  assert.throws(()=>harness().run.call(null),/File ID/);
+  assert.throws(()=>harness().run('not-a-drive-url'),/tautan Google Drive yang valid/);
   const h=harness();
   const ctx={MPS:{maxProofBytes:5*1024*1024},PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_PROOF_FOLDER_ID'?'proof-folder':'learning-folder'})},DriveApp:{Access:{PRIVATE:'PRIVATE'},getFolderById:()=>({getSharingAccess:()=>'PRIVATE'})}};
   vm.createContext(ctx);vm.runInContext(helperSource,ctx);vm.runInContext(approvalSource,ctx);
