@@ -1188,8 +1188,8 @@ function adminUploadMarketPulseCore_(session,payload) {
     if(rollbackErrors.length)throw new Error('Publikasi Market Pulse gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa folder Learning sebelum mencoba ulang.');
     throw new Error('Publikasi Market Pulse gagal; versi sebelumnya berhasil dipulihkan: '+safeErrorMessage_(err));
   }
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),'MARKET_PULSE_DATA_PUBLISHED',newFile.getId(),'SUCCESS','Dataset tervalidasi dipublikasikan; akhir data '+validated.data.XAUUSD.end+'; versi sebelumnya '+(oldFile?backupName:'tidak ada')+'.');
-  return {ok:true,fileId:newFile.getId(),endDate:validated.data.XAUUSD.end,slots:validated.stats.totalSlots,emptySlots:validated.stats.emptySlots,backup:oldFile?backupName:'',message:'Dataset Market Pulse lolos validasi dan berhasil dipublikasikan. Versi sebelumnya disimpan sebagai backup privat.'};
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'MARKET_PULSE_DATA_PUBLISHED',newFile.getId(),'SUCCESS','Dataset tervalidasi dipublikasikan; akhir data '+validated.data.XAUUSD.end+'; versi sebelumnya '+(oldFile?backupName:'tidak ada')+'.');
+  return {ok:true,fileId:newFile.getId(),endDate:validated.data.XAUUSD.end,slots:validated.stats.totalSlots,emptySlots:validated.stats.emptySlots,backup:oldFile?backupName:'',message:'Dataset Market Pulse lolos validasi dan berhasil dipublikasikan. Versi sebelumnya disimpan sebagai backup privat.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 
