@@ -303,7 +303,7 @@ test('member Learning and analytics endpoints enforce per-member request throttl
 
 
 test('public center and high-cost admin read endpoints are throttled after authorization',()=>{
-  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{
     const i=functions.findIndex(m=>m[1]===name);
     assert.ok(i>=0,'missing '+name);
@@ -324,7 +324,7 @@ test('public center and high-cost admin read endpoints are throttled after autho
 });
 
 test('admin approval and website settings do not roll back committed business writes on cache failure',()=>{
-  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{
     const i=functions.findIndex(m=>m[1]===name);
     assert.ok(i>=0,'missing '+name);
@@ -335,6 +335,6 @@ test('admin approval and website settings do not roll back committed business wr
   const catchAt=approval.indexOf('}catch(err){');
   const invalidationAt=approval.indexOf('post-commit admin verification cache invalidation');
   assert.ok(catchAt>0&&invalidationAt>catchAt,'approval cache invalidation must occur after transactional catch');
-  assert.match(approval,/catch\\(cacheErr\\)\\s*\\{\\s*console\\.warn\\('MPS post-commit admin verification cache invalidation failed/);
-  assert.match(settings,/catch\\(cacheErr\\)\\s*\\{\\s*console\\.warn\\('MPS post-commit website settings cache invalidation failed/);
+  assert.match(approval,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit admin verification cache invalidation failed/);
+  assert.match(settings,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit website settings cache invalidation failed/);
 });
