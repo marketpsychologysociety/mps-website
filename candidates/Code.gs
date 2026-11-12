@@ -2295,12 +2295,27 @@ function apiAdminCheckSystemConfiguration(session) {
     catch(e){add('Learning Folder',false,safeErrorMessage_(e));}
   }
   const adminSecret=String(props.getProperty('MPS_ADMIN_TOKEN')||''),superSecret=String(props.getProperty('MPS_SUPER_ADMIN_TOKEN')||'');
+  function credentialStrength(secret){
+    if(secret.length<32)return false;
+    let classes=0;
+    if(/[a-z]/.test(secret))classes++;
+    if(/[A-Z]/.test(secret))classes++;
+    if(/[0-9]/.test(secret))classes++;
+    if(/[^A-Za-z0-9]/.test(secret))classes++;
+    return classes>=3;
+  }
   add('Admin password',!!adminSecret,'Keberadaan kredensial diperiksa; nilainya tidak ditampilkan.');
+  add('Admin password strength',credentialStrength(adminSecret),'Gunakan minimal 32 karakter dan sedikitnya 3 kelompok karakter (huruf kecil, huruf besar, angka, simbol). Nilai rahasia tidak ditampilkan.');
   add('Super Admin password',!!superSecret,'Keberadaan kredensial diperiksa; nilainya tidak ditampilkan.');
+  add('Super Admin password strength',credentialStrength(superSecret),'Gunakan minimal 32 karakter dan sedikitnya 3 kelompok karakter (huruf kecil, huruf besar, angka, simbol). Nilai rahasia tidak ditampilkan.');
   add('Pemisahan kredensial Admin',!!(adminSecret&&superSecret&&adminSecret!==superSecret),'Token Admin dan Super Admin harus berbeda.');
-  add('Telegram bot token',!!props.getProperty('MPS_TELEGRAM_BOT_TOKEN'),'Token tidak ditampilkan.');
+  const botToken=String(props.getProperty('MPS_TELEGRAM_BOT_TOKEN')||'');
+  add('Telegram bot token format',/^\\d{5,15}:[A-Za-z0-9_-]{20,}$/.test(botToken),'Format token diperiksa tanpa menampilkan nilainya.');
+  const webhookSecret=String(props.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET')||'');
+  add('Telegram webhook secret strength',/^[a-f0-9]{64}$/i.test(webhookSecret),'Webhook secret harus berupa 64 karakter heksadesimal acak. Nilai rahasia tidak ditampilkan.');
   add('Telegram admin archive',!!(props.getProperty('MPS_TELEGRAM_CHAT_ID')||props.getProperty('MPS_TELEGRAM_ADMIN_CHAT_ID')||props.getProperty('MPS_ADMIN_TELEGRAM_CHAT_ID')),'Chat ID tidak ditampilkan.');
-  add('VIP group',!!props.getProperty('MPS_TELEGRAM_VIP_CHAT_ID'),'Group ID tidak ditampilkan.');
+  const vipGroupId=String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_ID')||'');
+  add('VIP group',!vipGroupId||/^-?\\d+$/.test(vipGroupId),'Group ID harus berupa angka Telegram yang valid; nilainya tidak ditampilkan.');
   add('Web App deployment',!!ScriptApp.getService().getUrl(),'URL deployment tidak diubah.');
   const failed=checks.filter(function(x){return !x.ok;});
   return {ok:true,checks:checks,failed:failed.length,readOnly:true,message:'Pemeriksaan konfigurasi bersifat read-only; tidak ada sheet, folder, properti, atau data yang dibuat/diubah.'};
