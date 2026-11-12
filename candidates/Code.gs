@@ -1089,6 +1089,8 @@ function apiMemberLogout(session) {
 
 function apiGetLearningList(session) {
   const member=requireMember_(session);
+  consumeRateLimit_('mps_learning_list_'+sha256_(member.memberId).slice(0,24),30,60,
+    'Permintaan daftar materi terlalu sering. Tunggu satu menit lalu coba kembali.');
   return listLearningFiles_(member.memberId,false);
 }
 function listLearningFiles_(memberId,isAdmin) {
@@ -1215,7 +1217,10 @@ function adminUploadMarketPulseCore_(session,payload) {
 
 
 function apiMemberSetLearningProgress(session,fileId,completed) {
-  const member=requireMember_(session),id=String(fileId||'').trim();if(!/^[A-Za-z0-9_-]{15,}$/.test(id))throw new Error('File materi tidak valid.');
+  const member=requireMember_(session);
+  consumeRateLimit_('mps_learning_progress_'+sha256_(member.memberId).slice(0,24),20,60,
+    'Pembaruan progres terlalu sering. Tunggu satu menit lalu coba kembali.');
+  const id=String(fileId||'').trim();if(!/^[A-Za-z0-9_-]{15,}$/.test(id))throw new Error('File materi tidak valid.');
   const visible=listLearningFiles_(member.memberId,false).files.some(f=>f.id===id);if(!visible)throw new Error('Materi tidak tersedia untuk member ini.');
   const sh=getMpsContentSheet_(MPS_LEARNING_PROGRESS.sheet,MPS_LEARNING_PROGRESS.headers,true),done=completed===true||String(completed)==='true',now=new Date(),record=[member.memberId,id,done,done?now:'',now];
   const lock=LockService.getScriptLock();lock.waitLock(10000);
@@ -1227,6 +1232,8 @@ function apiMemberSetLearningProgress(session,fileId,completed) {
 
 function apiGetLearningFile(session, fileId) {
   const member=requireMember_(session);
+  consumeRateLimit_('mps_learning_file_'+sha256_(member.memberId).slice(0,24),8,60,
+    'Unduhan materi terlalu sering. Tunggu satu menit lalu coba kembali.');
   const id = String(fileId || '').trim();
   if (!/^[A-Za-z0-9_-]{15,}$/.test(id)) throw new Error('File materi tidak valid.');
   // Direct API calls must obey the same Published catalog filter as the visible list.
@@ -1345,7 +1352,9 @@ function buildMpsDashboard_() {
   out.monthly=Object.keys(monthly).sort().map(k=>({month:k,count:monthly[k]}));return out;
 }
 function apiGetDashboard(session) {
-  requireMember_(session);
+  const member=requireMember_(session);
+  consumeRateLimit_('mps_dashboard_'+sha256_(member.memberId).slice(0,24),20,60,
+    'Permintaan dashboard terlalu sering. Tunggu satu menit lalu coba kembali.');
   // Member hanya menerima statistik komunitas yang sudah terverifikasi.
   // Jangan kirim jumlah pendaftaran/deposit tertunda atau total aplikasi internal.
   const d = buildMpsDashboard_();
@@ -1357,7 +1366,9 @@ function apiAdminGetDashboard(session) {
   return buildMpsDashboard_();
 }
 function apiGetHeatmap(session) {
-  requireMember_(session);
+  const member=requireMember_(session);
+  consumeRateLimit_('mps_heatmap_'+sha256_(member.memberId).slice(0,24),20,60,
+    'Permintaan heatmap terlalu sering. Tunggu satu menit lalu coba kembali.');
   const d=buildMpsDashboard_();return {ok:true,countries:d.countries,totalSuccessful:d.totalSuccessful};
 }
 function apiAdminGetHeatmap(session) {
@@ -2311,6 +2322,8 @@ function buildMpsMemberIntelligence_(member, includeVipContent) {
 }
 function apiGetMemberIntelligence(session) {
   const member = requireMember_(session);
+  consumeRateLimit_('mps_member_intel_'+sha256_(member.memberId).slice(0,24),20,60,
+    'Permintaan Member Intelligence terlalu sering. Tunggu satu menit lalu coba kembali.');
   // Konten member umum tetap tersedia untuk seluruh member aktif, tetapi konten
   // VIP (briefing, pengumuman VIP, dan iklan VIP Community) memakai gate DB + Telegram.
   let vipVerified = false;
