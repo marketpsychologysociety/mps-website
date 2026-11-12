@@ -55,6 +55,10 @@ test('Telegram webhook secret is read from pathInfo and never placed in query pa
   assert.match(code,/webAppUrl\.replace\([^;]+\)\s*\+\s*'\/'\s*\+\s*encodeURIComponent\(webhookSecret\)/);
   assert.doesNotMatch(code,/webAppUrl\s*\+\s*'\?tg='/);
 });
+test('read-only system diagnostics reflect path-based Telegram webhook protection',()=>{
+  assert.match(code,/add\('Telegram webhook secret transport',true,'Secret webhook divalidasi melalui pathInfo Apps Script, bukan query string/);
+  assert.doesNotMatch(code,/add\('Telegram webhook secret transport',false,'Webhook Apps Script saat ini memvalidasi secret melalui URL query/);
+});
 test('backend router does not expose a generic unauthenticated doPost method dispatcher',()=>{
   const doPost=code.slice(code.indexOf('function doPost(e)'),code.indexOf('\nfunction doGet(e)'));
   assert.doesNotMatch(doPost,/data\.method|data\.action|this\[|globalThis\[|eval\s*\(/);
