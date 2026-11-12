@@ -111,6 +111,8 @@ jobs:
         run: node --test tests/apps-script/advertising-publish-rollback.test.mjs
       - name: Run Apps Script news review rollback tests (mocked services only)
         run: node --test tests/apps-script/news-review-rollback.test.mjs
+      - name: Run Apps Script database backup privacy and rollback tests (mocked services only)
+        run: node --test tests/apps-script/database-backup-rollback.test.mjs
       - name: Run Apps Script frontend/backend API contract tests
         run: node --test tests/apps-script/api-contract.test.mjs
       - name: Run candidate VIP transition end-to-end GAS runtime acceptance (isolated mocks)
