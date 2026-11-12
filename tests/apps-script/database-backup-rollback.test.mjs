@@ -35,6 +35,11 @@ function harness({privacyFailure=false,metadataFailure=false,trashFailure=false,
     requireSuperAdmin_:()=>true,
     consumeRateLimit_:()=>true,
     PropertiesService:{getScriptProperties:()=>scriptProps},
+    MPS:{sheetName:'Database Member',headers:['ID Member','Waktu Daftar','Nama Panggilan','Username Telegram','Negara','Tujuan Bergabung','Catatan Member','Status Pendaftaran','Nama Sesuai Akun','Login MT5','Jenis Akun','Deposit Pertama (IDR)','Tanggal Deposit','Link Bukti Deposit','Status Verifikasi Deposit','Catatan Admin','Waktu Konfirmasi','Terakhir Diperbarui']},
+    SpreadsheetApp:{openById:()=>({getSheetByName:name=>name==='Database Member'?{
+      getLastRow:()=>1,getLastColumn:()=>18,
+      getRange:()=>({getDisplayValues:()=>[['ID Member','Waktu Daftar','Nama Panggilan','Username Telegram','Negara','Tujuan Bergabung','Catatan Member','Status Pendaftaran','Nama Sesuai Akun','Login MT5','Jenis Akun','Deposit Pertama (IDR)','Tanggal Deposit','Link Bukti Deposit','Status Verifikasi Deposit','Catatan Admin','Waktu Konfirmasi','Terakhir Diperbarui']]})
+    }:null})},
     DriveApp:{Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'},getFileById:()=>sourceFile},
     Utilities:{formatDate:()=> '20261112-000000'},
     recordMpsAudit_:()=>true,
