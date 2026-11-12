@@ -889,7 +889,7 @@ function apiAdminRetryVipInvite(session, memberId) {
   if (String(r[MPS_COL.registrationStatus-1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus-1]) !== 'Disetujui') throw new Error('Undangan VIP hanya dapat dikirim untuk member yang sudah Berhasil.');
   let result;try{result=sendVipInvite_(memberKey);}catch(err){result={ok:false,error:safeErrorMessage_(err)};}
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_INVITE_RETRY',memberKey,result.ok?'SUCCESS':'DELIVERY_FAILED','Pengiriman undangan VIP dicoba ulang.');
-  return { ok: !!result.ok, message: result.ok ? 'Undangan VIP berhasil dikirim.' : (result.error || 'Undangan VIP gagal dikirim.'), auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.' };
+  return { ok: !!result.ok, message: result.ok ? 'Undangan VIP berhasil dikirim.' : (result.error || 'Undangan VIP gagal dikirim.'), auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.' };
 }
 
 function apiAdminIssuePin(session, memberId) {
@@ -913,11 +913,11 @@ function apiAdminIssuePin(session, memberId) {
   let sent={ok:false,error:'Telegram tidak dapat dihubungi.'};try{sent=telegramSendToChat_(chatId,'🔐 PIN AKSES MPS DIPERBARUI\nID Member: '+memberKey+'\nPIN baru: '+pin+'\nJangan bagikan PIN ini kepada siapa pun.');}catch(sendErr){sent={ok:false,error:safeErrorMessage_(sendErr)};}
   if(!sent.ok){
     const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'DELIVERY_FAILED','Pengiriman PIN gagal; PIN lama tetap berlaku dan PIN sementara dapat dicoba ulang.');
-    return {ok:false,delivered:false,message:'Telegram gagal mengirim PIN. PIN sebelumnya tetap berlaku. Tekan kirim ulang untuk mencoba kembali.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+    return {ok:false,delivered:false,message:'Telegram gagal mengirim PIN. PIN sebelumnya tetap berlaku. Tekan kirim ulang untuk mencoba kembali.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }
   try{storeMemberPin_(memberKey,pin);}catch(storeErr){
     const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'DELIVERY_FAILED','PIN terkirim ke Telegram, tetapi penyimpanan PIN gagal; PIN lama dipertahankan bila penulisan gagal.');
-    return {ok:false,delivered:false,message:'Telegram mengirim PIN, tetapi penyimpanan PIN di backend gagal. Member jangan login dahulu; admin perlu memeriksa dan mencoba ulang.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+    return {ok:false,delivered:false,message:'Telegram mengirim PIN, tetapi penyimpanan PIN di backend gagal. Member jangan login dahulu; admin perlu memeriksa dan mencoba ulang.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }
   let pinCurrent=false;try{pinCurrent=markPinDeliveredIfCurrent_(memberKey,pin);}catch(markErr){console.error('PIN delivery confirmation: '+safeErrorMessage_(markErr));}
   if(pinCurrent){CacheService.getScriptCache().remove(pendingKey);try{activateMemberAfterPin_(memberKey);}catch(activeErr){pinCurrent=false;console.error('Member activation after PIN: '+safeErrorMessage_(activeErr));}}
@@ -926,7 +926,7 @@ function apiAdminIssuePin(session, memberId) {
   const pinAuditDetails='PIN baru dikirim dan penyimpanannya '+(pinCurrent?'terkonfirmasi':'belum terkonfirmasi')+'; '+(inviteResult&&inviteResult.ok?'undangan VIP berhasil dikirim.':'undangan VIP belum berhasil dikirim atau belum dapat dipastikan.')+' Isi PIN tidak dicatat dalam audit.';
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,pinAuditResult,pinAuditDetails);
   const response={ok:!!pinCurrent,delivered:!!pinCurrent,inviteSent:!!(inviteResult&&inviteResult.ok),message:pinCurrent?'PIN baru berhasil dikirim secara privat ke Telegram member.'+(inviteResult&&inviteResult.ok?' Undangan VIP juga dikirim.':inviteResult?' PIN terkirim, tetapi undangan belum berhasil: '+inviteResult.error:''):'PIN terkirim, tetapi verifikasi penyimpanan PIN belum berhasil. Hubungi admin untuk pemeriksaan.'};
-  if(!auditWritten)response.auditWarning='Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.';
+  if(!auditWritten)response.auditWarning='Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.';
   return response;
 }
 
@@ -1104,7 +1104,7 @@ function apiAdminSaveLearningCatalog(session,payload) {
   if(!inFolder)throw new Error('PDF harus berada di folder Learning privat MPS.');
   const sh=getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers,true);
   upsertMpsContentRow_(sh,fileId,[fileId,sheetText_(title),sheetText_(category),sheetText_(level),sheetText_(description),Math.round(order),status,new Date()]);const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_CATALOG_UPDATED',fileId,'SUCCESS','Katalog materi '+status+'.');
-  return {ok:true,message:'Katalog materi Learning diperbarui.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+  return {ok:true,message:'Katalog materi Learning diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 function apiAdminUploadLearningFile(session,payload) {
   requireSuperAdmin_(session);payload=payload||{};
@@ -1134,7 +1134,7 @@ function apiAdminUploadLearningFile(session,payload) {
     throw new Error('Upload Learning gagal; file sementara dan perubahan katalog berhasil dibatalkan: '+safeErrorMessage_(err));
   }
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_PDF_UPLOADED',file.getId(),'SUCCESS','PDF privat diunggah ke folder Learning; ukuran '+bytes.length+' byte.');
-  return {ok:true,fileId:file.getId(),name:file.getName(),message:'PDF berhasil diunggah ke folder Learning privat dan masuk katalog.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+  return {ok:true,fileId:file.getId(),name:file.getName(),message:'PDF berhasil diunggah ke folder Learning privat dan masuk katalog.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function apiAdminDeleteLearningFile(session,fileId) {
@@ -1148,7 +1148,7 @@ function apiAdminDeleteLearningFile(session,fileId) {
   file.setTrashed(true);
   // Keep catalog metadata/status so restoring from Drive Trash preserves Draft/Hidden/Published state.
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_PDF_TRASHED',id,'SUCCESS','PDF dipindahkan ke Trash Drive; metadata katalog dipertahankan agar status akses tetap sama jika file dipulihkan.');
-  return {ok:true,message:'PDF dipindahkan ke Trash Drive. File dapat dipulihkan dari Trash.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+  return {ok:true,message:'PDF dipindahkan ke Trash Drive. File dapat dipulihkan dari Trash.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function apiAdminValidateMarketPulseUpload(session,payload) {
@@ -1190,7 +1190,7 @@ function adminUploadMarketPulseCore_(session,payload) {
     throw new Error('Publikasi Market Pulse gagal; versi sebelumnya berhasil dipulihkan: '+safeErrorMessage_(err));
   }
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'MARKET_PULSE_DATA_PUBLISHED',newFile.getId(),'SUCCESS','Dataset tervalidasi dipublikasikan; akhir data '+validated.data.XAUUSD.end+'; versi sebelumnya '+(oldFile?backupName:'tidak ada')+'.');
-  return {ok:true,fileId:newFile.getId(),endDate:validated.data.XAUUSD.end,slots:validated.stats.totalSlots,emptySlots:validated.stats.emptySlots,backup:oldFile?backupName:'',message:'Dataset Market Pulse lolos validasi dan berhasil dipublikasikan. Versi sebelumnya disimpan sebagai backup privat.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+  return {ok:true,fileId:newFile.getId(),endDate:validated.data.XAUUSD.end,slots:validated.stats.totalSlots,emptySlots:validated.stats.emptySlots,backup:oldFile?backupName:'',message:'Dataset Market Pulse lolos validasi dan berhasil dipublikasikan. Versi sebelumnya disimpan sebagai backup privat.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 
@@ -2304,7 +2304,7 @@ function apiAdminSaveWebsiteSettings(session,payload) {
   }
   CacheService.getScriptCache().remove('mps_public_center_v480');
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_TICKER_SETTINGS_UPDATED','WEBSITE','SUCCESS','Pengaturan ticker VIP diperbarui.');
-  return {ok:true,message:'Pengaturan ticker VIP diperbarui.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+  return {ok:true,message:'Pengaturan ticker VIP diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
@@ -2425,7 +2425,7 @@ function apiAdminCheckStorageSecurity(session) {
   if(proofId&&learningId&&String(proofId)===String(learningId))risks.push('Proof Folder dan Learning Folder menggunakan folder yang sama; dokumen bukti dan materi harus dipisahkan.');
   [['Proof Folder',proofId],['Learning Folder',learningId]].forEach(function(entry){if(!entry[1]){risks.push(entry[0]+' belum dikonfigurasi.');return;}try{const folder=DriveApp.getFolderById(entry[1]);inspectFile(folder,entry[0]);const it=folder.getFiles();let n=0,more=false;while(it.hasNext()){if(n>=100){more=true;break;}inspectFile(it.next(),entry[0]==='Proof Folder'?'Proof File':'Learning File');n++;}if(more)risks.push('Pemindaian '+entry[0]+' mencapai batas 100 file; hasil pemeriksaan belum mencakup seluruh file.');}catch(e){risks.push(entry[0]+' tidak dapat diperiksa: '+safeErrorMessage_(e));}});
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'DRIVE_ACCESS_AUDIT','STORAGE',risks.length?'WARNING':'SUCCESS','Pemeriksaan akses Drive dilakukan.');
-  return {ok:true,checks:checks,risks:risks,checkedCount:checks.length,checkedAt:new Date().toISOString(),message:risks.length?'Ditemukan pengaturan akses yang perlu diperiksa.':'Semua aset yang berhasil diperiksa bersifat PRIVATE. Pemindaian file dibatasi 100 file per folder per pemeriksaan; jika folder melebihi batas, hasilnya parsial.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+  return {ok:true,checks:checks,risks:risks,checkedCount:checks.length,checkedAt:new Date().toISOString(),message:risks.length?'Ditemukan pengaturan akses yang perlu diperiksa.':'Semua aset yang berhasil diperiksa bersifat PRIVATE. Pemindaian file dibatasi 100 file per folder per pemeriksaan; jika folder melebihi batas, hasilnya parsial.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function apiAdminGetAuditLogs(session,limit) {
@@ -2453,7 +2453,7 @@ function apiAdminCreateBackup(session) {
     throw new Error('Backup dibatalkan karena metadata Script Properties gagal disimpan; file sementara berhasil dipindahkan ke Trash: '+safeErrorMessage_(propertyErr));
   }
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'DATABASE_BACKUP',copy.getId(),'SUCCESS','Spreadsheet database disalin ke file backup terpisah.');
-  return {ok:true,backupId:copy.getId(),name:copy.getName(),url:copy.getUrl(),message:'Backup spreadsheet berhasil dibuat. File asli tidak diubah.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
+  return {ok:true,backupId:copy.getId(),name:copy.getName(),url:copy.getUrl(),message:'Backup spreadsheet berhasil dibuat. File asli tidak diubah.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function assertSheetHeaders_(sheet,headers,name) {
