@@ -32,6 +32,7 @@ const MPS = Object.freeze({
   maxPulseDataBytes: 1024 * 1024,
   requestCacheSeconds: 21600,
   sessionSeconds: 21600,
+  adminSessionSeconds: 3600,
   loginWindowSeconds: 900,
   loginMaxAttempts: 8,
   submitWindowSeconds: 600,
@@ -540,9 +541,9 @@ function apiAdminLogin(roleOrPassword, maybePassword) {
   CacheService.getScriptCache().remove(key);
   const session = Utilities.getUuid() + Utilities.getUuid();
   const sessionData = {role:role,actorId:role,credentialHash:sha256_(expected).slice(0,32),createdAt:new Date().toISOString()};
-  CacheService.getScriptCache().put('mps_admin_' + sha256_(session), JSON.stringify(sessionData), MPS.sessionSeconds);
+  CacheService.getScriptCache().put('mps_admin_' + sha256_(session), JSON.stringify(sessionData), MPS.adminSessionSeconds);
   recordMpsAudit_(role,role,'ADMIN_LOGIN','CONTROL_ROOM','SUCCESS',role+' berhasil membuka sesi.');
-  return {ok:true,session:session,role:role,actorId:role,expiresIn:MPS.sessionSeconds};
+  return {ok:true,session:session,role:role,actorId:role,expiresIn:MPS.adminSessionSeconds};
 }
 
 function getAdminSession_(session) {
