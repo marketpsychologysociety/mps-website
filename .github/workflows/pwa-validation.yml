@@ -107,6 +107,8 @@ jobs:
         run: node --test tests/apps-script/deposit-rollback.test.mjs
       - name: Run public VIP ticker privacy regression tests
         run: node --test tests/apps-script/public-ticker-privacy.test.mjs
+      - name: Run Apps Script frontend/backend API contract tests
+        run: node --test tests/apps-script/api-contract.test.mjs
       - name: Run candidate VIP transition end-to-end GAS runtime acceptance (isolated mocks)
         run: node --test tests/telegram-webhook/candidate-vip-chat-member-gas-runtime.test.mjs
       - name: Validate isolated Apps Script runtime harness safety (static only)
