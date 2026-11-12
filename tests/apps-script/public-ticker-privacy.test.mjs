@@ -25,6 +25,14 @@ assert.ok(readSettingsStart>=0&&readSettingsEnd>readSettingsStart,'ticker settin
 context.MPS_SITE_SETTINGS={sheet:'MPS Website Settings',headers:['Key','Value','Updated At']};
 context.getMpsContentSheet_=()=>({getLastRow:()=>2});
 context.readMpsContentRows_=()=>[];
+let tickerLockDepth=0;
+context.LockService={getScriptLock:()=>({waitLock:()=>{assert.equal(tickerLockDepth,0);tickerLockDepth++;},releaseLock:()=>{tickerLockDepth--;}})};
+context.findMpsContentRow_=()=>0;
+context.sheetText_=v=>String(v??'');
+context.CacheService={getScriptCache:()=>({remove:()=>{}})};
+context.recordMpsAudit_=()=>true;
+context.adminRole_=()=> 'SUPER_ADMIN';
+context.adminActorRef_=()=> 'SUPER_ADMIN';
 vm.runInContext(source.slice(readSettingsStart,readSettingsEnd),context,{timeout:1000});
 
 
@@ -110,4 +118,18 @@ test('safe existing ticker settings remain configurable',()=>{
   const settings=context.readMpsWebsiteSettings_();
   assert.equal(settings.prefix,'MPS VIP');
   assert.equal(settings.suffix,'bergabung ke komunitas trader');
+});
+
+test('valid ticker settings are serialized and persisted with a released script lock',()=>{
+  const rows=[['Key','Value','Updated At']];
+  context.getMpsContentSheet_=()=>({
+    getLastRow:()=>rows.length,
+    appendRow:row=>rows.push(row.slice())
+  });
+  const result=context.apiAdminSaveWebsiteSettings('session',{enabled:true,speed:34,theme:'Neon',prefix:'VIP LIVE',suffix:'bergabung ke MPS VIP Community'});
+  assert.equal(result.ok,true);
+  assert.equal(tickerLockDepth,0);
+  assert.equal(rows.length,6);
+  assert.ok(rows.some(r=>r[0]==='VIP_TICKER_PREFIX'&&r[1]==='VIP LIVE'));
+  assert.ok(rows.some(r=>r[0]==='VIP_TICKER_SUFFIX'&&r[1]==='bergabung ke MPS VIP Community'));
 });
