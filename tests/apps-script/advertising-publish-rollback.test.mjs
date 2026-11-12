@@ -10,10 +10,14 @@ const start=source.indexOf('function apiAdminPublishAdvertisingRequest(session,p
 const end=source.indexOf('\nfunction ',start+1);
 assert.ok(start>=0&&end>start,'advertising publication function boundaries must exist');
 const functionSource=source.slice(start,end);
+const cacheHelperStart=source.indexOf('function removeMpsCacheBestEffort_(');
+const cacheHelperEnd=source.indexOf('\nfunction ',cacheHelperStart+1);
+assert.ok(cacheHelperStart>=0&&cacheHelperEnd>cacheHelperStart,'cache helper boundaries must exist');
+const cacheHelperSource=source.slice(cacheHelperStart,cacheHelperEnd);
 const requestId='AR-REQUEST-0123456789';
 const requestRow=['AR-REQUEST-0123456789',new Date('2026-11-01T00:00:00Z'),'MPS Brand','Contact','contact@example.com','@brand','Proposal','','','Public Home','30 days','','Approved','','Paid',new Date('2026-11-01T00:00:00Z'),'PKG-1'];
 
-function harness({failRequestWrite=0,failRequestRestore=false,failAdDelete=false,appendForeignRow=false}={}) {
+function harness({failRequestWrite=0,failRequestRestore=false,failAdDelete=false,appendForeignRow=false,failCache=false}={}) {
   const request=requestRow.slice(),adRows=[new Array(15).fill('')];
   let requestWriteCount=0,deletedRows=0,lockDepth=0;
   const reqSheet={
@@ -45,13 +49,13 @@ function harness({failRequestWrite=0,failRequestRestore=false,failAdDelete=false
     readMpsContentRows_:()=>[],
     sheetText_:v=>String(v??''),
     Utilities:{getUuid:()=> '12345678-1234-1234-1234-123456789abc'},
-    CacheService:{getScriptCache:()=>({remove:()=>{}})},
+    CacheService:{getScriptCache:()=>({remove:()=>{if(failCache)throw new Error('INJECTED_CACHE_REMOVE');}})},
     recordMpsAudit_:()=>true,
     adminRole_:()=>'SUPER_ADMIN',adminActorRef_:()=>'SUPER_ADMIN',
     safeErrorMessage_:e=>String(e&&e.message||e),
     console
   };
-  vm.createContext(context);vm.runInContext(functionSource,context,{timeout:1000});
+  vm.createContext(context);vm.runInContext(cacheHelperSource,context,{timeout:1000});vm.runInContext(functionSource,context,{timeout:1000});
   const payload={requestId,title:'MPS Campaign',description:'Campaign description',imageUrl:'https://example.com/image.png',targetUrl:'https://example.com',placement:'Public Home',startAt:'2026-11-12',endAt:'2026-12-12'};
   return {run:()=>context.apiAdminPublishAdvertisingRequest('session',payload),request,adRows,stats:()=>({requestWriteCount,deletedRows,lockDepth})};
 }
@@ -61,6 +65,11 @@ test('advertising publication commits the paid approved request and one ad row',
   assert.equal(result.ok,true);assert.equal(h.request[12],'Published');
   assert.equal(h.adRows.length,2);assert.equal(h.adRows[1][0],result.adId);
   assert.equal(h.stats().lockDepth,0);
+});
+test('cache invalidation failure does not reverse or misreport a committed ad publication',()=>{
+  const h=harness({failCache:true}),result=h.run();
+  assert.equal(result.ok,true);assert.equal(h.request[12],'Published');
+  assert.equal(h.adRows.length,2);assert.equal(h.stats().lockDepth,0);
 });
 for(const failRequestWrite of [1,2]) {
   test('advertising publication rolls back ad row and request snapshot after request write '+failRequestWrite+' fails',()=>{
