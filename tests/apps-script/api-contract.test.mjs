@@ -422,6 +422,22 @@ test('expensive Super Admin reads and validation endpoints are actor-throttled a
   }
 });
 
+test('deposit proof is delivered only through authenticated rate-limited Admin API, not queue URLs',()=>{
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
+  const body=name=>{const i=functions.findIndex(m=>m[1]===name);assert.ok(i>=0,'missing '+name);return code.slice(functions[i].index,functions[i+1]?.index??code.length);};
+  const endpoint=body('apiAdminGetDepositProof');
+  assert.match(endpoint,/requireAdmin_\(session\)/);
+  assert.match(endpoint,/consumeRateLimit_\('mps_admin_proof_/);
+  assert.match(endpoint,/validateProofFileForApproval_\(proofUrl\)/);
+  assert.match(endpoint,/proof\.fileId!==expectedFileId/);
+  assert.match(endpoint,/Utilities\.base64Encode\(bytes\)/);
+  assert.doesNotMatch(endpoint,/return \{[^}]*url:/);
+  const queue=body('apiAdminList');
+  assert.doesNotMatch(queue,/proofUrl:/);
+  assert.doesNotMatch(html,/proof\.href=m\.proofUrl/);
+  assert.match(html,/api\('apiAdminGetDepositProof'/);
+});
+
 test('Admin historical member directory omits deposit proof, MT5 and internal row identifiers',()=>{
   const start=code.indexOf('function apiAdminList(session)');
   const end=code.indexOf(String.fromCharCode(10)+'function ',start+1);
