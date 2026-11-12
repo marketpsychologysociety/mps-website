@@ -325,6 +325,15 @@ test('public center and high-cost admin read endpoints are throttled after autho
   }
 });
 
+test('member activation uses best-effort cache invalidation after committed writes',()=>{
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
+  const i=functions.findIndex(m=>m[1]==='activateMemberAfterPin_');
+  assert.ok(i>=0,'activation function must exist');
+  const body=code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  assert.match(body,/removeMpsCacheBestEffort_\('mps_public_dashboard_v480','member activation'\)/);
+  assert.doesNotMatch(body,/CacheService\.getScriptCache\(\)\.remove\(/);
+});
+
 test('admin approval and website settings do not roll back committed business writes on cache failure',()=>{
   const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{
