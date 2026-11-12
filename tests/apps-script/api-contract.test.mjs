@@ -42,6 +42,8 @@ test('Market Pulse upload verifies the created Drive file is PRIVATE before repo
   const end=code.indexOf('\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'Market Pulse upload core boundaries must exist');
   const body=code.slice(start,end);
+  assert.ok(body.includes('folder.getSharingAccess()'));
+  assert.ok(body.includes('folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE)'));
   assert.ok(body.includes('newFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE)'));
   assert.ok(body.includes('newFile.getSharingAccess()'));
   assert.ok(body.includes('DriveApp.Access.PRIVATE'));
