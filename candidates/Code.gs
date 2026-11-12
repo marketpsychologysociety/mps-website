@@ -2366,7 +2366,8 @@ function apiGetMemberIntelligence(session) {
 function apiAdminGetMemberIntelligence(session) {
   const admin=requireAdmin_(session);
   consumeRateLimit_('mps_admin_member_intel_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),20,60,'Permintaan intelligence admin terlalu sering. Coba lagi sebentar.');
-  return buildMpsMemberIntelligence_({memberId:'ADMIN-PREVIEW'}, true);
+  // Ordinary Admin may preview member-facing content, but VIP-only content remains Super Admin-only.
+  return buildMpsMemberIntelligence_({memberId:'ADMIN-PREVIEW'}, admin.role==='SUPER_ADMIN');
 }
 
 /** Admin: buat semua sheet tambahan tanpa menyentuh Database Member. */
