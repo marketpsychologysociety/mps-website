@@ -36,3 +36,13 @@ test('member workflow remains available to Admin while privileged content manage
   for(const name of ['apiAdminVerify','apiAdminIssuePin','apiAdminRetryVipInvite'])assert.match(body(name),/requireAdmin_\(/,name);
   for(const name of ['apiAdminSaveLearningCatalog','apiAdminUploadLearningFile','apiAdminDeleteLearningFile','apiAdminMigrateMemberSheetToV480','apiAdminCreateBackup','apiAdminCheckSystemConfiguration'])assert.match(body(name),/requireSuperAdmin_\(/,name);
 });
+
+test('Market Pulse upload verifies the created Drive file is PRIVATE before reporting success',()=>{
+  const start=code.indexOf('function adminUploadMarketPulseCore_(');
+  const end=code.indexOf('\nfunction ',start+1);
+  assert.ok(start>=0&&end>start,'Market Pulse upload core boundaries must exist');
+  const body=code.slice(start,end);
+  assert.ok(body.includes('newFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE)'));
+  assert.ok(body.includes('newFile.getSharingAccess()'));
+  assert.ok(body.includes('DriveApp.Access.PRIVATE'));
+});
