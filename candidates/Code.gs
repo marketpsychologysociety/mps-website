@@ -601,7 +601,8 @@ function apiAdminLogout(session) {
 
 /** Data Control Room: antrean registrasi, antrean deposit, dan riwayat member. */
 function apiAdminList(session) {
-  requireAdmin_(session);
+  const admin=requireAdmin_(session);
+  consumeRateLimit_('mps_admin_list_'+String(admin.role||'ADMIN'),30,60,'Permintaan data admin terlalu sering. Coba lagi sebentar.');
   const sheet=getMemberSheet_(),apps=getMpsApplicationsSheet_(),depositsSheet=getMpsDepositsSheet_(),vip=getTelegramAccessSheet_();
   const appRows=apps.getLastRow()>1?apps.getRange(2,1,apps.getLastRow()-1,MPS_APPLICATIONS.headers.length).getValues().filter(a=>/^MPS-APP-[A-F0-9]{20}$/.test(String(a[0]||''))):[];
   const appByRef={},registrations=[];
@@ -860,7 +861,6 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       rejectedLinks=getMpsMemberLinksSheet_();if(rejectedLinks.getLastRow()>1){const vals=rejectedLinks.getRange(2,1,rejectedLinks.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();vals.forEach((v,i)=>{if(String(v[5]||'')===applicationRef&&String(v[3])==='Menunggu'){const row=i+2;rejectedLinkSnapshots.push({row:row,values:v.slice()});rejectedLinks.getRange(row,4).setValue('Ditolak');}});}
       nickname=String(app[2]||'');chatId=String(dep[11]||'');rejectedAccess=getTelegramAccessSheet_();rejectedAccessRow=findTelegramAccessByMemberId_(rejectedAccess,applicationRef);if(rejectedAccessRow){rejectedAccessSnapshot=rejectedAccess.getRange(rejectedAccessRow,1,1,11).getValues()[0];rejectedAccess.getRange(rejectedAccessRow,7).setValue('Akses Ditolak');}
     }
-    CacheService.getScriptCache().remove('mps_public_dashboard_v480');
   }catch(err){
     const rollbackErrors=[];
     if(createdRow&&db)try{db.deleteRow(createdRow);}catch(e){rollbackErrors.push('baris member: '+safeErrorMessage_(e));}
@@ -872,6 +872,9 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     if(rollbackErrors.length)throw new Error('Transaksi verifikasi gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
     throw err;
   }finally{lock.releaseLock();}
+  // Best-effort cache invalidation happens after the business transaction commits.
+  try { CacheService.getScriptCache().remove('mps_public_dashboard_v480'); }
+  catch(cacheErr) { console.warn('MPS post-commit admin verification cache invalidation failed.'); }
   let result;
   if(action==='approve'){
     try{result=apiAdminIssuePin(session,memberId);}catch(pinErr){result={ok:false,delivered:false,message:'Persetujuan dan penerbitan Member ID tersimpan, tetapi proses pengiriman PIN belum berhasil dijalankan: '+safeErrorMessage_(pinErr)};}
@@ -1375,7 +1378,8 @@ function apiGetDashboard(session) {
     countries:d.countries,monthly:d.monthly,generatedAt:d.generatedAt};
 }
 function apiAdminGetDashboard(session) {
-  requireAdmin_(session);
+  const admin=requireAdmin_(session);
+  consumeRateLimit_('mps_admin_dashboard_'+String(admin.role||'ADMIN'),30,60,'Permintaan dashboard admin terlalu sering. Coba lagi sebentar.');
   return buildMpsDashboard_();
 }
 function apiGetHeatmap(session) {
@@ -1385,7 +1389,8 @@ function apiGetHeatmap(session) {
   const d=buildMpsDashboard_();return {ok:true,countries:d.countries,totalSuccessful:d.totalSuccessful};
 }
 function apiAdminGetHeatmap(session) {
-  requireAdmin_(session);
+  const admin=requireAdmin_(session);
+  consumeRateLimit_('mps_admin_heatmap_'+String(admin.role||'ADMIN'),30,60,'Permintaan heatmap admin terlalu sering. Coba lagi sebentar.');
   const d=buildMpsDashboard_();return {ok:true,countries:d.countries,totalSuccessful:d.totalSuccessful};
 }
 
@@ -2282,6 +2287,8 @@ const MPS_CONTENT = Object.freeze({
 
 /** Public endpoint: hanya konten yang telah dipublikasikan untuk umum. */
 function apiGetPublicCenter() {
+  // Public content endpoint: throttle before even serving cached responses.
+  consumeRateLimit_('mps_public_center_global',1200,60,'Terlalu banyak permintaan konten publik. Coba lagi sebentar.');
   const cache = CacheService.getScriptCache();
   const cached = cache.get('mps_public_center_v480');
   if (cached) return safeParseJson_(cached, { ok: true, news: [], calendar: [], announcements: [], ads: [], activity: [], updatedAt: '' });
@@ -2344,7 +2351,8 @@ function apiGetMemberIntelligence(session) {
   return buildMpsMemberIntelligence_(member, vipVerified);
 }
 function apiAdminGetMemberIntelligence(session) {
-  requireAdmin_(session);
+  const admin=requireAdmin_(session);
+  consumeRateLimit_('mps_admin_member_intel_'+String(admin.role||'ADMIN'),20,60,'Permintaan intelligence admin terlalu sering. Coba lagi sebentar.');
   return buildMpsMemberIntelligence_({memberId:'ADMIN-PREVIEW'}, true);
 }
 
@@ -2402,7 +2410,8 @@ function apiAdminSaveWebsiteSettings(session,payload) {
       if(rollbackErrors.length)throw new Error('Penyimpanan pengaturan ticker gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa Website Settings sebelum mencoba ulang.');
       throw err;
     }
-    CacheService.getScriptCache().remove('mps_public_center_v480');
+    try { CacheService.getScriptCache().remove('mps_public_center_v480'); }
+    catch(cacheErr) { console.warn('MPS post-commit website settings cache invalidation failed.'); }
   }finally{lock.releaseLock();}
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_TICKER_SETTINGS_UPDATED','WEBSITE','SUCCESS','Pengaturan ticker VIP diperbarui.');
   return {ok:true,message:'Pengaturan ticker VIP diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
