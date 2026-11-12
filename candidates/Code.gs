@@ -736,10 +736,10 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     if(action==='approve'&&(!Number.isSafeInteger(amount)||amount<MPS.minDeposit))throw new Error('Deposit tidak memenuhi minimum Rp1.000.000.');
     const now=new Date(),block=current.slice(MPS_COL.registrationStatus-1,MPS_COL.updatedAt);
     block[0]=action==='approve'?'Menunggu Aktivasi':'Ditolak';block[7]=action==='approve'?'Disetujui':'Ditolak';block[8]=sheetText_(note);block[9]=now;block[10]=now;
-    sheet.getRange(row,MPS_COL.registrationStatus,1,block.length).setValues([block]);dbWritten=true;
+    dbWritten=true;sheet.getRange(row,MPS_COL.registrationStatus,1,block.length).setValues([block]);
     const appBlock=appCurrent.slice(7,15);
     appBlock[0]=action==='approve'?'Menunggu Aktivasi':'Deposit Ditolak';appBlock[6]=sheetText_(note);appBlock[7]=now;
-    appSheet.getRange(appRow,8,1,8).setValues([appBlock]);appWritten=true;
+    appWritten=true;appSheet.getRange(appRow,8,1,8).setValues([appBlock]);
     if(action==='reject'&&accessRow){accessWritten=true;accessSheet.getRange(accessRow,7).setValue('Akses Ditolak');}
     if(action==='approve'){
       pin=generatePin_();
