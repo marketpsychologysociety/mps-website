@@ -399,3 +399,19 @@ test('public VIP ticker identity filter rejects representative private identifie
   for(const name of ['Andi Pratama','Siti Rahma','MPS VIP Member'])assert.equal(isSafe(name),true,name+' should remain displayable');
   for(const value of ['Andi (@andi_123)','Telegram ID: 12345','TG ID 123456','MT5 Login: 12345678','andi@example.com','MPS-APP-ABCDEF1234567890','Deposit IDR 5000000','https://example.com'])assert.equal(isSafe(value),false,value+' must be filtered');
 });
+
+test('VIP-tagged news is withheld from non-VIP members while MEMBER/PUBLIC news remains available',()=>{
+  const start=code.indexOf('function isMpsNewsAccessible_(');
+  const end=code.indexOf(String.fromCharCode(10)+'function ',start+1);
+  assert.ok(start>=0&&end>start,'news access guard boundaries must exist');
+  const canAccess=runInNewContext('('+code.slice(start,end)+')');
+  assert.equal(canAccess('VIP',false),false);
+  assert.equal(canAccess('VIP',true),true);
+  assert.equal(canAccess('PUBLIC',false),true);
+  assert.equal(canAccess('MEMBER',false),true);
+  assert.equal(canAccess('',false),true,'legacy blank access defaults to MEMBER');
+  assert.equal(canAccess('UNKNOWN',true),false,'unknown access values fail closed');
+  const builderStart=code.indexOf('function buildMpsMemberIntelligence_(');
+  const builderEnd=code.indexOf(String.fromCharCode(10)+'function ',builderStart+1);
+  assert.ok(code.slice(builderStart,builderEnd).includes('isMpsNewsAccessible_(r.Access,includeVipContent)'),'member news projection must enforce the access label');
+});
