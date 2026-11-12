@@ -776,7 +776,6 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
       result={ok:true,status:'Deposit ditolak.'};
     }
     try{formatMemberRow_(sheet,row);}catch(e){console.error('Format row verification: '+safeErrorMessage_(e));}
-    CacheService.getScriptCache().remove('mps_public_dashboard_v480');
   }catch(err){
     const rollbackErrors=[];
     if(accessWritten&&accessCurrent)try{accessSheet.getRange(accessRow,1,1,11).setValues([accessCurrent]);}catch(e){rollbackErrors.push('akses Telegram: '+safeErrorMessage_(e));}
@@ -785,6 +784,9 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     if(rollbackErrors.length)throw new Error('Verifikasi member gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
     throw err;
   }finally{lock.releaseLock();}
+  // Cache invalidation is best-effort after the legacy approval transaction commits.
+  try { CacheService.getScriptCache().remove('mps_public_dashboard_v480'); }
+  catch(cacheErr) { console.warn('MPS post-commit legacy verification cache invalidation failed.'); }
   let auditResult='SUCCESS';
   let auditDetails=action==='approve'?'Persetujuan deposit tersimpan; akun masih Menunggu Aktivasi sampai pengiriman PIN terkonfirmasi.':'Penolakan deposit berhasil disimpan.';
   if(action==='approve'&&result&&result.ok){
