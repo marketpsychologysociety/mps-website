@@ -2479,6 +2479,22 @@ function apiAdminCreateBackup(session) {
   const copy=source.makeCopy('MPS DATABASE BACKUP '+stamp);
   try{copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Backup tidak dapat dipastikan PRIVATE.');}
   catch(permissionErr){let cleanupWarning='';try{copy.setTrashed(true);}catch(cleanupErr){cleanupWarning=' File backup sementara mungkin masih ada; Super Admin wajib memeriksa Drive.';}throw new Error('Backup dibatalkan karena akses file tidak dapat dipastikan PRIVATE: '+safeErrorMessage_(permissionErr)+cleanupWarning);}
+  // Verifikasi isi salinan sebelum metadata backup ditandai berhasil.
+  try{
+    if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Akses backup berubah dan tidak lagi PRIVATE.');
+    const backupBook=SpreadsheetApp.openById(copy.getId());
+    const backupMembers=backupBook.getSheetByName(MPS.sheetName);
+    if(!backupMembers)throw new Error('Sheet Database Member tidak ditemukan pada salinan.');
+    const requiredHeaders=MPS.headers.slice(0,18);
+    if(backupMembers.getLastRow()<1||backupMembers.getLastColumn()<requiredHeaders.length)throw new Error('Struktur Database Member pada salinan tidak lengkap.');
+    const backupHeaders=backupMembers.getRange(1,1,1,requiredHeaders.length).getDisplayValues()[0];
+    if(requiredHeaders.some(function(header,index){return String(backupHeaders[index]||'').trim()!==header;}))throw new Error('Header inti Database Member pada salinan tidak cocok.');
+    if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Privasi backup tidak dapat dipastikan setelah verifikasi isi.');
+  }catch(verifyErr){
+    let cleanupWarning='';
+    try{copy.setTrashed(true);}catch(cleanupErr){cleanupWarning=' File backup yang gagal diverifikasi mungkin masih ada di Drive; Super Admin wajib memeriksanya.';}
+    throw new Error('Backup tidak ditandai berhasil karena verifikasi isi/privasi gagal: '+safeErrorMessage_(verifyErr)+cleanupWarning);
+  }
   const props=PropertiesService.getScriptProperties(),previousId=props.getProperty('MPS_LAST_BACKUP_ID'),previousAt=props.getProperty('MPS_LAST_BACKUP_AT'),backupAt=new Date().toISOString();
   try{props.setProperty('MPS_LAST_BACKUP_ID',copy.getId());props.setProperty('MPS_LAST_BACKUP_AT',backupAt);}
   catch(propertyErr){
