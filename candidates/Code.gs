@@ -713,17 +713,18 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
   const memberKey=clean_(memberId,40).toUpperCase(),note=clean_(adminNote,500);
   let memberChatId='',pin='',telegramMessage='',result;
   const lock=LockService.getScriptLock();lock.waitLock(20000);
-  let sheet=null,row=0,current=null,appSheet=null,appRow=0,appCurrent=null,dbWritten=false,appWritten=false;
+  let sheet=null,row=0,current=null,appSheet=null,appRow=0,appCurrent=null,accessSheet=null,accessRow=0,accessCurrent=null,accessWritten=false,dbWritten=false,appWritten=false;
   try{
     sheet=getMemberSheet_();row=findMemberById_(sheet,memberKey);
     if(!row)throw new Error('Data member tidak ditemukan.');
     current=sheet.getRange(row,1,1,MPS.headers.length).getValues()[0];
     if(String(current[MPS_COL.depositStatus-1]||'')!=='Menunggu verifikasi')throw new Error('Deposit ini sudah diproses atau tidak lagi menunggu verifikasi.');
     if(action==='approve')validateProofFileForApproval_(current[MPS_COL.proofUrl-1]);
-    const access=getTelegramAccessSheet_(),accessRow=findTelegramAccessByMemberId_(access,memberKey);
+    accessSheet=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(accessSheet,memberKey);
+    if(accessRow)accessCurrent=accessSheet.getRange(accessRow,1,1,11).getValues()[0];
     if(action==='approve'){
       if(!accessRow)throw new Error('Member belum menghubungkan Telegram. Verifikasi Telegram wajib sebelum persetujuan.');
-      const av=access.getRange(accessRow,1,1,11).getValues()[0];
+      const av=accessCurrent;
       memberChatId=String(av[2]||'');const memberTelegramId=String(av[1]||'');
       if(!memberChatId||!memberTelegramId||memberChatId!==memberTelegramId)throw new Error('Data Telegram member belum lengkap atau tidak cocok.');
     }
@@ -739,6 +740,7 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     const appBlock=appCurrent.slice(7,15);
     appBlock[0]=action==='approve'?'Menunggu Aktivasi':'Deposit Ditolak';appBlock[6]=sheetText_(note);appBlock[7]=now;
     appSheet.getRange(appRow,8,1,8).setValues([appBlock]);appWritten=true;
+    if(action==='reject'&&accessRow){accessWritten=true;accessSheet.getRange(accessRow,7).setValue('Akses Ditolak');}
     if(action==='approve'){
       pin=generatePin_();
       CacheService.getScriptCache().put('mps_pin_pending_'+sha256_(memberKey).slice(0,24),JSON.stringify({pin:pin,createdAt:Date.now()}),600);
@@ -751,8 +753,11 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     try{formatMemberRow_(sheet,row);}catch(e){console.error('Format row verification: '+safeErrorMessage_(e));}
     CacheService.getScriptCache().remove('mps_public_dashboard_v480');
   }catch(err){
-    if(appWritten&&appCurrent){try{appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).setValues([appCurrent]);}catch(e){console.error('Admin app rollback: '+safeErrorMessage_(e));}}
-    if(dbWritten&&current){try{sheet.getRange(row,1,1,MPS.headers.length).setValues([current]);}catch(e){console.error('Admin member rollback: '+safeErrorMessage_(e));}}
+    const rollbackErrors=[];
+    if(accessWritten&&accessCurrent)try{accessSheet.getRange(accessRow,1,1,11).setValues([accessCurrent]);}catch(e){rollbackErrors.push('akses Telegram: '+safeErrorMessage_(e));}
+    if(appWritten&&appCurrent)try{appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).setValues([appCurrent]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
+    if(dbWritten&&current)try{sheet.getRange(row,1,1,MPS.headers.length).setValues([current]);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}
+    if(rollbackErrors.length)throw new Error('Verifikasi member gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
     throw err;
   }finally{lock.releaseLock();}
   let auditResult='SUCCESS';
