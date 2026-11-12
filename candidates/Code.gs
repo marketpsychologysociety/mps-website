@@ -602,7 +602,7 @@ function apiAdminLogout(session) {
 /** Data Control Room: antrean registrasi, antrean deposit, dan riwayat member. */
 function apiAdminList(session) {
   const admin=requireAdmin_(session);
-  consumeRateLimit_('mps_admin_list_'+String(admin.role||'ADMIN'),30,60,'Permintaan data admin terlalu sering. Coba lagi sebentar.');
+  consumeRateLimit_('mps_admin_list_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),30,60,'Permintaan data admin terlalu sering. Coba lagi sebentar.');
   const sheet=getMemberSheet_(),apps=getMpsApplicationsSheet_(),depositsSheet=getMpsDepositsSheet_(),vip=getTelegramAccessSheet_();
   const appRows=apps.getLastRow()>1?apps.getRange(2,1,apps.getLastRow()-1,MPS_APPLICATIONS.headers.length).getValues().filter(a=>/^MPS-APP-[A-F0-9]{20}$/.test(String(a[0]||''))):[];
   const appByRef={},registrations=[];
@@ -1379,7 +1379,7 @@ function apiGetDashboard(session) {
 }
 function apiAdminGetDashboard(session) {
   const admin=requireAdmin_(session);
-  consumeRateLimit_('mps_admin_dashboard_'+String(admin.role||'ADMIN'),30,60,'Permintaan dashboard admin terlalu sering. Coba lagi sebentar.');
+  consumeRateLimit_('mps_admin_dashboard_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),30,60,'Permintaan dashboard admin terlalu sering. Coba lagi sebentar.');
   return buildMpsDashboard_();
 }
 function apiGetHeatmap(session) {
@@ -1390,7 +1390,7 @@ function apiGetHeatmap(session) {
 }
 function apiAdminGetHeatmap(session) {
   const admin=requireAdmin_(session);
-  consumeRateLimit_('mps_admin_heatmap_'+String(admin.role||'ADMIN'),30,60,'Permintaan heatmap admin terlalu sering. Coba lagi sebentar.');
+  consumeRateLimit_('mps_admin_heatmap_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),30,60,'Permintaan heatmap admin terlalu sering. Coba lagi sebentar.');
   const d=buildMpsDashboard_();return {ok:true,countries:d.countries,totalSuccessful:d.totalSuccessful};
 }
 
@@ -2352,7 +2352,7 @@ function apiGetMemberIntelligence(session) {
 }
 function apiAdminGetMemberIntelligence(session) {
   const admin=requireAdmin_(session);
-  consumeRateLimit_('mps_admin_member_intel_'+String(admin.role||'ADMIN'),20,60,'Permintaan intelligence admin terlalu sering. Coba lagi sebentar.');
+  consumeRateLimit_('mps_admin_member_intel_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),20,60,'Permintaan intelligence admin terlalu sering. Coba lagi sebentar.');
   return buildMpsMemberIntelligence_({memberId:'ADMIN-PREVIEW'}, true);
 }
 
