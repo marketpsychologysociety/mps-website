@@ -897,8 +897,9 @@ function apiAdminIssuePin(session, memberId) {
   const memberKey=clean_(memberId,40).toUpperCase();
   if(!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(memberKey))throw new Error('ID Member tidak valid.');
   consumeRateLimit_('mps_pin_issue_'+sha256_(memberKey).slice(0,24),3,MPS.adminWindowSeconds,'Penerbitan PIN untuk member ini terlalu sering. Coba lagi 15 menit.');
-  let pin='',chatId='';
+  let pin='',chatId='',previousPinRecord=null,previousDelivered=null;
   const pendingKey='mps_pin_pending_'+sha256_(memberKey).slice(0,24);
+  const pinKey=pinPropertyKey_(memberKey),deliveredKey='MPS_PIN_DELIVERED_'+memberKey;
   const lock=LockService.getScriptLock();lock.waitLock(20000);
   try{
     const sheet=getMemberSheet_(),row=findMemberById_(sheet,memberKey);if(!row)throw new Error('Member tidak ditemukan.');
@@ -907,17 +908,34 @@ function apiAdminIssuePin(session, memberId) {
     const access=getTelegramAccessSheet_(),ar=findTelegramAccessByMemberId_(access,memberKey);if(!ar)throw new Error('Telegram member belum terhubung.');
     const telegramRow=access.getRange(ar,1,1,11).getValues()[0];chatId=String(telegramRow[2]||'');if(!chatId||String(telegramRow[1]||'')!==chatId)throw new Error('Identitas Telegram member tidak cocok.');
     const cached=CacheService.getScriptCache().get(pendingKey);
-    if(cached){try{const pending=JSON.parse(cached);if(pending&&/^\d{6}$/.test(String(pending.pin||''))&&Date.now()-Number(pending.createdAt)<600000)pin=String(pending.pin);}catch(ignore){}}
+    if(cached){try{const pending=JSON.parse(cached);if(pending&&/^\\d{6}$/.test(String(pending.pin||''))&&Date.now()-Number(pending.createdAt)<600000)pin=String(pending.pin);}catch(ignore){}}
     if(!pin){pin=generatePin_();CacheService.getScriptCache().put(pendingKey,JSON.stringify({pin:pin,createdAt:Date.now()}),600);}
+    const props=PropertiesService.getScriptProperties();
+    previousPinRecord=props.getProperty(pinKey);
+    previousDelivered=props.getProperty(deliveredKey);
+    // Simpan PIN baru sebelum mengirimkannya; jika pengiriman gagal, pulihkan PIN lama.
+    storeMemberPin_(memberKey,pin);
+    props.deleteProperty(deliveredKey);
   }finally{lock.releaseLock();}
   let sent={ok:false,error:'Telegram tidak dapat dihubungi.'};try{sent=telegramSendToChat_(chatId,'🔐 PIN AKSES MPS DIPERBARUI\nID Member: '+memberKey+'\nPIN baru: '+pin+'\nJangan bagikan PIN ini kepada siapa pun.');}catch(sendErr){sent={ok:false,error:safeErrorMessage_(sendErr)};}
   if(!sent.ok){
-    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'DELIVERY_FAILED','Pengiriman PIN gagal; PIN lama tetap berlaku dan PIN sementara dapat dicoba ulang.');
-    return {ok:false,delivered:false,message:'Telegram gagal mengirim PIN. PIN sebelumnya tetap berlaku. Tekan kirim ulang untuk mencoba kembali.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
-  }
-  try{storeMemberPin_(memberKey,pin);}catch(storeErr){
-    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'DELIVERY_FAILED','PIN terkirim ke Telegram, tetapi penyimpanan PIN gagal; PIN lama dipertahankan bila penulisan gagal.');
-    return {ok:false,delivered:false,message:'Telegram mengirim PIN, tetapi penyimpanan PIN di backend gagal. Member jangan login dahulu; admin perlu memeriksa dan mencoba ulang.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
+    let restored=false;
+    const restoreLock=LockService.getScriptLock();
+    try{
+      restoreLock.waitLock(20000);
+      const props=PropertiesService.getScriptProperties();
+      // Pulihkan hanya bila PIN yang tersimpan masih PIN yang dibuat transaksi ini.
+      const current=props.getProperty(pinKey);
+      if(current&&verifyMemberPin_(memberKey,pin,current)){
+        if(previousPinRecord)props.setProperty(pinKey,previousPinRecord);else props.deleteProperty(pinKey);
+        if(previousDelivered!==null)props.setProperty(deliveredKey,previousDelivered);else props.deleteProperty(deliveredKey);
+        restored=true;
+      }
+    }catch(restoreErr){console.error('PIN rollback after Telegram failure: '+safeErrorMessage_(restoreErr));}
+    finally{try{restoreLock.releaseLock();}catch(ignore){}}
+    if(restored)CacheService.getScriptCache().remove(pendingKey);
+    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,restored?'DELIVERY_FAILED':'RECONCILIATION_REQUIRED',restored?'Pengiriman PIN gagal; PIN lama dan status delivery dipulihkan.':'Pengiriman PIN gagal dan pemulihan PIN lama tidak dapat dipastikan; perlu rekonsiliasi manual.');
+    return {ok:false,delivered:false,message:restored?'Telegram gagal mengirim PIN. PIN sebelumnya tetap berlaku. Coba lagi beberapa saat.':'Telegram gagal mengirim PIN dan pemulihan PIN sebelumnya belum dapat dipastikan. Hentikan percobaan login dan minta Super Admin memeriksa akun.',reconciliationRequired:!restored,auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }
   let pinCurrent=false;try{pinCurrent=markPinDeliveredIfCurrent_(memberKey,pin);}catch(markErr){console.error('PIN delivery confirmation: '+safeErrorMessage_(markErr));}
   if(pinCurrent){CacheService.getScriptCache().remove(pendingKey);try{activateMemberAfterPin_(memberKey);}catch(activeErr){pinCurrent=false;console.error('Member activation after PIN: '+safeErrorMessage_(activeErr));}}
