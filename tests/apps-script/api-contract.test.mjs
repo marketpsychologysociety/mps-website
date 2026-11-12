@@ -300,3 +300,41 @@ test('member Learning and analytics endpoints enforce per-member request throttl
     assert.match(source,/consumeRateLimit_\(/,name+' must enforce a request limit');
   }
 });
+
+
+test('public center and high-cost admin read endpoints are throttled after authorization',()=>{
+  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const body=name=>{
+    const i=functions.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  };
+  const publicCenter=body('apiGetPublicCenter');
+  assert.ok(publicCenter.indexOf('consumeRateLimit_')<publicCenter.indexOf('cache.get('),'public throttle must run before cache reads');
+  for(const [name,key] of [
+    ['apiAdminList','mps_admin_list_'],
+    ['apiAdminGetDashboard','mps_admin_dashboard_'],
+    ['apiAdminGetHeatmap','mps_admin_heatmap_'],
+    ['apiAdminGetMemberIntelligence','mps_admin_member_intel_']
+  ]){
+    const source=body(name);
+    assert.ok(source.indexOf('requireAdmin_(')<source.indexOf('consumeRateLimit_('),name+' must authorize before throttling');
+    assert.ok(source.includes(key),name+' must have a role-scoped throttle');
+  }
+});
+
+test('admin approval and website settings do not roll back committed business writes on cache failure',()=>{
+  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const body=name=>{
+    const i=functions.findIndex(m=>m[1]===name);
+    assert.ok(i>=0,'missing '+name);
+    return code.slice(functions[i].index,functions[i+1]?.index??code.length);
+  };
+  const approval=body('adminVerifyApplication_');
+  const settings=body('apiAdminSaveWebsiteSettings');
+  const catchAt=approval.indexOf('}catch(err){');
+  const invalidationAt=approval.indexOf('post-commit admin verification cache invalidation');
+  assert.ok(catchAt>0&&invalidationAt>catchAt,'approval cache invalidation must occur after transactional catch');
+  assert.match(approval,/catch\\(cacheErr\\)\\s*\\{\\s*console\\.warn\\('MPS post-commit admin verification cache invalidation failed/);
+  assert.match(settings,/catch\\(cacheErr\\)\\s*\\{\\s*console\\.warn\\('MPS post-commit website settings cache invalidation failed/);
+});
