@@ -534,13 +534,13 @@ function apiAdminLogin(roleOrPassword, maybePassword) {
   if (!['ADMIN','SUPER_ADMIN'].includes(role)) throw new Error('Jenis akun administrator tidak valid.');
   const propertyKey = role === 'SUPER_ADMIN' ? 'MPS_SUPER_ADMIN_TOKEN' : 'MPS_ADMIN_TOKEN';
   const key = 'admin:' + role;
-  consumeRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds, 'Terlalu banyak percobaan login. Coba lagi 15 menit.');
+  consumePersistentLoginRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds, 'Terlalu banyak percobaan login. Coba lagi 15 menit.');
   const allProps=PropertiesService.getScriptProperties(),expected=allProps.getProperty(propertyKey)||'',adminToken=allProps.getProperty('MPS_ADMIN_TOKEN')||'',superToken=allProps.getProperty('MPS_SUPER_ADMIN_TOKEN')||'';
   if(adminToken&&superToken&&constantTimeEquals_(adminToken,superToken))throw new Error('Kredensial Admin dan Super Admin harus berbeda. Minta Super Admin mengganti salah satunya.');
   if (!expected || !constantTimeEquals_(expected, supplied)) {
     throw new Error(role === 'SUPER_ADMIN' && !expected ? 'Akun Super Admin belum diaktifkan. Atur MPS_SUPER_ADMIN_TOKEN pada Script Properties terlebih dahulu.' : 'Login administrator gagal. Periksa jenis akun dan kata sandi.');
   }
-  clearRateLimit_(key);
+  clearPersistentLoginRateLimit_(key);
   const session = Utilities.getUuid() + Utilities.getUuid();
   const sessionData = {role:role,actorId:role,credentialHash:sha256_(expected).slice(0,32),createdAt:new Date().toISOString()};
   CacheService.getScriptCache().put('mps_admin_' + sha256_(session), JSON.stringify(sessionData), MPS.adminSessionSeconds);
@@ -965,7 +965,7 @@ function apiMemberLogin(memberId, pin) {
   const row = findMemberById_(sheet, id);
   if (!row) throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   const key = 'member:' + sha256_(id).slice(0, 24);
-  consumeRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds,'Terlalu banyak percobaan login untuk ID ini. Coba lagi 15 menit.');
+  consumePersistentLoginRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds,'Terlalu banyak percobaan login untuk ID ini. Coba lagi 15 menit.');
   const r = sheet.getRange(row, 1, 1, MPS.headers.length).getValues()[0];
   if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus - 1]) !== 'Disetujui') {
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
@@ -2087,12 +2087,17 @@ function isValidImageSignature_(bytes, mime) {
  * Keys are fixed-size hashes; only known member IDs reach the member limiter.
  * Fail closed on corrupt state or storage/lock errors instead of silently bypassing throttling.
  */
-function consumeRateLimit_(key, maxAttempts, windowSeconds, message) {
+/**
+ * Persistent login-only limiter. Isolated from general API throttles so normal
+ * traffic limits remain in CacheService and do not consume Script Properties quota.
+ * Keys are fixed-size hashes; only known member IDs reach the member limiter.
+ */
+function consumePersistentLoginRateLimit_(key, maxAttempts, windowSeconds, message) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
     const props = PropertiesService.getScriptProperties();
-    const propertyKey = 'MPS_RATE_LIMIT_' + sha256_(String(key)).slice(0, 32);
+    const propertyKey = 'MPS_LOGIN_LIMIT_' + sha256_(String(key)).slice(0, 32);
     const now = Date.now();
     const windowMs = Math.max(1000, Math.min(21600000, (Number(windowSeconds) || 60) * 1000));
     const raw = props.getProperty(propertyKey);
@@ -2111,12 +2116,26 @@ function consumeRateLimit_(key, maxAttempts, windowSeconds, message) {
   }
 }
 
-function clearRateLimit_(key) {
+function clearPersistentLoginRateLimit_(key) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const propertyKey = 'MPS_RATE_LIMIT_' + sha256_(String(key)).slice(0, 32);
+    const propertyKey = 'MPS_LOGIN_LIMIT_' + sha256_(String(key)).slice(0, 32);
     PropertiesService.getScriptProperties().deleteProperty(propertyKey);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** General non-login throttles remain cache-backed to avoid persistent property churn. */
+function consumeRateLimit_(key, maxAttempts, windowSeconds, message) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(5000);
+  try {
+    const cache = CacheService.getScriptCache();
+    const count = Number(cache.get(key) || 0);
+    if (count >= maxAttempts) throw new Error(message);
+    cache.put(key, String(count + 1), Math.max(1,Math.min(21600,Number(windowSeconds)||60)));
   } finally {
     lock.releaseLock();
   }
