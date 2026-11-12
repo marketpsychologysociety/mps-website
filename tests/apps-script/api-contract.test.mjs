@@ -184,7 +184,7 @@ test('PIN generator security limitation remains explicit and must not be represe
   assert.ok(body.includes("padStart(6, '0')"));
 });
 
-test('admin and member login attempts use atomic persistent throttles that survive cache eviction',()=>{
+test('admin and member login attempts use atomic persistent throttles isolated from general API limits',()=>{
   const body=name=>{
     const start=code.indexOf('function '+name+'(');
     const end=code.indexOf('\\nfunction ',start+1);
@@ -193,12 +193,13 @@ test('admin and member login attempts use atomic persistent throttles that survi
   };
   const admin=body('apiAdminLogin');
   const member=body('apiMemberLogin');
-  const limiter=body('consumeRateLimit_');
-  const clear=body('clearRateLimit_');
-  assert.ok(admin.includes("consumeRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds"));
-  assert.ok(admin.includes("clearRateLimit_(key)"));
-  assert.ok(member.includes("consumeRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds"));
-  assert.ok(member.includes("clearRateLimit_(key)"));
+  const limiter=body('consumePersistentLoginRateLimit_');
+  const clear=body('clearPersistentLoginRateLimit_');
+  const general=body('consumeRateLimit_');
+  assert.ok(admin.includes("consumePersistentLoginRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds"));
+  assert.ok(admin.includes("clearPersistentLoginRateLimit_(key)"));
+  assert.ok(member.includes("consumePersistentLoginRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds"));
+  assert.ok(member.includes("clearPersistentLoginRateLimit_(key)"));
   assert.ok(!member.includes("recordMemberLoginFailure_"));
   assert.ok(limiter.includes("LockService.getScriptLock()"));
   assert.ok(limiter.includes("PropertiesService.getScriptProperties()"));
@@ -208,6 +209,8 @@ test('admin and member login attempts use atomic persistent throttles that survi
   assert.ok(limiter.includes("state.startedAt"));
   assert.ok(clear.includes("deleteProperty(propertyKey)"));
   assert.ok(!limiter.includes("CacheService"));
+  assert.ok(general.includes("CacheService.getScriptCache()"),"non-login throttles must retain cache-backed behavior");
+  assert.ok(general.includes("cache.put(key, String(count + 1)"));
 });
 
 test('admin and member sessions have explicit bounded cache lifetimes and credential/PIN revocation checks',()=>{
