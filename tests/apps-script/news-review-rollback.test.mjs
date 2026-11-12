@@ -10,6 +10,10 @@ const start=source.indexOf('function apiAdminSaveNewsReview(session, id, decisio
 const end=source.indexOf('\nfunction ',start+1);
 assert.ok(start>=0&&end>start,'news review function boundaries must exist');
 const functionSource=source.slice(start,end);
+const cacheHelperStart=source.indexOf('function removeMpsCacheBestEffort_(');
+const cacheHelperEnd=source.indexOf('\nfunction ',cacheHelperStart+1);
+assert.ok(cacheHelperStart>=0&&cacheHelperEnd>cacheHelperStart,'cache helper boundaries must exist');
+const cacheHelperSource=source.slice(cacheHelperStart,cacheHelperEnd);
 const original=['NEWS-1',new Date('2026-11-01T00:00:00Z'),'Official Source','Macro','Old title','Old summary','https://example.com/news','Review','Reviewed by MPS Admin','PUBLIC',false,'',new Date('2026-11-01T00:00:00Z')];
 
 function harness({failWrite=false,failRollback=false,officialUrl='https://example.com/news'}={}) {
@@ -36,7 +40,7 @@ function harness({failWrite=false,failRollback=false,officialUrl='https://exampl
     recordMpsAudit_:()=>true,
     adminRole_:()=>'SUPER_ADMIN',adminActorRef_:()=>'SUPER_ADMIN'
   };
-  vm.createContext(context);vm.runInContext(functionSource,context,{timeout:1000});
+  vm.createContext(context);vm.runInContext(cacheHelperSource,context,{timeout:1000});vm.runInContext(functionSource,context,{timeout:1000});
   return {run:(decision='publish')=>context.apiAdminSaveNewsReview('session','NEWS-1',decision,'Markets','Reviewed news summary'),row,writes:()=>writes};
 }
 
