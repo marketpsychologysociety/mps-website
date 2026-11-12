@@ -198,6 +198,8 @@ function expireOtherApplicationLinks_(applicationRef,keepRow) {
 }
 
 function apiCheckTelegramLink(token) {
+  // Public bearer-token status check: cap aggregate traffic before any sheet lookup.
+  consumeRateLimit_('mps_tg_link_check_global',600,60,'Terlalu banyak pemeriksaan tautan Telegram. Coba lagi sebentar.');
   const t = String(token || '').trim();
   if (!/^[A-Fa-f0-9]{40,64}$/.test(t)) return { ok: false, verified: false };
   const tokenHash = sha256_(t);
@@ -970,6 +972,8 @@ function apiMemberLogin(memberId, pin) {
   const id = clean_(memberId, 40).toUpperCase();
   const pinText = String(pin || '').trim();
   if (!id || !/^\d{6}$/.test(pinText)) throw new Error('ID Member atau PIN tidak valid.');
+  // Also throttle unknown IDs; per-member counters alone can be bypassed by random IDs.
+  consumeRateLimit_('mps_member_login_global',600,60,'Terlalu banyak percobaan login member. Coba lagi sebentar.');
   const sheet = getMemberSheet_();
   const row = findMemberById_(sheet, id);
   if (!row) throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
