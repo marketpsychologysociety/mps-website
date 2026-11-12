@@ -1391,7 +1391,7 @@ function setupTelegram_() {
   if (!webAppUrl) throw new Error('Deploy Web App MPS terlebih dahulu sebelum mengaktifkan webhook Telegram.');
   // Apps Script doPost tidak mengekspos header request Telegram.
   // Gunakan pathInfo berisi secret acak; hindari query string agar tidak bocor lewat log query.
-  const webhookUrl = webAppUrl.replace(/\\/+$/, '') + '/' + encodeURIComponent(webhookSecret);
+  const webhookUrl = webAppUrl.replace(/\/+$/, '') + '/' + encodeURIComponent(webhookSecret);
   const setResp = UrlFetchApp.fetch(base + 'setWebhook', {
     method: 'post',
     payload: {
