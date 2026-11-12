@@ -374,3 +374,18 @@ test('expensive Super Admin reads and validation endpoints are actor-throttled a
     assert.ok(source.indexOf('requireSuperAdmin_')<source.indexOf('consumeRateLimit_'),name+' must authorize before consuming the throttle');
   }
 });
+
+test('Admin historical member directory omits deposit proof, MT5 and internal row identifiers',()=>{
+  const start=code.indexOf('function apiAdminList(session)');
+  const end=code.indexOf(String.fromCharCode(10)+'function ',start+1);
+  assert.ok(start>=0&&end>start,'apiAdminList boundaries must exist');
+  const body=code.slice(start,end);
+  const historyStart=body.indexOf('history.push({');
+  const historyEnd=body.indexOf('});',historyStart);
+  assert.ok(historyStart>=0&&historyEnd>historyStart,'history response must use a minimized projection');
+  const projection=body.slice(historyStart,historyEnd);
+  for(const field of ['proofUrl','mt5Login','accountName','accountType','applicationRef','row','depositDate','confirmedAt','vipStatus']) {
+    assert.ok(!projection.includes(field),field+' must not be sent in historical member directory');
+  }
+  assert.match(body,/if\\(member\\.depositStatus==='Menunggu verifikasi'\\)deposits\\.push\\(member\\)/,'pending deposit queue must retain its review details');
+});
