@@ -44,17 +44,17 @@ test('ordinary Admin retains member-workflow permissions while content and file 
 });
 test('database backup verifies private access and core member-sheet headers before recording success',()=>{
   const start=code.indexOf('function apiAdminCreateBackup(session)');
-  const end=code.indexOf('\\nfunction ',start+1);
+  const end=code.indexOf('\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'backup function boundaries must exist');
   const body=code.slice(start,end);
-  assert.match(body,/requireSuperAdmin_\\(session\\)/);
-  assert.match(body,/source\\.getSharingAccess\\(\\)[^;]*DriveApp\\.Access\\.PRIVATE/);
-  assert.match(body,/copy\\.setSharing\\(DriveApp\\.Access\\.PRIVATE,DriveApp\\.Permission\\.NONE\\)/);
-  assert.match(body,/SpreadsheetApp\\.openById\\(copy\\.getId\\(\\)\\)/);
-  assert.match(body,/backupBook\\.getSheetByName\\(MPS\\.sheetName\\)/);
-  assert.match(body,/MPS\\.headers\\.slice\\(0,18\\)/);
-  assert.match(body,/backupHeaders\\[index\\][^;]*!==header/);
-  assert.match(body,/copy\\.setTrashed\\(true\\)/);
+  assert.match(body,/requireSuperAdmin_\(session\)/);
+  assert.match(body,/source\.getSharingAccess\(\)[^;]*DriveApp\.Access\.PRIVATE/);
+  assert.match(body,/copy\.setSharing\(DriveApp\.Access\.PRIVATE,DriveApp\.Permission\.NONE\)/);
+  assert.match(body,/SpreadsheetApp\.openById\(copy\.getId\(\)\)/);
+  assert.match(body,/backupBook\.getSheetByName\(MPS\.sheetName\)/);
+  assert.match(body,/MPS\.headers\.slice\(0,18\)/);
+  assert.match(body,/backupHeaders\[index\][^;]*!==header/);
+  assert.match(body,/copy\.setTrashed\(true\)/);
   assert.ok(body.indexOf('Verifikasi isi salinan')<body.indexOf('MPS_LAST_BACKUP_ID'),'backup content must be checked before success metadata');
 });
 
