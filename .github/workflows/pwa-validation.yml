@@ -107,6 +107,8 @@ jobs:
         run: node --test tests/apps-script/deposit-rollback.test.mjs
       - name: Run public VIP ticker privacy regression tests
         run: node --test tests/apps-script/public-ticker-privacy.test.mjs
+      - name: Run Apps Script advertising publication rollback tests (mocked services only)
+        run: node --test tests/apps-script/advertising-publish-rollback.test.mjs
       - name: Run Apps Script frontend/backend API contract tests
         run: node --test tests/apps-script/api-contract.test.mjs
       - name: Run candidate VIP transition end-to-end GAS runtime acceptance (isolated mocks)
