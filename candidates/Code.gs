@@ -2722,6 +2722,8 @@ function isMpsOfficialNewsUrl_(url) {
 
 function apiAdminSaveNewsReview(session, id, decision, category, summary) {
   requireSuperAdmin_(session);
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
+  try{
   const sh = getMpsContentSheet_(MPS_CONTENT.newsSheet,MPS_CONTENT.newsHeaders,true);
   const row = findMpsContentRow_(sh,id);
   if (!row) throw new Error('Berita tidak ditemukan.');
@@ -2751,6 +2753,7 @@ function apiAdminSaveNewsReview(session, id, decision, category, summary) {
   CacheService.getScriptCache().remove('mps_public_center_v480');
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_REVIEW_'+choice.toUpperCase(),id,'SUCCESS','Status berita diubah oleh admin.');
   return {ok:true,message:choice==='publish'?'Berita dipublikasikan.':'Berita disembunyikan.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
+  }finally{lock.releaseLock();}
 }
 
 function apiAdminSaveAnnouncement(session,payload) {
