@@ -15,7 +15,7 @@ const end=source.indexOf('function apiAdminLogin(',start+1);
 assert.ok(start>=0&&end>start,'activation function boundaries must exist');
 const activationSource=source.slice(start,end);
 
-function activationHarness({legacy=false,failAt=''}={}) {
+function activationHarness({legacy=false,failAt='',failCache=false}={}) {
   const memberId='MPS-ABCDEF1234',applicationRef='MPS-APP-0123456789ABCDEF0123';
   const member=new Array(30).fill('');
   member[0]=memberId;member[7]='Menunggu Aktivasi';member[14]='Disetujui';member[24]=legacy?'':applicationRef;
@@ -24,7 +24,7 @@ function activationHarness({legacy=false,failAt=''}={}) {
   const deposit=new Array(14).fill('');
   deposit[0]=applicationRef;deposit[9]=legacy?'Menunggu Validasi Admin':'Menunggu Aktivasi';
   const failRules=Array.isArray(failAt)?failAt.slice():failAt?[String(failAt)+':1']:[];
-  let writeCounts={member:0,app:0,deposit:0},lockDepth=0,lockReleases=0;
+  let writeCounts={member:0,app:0,deposit:0},lockDepth=0,lockReleases=0,cacheRemovals=0;
   function sheet(row,label) {
     return {
       getRange(r,c,nr=1,nc=1) {
@@ -57,7 +57,7 @@ function activationHarness({legacy=false,failAt=''}={}) {
     MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},
     LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;lockReleases++;}})},
     PropertiesService:{getScriptProperties:()=>({getProperty:key=>props[key]||''})},
-    CacheService:{getScriptCache:()=>({remove:()=>{}})},
+    CacheService:{getScriptCache:()=>({remove:()=>{cacheRemovals++;if(failCache)throw new Error('INJECTED_CACHE_REMOVE');}})},
     openDatabase_:()=>({getSheetByName:()=>appSheet}),
     getMemberSheet_:()=>memberSheet,getMpsApplicationsSheet_:()=>appSheet,getMpsDepositsSheet_:()=>depositSheet,
     findMemberById_:()=>2,findMpsApplicationRowByMember_:()=>2,findMpsDepositRow_:()=>2,
@@ -66,7 +66,7 @@ function activationHarness({legacy=false,failAt=''}={}) {
     console
   };
   vm.createContext(context);vm.runInContext(cacheHelperSource,context,{timeout:1000});vm.runInContext(activationSource,context,{timeout:1000});
-  return {run:()=>context.activateMemberAfterPin_(memberId),member,app,deposit,stats:()=>({writeCounts,lockDepth,lockReleases})};
+  return {run:()=>context.activateMemberAfterPin_(memberId),member,app,deposit,stats:()=>({writeCounts,lockDepth,lockReleases,cacheRemovals})};
 }
 
 test('new 4.8 member activation commits member, application, and deposit together',()=>{
@@ -74,6 +74,12 @@ test('new 4.8 member activation commits member, application, and deposit togethe
   assert.equal(h.run(),true);
   assert.equal(h.member[7],'Berhasil');assert.equal(h.app[7],'Berhasil');assert.equal(h.deposit[9],'Berhasil');
   assert.deepEqual(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
+});
+test('activation remains successful when post-commit dashboard cache invalidation fails',()=>{
+  const h=activationHarness({failCache:true});
+  assert.equal(h.run(),true);
+  assert.equal(h.member[7],'Berhasil');assert.equal(h.app[7],'Berhasil');assert.equal(h.deposit[9],'Berhasil');
+  assert.equal(h.stats().cacheRemovals,1);assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
 });
 test('legacy member activation also updates its linked application and deposit rows',()=>{
   const h=activationHarness({legacy:true});
