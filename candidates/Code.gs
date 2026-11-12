@@ -2426,8 +2426,7 @@ function apiAdminSaveWebsiteSettings(session,payload) {
       if(rollbackErrors.length)throw new Error('Penyimpanan pengaturan ticker gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa Website Settings sebelum mencoba ulang.');
       throw err;
     }
-    try { removeMpsCacheBestEffort_('mps_public_center_v480','public center content update'); }
-    catch(cacheErr) { console.warn('MPS post-commit website settings cache invalidation failed.'); }
+     removeMpsCacheBestEffort_('mps_public_center_v480','website settings update');
   }finally{lock.releaseLock();}
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_TICKER_SETTINGS_UPDATED','WEBSITE','SUCCESS','Pengaturan ticker VIP diperbarui.');
   return {ok:true,message:'Pengaturan ticker VIP diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
