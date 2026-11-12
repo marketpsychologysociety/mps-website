@@ -184,25 +184,30 @@ test('PIN generator security limitation remains explicit and must not be represe
   assert.ok(body.includes("padStart(6, '0')"));
 });
 
-test('admin and member login failures are rate-limited and successful login resets only the matching counter',()=>{
+test('admin and member login attempts use atomic persistent throttles that survive cache eviction',()=>{
   const body=name=>{
     const start=code.indexOf('function '+name+'(');
-    const end=code.indexOf('\nfunction ',start+1);
+    const end=code.indexOf('\\nfunction ',start+1);
     assert.ok(start>=0&&end>start,'missing function boundary for '+name);
     return code.slice(start,end);
   };
   const admin=body('apiAdminLogin');
   const member=body('apiMemberLogin');
   const limiter=body('consumeRateLimit_');
-  assert.ok(admin.includes('consumeRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds'));
-  assert.ok(admin.includes("CacheService.getScriptCache().remove(key)"));
-  assert.ok(member.includes('recordMemberLoginFailure_(key)'));
-  assert.ok(member.includes("CacheService.getScriptCache().remove(key)"));
-  assert.ok(member.includes("'mps_member_login_' + sha256_(id).slice(0, 24)"));
-  assert.ok(!member.includes("remove('mps_member_login_global')"));
-  assert.ok(limiter.includes('LockService.getScriptLock()'));
-  assert.ok(limiter.includes('cache.get(key)'));
-  assert.ok(limiter.includes('cache.put(key, String(count + 1)'));
+  const clear=body('clearRateLimit_');
+  assert.ok(admin.includes("consumeRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds"));
+  assert.ok(admin.includes("clearRateLimit_(key)"));
+  assert.ok(member.includes("consumeRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds"));
+  assert.ok(member.includes("clearRateLimit_(key)"));
+  assert.ok(!member.includes("recordMemberLoginFailure_"));
+  assert.ok(limiter.includes("LockService.getScriptLock()"));
+  assert.ok(limiter.includes("PropertiesService.getScriptProperties()"));
+  assert.ok(limiter.includes("props.getProperty(propertyKey)"));
+  assert.ok(limiter.includes("props.setProperty(propertyKey, JSON.stringify(state))"));
+  assert.ok(limiter.includes("state.count = Number(state.count) + 1"));
+  assert.ok(limiter.includes("state.startedAt"));
+  assert.ok(clear.includes("deleteProperty(propertyKey)"));
+  assert.ok(!limiter.includes("CacheService"));
 });
 
 test('admin and member sessions have explicit bounded cache lifetimes and credential/PIN revocation checks',()=>{
