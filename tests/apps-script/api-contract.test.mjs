@@ -22,17 +22,17 @@ test('backend router does not expose a generic unauthenticated doPost method dis
 });
 
 test('every public admin API except login/logout has an explicit backend role guard',()=>{
-  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const adminFunctions=functions.map((m,i)=>({name:m[1],start:m.index,end:functions[i+1]?.index??code.length}))
     .filter(x=>x.name.startsWith('apiAdmin'));
   assert.ok(adminFunctions.length>=30,'expected the full admin API inventory');
   const unguarded=adminFunctions.filter(x=>!['apiAdminLogin','apiAdminLogout'].includes(x.name))
-    .filter(x=>!/require(?:Super)?Admin_\\(/.test(code.slice(x.start,x.end)));
+    .filter(x=>!/require(?:Super)?Admin_\(/.test(code.slice(x.start,x.end)));
   assert.deepEqual(unguarded.map(x=>x.name),[]);
 });
 test('member workflow remains available to Admin while privileged content management is Super Admin only',()=>{
-  const functions=[...code.matchAll(/\\bfunction\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)];
+  const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{const i=functions.findIndex(m=>m[1]===name);assert.ok(i>=0,name);return code.slice(functions[i].index,functions[i+1]?.index??code.length);};
-  for(const name of ['apiAdminVerify','apiAdminIssuePin','apiAdminRetryVipInvite'])assert.match(body(name),/requireAdmin_\\(/,name);
-  for(const name of ['apiAdminSaveLearningCatalog','apiAdminUploadLearningFile','apiAdminDeleteLearningFile','apiAdminMigrateMemberSheetToV480','apiAdminCreateBackup','apiAdminCheckSystemConfiguration'])assert.match(body(name),/requireSuperAdmin_\\(/,name);
+  for(const name of ['apiAdminVerify','apiAdminIssuePin','apiAdminRetryVipInvite'])assert.match(body(name),/requireAdmin_\(/,name);
+  for(const name of ['apiAdminSaveLearningCatalog','apiAdminUploadLearningFile','apiAdminDeleteLearningFile','apiAdminMigrateMemberSheetToV480','apiAdminCreateBackup','apiAdminCheckSystemConfiguration'])assert.match(body(name),/requireSuperAdmin_\(/,name);
 });
