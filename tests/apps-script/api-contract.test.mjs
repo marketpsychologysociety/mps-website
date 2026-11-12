@@ -48,3 +48,13 @@ test('Market Pulse upload verifies the created Drive file is PRIVATE before repo
   assert.ok(body.includes('newFile.getSharingAccess()'));
   assert.ok(body.includes('DriveApp.Access.PRIVATE'));
 });
+
+test('Learning PDF upload requires a private parent folder and verifies file privacy',()=>{
+  const start=code.indexOf('function apiAdminUploadLearningFile(session,payload) {');
+  const end=code.indexOf('\nfunction ',start+1);
+  assert.ok(start>=0&&end>start,'Learning upload function boundaries must exist');
+  const body=code.slice(start,end);
+  assert.ok(body.includes('folder.getSharingAccess()'));
+  assert.ok(body.includes('file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE)'));
+  assert.ok(body.includes('file.getSharingAccess()'));
+});
