@@ -19,7 +19,7 @@ function activationHarness({legacy=false,failAt=''}={}) {
   app[0]=applicationRef;app[7]='Menunggu Aktivasi';app[8]=memberId;
   const deposit=new Array(14).fill('');
   deposit[0]=applicationRef;deposit[9]=legacy?'Menunggu Validasi Admin':'Menunggu Aktivasi';
-  let failPending=!!failAt,writeCounts={member:0,app:0,deposit:0},lockDepth=0,lockReleases=0;
+  const failRules=Array.isArray(failAt)?failAt.slice():failAt?[String(failAt)+':1']:[],writeCounts={member:0,app:0,deposit:0},lockDepth=0,lockReleases=0;
   function sheet(row,label) {
     return {
       getRange(r,c,nr=1,nc=1) {
@@ -28,13 +28,15 @@ function activationHarness({legacy=false,failAt=''}={}) {
           getDisplayValues:()=>[row.slice(c-1,c-1+nc).map(v=>String(v??''))],
           setValue(value) {
             writeCounts[label]++;
-            if(failPending&&failAt===label){failPending=false;throw new Error('INJECTED_'+label+'_WRITE');}
             row[c-1]=value;
+            const rule=label+':'+writeCounts[label],at=failRules.indexOf(rule);
+            if(at>=0){failRules.splice(at,1);throw new Error('INJECTED_'+rule+'_WRITE');}
           },
           setValues(values) {
             writeCounts[label]++;
-            if(failPending&&failAt===label){failPending=false;throw new Error('INJECTED_'+label+'_WRITE');}
             for(let i=0;i<values[0].length;i++)row[c-1+i]=values[0][i];
+            const rule=label+':'+writeCounts[label],at=failRules.indexOf(rule);
+            if(at>=0){failRules.splice(at,1);throw new Error('INJECTED_'+rule+'_WRITE');}
           }
         };
       }
@@ -74,12 +76,23 @@ test('legacy member activation also updates its linked application and deposit r
   assert.equal(h.member[7],'Berhasil');assert.equal(h.app[7],'Berhasil');assert.equal(h.deposit[9],'Berhasil');
 });
 for (const failAt of ['member','app','deposit']) {
-  test('activation restores all sheet snapshots when '+failAt+' write fails',()=>{
+  test('activation restores all sheet snapshots when '+failAt+' write fails after mutation',()=>{
     const h=activationHarness({failAt});
-    assert.throws(()=>h.run(),new RegExp('INJECTED_'+failAt+'_WRITE'));
+    assert.throws(()=>h.run(),new RegExp('INJECTED_'+failAt+':1_WRITE'));
     assert.equal(h.member[7],'Menunggu Aktivasi');
     assert.equal(h.app[7],'Menunggu Aktivasi');
-    assert.equal(h.deposit[9],failAt==='deposit'?'Menunggu Aktivasi':'Menunggu Aktivasi');
+    assert.equal(h.deposit[9],'Menunggu Aktivasi');
+    assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
+  });
+}
+for (const rollbackTarget of ['member','app','deposit']) {
+  test('activation reports incomplete rollback when '+rollbackTarget+' snapshot restoration fails',()=>{
+    const h=activationHarness({failAt:['deposit:1',rollbackTarget+':2']});
+    assert.throws(()=>h.run(),err=>{
+      assert.match(err.message,/Aktivasi gagal dan rollback tidak lengkap/);
+      assert.match(err.message,new RegExp(rollbackTarget+': INJECTED_'+rollbackTarget+':2_WRITE'));
+      return true;
+    });
     assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
   });
 }
