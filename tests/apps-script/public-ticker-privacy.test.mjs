@@ -39,8 +39,8 @@ test('public Center does not project Market Pulse or premium calendar/news paylo
   const end=source.indexOf('\\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'public Center endpoint boundaries must exist');
   const body=source.slice(start,end);
-  assert.match(body,/const news = \\[\\]/);
-  assert.match(body,/const calendar = \\[\\]/);
+  assert.ok(body.includes('const news = []'),'public news payload must remain empty');
+  assert.ok(body.includes('const calendar = [];'),'public calendar payload must remain empty');
   assert.doesNotMatch(body,/getMarketPulseData_|MarketPulseData|pulseData|marketPulse:/i);
 });
 test('direct Market Pulse endpoint requires a verified member session before reading data',()=>{
