@@ -975,7 +975,7 @@ function apiMemberLogin(memberId, pin) {
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   }
   // Penghitung per-ID persisten di Script Properties; tidak hilang saat cache dievikt.
-  clearRateLimit_(key);
+  clearPersistentLoginRateLimit_(key);
   const session = Utilities.getUuid() + Utilities.getUuid();
   CacheService.getScriptCache().put('mps_member_' + sha256_(session), id+'|'+sha256_(stored).slice(0,32), MPS.sessionSeconds);
   recordMpsAudit_('MEMBER',id,'MEMBER_LOGIN','MEMBER_ROOM','SUCCESS','Member berhasil membuka sesi.');
