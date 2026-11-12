@@ -822,8 +822,6 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       ds.getRange(depositRow,10).setValue('Menunggu Aktivasi');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
       nickname=String(app[2]||'');chatId=String(dep[11]||'');
     }else{
-      apps.getRange(appRow,8).setValue('Deposit Ditolak');apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(new Date());
-      ds.getRange(depositRow,10).setValue('Ditolak');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(new Date());
       const now=new Date();apps.getRange(appRow,8).setValue('Deposit Ditolak');apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(now);
       ds.getRange(depositRow,10).setValue('Ditolak');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
       rejectedLinks=getMpsMemberLinksSheet_();if(rejectedLinks.getLastRow()>1){const vals=rejectedLinks.getRange(2,1,rejectedLinks.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();vals.forEach((v,i)=>{if(String(v[5]||'')===applicationRef&&String(v[3])==='Menunggu'){const row=i+2;rejectedLinkSnapshots.push({row:row,values:v.slice()});rejectedLinks.getRange(row,4).setValue('Ditolak');}});}
