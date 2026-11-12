@@ -617,7 +617,10 @@ function apiAdminList(session) {
   rows.forEach((r,i)=>{const id=String(r[MPS_COL.id-1]||'').trim();if(!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id))return;
     const appRef=String(r[24]||''),app=appByRef[appRef]||{},access=accessById[id.toUpperCase()];
     const member={row:i+2,applicationRef:appRef,memberId:id,registeredAt:formatDateForClient_(r[1]),nickname:String(r[2]||''),telegram:String(r[3]||''),country:String(r[4]||''),goal:String(r[5]||''),registrationStatus:String(r[7]||''),accountName:String(r[8]||''),mt5Login:String(r[9]||''),accountType:String(r[10]||''),amount:Number(r[11]||0),depositDate:formatDateForClient_(r[12]),proofUrl:String(r[13]||''),depositStatus:String(r[14]||''),adminNote:String(r[15]||''),confirmedAt:formatDateForClient_(r[16]),updatedAt:formatDateForClient_(r[17]),telegramStatus:access?'Terverifikasi':'Belum Terhubung',vipStatus:access?String(access.data[6]||'Menunggu'):'Belum terhubung'};
-    history.push(member);if(member.depositStatus==='Menunggu verifikasi')deposits.push(member);
+    // Historical directory is not an approval queue: omit proof links, MT5 login,
+    // account details and internal row/application references from its response.
+    history.push({memberId:member.memberId,registeredAt:member.registeredAt,nickname:member.nickname,telegram:member.telegram,country:member.country,registrationStatus:member.registrationStatus,amount:member.amount,depositStatus:member.depositStatus,adminNote:member.adminNote,updatedAt:member.updatedAt});
+    if(member.depositStatus==='Menunggu verifikasi')deposits.push(member);
   });
   registrations.reverse();deposits.reverse();history.reverse();
   return {ok:true,registrations:registrations,deposits:deposits,members:deposits,history:history,totalMembers:history.length,totalApplications:appRows.length};
