@@ -58,3 +58,13 @@ test('Learning PDF upload requires a private parent folder and verifies file pri
   assert.ok(body.includes('file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE)'));
   assert.ok(body.includes('file.getSharingAccess()'));
 });
+
+test('deposit proof upload requires a private folder and verifies the uploaded file privacy',()=>{
+  const start=code.indexOf('function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {');
+  const end=code.indexOf('\nfunction ',start+1);
+  assert.ok(start>=0&&end>start,'deposit proof upload function boundaries must exist');
+  const body=code.slice(start,end);
+  assert.ok(body.includes('folder.getSharingAccess()'));
+  assert.ok(body.includes('file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE)'));
+  assert.ok(body.includes('file.getSharingAccess()'));
+});
