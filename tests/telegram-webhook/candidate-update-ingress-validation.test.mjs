@@ -23,7 +23,7 @@ function harness(state='') {
   processTelegramUpdateCore_:()=>{calls.core++;}
  };
  vm.createContext(context);
- vm.runInContext(wrapper+'\\nthis.run=processTelegramUpdate_;',context,{timeout:1000});
+ vm.runInContext(wrapper+'\nthis.run=processTelegramUpdate_;',context,{timeout:1000});
  return {run:context.run,calls};
 }
 
