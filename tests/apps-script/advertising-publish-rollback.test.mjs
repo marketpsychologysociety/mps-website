@@ -34,6 +34,7 @@ function harness({failRequestWrite=0,failRequestRestore=false,failAdDelete=false
   const context={
     requireSuperAdmin_:()=>true,
     clean_:v=>String(v??'').trim(),
+    cleanNewsText_:v=>String(v??'').trim(),
     validHttpsUrl_:()=>true,
     parseOptionalDate_:v=>v?new Date(v):null,
     LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;}})},
