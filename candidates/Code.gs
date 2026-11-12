@@ -167,12 +167,14 @@ function getMpsMemberLinksSheet_() {
   MPS_MEMBER_LINKS.headers.forEach(function(h,i){if(String(actual[i]||'').trim()!==h)throw new Error('Header sheet '+MPS_MEMBER_LINKS.sheet+' tidak sesuai pada kolom '+(i+1)+'.');});
   return sh;
 }
-function createMemberTelegramLink_(memberId,applicationRef) {
+function createMemberTelegramLink_(memberId,applicationRef,onPrepared) {
   const sh=getMpsMemberLinksSheet_();
   const token=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,'').slice(0,12);
-  const now=new Date(),expires=new Date(now.getTime()+15*60*1000),hash=sha256_(token);
-  sh.appendRow([hash,now,expires,'Menunggu',memberId,applicationRef,'','','','', '']);
-  const linkRow=sh.getLastRow();
+  const now=new Date(),expires=new Date(now.getTime()+15*60*1000),hash=sha256_(token),linkRow=sh.getLastRow()+1;
+  const prepared={token:token,row:linkRow};
+  if(typeof onPrepared==='function')onPrepared(prepared);
+  const values=[hash,now,expires,'Menunggu',memberId,applicationRef,'','','','', ''];
+  sh.getRange(linkRow,1,1,values.length).setValues([values]);
   const bot=PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_BOT_USERNAME')||'MPS_Notificationnew_bot';
   return {ok:true,token:token,row:linkRow,url:'https://t.me/'+bot.replace(/^@/,'')+'?start='+token,expiresAt:formatDateForClient_(expires),expiresIn:900};
 }
@@ -358,7 +360,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
     if(existing){oldDeposit=deposits.getRange(existing,1,1,MPS_DEPOSITS.headers.length).getValues()[0];deposits.getRange(existing,1,1,row.length).setValues([row]);}
     else deposits.appendRow(row);
     const linksBefore=getMpsMemberLinksSheet_();if(linksBefore.getLastRow()>1){const linkRows=linksBefore.getRange(2,1,linksBefore.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();linkRows.forEach(function(v,i){if(String(v[5]||'').toUpperCase()===applicationRef&&String(v[3])==='Menunggu')oldLinkSnapshots.push({row:i+2,values:v.slice()});});}
-    link=createMemberTelegramLink_('',applicationRef);expireOtherApplicationLinks_(applicationRef,link.row);
+    link=createMemberTelegramLink_('',applicationRef,function(prepared){link=prepared;});expireOtherApplicationLinks_(applicationRef,link.row);
     apps.getRange(appRow,8).setValue('Deposit Dikirim');apps.getRange(appRow,15).setValue(now);
     onProofLinked();
   }catch(err){
@@ -366,7 +368,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
     if(existing&&oldDeposit)try{deposits.getRange(existing,1,1,oldDeposit.length).setValues([oldDeposit]);}catch(e){rollbackErrors.push('baris deposit: '+safeErrorMessage_(e));}
     else {const dr=findMpsDepositRow_(deposits,applicationRef);if(dr)try{deposits.deleteRow(dr);}catch(e){rollbackErrors.push('baris deposit baru: '+safeErrorMessage_(e));}}
     try{apps.getRange(appRow,1,oldApp.length).setValues([oldApp]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
-    if(link)try{const links=getMpsMemberLinksSheet_(),lr=findMpsMemberLinkRow_(links,sha256_(link.token));if(lr)links.getRange(lr,4).setValue('Dibatalkan');}catch(e){rollbackErrors.push('tautan Telegram baru: '+safeErrorMessage_(e));}
+    if(link&&link.row)try{const links=getMpsMemberLinksSheet_();if(link.row<=links.getLastRow())links.getRange(link.row,4).setValue('Dibatalkan');}catch(e){rollbackErrors.push('tautan Telegram baru: '+safeErrorMessage_(e));}
     if(oldLinkSnapshots.length){let links=null;try{links=getMpsMemberLinksSheet_();}catch(e){rollbackErrors.push('sheet tautan Telegram: '+safeErrorMessage_(e));}if(links)for(let i=oldLinkSnapshots.length-1;i>=0;i--){const snap=oldLinkSnapshots[i];try{links.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan Telegram lama baris '+snap.row+': '+safeErrorMessage_(e));}}}
     if(rollbackErrors.length){const failure=new Error('Penyimpanan deposit gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). File bukti tetap privat; lakukan rekonsiliasi sebelum percobaan ulang.');failure.preserveProofFile=true;throw failure;}
     throw err;
