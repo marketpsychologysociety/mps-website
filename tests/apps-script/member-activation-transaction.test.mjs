@@ -62,7 +62,7 @@ function activationHarness({legacy=false,failAt='',failCache=false}={}) {
     getMemberSheet_:()=>memberSheet,getMpsApplicationsSheet_:()=>appSheet,getMpsDepositsSheet_:()=>depositSheet,
     findMemberById_:()=>2,findMpsApplicationRowByMember_:()=>2,findMpsDepositRow_:()=>2,
     pinPropertyKey_:id=>'MPS_PIN_'+id,
-    safeErrorMessage_:e=>String(e&&e.message||e),
+    safeErrorMessage_:e=>String(e&&e.message||e),clean_:v=>String(v??''),
     console
   };
   vm.createContext(context);vm.runInContext(cacheHelperSource,context,{timeout:1000});vm.runInContext(activationSource,context,{timeout:1000});
