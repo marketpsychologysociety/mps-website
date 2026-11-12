@@ -62,6 +62,16 @@ test('all frontend API calls route through the guarded google.script.run wrapper
   assert.match(html,/function api\(method,\.\.\.args\)[\s\S]{0,500}runner\[method\]\(\.\.\.args\)/);
 });
 
+test('public Telegram token checks and unknown member IDs are covered by aggregate throttles',()=>{
+  const body=name=>{const start=code.indexOf('function '+name+'(');const end=code.indexOf('\\nfunction ',start+1);assert.ok(start>=0&&end>start,'missing '+name);return code.slice(start,end);};
+  const telegram=body('apiCheckTelegramLink');
+  assert.match(telegram,/consumeRateLimit_\\('mps_tg_link_check_global',600,60/);
+  assert.ok(telegram.indexOf('consumeRateLimit_')<telegram.indexOf('getMpsMemberLinksSheet_'),'throttle must run before Telegram link sheet access');
+  const member=body('apiMemberLogin');
+  assert.match(member,/consumeRateLimit_\\('mps_member_login_global',600,60/);
+  assert.ok(member.indexOf('mps_member_login_global')<member.indexOf('getMemberSheet_'),'aggregate throttle must run before member lookup');
+});
+
 test('post-commit cache failures cannot turn a persisted public submission into a failure response',()=>{
   const start=code.indexOf('function submitCore_(data) {');
   const end=code.indexOf('function registerMember_(',start+1);
