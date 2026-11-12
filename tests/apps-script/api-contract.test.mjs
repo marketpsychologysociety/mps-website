@@ -187,7 +187,7 @@ test('PIN generator security limitation remains explicit and must not be represe
 test('admin and member login attempts use atomic persistent throttles isolated from general API limits',()=>{
   const body=name=>{
     const start=code.indexOf('function '+name+'(');
-    const end=code.indexOf('\\nfunction ',start+1);
+    const end=code.indexOf('\nfunction ',start+1);
     assert.ok(start>=0&&end>start,'missing function boundary for '+name);
     return code.slice(start,end);
   };
