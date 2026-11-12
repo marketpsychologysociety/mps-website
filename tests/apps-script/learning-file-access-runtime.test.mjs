@@ -67,10 +67,10 @@ test('member file endpoint rejects non-private, misplaced, trashed, oversized, a
     [{privateFile:'ANYONE'},/Materi tidak tersedia untuk member ini/],
     [{privateFolder:'ANYONE'},/Folder Learning tidak PRIVATE/],
     [{inFolder:false},/Akses file tidak diizinkan/],
-    [{trashed:true},/File tidak tersedia/],
-    [{mime:'image/png'},/File tidak tersedia/],
+    [{trashed:true},/Materi tidak tersedia untuk member ini/],
+    [{mime:'image/png'},/Materi tidak tersedia untuk member ini/],
     [{bytes:[1,2,3,4,5]},/bukan PDF yang valid/],
-    [{bytes:new Array(8*1024*1024+1).fill(1)},/File tidak tersedia/]
+    [{bytes:new Array(8*1024*1024+1).fill(1)},/Materi tidak tersedia untuk member ini/]
   ];
   for(const [options,pattern] of cases)assert.throws(()=>harness(options).member(),pattern);
 });
