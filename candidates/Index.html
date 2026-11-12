@@ -523,9 +523,19 @@
           '\nNama akun: '+(m.accountName||'—')+' · MT5: '+(m.mt5Login||'—')+' · Jenis: '+(m.accountType||'—')+
           '\nDeposit: Rp'+Number(m.amount||0).toLocaleString('id-ID')+' · Tanggal: '+(m.depositDate||'—')+
           '\nApplication Ref: '+(m.applicationRef||'—')+' · Member ID: '+(m.issuedMemberId||(/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(m.memberId||''))?m.memberId:'Belum diterbitkan'))+'\nStatus pendaftaran: '+(m.registrationStatus||'—')+' · Status deposit: '+(m.depositStatus||'—')+'\nTelegram: '+(m.telegramStatus||'Belum terhubung'));
-        const proof=document.createElement('a');
-        if(/^https:\/\/drive\.google\.com\/(file\/d\/|open\?id=)/.test(String(m.proofUrl||''))){proof.href=m.proofUrl;proof.target='_blank';proof.rel='noopener noreferrer';proof.textContent='Lihat bukti deposit'}
-        else proof.textContent='Tautan bukti tidak valid';
+        const proof=document.createElement('button');proof.className='btn secondary';proof.type='button';proof.textContent='MUAT BUKTI DEPOSIT';
+        proof.addEventListener('click',async()=>{
+          setBusy(proof,true,'MEMUAT BUKTI');
+          try{
+            const result=await api('apiAdminGetDepositProof',state.adminSession,m.applicationRef||m.memberId);
+            const raw=atob(result.base64),bytes=new Uint8Array(raw.length);
+            for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+            const url=URL.createObjectURL(new Blob([bytes],{type:result.mimeType}));
+            state.pdfUrls.push(url);
+            const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='btn secondary';link.textContent='BUKTI SIAP — BUKA';
+            proof.replaceWith(link);
+          }catch(err){showToast(err.message);setBusy(proof,false,'MUAT BUKTI DEPOSIT')}
+        });
         card.append(proof);
         const note=document.createElement('textarea');note.placeholder='Catatan admin (opsional)';note.maxLength=500;note.style.width='100%';note.style.marginTop='12px';note.style.background='#091725';note.style.color='white';note.style.border='1px solid var(--line)';note.style.borderRadius='10px';note.style.padding='10px';
         const actions=document.createElement('div');actions.className='actions';
