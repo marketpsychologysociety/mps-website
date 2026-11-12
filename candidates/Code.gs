@@ -940,12 +940,18 @@ function apiAdminIssuePin(session, memberId) {
     return {ok:false,delivered:false,message:restored?'Telegram gagal mengirim PIN. PIN sebelumnya tetap berlaku. Coba lagi beberapa saat.':'Telegram gagal mengirim PIN dan pemulihan PIN sebelumnya belum dapat dipastikan. Hentikan percobaan login dan minta Super Admin memeriksa akun.',reconciliationRequired:!restored,auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }
   let pinCurrent=false;try{pinCurrent=markPinDeliveredIfCurrent_(memberKey,pin);}catch(markErr){console.error('PIN delivery confirmation: '+safeErrorMessage_(markErr));}
-  if(pinCurrent){CacheService.getScriptCache().remove(pendingKey);try{activateMemberAfterPin_(memberKey);}catch(activeErr){pinCurrent=false;console.error('Member activation after PIN: '+safeErrorMessage_(activeErr));}}
-  let inviteResult=null;if(pinCurrent){try{inviteResult=sendVipInvite_(memberKey);}catch(inviteErr){inviteResult={ok:false,error:safeErrorMessage_(inviteErr)};}}
-  const pinAuditResult=!pinCurrent?'DELIVERY_FAILED':(inviteResult&&inviteResult.ok?'SUCCESS':'PARTIAL');
-  const pinAuditDetails='PIN baru dikirim dan penyimpanannya '+(pinCurrent?'terkonfirmasi':'belum terkonfirmasi')+'; '+(inviteResult&&inviteResult.ok?'undangan VIP berhasil dikirim.':'undangan VIP belum berhasil dikirim atau belum dapat dipastikan.')+' Isi PIN tidak dicatat dalam audit.';
+  let activationCompleted=false;
+  if(pinCurrent){
+    CacheService.getScriptCache().remove(pendingKey);
+    try{activateMemberAfterPin_(memberKey);activationCompleted=true;}
+    catch(activeErr){console.error('Member activation after PIN: '+safeErrorMessage_(activeErr));}
+  }
+  let inviteResult=null;
+  if(activationCompleted){try{inviteResult=sendVipInvite_(memberKey);}catch(inviteErr){inviteResult={ok:false,error:safeErrorMessage_(inviteErr)};}}
+  const pinAuditResult=!pinCurrent?'DELIVERY_UNCONFIRMED':(activationCompleted&&inviteResult&&inviteResult.ok?'SUCCESS':'PARTIAL');
+  const pinAuditDetails='PIN baru dikirim dan penyimpanannya '+(pinCurrent?'terkonfirmasi':'belum terkonfirmasi')+'; aktivasi '+(activationCompleted?'selesai':'belum dapat dipastikan')+'; '+(inviteResult&&inviteResult.ok?'undangan VIP berhasil dikirim.':'undangan VIP belum berhasil dikirim atau belum dapat dipastikan.')+' Isi PIN tidak dicatat dalam audit.';
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,pinAuditResult,pinAuditDetails);
-  const response={ok:!!pinCurrent,delivered:!!pinCurrent,inviteSent:!!(inviteResult&&inviteResult.ok),message:pinCurrent?'PIN baru berhasil dikirim secara privat ke Telegram member.'+(inviteResult&&inviteResult.ok?' Undangan VIP juga dikirim.':inviteResult?' PIN terkirim, tetapi undangan belum berhasil: '+inviteResult.error:''):'PIN terkirim, tetapi verifikasi penyimpanan PIN belum berhasil. Hubungi admin untuk pemeriksaan.'};
+  const response={ok:!!pinCurrent,delivered:!!pinCurrent,activationCompleted:activationCompleted,inviteSent:!!(inviteResult&&inviteResult.ok),reconciliationRequired:!!pinCurrent&&!activationCompleted,message:!pinCurrent?'PIN terkirim, tetapi verifikasi penyimpanan PIN belum berhasil. Hubungi admin untuk pemeriksaan.':!activationCompleted?'PIN berhasil dikirim dan tersimpan, tetapi aktivasi member belum dapat dipastikan. Jangan kirim PIN ulang; minta Super Admin memeriksa status aktivasi.':'PIN baru berhasil dikirim secara privat ke Telegram member.'+(inviteResult&&inviteResult.ok?' Undangan VIP juga dikirim.':inviteResult?' PIN terkirim, tetapi undangan belum berhasil: '+inviteResult.error:'')};
   if(!auditWritten)response.auditWarning='Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.';
   return response;
 }
