@@ -21,6 +21,7 @@ function harness({failWrite=false,failRollback=false,officialUrl='https://exampl
   const analysisSheet={getRange:()=>({getDisplayValue:()=> 'Published'})};
   const context={
     requireSuperAdmin_:()=>true,
+    LockService:{getScriptLock:()=>({waitLock:()=>{},releaseLock:()=>{}})},
     getMpsContentSheet_:(name)=>name==='MPS News Analysis'?analysisSheet:sheet,
     findMpsContentRow_:()=>2,
     MPS_CONTENT:{newsSheet:'MPS News',newsHeaders:new Array(13)},
