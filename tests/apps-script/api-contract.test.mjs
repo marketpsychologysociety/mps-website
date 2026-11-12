@@ -39,7 +39,7 @@ test('ordinary Admin retains member-workflow permissions while content and file 
     assert.match(body(name),/^function [^{]+\{\s*requireAdmin_\(/,name);
   }
   for(const name of ['apiAdminGetLearningList','apiAdminSaveLearningCatalog','apiAdminUploadLearningFile','apiAdminDeleteLearningFile','apiAdminMigrateMemberSheetToV480','apiAdminSaveWebsiteSettings','apiAdminCheckSystemConfiguration','apiAdminCreateBackup','apiAdminGetContent','apiAdminSaveAnnouncement']) {
-    assert.match(body(name),/^function [^{]+\{\s*requireSuperAdmin_\(/,name);
+    assert.match(body(name),/^function [^{]+\{\s*(?:const\s+[A-Za-z_$][\w$]*\s*=\s*)?requireSuperAdmin_\(/,name);
   }
 });
 test('all frontend API calls route through the guarded google.script.run wrapper',()=>{
