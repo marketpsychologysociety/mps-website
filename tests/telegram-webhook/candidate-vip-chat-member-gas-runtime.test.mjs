@@ -36,7 +36,7 @@ const cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Up
 const auditHeaders=['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details'];
 const tickerHeaders=['Event ID','Created At','Member ID','Member Name','Event Text','Status'];
 
-function runtime({eligible=true}={}){
+function runtime({eligible=true,failCache=false}={}){
  const member=Array(memberHeaders.length).fill('');
  member[0]='MPS-ABCDEF12';member[2]='Trader MPS';member[7]=eligible?'Berhasil':'Menunggu Verifikasi';
  member[8]='Budi Santoso';member[14]=eligible?'Disetujui':'Menunggu Verifikasi';
@@ -76,7 +76,7 @@ function runtime({eligible=true}={}){
   SpreadsheetApp:{openById:id=>{assert.equal(id,'isolated-vip-runtime');return ss;},flush:()=>{}},
   LockService:{getScriptLock:()=>({waitLock:()=>{if(held)throw Error('MOCK_LOCK_REENTRANT');held=true;acquired++;},releaseLock:()=>{if(!held)throw Error('MOCK_LOCK_NOT_HELD');held=false;released++;}})},
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_SPREADSHEET_ID'?'isolated-vip-runtime':key==='MPS_TELEGRAM_VIP_CHAT_ID'?'-1001234567890':''})},
-  CacheService:{getScriptCache:()=>({remove:key=>{assert.equal(held,false,'cache/network follow-up must run after ScriptLock release');cacheRemovals++;}})},
+  CacheService:{getScriptCache:()=>({remove:key=>{assert.equal(held,false,'cache/network follow-up must run after ScriptLock release');cacheRemovals++;if(failCache)throw Error('MOCK_CACHE_UNAVAILABLE');}})},
   openDatabase_:()=>ss,
   getMemberSheet_:()=>sheet('Database Member'),
   clean_:(v,n)=>String(v??'').replace(/\\s+/g,' ').trim().slice(0,n),
@@ -127,6 +127,14 @@ test('candidate chat_member activation writes actual VIP Access and Database Mem
  assert.equal(h.sheets.get('MPS Telegram VIP Member Cursor').length,2);
  assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
  assert.equal(h.sheets.get('MPS Audit Logs').length,2);
+ assert.equal(h.stats().held,false);assert.equal(h.stats().cacheRemovals,1);
+});
+test('VIP membership transition remains committed when post-commit public cache invalidation fails',()=>{
+ const h=runtime({failCache:true});
+ assert.equal(h.process(event(7101,1760000100,'left','member')),'ACTIVE');
+ const access=h.sheets.get('VIP Access')[1],member=h.sheets.get('Database Member')[1];
+ assert.equal(access[6],'Aktif');assert.equal(member[29],'Aktif');
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
  assert.equal(h.stats().held,false);assert.equal(h.stats().cacheRemovals,1);
 });
 test('candidate chat_member leave updates both VIP status stores without adding another join ticker',()=>{
