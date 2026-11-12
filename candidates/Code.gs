@@ -1173,7 +1173,9 @@ function adminUploadMarketPulseCore_(session,payload) {
   let bytes,source;try{bytes=Utilities.base64Decode(encoded);source=Utilities.newBlob(bytes,'text/html',name).getDataAsString('UTF-8');}catch(e){throw new Error('File HTML tidak dapat dibaca.');}
   if(!bytes||bytes.length>MPS.maxPulseDataBytes)throw new Error('Ukuran file Market Pulse maksimal 1 MB.');
   const validated=validateMarketPulseSource_(source);
-  const folderId=getLearningFolderId_(),folder=DriveApp.getFolderById(folderId),matches=folder.getFilesByName('MPS Market Pulse Data.html');
+  const folderId=getLearningFolderId_(),folder=DriveApp.getFolderById(folderId);
+  if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder Learning tidak PRIVATE. Amankan folder sebelum memperbarui Market Pulse.');
+  const matches=folder.getFilesByName('MPS Market Pulse Data.html');
   let oldFile=null;if(matches.hasNext()){oldFile=matches.next();if(matches.hasNext())throw new Error('Ada lebih dari satu file aktif Pulse. Bereskan duplikasi sebelum upload baru.');if(String(oldFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('File Pulse lama tidak PRIVATE. Amankan file sebelum menggantinya.');}
   const stamp=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyyMMdd-HHmmss')+'-'+Utilities.getUuid().slice(0,6);
   const backupName='MPS Market Pulse Backup '+stamp+'.html';let newFile=null,oldRenamed=false;
