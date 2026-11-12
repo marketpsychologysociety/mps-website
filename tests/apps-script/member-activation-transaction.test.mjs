@@ -114,7 +114,7 @@ function legacyRejectHarness({failAt=''}={}) {
     getMpsApplicationsSheet_:()=>appSheet,findMpsApplicationRowByMember_:()=>2,
     formatMemberRow_:()=>{},CacheService:{getScriptCache:()=>({remove:()=>{}})},
     sendTelegram_:()=>({ok:true}),recordMpsAudit_:()=>{},adminRole_:()=>'ADMIN',adminActorRef_:()=>'ADMIN',
-    safeErrorMessage_:e=>String(e&&e.message||e),console
+    safeErrorMessage_:e=>String(e&&e.message||e),sheetText_:v=>String(v??''),console
   };
   vm.createContext(context);vm.runInContext(legacyVerifySource,context,{timeout:1000});
   return {run:()=>context.adminVerifyLegacy_('session',memberId,'reject','Dokumen tidak valid'),member,app,access,stats:()=>({lockDepth})};
