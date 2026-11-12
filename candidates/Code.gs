@@ -286,8 +286,7 @@ function submitCore_(data) {
     if (uploadedFile && !proofLinkedToSheet && err.preserveProofFile!==true) {
       try { uploadedFile.setTrashed(true); } catch (cleanupErr) { cleanupWarning='File bukti privat mungkin masih tersimpan karena pembersihan otomatis gagal. Super Admin perlu memeriksa folder bukti.'; }
     } else if(uploadedFile&&err.preserveProofFile===true) cleanupWarning='File bukti dipertahankan dalam folder privat karena rollback database tidak lengkap. Super Admin wajib merekonsiliasi data sebelum percobaan ulang.';
-    result = { ok: false, error: safeErrorMessage_(err) };
-    if(cleanupWarning)result.cleanupWarning=cleanupWarning;
+    result = { ok: false, error: safeErrorMessage_(err)+(cleanupWarning?' '+cleanupWarning:'') };
     if (requestId) result.requestId = requestId;
   } finally {
     if (lock) { try { lock.releaseLock(); } catch (ignored) {} }
@@ -884,8 +883,8 @@ function apiAdminRetryVipInvite(session, memberId) {
   const r = sheet.getRange(row,1,1,MPS.headers.length).getValues()[0];
   if (String(r[MPS_COL.registrationStatus-1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus-1]) !== 'Disetujui') throw new Error('Undangan VIP hanya dapat dikirim untuk member yang sudah Berhasil.');
   let result;try{result=sendVipInvite_(memberKey);}catch(err){result={ok:false,error:safeErrorMessage_(err)};}
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_INVITE_RETRY',memberKey,result.ok?'SUCCESS':'DELIVERY_FAILED','Pengiriman undangan VIP dicoba ulang.');
-  return { ok: !!result.ok, message: result.ok ? 'Undangan VIP berhasil dikirim.' : (result.error || 'Undangan VIP gagal dikirim.') };
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_INVITE_RETRY',memberKey,result.ok?'SUCCESS':'DELIVERY_FAILED','Pengiriman undangan VIP dicoba ulang.');
+  return { ok: !!result.ok, message: result.ok ? 'Undangan VIP berhasil dikirim.' : (result.error || 'Undangan VIP gagal dikirim.'), auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.' };
 }
 
 function apiAdminIssuePin(session, memberId) {
