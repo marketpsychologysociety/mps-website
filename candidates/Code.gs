@@ -2286,12 +2286,12 @@ function apiAdminSaveWebsiteSettings(session,payload) {
   try{
     Object.keys(values).forEach(function(key){
       const row=findMpsContentRow_(sh,key),data=[key,sheetText_(values[key]),new Date()];
-      if(row){const before=sh.getRange(row,1,1,3).getValues()[0];changes.push({row:row,created:false,values:before});sh.getRange(row,1,1,3).setValues([data]);}
-      else{const target=sh.getLastRow()+1;changes.push({row:target,created:true});sh.appendRow(data);}
+      if(row){const before=sh.getRange(row,1,1,3).getValues()[0];changes.push({row:row,created:false,values:before,key:key});sh.getRange(row,1,1,3).setValues([data]);}
+      else{const target=sh.getLastRow()+1;changes.push({row:target,created:true,key:key});sh.appendRow(data);}
     });
   }catch(err){
     const rollbackErrors=[];
-    for(let i=changes.length-1;i>=0;i--){const change=changes[i];try{if(change.created){if(change.row<=sh.getLastRow())sh.deleteRow(change.row);}else sh.getRange(change.row,1,1,change.values.length).setValues([change.values]);}catch(e){rollbackErrors.push('pengaturan '+String(change.values&&change.values[0]||'baru')+': '+safeErrorMessage_(e));}}
+    for(let i=changes.length-1;i>=0;i--){const change=changes[i];try{if(change.created){if(change.row<=sh.getLastRow())sh.deleteRow(change.row);}else sh.getRange(change.row,1,1,change.values.length).setValues([change.values]);}catch(e){rollbackErrors.push('pengaturan '+change.key+': '+safeErrorMessage_(e));}}
     if(rollbackErrors.length)throw new Error('Penyimpanan pengaturan ticker gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa Website Settings sebelum mencoba ulang.');
     throw err;
   }
