@@ -2289,26 +2289,28 @@ function apiAdminSaveWebsiteSettings(session,payload) {
   if(!Number.isFinite(speed)||speed<10||speed>120||!['Neon','Gold','Blue','Purple'].includes(theme))throw new Error('Pengaturan kecepatan atau tema ticker tidak valid.');
   const prefix=clean_(payload.prefix||'VIP LIVE',24)||'VIP LIVE',suffix=clean_(payload.suffix||'bergabung ke MPS VIP Community',100)||'bergabung ke MPS VIP Community';
   if(!isSafePublicIdentity_(prefix)||!isSafePublicIdentity_(suffix))throw new Error('Label ticker tidak boleh memuat nomor kontak, email, ID member, login MT5, atau tautan pribadi.');
-  const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers,true);
-  const values={VIP_TICKER_ENABLED:String(payload.enabled===true),VIP_TICKER_SPEED:String(Math.round(speed)),VIP_TICKER_THEME:theme,VIP_TICKER_PREFIX:prefix,VIP_TICKER_SUFFIX:suffix};
-  const changes=[];
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
-    Object.keys(values).forEach(function(key){
-      const row=findMpsContentRow_(sh,key),data=[key,sheetText_(values[key]),new Date()];
-      if(row){const before=sh.getRange(row,1,1,3).getValues()[0];changes.push({row:row,created:false,values:before,key:key});sh.getRange(row,1,1,3).setValues([data]);}
-      else{const target=sh.getLastRow()+1;changes.push({row:target,created:true,key:key});sh.appendRow(data);}
-    });
-  }catch(err){
-    const rollbackErrors=[];
-    for(let i=changes.length-1;i>=0;i--){const change=changes[i];try{if(change.created){if(change.row<=sh.getLastRow())sh.deleteRow(change.row);}else sh.getRange(change.row,1,1,change.values.length).setValues([change.values]);}catch(e){rollbackErrors.push('pengaturan '+change.key+': '+safeErrorMessage_(e));}}
-    if(rollbackErrors.length)throw new Error('Penyimpanan pengaturan ticker gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa Website Settings sebelum mencoba ulang.');
-    throw err;
-  }
-  CacheService.getScriptCache().remove('mps_public_center_v480');
+    const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers,true);
+    const values={VIP_TICKER_ENABLED:String(payload.enabled===true),VIP_TICKER_SPEED:String(Math.round(speed)),VIP_TICKER_THEME:theme,VIP_TICKER_PREFIX:prefix,VIP_TICKER_SUFFIX:suffix};
+    const changes=[];
+    try{
+      Object.keys(values).forEach(function(key){
+        const row=findMpsContentRow_(sh,key),data=[key,sheetText_(values[key]),new Date()];
+        if(row){const before=sh.getRange(row,1,1,3).getValues()[0];changes.push({row:row,created:false,values:before,key:key});sh.getRange(row,1,1,3).setValues([data]);}
+        else{const target=sh.getLastRow()+1;changes.push({row:target,created:true,key:key});sh.appendRow(data);}
+      });
+    }catch(err){
+      const rollbackErrors=[];
+      for(let i=changes.length-1;i>=0;i--){const change=changes[i];try{if(change.created){if(change.row<=sh.getLastRow())sh.deleteRow(change.row);}else sh.getRange(change.row,1,1,change.values.length).setValues([change.values]);}catch(e){rollbackErrors.push('pengaturan '+change.key+': '+safeErrorMessage_(e));}}
+      if(rollbackErrors.length)throw new Error('Penyimpanan pengaturan ticker gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa Website Settings sebelum mencoba ulang.');
+      throw err;
+    }
+    CacheService.getScriptCache().remove('mps_public_center_v480');
+  }finally{lock.releaseLock();}
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_TICKER_SETTINGS_UPDATED','WEBSITE','SUCCESS','Pengaturan ticker VIP diperbarui.');
   return {ok:true,message:'Pengaturan ticker VIP diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
-
 function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
   try{
     const sh=getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
