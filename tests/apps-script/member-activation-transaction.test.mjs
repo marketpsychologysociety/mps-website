@@ -83,3 +83,55 @@ for (const failAt of ['member','app','deposit']) {
     assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
   });
 }
+
+const legacyStart=source.indexOf('function adminVerifyLegacy_(session, memberId, decision, adminNote) {');
+const legacyEnd=source.indexOf('function apiAdminVerify(',legacyStart+1);
+assert.ok(legacyStart>=0&&legacyEnd>legacyStart,'legacy verification function boundaries must exist');
+const legacyVerifySource=source.slice(legacyStart,legacyEnd);
+
+function legacyRejectHarness({failAt=''}={}) {
+  const memberId='MPS-OLD12345',appRef='MPS-APP-0123456789ABCDEF0123';
+  const member=new Array(30).fill('');member[0]=memberId;member[2]='Legacy Member';member[7]='Menunggu Aktivasi';member[11]=1000000;member[14]='Menunggu verifikasi';
+  const app=new Array(15).fill('');app[0]=appRef;app[7]='Menunggu Validasi Admin';app[8]=memberId;app[10]='Terverifikasi';
+  const access=[memberId,'987654321','987654321','@legacy_user','Legacy',true,'Menunggu','','','',''];
+  let failed=false,lockDepth=0;
+  function sheet(row,label) {
+    return {getRange(r,c,nr=1,nc=1){return{
+      getValues:()=>[row.slice(c-1,c-1+nc)],
+      getDisplayValue:()=>String(row[c-1]??''),
+      setValue(v){if(!failed&&failAt===label){row[c-1]=v;failed=true;throw new Error('INJECTED_'+label+'_WRITE');}row[c-1]=v;},
+      setValues(values){if(!failed&&failAt===label){values[0].forEach((v,i)=>row[c-1+i]=v);failed=true;throw new Error('INJECTED_'+label+'_WRITE');}values[0].forEach((v,i)=>row[c-1+i]=v);}
+    };}};
+  }
+  const memberSheet=sheet(member,'member'),appSheet=sheet(app,'app'),accessSheet=sheet(access,'access');
+  const context={
+    MPS:{headers:new Array(30)},MPS_COL:{registrationStatus:8,depositStatus:15,updatedAt:18,nickname:3},
+    MPS_APPLICATIONS:{headers:new Array(15)},
+    requireAdmin_:()=>true,clean_:v=>String(v??'').slice(0,500).trim().toUpperCase()==='MPS-OLD12345'?'MPS-OLD12345':String(v??'').slice(0,500).trim(),
+    LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;}})},
+    getMemberSheet_:()=>memberSheet,findMemberById_:()=>2,
+    getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByMemberId_:()=>2,
+    getMpsApplicationsSheet_:()=>appSheet,findMpsApplicationRowByMember_:()=>2,
+    formatMemberRow_:()=>{},CacheService:{getScriptCache:()=>({remove:()=>{}})},
+    sendTelegram_:()=>({ok:true}),recordMpsAudit_:()=>{},adminRole_:()=>'ADMIN',adminActorRef_:()=>'ADMIN',
+    safeErrorMessage_:e=>String(e&&e.message||e),console
+  };
+  vm.createContext(context);vm.runInContext(legacyVerifySource,context,{timeout:1000});
+  return {run:()=>context.adminVerifyLegacy_('session',memberId,'reject','Dokumen tidak valid'),member,app,access,stats:()=>({lockDepth})};
+}
+test('legacy rejection synchronizes member, application, and Telegram access states',()=>{
+  const h=legacyRejectHarness();
+  const result=h.run();
+  assert.equal(result.ok,true);assert.equal(h.member[7],'Ditolak');assert.equal(h.member[14],'Ditolak');
+  assert.equal(h.app[7],'Deposit Ditolak');assert.equal(h.access[6],'Akses Ditolak');
+  assert.equal(h.stats().lockDepth,0);
+});
+for (const failAt of ['member','app','access']) {
+  test('legacy rejection restores all snapshots when '+failAt+' write fails after partial mutation',()=>{
+    const h=legacyRejectHarness({failAt});
+    assert.throws(()=>h.run(),new RegExp('INJECTED_'+failAt+'_WRITE'));
+    assert.equal(h.member[7],'Menunggu Aktivasi');assert.equal(h.member[14],'Menunggu verifikasi');
+    assert.equal(h.app[7],'Menunggu Validasi Admin');assert.equal(h.access[6],'Menunggu');
+    assert.equal(h.stats().lockDepth,0);
+  });
+}
