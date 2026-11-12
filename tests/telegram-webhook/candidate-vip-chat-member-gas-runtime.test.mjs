@@ -21,7 +21,7 @@ const candidateFunctions=[
  'createMpsGasEffectLedger_','createMpsGasVipTransitionStore_',
  'createMpsGasVipTransitionOrchestrator_','createMpsGasVipChatMemberHandler_',
  'getMpsExistingVipAccessSheetForTransition_','findUniqueMpsTransitionRow_',
- 'resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_',
+ 'resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_','removeMpsCacheBestEffort_',
  'processMpsVipChatMemberEvent_'
 ].map(name=>extractFunction(candidate,name)).join('\n');
 const memberHeaders=[
