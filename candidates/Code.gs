@@ -1123,7 +1123,8 @@ function listLearningFiles_(memberId,isAdmin) {
 }
 
 function apiAdminGetLearningList(session) {
-  requireSuperAdmin_(session);
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_learning_list_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),20,60,'Permintaan katalog Learning admin terlalu sering. Coba lagi sebentar.');
   return listLearningFiles_('ADMIN-PREVIEW',true);
 }
 function apiAdminSaveLearningCatalog(session,payload) {
@@ -1186,7 +1187,9 @@ function apiAdminDeleteLearningFile(session,fileId) {
 }
 
 function apiAdminValidateMarketPulseUpload(session,payload) {
-  requireSuperAdmin_(session);payload=payload||{};
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_pulse_validate_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),10,60,'Validasi Market Pulse terlalu sering. Coba lagi sebentar.');
+  payload=payload||{};
   const name=clean_(payload.name,120);if(!/\.html?$/i.test(name))throw new Error('Pilih file HTML Market Pulse yang asli.');
   const encoded=String(payload.base64||'');if(!encoded||encoded.length>Math.ceil(MPS.maxPulseDataBytes*4/3)+16)throw new Error('File Market Pulse kosong atau melebihi batas 1 MB.');
   let bytes,source;try{bytes=Utilities.base64Decode(encoded);source=Utilities.newBlob(bytes,'text/html',name).getDataAsString('UTF-8');}catch(e){throw new Error('File HTML tidak dapat dibaca.');}
@@ -1271,7 +1274,8 @@ function apiGetLearningFile(session, fileId) {
 }
 
 function apiAdminGetLearningFile(session, fileId) {
-  requireSuperAdmin_(session);
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_learning_file_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),8,60,'Unduhan file Learning admin terlalu sering. Coba lagi sebentar.');
   const id = String(fileId || '').trim();
   if (!/^[A-Za-z0-9_-]{15,}$/.test(id)) throw new Error('File materi tidak valid.');
   const folderId = getLearningFolderId_();
@@ -2439,7 +2443,8 @@ function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
   }catch(err){console.error('MPS audit log write failed: '+safeErrorMessage_(err));return false;}
 }
 function apiAdminCheckSystemConfiguration(session) {
-  requireSuperAdmin_(session);
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_config_check_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),3,60,'Pemeriksaan konfigurasi terlalu sering. Coba lagi sebentar.');
   // This diagnostic is deliberately READ-ONLY: never create missing sheets,
   // folders, properties, or modify the database while an admin is checking setup.
   const props=PropertiesService.getScriptProperties(),checks=[];
@@ -2512,7 +2517,8 @@ function apiAdminCheckSystemConfiguration(session) {
 }
 
 function apiAdminCheckStorageSecurity(session) {
-  requireSuperAdmin_(session);
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_storage_audit_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),2,60,'Audit akses Drive terlalu sering karena memindai aset penyimpanan. Coba lagi sebentar.');
   const props=PropertiesService.getScriptProperties(),checks=[],risks=[];
   function inspectFile(file,label){
     try{
@@ -2540,7 +2546,9 @@ function apiAdminCheckStorageSecurity(session) {
 }
 
 function apiAdminGetAuditLogs(session,limit) {
-  requireSuperAdmin_(session);const n=Math.max(1,Math.min(200,Number(limit)||100));
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_audit_logs_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),20,60,'Permintaan audit log terlalu sering. Coba lagi sebentar.');
+  const n=Math.max(1,Math.min(200,Number(limit)||100));
   const rows=readMpsContentRows_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers);
   return {ok:true,logs:rows.slice(-n).reverse()};
 }
@@ -2614,6 +2622,7 @@ function apiAdminClearTestMemberData(session, confirmation, memberIds) {
 }
 function apiAdminGetContent(session) {
   const adminInfo=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_content_'+sha256_(String(adminInfo.actorId||adminInfo.role)).slice(0,20),20,60,'Permintaan konten admin terlalu sering. Coba lagi sebentar.');
   const isSuperAdmin=adminInfo.role==='SUPER_ADMIN';
   return {
     ok:true,
