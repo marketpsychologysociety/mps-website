@@ -12,6 +12,14 @@ assert.ok(start>=0&&end>start,'public identity guard boundaries must exist');
 const guardSource=source.slice(start,end);
 const context={};
 vm.createContext(context);vm.runInContext(guardSource,context,{timeout:1000});
+const settingsStart=source.indexOf('function apiAdminSaveWebsiteSettings(session,payload) {');
+const settingsEnd=source.indexOf('\nfunction ',settingsStart+1);
+assert.ok(settingsStart>=0&&settingsEnd>settingsStart,'ticker settings API boundaries must exist');
+context.requireSuperAdmin_=()=>true;
+context.clean_=(value,max)=>String(value??'').trim().slice(0,max);
+context.getMpsContentSheet_=()=>{throw new Error('INVALID_LABEL_MUST_BE_REJECTED_BEFORE_STORAGE_ACCESS');};
+vm.runInContext(source.slice(settingsStart,settingsEnd),context,{timeout:1000});
+
 
 test('real member names remain eligible for public social proof without masking',()=>{
   for(const name of ['Budi Santoso','Dewi Anggraini','Muhammad Rizky Pratama',"Ayu D'Pratiwi",'陈美玲','José María']) {
@@ -62,4 +70,17 @@ test('VIP calculator HTML and access-check APIs enforce the paid-VIP server gate
   const functions=[...source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{const i=functions.findIndex(m=>m[1]===name);assert.ok(i>=0,name);return source.slice(functions[i].index,functions[i+1]?.index??source.length);};
   for(const name of ['apiGetVipCalculatorHtml','apiCheckVipCalculatorAccess'])assert.match(body(name),/requireVipMember_\(/,name);
+});
+
+test('Super Admin cannot publish personal contact or account identifiers in ticker labels',()=>{
+  const base={enabled:true,speed:34,theme:'Neon',prefix:'VIP LIVE',suffix:'bergabung ke MPS VIP Community'};
+  for(const [field,value] of [
+    ['prefix','support@example.com'],
+    ['prefix','MPS-ABCDEF1234'],
+    ['suffix','+62 812-3456-7890'],
+    ['suffix','MT5 Login: 12345678'],
+    ['suffix','https://example.com/proof']
+  ]) {
+    assert.throws(()=>context.apiAdminSaveWebsiteSettings('session',{...base,[field]:value}),/Label ticker tidak boleh memuat/);
+  }
 });
