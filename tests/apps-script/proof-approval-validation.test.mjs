@@ -34,9 +34,16 @@ function harness({mime='image/png',bytes=[137,80,78,71,13,10,26,10,0],filePrivat
   return {run:(url='https://drive.google.com/file/d/'+fileId+'/view')=>context.validateProofFileForApproval_(url),file};
 }
 
-test('approval accepts a private in-folder PNG with a matching file signature',()=>{
-  const h=harness();const result=h.run();
-  assert.equal(result.fileId,fileId);assert.equal(result.size,9);
+test('approval accepts private in-folder JPEG, PNG, and WEBP files with matching signatures',()=>{
+  const cases=[
+    ['image/jpeg',[255,216,255,0,0,0,0,0,0,0,0,0]],
+    ['image/png',[137,80,78,71,13,10,26,10,0]],
+    ['image/webp',[82,73,70,70,0,0,0,0,87,69,66,80]]
+  ];
+  for(const [mime,bytes] of cases){
+    const result=harness({mime,bytes,size:bytes.length}).run();
+    assert.equal(result.fileId,fileId);assert.equal(result.size,bytes.length);
+  }
 });
 test('approval rejects spoofed image MIME when the stored bytes do not match',()=>{
   for(const mime of ['image/jpeg','image/png','image/webp']){
