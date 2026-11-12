@@ -19,7 +19,8 @@ function activationHarness({legacy=false,failAt=''}={}) {
   app[0]=applicationRef;app[7]='Menunggu Aktivasi';app[8]=memberId;
   const deposit=new Array(14).fill('');
   deposit[0]=applicationRef;deposit[9]=legacy?'Menunggu Validasi Admin':'Menunggu Aktivasi';
-  const failRules=Array.isArray(failAt)?failAt.slice():failAt?[String(failAt)+':1']:[],writeCounts={member:0,app:0,deposit:0},lockDepth=0,lockReleases=0;
+  const failRules=Array.isArray(failAt)?failAt.slice():failAt?[String(failAt)+':1']:[];
+  let writeCounts={member:0,app:0,deposit:0},lockDepth=0,lockReleases=0;
   function sheet(row,label) {
     return {
       getRange(r,c,nr=1,nc=1) {
