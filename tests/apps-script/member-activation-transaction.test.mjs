@@ -110,13 +110,15 @@ function legacyRejectHarness({failAt=''}={}) {
   const member=new Array(30).fill('');member[0]=memberId;member[2]='Legacy Member';member[7]='Menunggu Aktivasi';member[11]=1000000;member[14]='Menunggu verifikasi';
   const app=new Array(15).fill('');app[0]=appRef;app[7]='Menunggu Validasi Admin';app[8]=memberId;app[10]='Terverifikasi';
   const access=[memberId,'987654321','987654321','@legacy_user','Legacy',true,'Menunggu','','','',''];
-  let failed=false,lockDepth=0;
+  const failRules=Array.isArray(failAt)?failAt.slice():failAt?[String(failAt)+':1']:[];
+  const writeCounts={member:0,app:0,access:0};
+  let lockDepth=0;
   function sheet(row,label) {
     return {getRange(r,c,nr=1,nc=1){return{
       getValues:()=>[row.slice(c-1,c-1+nc)],
       getDisplayValue:()=>String(row[c-1]??''),
-      setValue(v){if(!failed&&failAt===label){row[c-1]=v;failed=true;throw new Error('INJECTED_'+label+'_WRITE');}row[c-1]=v;},
-      setValues(values){if(!failed&&failAt===label){values[0].forEach((v,i)=>row[c-1+i]=v);failed=true;throw new Error('INJECTED_'+label+'_WRITE');}values[0].forEach((v,i)=>row[c-1+i]=v);}
+      setValue(v){writeCounts[label]++;row[c-1]=v;const rule=label+':'+writeCounts[label],at=failRules.indexOf(rule);if(at>=0){failRules.splice(at,1);throw new Error('INJECTED_'+rule+'_WRITE');}},
+      setValues(values){writeCounts[label]++;values[0].forEach((v,i)=>row[c-1+i]=v);const rule=label+':'+writeCounts[label],at=failRules.indexOf(rule);if(at>=0){failRules.splice(at,1);throw new Error('INJECTED_'+rule+'_WRITE');}}
     };}};
   }
   const memberSheet=sheet(member,'member'),appSheet=sheet(app,'app'),accessSheet=sheet(access,'access');
@@ -145,9 +147,21 @@ test('legacy rejection synchronizes member, application, and Telegram access sta
 for (const failAt of ['member','app','access']) {
   test('legacy rejection restores all snapshots when '+failAt+' write fails after partial mutation',()=>{
     const h=legacyRejectHarness({failAt});
-    assert.throws(()=>h.run(),new RegExp('INJECTED_'+failAt+'_WRITE'));
+    assert.throws(()=>h.run(),new RegExp('INJECTED_'+failAt+':1_WRITE'));
     assert.equal(h.member[7],'Menunggu Aktivasi');assert.equal(h.member[14],'Menunggu verifikasi');
     assert.equal(h.app[7],'Menunggu Validasi Admin');assert.equal(h.access[6],'Menunggu');
+    assert.equal(h.stats().lockDepth,0);
+  });
+}
+for (const rollbackTarget of ['member','app','access']) {
+  test('legacy rejection reports incomplete rollback when '+rollbackTarget+' restoration fails',()=>{
+    const h=legacyRejectHarness({failAt:['access:1',rollbackTarget+':2']});
+    assert.throws(()=>h.run(),err=>{
+      assert.match(err.message,/Rollback tidak lengkap/);
+      const errorLabel=rollbackTarget==='app'?'aplikasi':rollbackTarget==='access'?'akses Telegram':'member';
+      assert.match(err.message,new RegExp(errorLabel+': INJECTED_'+rollbackTarget+':2_WRITE'));
+      return true;
+    });
     assert.equal(h.stats().lockDepth,0);
   });
 }
