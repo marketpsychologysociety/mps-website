@@ -338,7 +338,7 @@ test('admin approval and website settings do not roll back committed business wr
   const invalidationAt=approval.indexOf('post-commit admin verification cache invalidation');
   assert.ok(catchAt>0&&invalidationAt>catchAt,'approval cache invalidation must occur after transactional catch');
   assert.match(approval,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit admin verification cache invalidation failed/);
-  assert.match(settings,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit website settings cache invalidation failed/);
+  assert.match(settings,/removeMpsCacheBestEffort_\('mps_public_center_v480','website settings update'\)/);
   const legacy=body('adminVerifyLegacy_');
   const legacyCatch=legacy.indexOf('}catch(err){');
   const legacyInvalidation=legacy.indexOf('post-commit legacy verification cache invalidation');
