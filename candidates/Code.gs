@@ -281,10 +281,19 @@ function submitCore_(data) {
       result = deposit.result;
       telegramMessage = deposit.telegramMessage;
     }
-    if (result && result.ok) cache.remove('mps_public_dashboard_v480');
+    // Persistent business writes have completed at this point. CacheService is
+    // an optimization/idempotency hint, not part of the business commit boundary.
+    // Cache failures must never turn a committed registration/deposit into ok:false.
+    if (result && result.ok) {
+      try { cache.remove('mps_public_dashboard_v480'); } catch (cacheErr) { console.warn('MPS post-commit dashboard cache invalidation failed.'); }
+    }
     if (requestId) {
       result.requestId = requestId;
-      if (result.ok) cache.put('mps_req_' + requestId, JSON.stringify({fingerprint:requestFingerprint,result:{ok:true,status:result.status||'',applicationRef:result.applicationRef||'',memberId:result.memberId||''}}), MPS.requestCacheSeconds);
+      if (result.ok) {
+        try {
+          cache.put('mps_req_' + requestId, JSON.stringify({fingerprint:requestFingerprint,result:{ok:true,status:result.status||'',applicationRef:result.applicationRef||'',memberId:result.memberId||''}}), MPS.requestCacheSeconds);
+        } catch (cacheErr) { console.warn('MPS post-commit request cache write failed. Durable idempotency is not provided by CacheService.'); }
+      }
     }
   } catch (err) {
     let cleanupWarning='';
