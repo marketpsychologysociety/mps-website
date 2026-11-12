@@ -19,6 +19,14 @@ context.requireSuperAdmin_=()=>true;
 context.clean_=(value,max)=>String(value??'').trim().slice(0,max);
 context.getMpsContentSheet_=()=>{throw new Error('INVALID_LABEL_MUST_BE_REJECTED_BEFORE_STORAGE_ACCESS');};
 vm.runInContext(source.slice(settingsStart,settingsEnd),context,{timeout:1000});
+const readSettingsStart=source.indexOf('function readMpsWebsiteSettings_() {');
+const readSettingsEnd=source.indexOf('\nfunction ',readSettingsStart+1);
+assert.ok(readSettingsStart>=0&&readSettingsEnd>readSettingsStart,'ticker settings read API boundaries must exist');
+context.MPS_SITE_SETTINGS={sheet:'MPS Website Settings',headers:['Key','Value','Updated At']};
+context.getMpsContentSheet_=()=>({getLastRow:()=>2});
+context.readMpsContentRows_=()=>[];
+vm.runInContext(source.slice(readSettingsStart,readSettingsEnd),context,{timeout:1000});
+
 
 
 test('real member names remain eligible for public social proof without masking',()=>{
@@ -83,4 +91,23 @@ test('Super Admin cannot publish personal contact or account identifiers in tick
   ]) {
     assert.throws(()=>context.apiAdminSaveWebsiteSettings('session',{...base,[field]:value}),/Label ticker tidak boleh memuat/);
   }
+});
+
+test('unsafe legacy ticker settings fall back to safe public defaults at read time',()=>{
+  context.readMpsContentRows_=()=>[
+    {Key:'VIP_TICKER_PREFIX',Value:'support@example.com'},
+    {Key:'VIP_TICKER_SUFFIX',Value:'+62 812-3456-7890'}
+  ];
+  const settings=context.readMpsWebsiteSettings_();
+  assert.equal(settings.prefix,'VIP LIVE');
+  assert.equal(settings.suffix,'bergabung ke MPS VIP Community');
+});
+test('safe existing ticker settings remain configurable',()=>{
+  context.readMpsContentRows_=()=>[
+    {Key:'VIP_TICKER_PREFIX',Value:'MPS VIP'},
+    {Key:'VIP_TICKER_SUFFIX',Value:'bergabung ke komunitas trader'}
+  ];
+  const settings=context.readMpsWebsiteSettings_();
+  assert.equal(settings.prefix,'MPS VIP');
+  assert.equal(settings.suffix,'bergabung ke komunitas trader');
 });
