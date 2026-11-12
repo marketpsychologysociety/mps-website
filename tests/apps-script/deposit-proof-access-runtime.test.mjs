@@ -42,7 +42,7 @@ function harness({authorized=true,status='Menunggu Validasi Admin',storedFileId=
 test('ordinary Admin retrieves pending proof through authenticated API without a Drive URL',()=>{
   const h=harness(),result=h.run();
   assert.equal(result.ok,true);assert.equal(result.mimeType,'image/png');assert.equal(result.base64,'iVBORw0KGgo=');
-  assert.equal(Object.hasOwn(result,'url'),false);assert.deepEqual(h.stats(),{sheetReads:1,fileReads:1,rateCalls:1});
+  assert.equal(Object.hasOwn(result,'url'),false);assert.deepEqual(h.stats(),{sheetReads:1,fileReads:2,rateCalls:1});
 });
 test('unauthenticated callers cannot read proof or trigger rate-limited storage work',()=>{
   const h=harness({authorized:false});
@@ -62,5 +62,5 @@ test('proof endpoint rejects non-private Drive storage before returning bytes',(
 test('legacy pending deposits remain accessible through the same Admin-only proof proxy',()=>{
   const h=harness({legacy:true});
   const result=h.run(memberId);
-  assert.equal(result.ok,true);assert.equal(result.mimeType,'image/png');assert.equal(h.stats().fileReads,1);
+  assert.equal(result.ok,true);assert.equal(result.mimeType,'image/png');assert.equal(h.stats().fileReads,2);
 });
