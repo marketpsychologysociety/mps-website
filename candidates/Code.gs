@@ -797,7 +797,7 @@ function apiAdminVerify(session, applicationRefOrMemberId, decision, adminNote) 
 }
 function adminVerifyApplication_(session,applicationRef,action,note) {
   const lock=LockService.getScriptLock();lock.waitLock(20000);
-  let memberId='',chatId='',nickname='',telegramMessage='',createdRow=0,depositRow=0,appRow=0,db=null,apps=null,ds=null,appSnapshot=null,depositSnapshot=null,access=null,accessRow=0,accessSnapshot=null;
+  let memberId='',chatId='',nickname='',telegramMessage='',createdRow=0,depositRow=0,appRow=0,db=null,apps=null,ds=null,appSnapshot=null,depositSnapshot=null,access=null,accessRow=0,accessSnapshot=null,rejectedLinks=null,rejectedLinkSnapshots=[],rejectedAccess=null,rejectedAccessRow=0,rejectedAccessSnapshot=null;
   try{
     apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRow_(apps,applicationRef);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
     const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];appSnapshot=app.slice();if(!['Deposit Dikirim','Menunggu Validasi Admin'].includes(String(app[7]||'')))throw new Error('Status aplikasi tidak mengizinkan approval deposit.');
@@ -824,15 +824,21 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     }else{
       apps.getRange(appRow,8).setValue('Deposit Ditolak');apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(new Date());
       ds.getRange(depositRow,10).setValue('Ditolak');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(new Date());
-      const links=getMpsMemberLinksSheet_();if(links.getLastRow()>1){const vals=links.getRange(2,1,links.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();vals.forEach((v,i)=>{if(String(v[5]||'')===applicationRef&&String(v[3])==='Menunggu')links.getRange(i+2,4).setValue('Ditolak');});}
-      nickname=String(app[2]||'');chatId=String(dep[11]||'');const rejectedAccess=getTelegramAccessSheet_(),rejectedRow=findTelegramAccessByMemberId_(rejectedAccess,applicationRef);if(rejectedRow)rejectedAccess.getRange(rejectedRow,7).setValue('Akses Ditolak');
+      const now=new Date();apps.getRange(appRow,8).setValue('Deposit Ditolak');apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(now);
+      ds.getRange(depositRow,10).setValue('Ditolak');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
+      rejectedLinks=getMpsMemberLinksSheet_();if(rejectedLinks.getLastRow()>1){const vals=rejectedLinks.getRange(2,1,rejectedLinks.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();vals.forEach((v,i)=>{if(String(v[5]||'')===applicationRef&&String(v[3])==='Menunggu'){const row=i+2;rejectedLinkSnapshots.push({row:row,values:v.slice()});rejectedLinks.getRange(row,4).setValue('Ditolak');}});}
+      nickname=String(app[2]||'');chatId=String(dep[11]||'');rejectedAccess=getTelegramAccessSheet_();rejectedAccessRow=findTelegramAccessByMemberId_(rejectedAccess,applicationRef);if(rejectedAccessRow){rejectedAccessSnapshot=rejectedAccess.getRange(rejectedAccessRow,1,1,11).getValues()[0];rejectedAccess.getRange(rejectedAccessRow,7).setValue('Akses Ditolak');}
     }
     CacheService.getScriptCache().remove('mps_public_dashboard_v480');
   }catch(err){
-    if(createdRow&&db)try{db.deleteRow(createdRow);}catch(e){console.error('Approval rollback member row: '+safeErrorMessage_(e));}
-    if(accessRow&&accessSnapshot&&access)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){console.error('Approval rollback Telegram relation: '+safeErrorMessage_(e));}
-    if(appRow&&appSnapshot&&apps)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){console.error('Approval rollback application: '+safeErrorMessage_(e));}
-    if(depositRow&&depositSnapshot&&ds)try{ds.getRange(depositRow,1,1,depositSnapshot.length).setValues([depositSnapshot]);}catch(e){console.error('Approval rollback deposit: '+safeErrorMessage_(e));}
+    const rollbackErrors=[];
+    if(createdRow&&db)try{db.deleteRow(createdRow);}catch(e){rollbackErrors.push('baris member: '+safeErrorMessage_(e));}
+    if(accessRow&&accessSnapshot&&access)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){rollbackErrors.push('relasi Telegram approval: '+safeErrorMessage_(e));}
+    if(rejectedAccessRow&&rejectedAccessSnapshot&&rejectedAccess)try{rejectedAccess.getRange(rejectedAccessRow,1,1,11).setValues([rejectedAccessSnapshot]);}catch(e){rollbackErrors.push('akses Telegram penolakan: '+safeErrorMessage_(e));}
+    for(let i=rejectedLinkSnapshots.length-1;i>=0;i--){const snap=rejectedLinkSnapshots[i];try{rejectedLinks.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan member baris '+snap.row+': '+safeErrorMessage_(e));}}
+    if(appRow&&appSnapshot&&apps)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
+    if(depositRow&&depositSnapshot&&ds)try{ds.getRange(depositRow,1,1,depositSnapshot.length).setValues([depositSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
+    if(rollbackErrors.length)throw new Error('Transaksi verifikasi gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
     throw err;
   }finally{lock.releaseLock();}
   let result;
