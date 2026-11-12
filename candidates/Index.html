@@ -525,7 +525,7 @@
           '\nApplication Ref: '+(m.applicationRef||'—')+' · Member ID: '+(m.issuedMemberId||(/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(m.memberId||''))?m.memberId:'Belum diterbitkan'))+'\nStatus pendaftaran: '+(m.registrationStatus||'—')+' · Status deposit: '+(m.depositStatus||'—')+'\nTelegram: '+(m.telegramStatus||'Belum terhubung'));
         const proof=document.createElement('button');proof.className='btn secondary';proof.type='button';proof.textContent='MUAT BUKTI DEPOSIT';
         proof.addEventListener('click',async()=>{
-          setBusy(proof,true,'MEMUAT BUKTI');
+          setBusy(proof,true);
           try{
             const result=await api('apiAdminGetDepositProof',state.adminSession,m.applicationRef||m.memberId);
             const raw=atob(result.base64),bytes=new Uint8Array(raw.length);
