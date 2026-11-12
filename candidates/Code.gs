@@ -470,16 +470,42 @@ function findMpsDepositRow_(sh,ref) {
 }
 function activateMemberAfterPin_(memberId) {
   const lock=LockService.getScriptLock();lock.waitLock(15000);
+  let memberSheet=null,memberRow=0,memberBefore=null,apps=null,appRow=0,appSnapshot=null,depSheet=null,depRow=0,depSnapshot=null;
   try{
-    const sh=getMemberSheet_(),row=findMemberById_(sh,memberId);if(!row)throw new Error('Data member tidak ditemukan saat aktivasi.');
-    const r=sh.getRange(row,1,1,MPS.headers.length).getValues()[0];
-    if(String(r[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('Deposit belum disetujui; aktivasi ditolak.');
+    memberSheet=getMemberSheet_();memberRow=findMemberById_(memberSheet,memberId);
+    if(!memberRow)throw new Error('Data member tidak ditemukan saat aktivasi.');
+    memberBefore=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
+    if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('Deposit belum disetujui; aktivasi ditolak.');
     if(PropertiesService.getScriptProperties().getProperty('MPS_PIN_DELIVERED_'+memberId)!=='1')throw new Error('Pengiriman PIN belum terkonfirmasi.');
-    r[MPS_COL.registrationStatus-1]='Berhasil';r[17]=new Date();r[21]=PropertiesService.getScriptProperties().getProperty(pinPropertyKey_(memberId))||'';r[22]=new Date();if(!['Aktif','Undangan Dikirim'].includes(String(r[29]||'')))r[29]='Menunggu Undangan';
-    sh.getRange(row,1,1,MPS.headers.length).setValues([r]);
-    const apps=getMpsApplicationsSheet_(),appRow=findMpsApplicationRowByMember_(apps,memberId);
-    if(appRow){apps.getRange(appRow,8).setValue('Berhasil');apps.getRange(appRow,15).setValue(new Date());}
-    const depSheet=getMpsDepositsSheet_(),depRow=findMpsDepositRow_(depSheet,String(r[24]||''));if(depRow){depSheet.getRange(depRow,10).setValue('Berhasil');depSheet.getRange(depRow,14).setValue(new Date());}
+    const applicationRef=String(memberBefore[24]||'');
+    if(applicationRef){
+      apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRowByMember_(apps,memberId);
+      if(!appRow)throw new Error('Data aplikasi tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
+      appSnapshot=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
+      if(String(appSnapshot[8]||'')!==memberId)throw new Error('Relasi aplikasi dan member tidak cocok; aktivasi dibatalkan.');
+      if(!['Menunggu Aktivasi','Berhasil'].includes(String(appSnapshot[7]||'')))throw new Error('Status aplikasi tidak mengizinkan aktivasi member.');
+      depSheet=getMpsDepositsSheet_();depRow=findMpsDepositRow_(depSheet,applicationRef);
+      if(!depRow)throw new Error('Data deposit tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
+      depSnapshot=depSheet.getRange(depRow,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
+      if(!['Menunggu Aktivasi','Berhasil'].includes(String(depSnapshot[9]||'')))throw new Error('Status deposit tidak mengizinkan aktivasi member.');
+    }
+    const now=new Date(),memberNext=memberBefore.slice();
+    memberNext[MPS_COL.registrationStatus-1]='Berhasil';memberNext[17]=now;
+    memberNext[21]=PropertiesService.getScriptProperties().getProperty(pinPropertyKey_(memberId))||'';
+    memberNext[22]=now;
+    if(!['Aktif','Undangan Dikirim'].includes(String(memberNext[29]||'')))memberNext[29]='Menunggu Undangan';
+    try{
+      memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberNext]);
+      if(appRow){apps.getRange(appRow,8).setValue('Berhasil');apps.getRange(appRow,15).setValue(now);}
+      if(depRow){depSheet.getRange(depRow,10).setValue('Berhasil');depSheet.getRange(depRow,14).setValue(now);}
+    }catch(writeErr){
+      const rollbackErrors=[];
+      if(depRow&&depSnapshot)try{depSheet.getRange(depRow,1,1,depSnapshot.length).setValues([depSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
+      if(appRow&&appSnapshot)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
+      if(memberRow&&memberBefore)try{memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberBefore]);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}
+      if(rollbackErrors.length)throw new Error('Aktivasi gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
+      throw writeErr;
+    }
     CacheService.getScriptCache().remove('mps_public_dashboard_v480');
     return true;
   }finally{lock.releaseLock();}
