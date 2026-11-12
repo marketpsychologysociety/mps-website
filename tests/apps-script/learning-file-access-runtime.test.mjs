@@ -64,7 +64,8 @@ test('direct member file ID cannot bypass authentication or Published catalog st
 });
 test('member file endpoint rejects non-private, misplaced, trashed, oversized, and non-PDF files',()=>{
   const cases=[
-    [{privateFile:'ANYONE'},/tidak PRIVATE/],
+    [{privateFile:'ANYONE'},/Materi tidak tersedia untuk member ini/],
+    [{privateFolder:'ANYONE'},/Folder Learning tidak PRIVATE/],
     [{inFolder:false},/Akses file tidak diizinkan/],
     [{trashed:true},/File tidak tersedia/],
     [{mime:'image/png'},/File tidak tersedia/],
@@ -84,4 +85,8 @@ test('Super Admin can retrieve a private Learning PDF only from the configured f
   assert.equal(h.stats().driveFileReads,1);
   const misplaced=harness({inFolder:false});
   assert.throws(()=>misplaced.admin(),/Akses file tidak diizinkan/);
+  const sharedFolder=harness({privateFolder:'ANYONE'});
+  assert.throws(()=>sharedFolder.admin(),/Folder Learning tidak PRIVATE/);
+  const sharedFile=harness({privateFile:'ANYONE'});
+  assert.throws(()=>sharedFile.admin(),/File tidak tersedia/);
 });
