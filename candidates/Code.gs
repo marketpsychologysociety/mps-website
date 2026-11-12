@@ -2440,11 +2440,19 @@ function apiAdminCreateBackup(session) {
   const stamp=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyyMMdd-HHmmss');
   const copy=source.makeCopy('MPS DATABASE BACKUP '+stamp);
   try{copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Backup tidak dapat dipastikan PRIVATE.');}
-  catch(permissionErr){try{copy.setTrashed(true);}catch(ignore){}throw new Error('Backup dibatalkan karena akses file tidak dapat dipastikan PRIVATE: '+safeErrorMessage_(permissionErr));}
-  PropertiesService.getScriptProperties().setProperty('MPS_LAST_BACKUP_ID',copy.getId());
-  PropertiesService.getScriptProperties().setProperty('MPS_LAST_BACKUP_AT',new Date().toISOString());
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),'DATABASE_BACKUP',copy.getId(),'SUCCESS','Spreadsheet database disalin ke file backup terpisah.');
-  return {ok:true,backupId:copy.getId(),name:copy.getName(),url:copy.getUrl(),message:'Backup spreadsheet berhasil dibuat. File asli tidak diubah.'};
+  catch(permissionErr){let cleanupWarning='';try{copy.setTrashed(true);}catch(cleanupErr){cleanupWarning=' File backup sementara mungkin masih ada; Super Admin wajib memeriksa Drive.';}throw new Error('Backup dibatalkan karena akses file tidak dapat dipastikan PRIVATE: '+safeErrorMessage_(permissionErr)+cleanupWarning);}
+  const props=PropertiesService.getScriptProperties(),previousId=props.getProperty('MPS_LAST_BACKUP_ID'),previousAt=props.getProperty('MPS_LAST_BACKUP_AT'),backupAt=new Date().toISOString();
+  try{props.setProperty('MPS_LAST_BACKUP_ID',copy.getId());props.setProperty('MPS_LAST_BACKUP_AT',backupAt);}
+  catch(propertyErr){
+    const rollbackErrors=[];
+    try{if(previousId)props.setProperty('MPS_LAST_BACKUP_ID',previousId);else props.deleteProperty('MPS_LAST_BACKUP_ID');}catch(e){rollbackErrors.push('MPS_LAST_BACKUP_ID: '+safeErrorMessage_(e));}
+    try{if(previousAt)props.setProperty('MPS_LAST_BACKUP_AT',previousAt);else props.deleteProperty('MPS_LAST_BACKUP_AT');}catch(e){rollbackErrors.push('MPS_LAST_BACKUP_AT: '+safeErrorMessage_(e));}
+    try{copy.setTrashed(true);}catch(e){rollbackErrors.push('file backup privat: '+safeErrorMessage_(e));}
+    if(rollbackErrors.length)throw new Error('Backup dibuat tetapi penyimpanan metadata gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Super Admin perlu memeriksa Drive dan Script Properties.');
+    throw new Error('Backup dibatalkan karena metadata Script Properties gagal disimpan; file sementara berhasil dipindahkan ke Trash: '+safeErrorMessage_(propertyErr));
+  }
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'DATABASE_BACKUP',copy.getId(),'SUCCESS','Spreadsheet database disalin ke file backup terpisah.');
+  return {ok:true,backupId:copy.getId(),name:copy.getName(),url:copy.getUrl(),message:'Backup spreadsheet berhasil dibuat. File asli tidak diubah.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function assertSheetHeaders_(sheet,headers,name) {
