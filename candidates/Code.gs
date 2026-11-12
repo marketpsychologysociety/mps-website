@@ -478,7 +478,8 @@ function activateMemberAfterPin_(memberId) {
     if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('Deposit belum disetujui; aktivasi ditolak.');
     if(PropertiesService.getScriptProperties().getProperty('MPS_PIN_DELIVERED_'+memberId)!=='1')throw new Error('Pengiriman PIN belum terkonfirmasi.');
     const memberApplicationRef=String(memberBefore[24]||'');
-    apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRowByMember_(apps,memberId);
+    const existingApplicationSheet=openDatabase_().getSheetByName(MPS_APPLICATIONS.sheet);
+    if(existingApplicationSheet){apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRowByMember_(apps,memberId);}
     if(memberApplicationRef&&!appRow)throw new Error('Data aplikasi member tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
     if(appRow){
       appSnapshot=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
