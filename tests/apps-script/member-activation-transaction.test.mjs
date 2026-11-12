@@ -42,7 +42,7 @@ function activationHarness({legacy=false,failAt=''}={}) {
   }
   const memberSheet=sheet(member,'member'),appSheet=sheet(app,'app'),depositSheet=sheet(deposit,'deposit');
   const props={
-    'MPS_PIN_DELIVERED_'+memberId:'1',
+    ['MPS_PIN_DELIVERED_'+memberId]:'1',
     ['MPS_PIN_'+memberId]:'salt$hash'
   };
   const context={
