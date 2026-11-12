@@ -1481,9 +1481,10 @@ function setupTelegram_() {
 }
 
 function processTelegramUpdate_(update) {
-  if (!update || typeof update !== 'object') return;
+  if (!update || typeof update !== 'object' || Array.isArray(update)) throw new Error('Telegram update tidak valid.');
   const updateId=update.update_id;
-  if(updateId==null) return processTelegramUpdateCore_(update);
+  const validUpdateId=(typeof updateId==='number'&&Number.isSafeInteger(updateId)&&updateId>=0)||(typeof updateId==='string'&&/^(0|[1-9]\\d{0,19})$/.test(updateId));
+  if(!validUpdateId)throw new Error('Telegram update_id tidak valid; pemrosesan dihentikan.');
   const cache=CacheService.getScriptCache(),key='mps_tg_update_'+String(updateId);
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try {
