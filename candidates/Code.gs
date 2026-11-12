@@ -533,14 +533,14 @@ function apiAdminLogin(roleOrPassword, maybePassword) {
   const supplied = String(maybePassword === undefined ? roleOrPassword : maybePassword || '');
   if (!['ADMIN','SUPER_ADMIN'].includes(role)) throw new Error('Jenis akun administrator tidak valid.');
   const propertyKey = role === 'SUPER_ADMIN' ? 'MPS_SUPER_ADMIN_TOKEN' : 'MPS_ADMIN_TOKEN';
+  const key = 'admin:' + role;
+  consumeRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds, 'Terlalu banyak percobaan login. Coba lagi 15 menit.');
   const allProps=PropertiesService.getScriptProperties(),expected=allProps.getProperty(propertyKey)||'',adminToken=allProps.getProperty('MPS_ADMIN_TOKEN')||'',superToken=allProps.getProperty('MPS_SUPER_ADMIN_TOKEN')||'';
   if(adminToken&&superToken&&constantTimeEquals_(adminToken,superToken))throw new Error('Kredensial Admin dan Super Admin harus berbeda. Minta Super Admin mengganti salah satunya.');
-  const key = 'mps_admin_login_' + role;
   if (!expected || !constantTimeEquals_(expected, supplied)) {
-    consumeRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds, 'Terlalu banyak percobaan login. Coba lagi 15 menit.');
     throw new Error(role === 'SUPER_ADMIN' && !expected ? 'Akun Super Admin belum diaktifkan. Atur MPS_SUPER_ADMIN_TOKEN pada Script Properties terlebih dahulu.' : 'Login administrator gagal. Periksa jenis akun dan kata sandi.');
   }
-  CacheService.getScriptCache().remove(key);
+  clearRateLimit_(key);
   const session = Utilities.getUuid() + Utilities.getUuid();
   const sessionData = {role:role,actorId:role,credentialHash:sha256_(expected).slice(0,32),createdAt:new Date().toISOString()};
   CacheService.getScriptCache().put('mps_admin_' + sha256_(session), JSON.stringify(sessionData), MPS.adminSessionSeconds);
@@ -961,39 +961,27 @@ function apiMemberLogin(memberId, pin) {
   const id = clean_(memberId, 40).toUpperCase();
   const pinText = String(pin || '').trim();
   if (!id || !/^\d{6}$/.test(pinText)) throw new Error('ID Member atau PIN tidak valid.');
-  const key = 'mps_member_login_' + sha256_(id).slice(0, 24);
   const sheet = getMemberSheet_();
   const row = findMemberById_(sheet, id);
-  if (!row) {
-    recordMemberLoginFailure_(key);
-    throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
-  }
+  if (!row) throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
+  const key = 'member:' + sha256_(id).slice(0, 24);
+  consumeRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds,'Terlalu banyak percobaan login untuk ID ini. Coba lagi 15 menit.');
   const r = sheet.getRange(row, 1, 1, MPS.headers.length).getValues()[0];
   if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus - 1]) !== 'Disetujui') {
-    recordMemberLoginFailure_(key);
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   }
   const stored = PropertiesService.getScriptProperties().getProperty(pinPropertyKey_(id));
   if (!stored || !verifyMemberPin_(id, pinText, stored)) {
-    recordMemberLoginFailure_(key);
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   }
-  // Keberhasilan login hanya mereset penghitung ID itu sendiri.
-  // Jangan reset penghitung global: akun valid tidak boleh menjadi jalan pintas
-  // untuk menghapus pembatasan percobaan lintas-ID.
-  CacheService.getScriptCache().remove(key);
+  // Penghitung per-ID persisten di Script Properties; tidak hilang saat cache dievikt.
+  clearRateLimit_(key);
   const session = Utilities.getUuid() + Utilities.getUuid();
   CacheService.getScriptCache().put('mps_member_' + sha256_(session), id+'|'+sha256_(stored).slice(0,32), MPS.sessionSeconds);
   recordMpsAudit_('MEMBER',id,'MEMBER_LOGIN','MEMBER_ROOM','SUCCESS','Member berhasil membuka sesi.');
   return { ok: true, session: session, member: { memberId: id, nickname: String(r[MPS_COL.nickname - 1] || '') }, expiresIn: MPS.sessionSeconds };
 }
 
-
-function recordMemberLoginFailure_(memberKey) {
-  // Pembatasan per-ID mencegah brute force tanpa memberi penyerang kemampuan
-  // mengunci seluruh komunitas melalui penghitung global.
-  consumeRateLimit_(memberKey,MPS.loginMaxAttempts,MPS.loginWindowSeconds,'Terlalu banyak percobaan login untuk ID ini. Coba lagi 15 menit.');
-}
 
 function requireMember_(session) {
   const s=String(session||''),sessionValue=s?CacheService.getScriptCache().get('mps_member_'+sha256_(s)):'';
@@ -2094,14 +2082,41 @@ function isValidImageSignature_(bytes, mime) {
   return false;
 }
 
+/**
+ * Atomic persistent login limiter. Script Properties survives CacheService eviction.
+ * Keys are fixed-size hashes; only known member IDs reach the member limiter.
+ * Fail closed on corrupt state or storage/lock errors instead of silently bypassing throttling.
+ */
 function consumeRateLimit_(key, maxAttempts, windowSeconds, message) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(5000);
+  lock.waitLock(10000);
   try {
-    const cache = CacheService.getScriptCache();
-    const count = Number(cache.get(key) || 0);
-    if (count >= maxAttempts) throw new Error(message);
-    cache.put(key, String(count + 1), Math.max(1,Math.min(21600,Number(windowSeconds)||60)));
+    const props = PropertiesService.getScriptProperties();
+    const propertyKey = 'MPS_RATE_LIMIT_' + sha256_(String(key)).slice(0, 32);
+    const now = Date.now();
+    const windowMs = Math.max(1000, Math.min(21600000, (Number(windowSeconds) || 60) * 1000));
+    const raw = props.getProperty(propertyKey);
+    let state = raw ? JSON.parse(raw) : null;
+    if (state && (!Number.isFinite(Number(state.startedAt)) || !Number.isFinite(Number(state.count)))) {
+      throw new Error('Status pembatasan login tidak valid. Login ditahan demi keamanan; hubungi Super Admin.');
+    }
+    if (!state || now - Number(state.startedAt) >= windowMs || now < Number(state.startedAt)) {
+      state = {startedAt: now, count: 0};
+    }
+    if (Number(state.count) >= maxAttempts) throw new Error(message);
+    state.count = Number(state.count) + 1;
+    props.setProperty(propertyKey, JSON.stringify(state));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function clearRateLimit_(key) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const propertyKey = 'MPS_RATE_LIMIT_' + sha256_(String(key)).slice(0, 32);
+    PropertiesService.getScriptProperties().deleteProperty(propertyKey);
   } finally {
     lock.releaseLock();
   }
