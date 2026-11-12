@@ -18,11 +18,13 @@ function harness({failWrite=false,failRollback=false,officialUrl='https://exampl
     getValues:()=>[row.slice(c-1,c-1+nc)],
     setValues(values){writes++;values[0].forEach((v,i)=>row[c-1+i]=v);if((failWrite&&writes===1)||(failRollback&&writes===2))throw new Error(writes===1?'INJECTED_NEWS_WRITE':'INJECTED_NEWS_ROLLBACK');}
   };}};
+  const analysisSheet={getRange:()=>({getDisplayValue:()=> 'Published'})};
   const context={
     requireSuperAdmin_:()=>true,
-    getMpsContentSheet_:()=>sheet,
+    getMpsContentSheet_:(name)=>name==='MPS News Analysis'?analysisSheet:sheet,
     findMpsContentRow_:()=>2,
     MPS_CONTENT:{newsSheet:'MPS News',newsHeaders:new Array(13)},
+    MPS_NEWS_ANALYSIS:{sheet:'MPS News Analysis',headers:new Array(11)},
     validHttpsUrl_:url=>/^https:\/\//.test(String(url)),
     isMpsOfficialNewsUrl_:()=>officialUrl==='https://official.example.gov/news',
     clean_:v=>String(v??'').trim(),
