@@ -8,12 +8,12 @@ const source=readFileSync(fileURLToPath(new URL('../../candidates/Code.gs',impor
 const match=source.match(/const MPS_VIP_CALCULATOR_HTML = ("(?:\\.|[^"\\])*");/s);
 assert.ok(match,'embedded calculator HTML source must exist');
 const calculator=vm.runInNewContext(match[1]);
-const scriptMatch=calculator.match(/<script>([\\s\\S]*?)<\\/script>/);
+const scriptMatch=calculator.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(scriptMatch,'embedded calculator script must exist');
 const script=scriptMatch[1];
 
 test('calculator escapes untrusted text before HTML template interpolation',()=>{
-  const line=script.split('\\n').find(x=>x.startsWith('const esc='));
+  const line=script.split('\n').find(x=>x.startsWith('const esc='));
   assert.ok(line,'HTML escaping helper must exist');
   const esc=vm.runInNewContext(line+'; esc');
   const payload='<img src=x onerror=alert(1)> & "quoted"';
