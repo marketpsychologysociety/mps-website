@@ -37,7 +37,7 @@ function depositHarness({failAt=''}={}) {
   MPS:{minDeposit:1000000,maxProofBytes:5242880},
   MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},MPS_MEMBER_LINKS:{headers:new Array(11)},
   clean_:v=>String(v??'').trim(),sheetText_:v=>String(v??''),validDate_:()=>true,isValidImageSignature_:()=>true,
-  Utilities:{formatDate:()=> '2026-11-12',base64Decode:()=>new Uint8Array([1,2,3,4,5,6,7,8]),newBlob:()=>({getDataAsString:()=>''})},
+  Utilities:{formatDate:()=> '2026-11-12',getUuid:()=> '12345678-1234-1234-1234-123456789abc',base64Decode:()=>new Uint8Array([1,2,3,4,5,6,7,8]),newBlob:()=>({getDataAsString:()=>''})},
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_PROOF_FOLDER_ID'?'proof-folder':key==='MPS_LEARNING_FOLDER_ID'?'learning-folder':''})},
   DriveApp:{Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'},getFolderById:()=>folder},
   getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
