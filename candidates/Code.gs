@@ -726,6 +726,8 @@ function validateProofFileForApproval_(proofUrl) {
   const folder=DriveApp.getFolderById(proofFolderId);if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder bukti deposit tidak PRIVATE. Amankan folder sebelum menyetujui member.');
   const file=DriveApp.getFileById(match[1]);if(file.isTrashed()||file.getSize()>MPS.maxProofBytes||!/^image\/(jpeg|png|webp)$/.test(String(file.getMimeType()||'')))throw new Error('File bukti deposit tidak tersedia, terlalu besar, atau formatnya tidak sesuai.');
   if(String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('File bukti deposit tidak PRIVATE. Admin harus mengamankan file sebelum menyetujui member.');
+  const proofBytes=file.getBlob().getBytes();
+  if(!proofBytes||!proofBytes.length||proofBytes.length>MPS.maxProofBytes||!isValidImageSignature_(proofBytes,String(file.getMimeType()||'')))throw new Error('Isi file bukti deposit tidak sesuai dengan format gambar yang dinyatakan. Admin tidak dapat menyetujui file yang tidak valid.');
   let inFolder=false,parents=file.getParents();while(parents.hasNext())if(parents.next().getId()===proofFolderId)inFolder=true;
   if(!inFolder)throw new Error('File bukti tidak berada di folder bukti deposit yang dikonfigurasi.');
   return {fileId:file.getId(),name:file.getName(),size:file.getSize()};
