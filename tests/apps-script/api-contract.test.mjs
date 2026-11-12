@@ -36,7 +36,7 @@ test('ordinary Admin retains member-workflow permissions while content and file 
     return code.slice(matches[i].index,matches[i+1]?.index??code.length);
   };
   for(const name of ['apiAdminList','apiAdminVerify','apiAdminIssuePin','apiAdminRetryVipInvite','apiAdminResendRegistrationNotice','apiAdminGetDashboard','apiAdminGetHeatmap','apiAdminGetMarketPulse','apiAdminGetMemberIntelligence']) {
-    assert.match(body(name),/^function [^{]+\{\s*requireAdmin_\(/,name);
+    assert.match(body(name),/^function [^{]+\{\s*(?:const\s+[A-Za-z_$][\w$]*\s*=\s*)?requireAdmin_\(/,name);
   }
   for(const name of ['apiAdminGetLearningList','apiAdminSaveLearningCatalog','apiAdminUploadLearningFile','apiAdminDeleteLearningFile','apiAdminMigrateMemberSheetToV480','apiAdminSaveWebsiteSettings','apiAdminCheckSystemConfiguration','apiAdminCreateBackup','apiAdminGetContent','apiAdminSaveAnnouncement']) {
     assert.match(body(name),/^function [^{]+\{\s*(?:const\s+[A-Za-z_$][\w$]*\s*=\s*)?requireSuperAdmin_\(/,name);
