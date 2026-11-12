@@ -904,20 +904,22 @@ function apiAdminIssuePin(session, memberId) {
   }finally{lock.releaseLock();}
   let sent={ok:false,error:'Telegram tidak dapat dihubungi.'};try{sent=telegramSendToChat_(chatId,'🔐 PIN AKSES MPS DIPERBARUI\nID Member: '+memberKey+'\nPIN baru: '+pin+'\nJangan bagikan PIN ini kepada siapa pun.');}catch(sendErr){sent={ok:false,error:safeErrorMessage_(sendErr)};}
   if(!sent.ok){
-    recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'DELIVERY_FAILED','Pengiriman PIN gagal; PIN lama tetap berlaku dan PIN sementara dapat dicoba ulang.');
-    return {ok:false,delivered:false,message:'Telegram gagal mengirim PIN. PIN sebelumnya tetap berlaku. Tekan kirim ulang untuk mencoba kembali.'};
+    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'DELIVERY_FAILED','Pengiriman PIN gagal; PIN lama tetap berlaku dan PIN sementara dapat dicoba ulang.');
+    return {ok:false,delivered:false,message:'Telegram gagal mengirim PIN. PIN sebelumnya tetap berlaku. Tekan kirim ulang untuk mencoba kembali.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
   }
   try{storeMemberPin_(memberKey,pin);}catch(storeErr){
-    recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'DELIVERY_FAILED','PIN terkirim ke Telegram, tetapi penyimpanan PIN gagal; PIN lama dipertahankan bila penulisan gagal.');
-    return {ok:false,delivered:false,message:'Telegram mengirim PIN, tetapi penyimpanan PIN di backend gagal. Member jangan login dahulu; admin perlu memeriksa dan mencoba ulang.'};
+    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'DELIVERY_FAILED','PIN terkirim ke Telegram, tetapi penyimpanan PIN gagal; PIN lama dipertahankan bila penulisan gagal.');
+    return {ok:false,delivered:false,message:'Telegram mengirim PIN, tetapi penyimpanan PIN di backend gagal. Member jangan login dahulu; admin perlu memeriksa dan mencoba ulang.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
   }
   let pinCurrent=false;try{pinCurrent=markPinDeliveredIfCurrent_(memberKey,pin);}catch(markErr){console.error('PIN delivery confirmation: '+safeErrorMessage_(markErr));}
   if(pinCurrent){CacheService.getScriptCache().remove(pendingKey);try{activateMemberAfterPin_(memberKey);}catch(activeErr){pinCurrent=false;console.error('Member activation after PIN: '+safeErrorMessage_(activeErr));}}
   let inviteResult=null;if(pinCurrent){try{inviteResult=sendVipInvite_(memberKey);}catch(inviteErr){inviteResult={ok:false,error:safeErrorMessage_(inviteErr)};}}
   const pinAuditResult=!pinCurrent?'DELIVERY_FAILED':(inviteResult&&inviteResult.ok?'SUCCESS':'PARTIAL');
   const pinAuditDetails='PIN baru dikirim dan penyimpanannya '+(pinCurrent?'terkonfirmasi':'belum terkonfirmasi')+'; '+(inviteResult&&inviteResult.ok?'undangan VIP berhasil dikirim.':'undangan VIP belum berhasil dikirim atau belum dapat dipastikan.')+' Isi PIN tidak dicatat dalam audit.';
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,pinAuditResult,pinAuditDetails);
-  return {ok:!!pinCurrent,delivered:!!pinCurrent,inviteSent:!!(inviteResult&&inviteResult.ok),message:pinCurrent?'PIN baru berhasil dikirim secara privat ke Telegram member.'+(inviteResult&&inviteResult.ok?' Undangan VIP juga dikirim.':inviteResult?' PIN terkirim, tetapi undangan belum berhasil: '+inviteResult.error:''):'PIN terkirim, tetapi verifikasi penyimpanan PIN belum berhasil. Hubungi admin untuk pemeriksaan.'};
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,pinAuditResult,pinAuditDetails);
+  const response={ok:!!pinCurrent,delivered:!!pinCurrent,inviteSent:!!(inviteResult&&inviteResult.ok),message:pinCurrent?'PIN baru berhasil dikirim secara privat ke Telegram member.'+(inviteResult&&inviteResult.ok?' Undangan VIP juga dikirim.':inviteResult?' PIN terkirim, tetapi undangan belum berhasil: '+inviteResult.error:''):'PIN terkirim, tetapi verifikasi penyimpanan PIN belum berhasil. Hubungi admin untuk pemeriksaan.'};
+  if(!auditWritten)response.auditWarning='Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.';
+  return response;
 }
 
 /** MEMBER API */
