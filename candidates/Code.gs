@@ -3032,6 +3032,10 @@ function apiAdminSetContentStatus(session,type,id,status) {
 
 function apiTrackPartnerClick(id,session) {
   const adId=clean_(id,60);if(!/^AD-[A-F0-9-]{8,}$/i.test(adId))return {ok:false};
+  // Bound public traffic before any Spreadsheet read, including syntactically valid unknown IDs.
+  // Bound public traffic before any Spreadsheet read, including syntactically valid unknown IDs.
+  consumeRateLimit_('mps_ad_click_global',1200,60,'Terlalu banyak klik iklan.');
+  consumeRateLimit_('mps_ad_click_'+sha256_(adId).slice(0,20),600,60,'Terlalu banyak klik.');
   const sh=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers,false),row=sh?findMpsContentRow_(sh,adId):0;
   if(!row)return {ok:false};
   const v=sh.getRange(row,1,1,MPS_APPROVED_ADS.headers.length).getValues()[0],placement=String(v[8]||'');
