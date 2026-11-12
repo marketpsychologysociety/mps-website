@@ -1756,7 +1756,7 @@ function isSafePublicIdentity_(value) {
   if(!text||text.length>100)return false;
   // Nama asli boleh ditampilkan, tetapi identifier dan detail pribadi tidak.
   // Filter diterapkan pada alias dan teks aktivitas publik sebelum API mengirimkannya.
-  const sensitivePattern=/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b\+?\d[\d ()-]{7,}\b|\b(?:MT5|LOGIN)\s*[:#-]?\s*\d{4,}\b|(?:^|\s)@[A-Z0-9_]{5,32}\b|\bMPS-(?:APP-)?[A-F0-9]{8,20}\b|https?:\/\/|www\.|\b(?:RP|IDR)\s*[\d.,]+)/i;
+  const sensitivePattern=/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b\+?\d[\d ()-]{5,}\b|\b(?:MT5|LOGIN)\s*[:#-]?\s*\d{4,}\b|@[A-Z0-9_]{5,32}\b|\b(?:TELEGRAM\s*(?:ID|USERNAME|USER(?:NAME)?)|TG\s*ID)\s*[:#=-]?\s*@?[A-Z0-9_]{3,32}\b|\bMPS-(?:APP-)?[A-F0-9]{8,20}\b|https?:\/\/|www\.|\b(?:RP|IDR)\s*[\d.,]+)/i;
   return !sensitivePattern.test(text);
 }
 /**
