@@ -1167,9 +1167,11 @@ function adminUploadMarketPulseCore_(session,payload) {
     newFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     if(newFile.getSize()!==bytes.length)throw new Error('Ukuran file baru tidak cocok setelah disimpan.');
   }catch(err){
-    if(newFile)try{newFile.setTrashed(true);}catch(ignore){}
-    if(oldFile&&oldRenamed)try{oldFile.setName('MPS Market Pulse Data.html');}catch(restoreErr){console.error('Pulse rollback rename failed: '+safeErrorMessage_(restoreErr));}
-    throw new Error('Publikasi Market Pulse gagal; versi sebelumnya dipertahankan: '+safeErrorMessage_(err));
+    const rollbackErrors=[];
+    if(newFile)try{newFile.setTrashed(true);}catch(cleanupErr){rollbackErrors.push('file baru tidak berhasil dipindahkan ke Trash: '+safeErrorMessage_(cleanupErr));}
+    if(oldFile&&oldRenamed)try{oldFile.setName('MPS Market Pulse Data.html');}catch(restoreErr){rollbackErrors.push('nama versi sebelumnya gagal dipulihkan; file masih bernama '+backupName+': '+safeErrorMessage_(restoreErr));}
+    if(rollbackErrors.length)throw new Error('Publikasi Market Pulse gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa folder Learning sebelum mencoba ulang.');
+    throw new Error('Publikasi Market Pulse gagal; versi sebelumnya berhasil dipulihkan: '+safeErrorMessage_(err));
   }
   recordMpsAudit_(adminRole_(session),adminActorRef_(session),'MARKET_PULSE_DATA_PUBLISHED',newFile.getId(),'SUCCESS','Dataset tervalidasi dipublikasikan; akhir data '+validated.data.XAUUSD.end+'; versi sebelumnya '+(oldFile?backupName:'tidak ada')+'.');
   return {ok:true,fileId:newFile.getId(),endDate:validated.data.XAUUSD.end,slots:validated.stats.totalSlots,emptySlots:validated.stats.emptySlots,backup:oldFile?backupName:'',message:'Dataset Market Pulse lolos validasi dan berhasil dipublikasikan. Versi sebelumnya disimpan sebagai backup privat.'};
