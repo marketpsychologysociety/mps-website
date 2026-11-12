@@ -415,3 +415,13 @@ test('VIP-tagged news is withheld from non-VIP members while MEMBER/PUBLIC news 
   const builderEnd=code.indexOf(String.fromCharCode(10)+'function ',builderStart+1);
   assert.ok(code.slice(builderStart,builderEnd).includes('isMpsNewsAccessible_(r.Access,includeVipContent)'),'member news projection must enforce the access label');
 });
+
+test('ordinary Admin intelligence preview cannot include VIP-only content',()=>{
+  const start=code.indexOf('function apiAdminGetMemberIntelligence(session)');
+  const end=code.indexOf(String.fromCharCode(10)+'function ',start+1);
+  assert.ok(start>=0&&end>start,'admin intelligence endpoint boundaries must exist');
+  const body=code.slice(start,end);
+  assert.match(body,/requireAdmin_\(session\)/);
+  assert.ok(body.includes("admin.role==='SUPER_ADMIN'"),'VIP preview must depend on the authenticated role');
+  assert.ok(body.includes("buildMpsMemberIntelligence_({memberId:'ADMIN-PREVIEW'}, admin.role==='SUPER_ADMIN')"));
+});
