@@ -74,3 +74,9 @@ test('Apps Script source contains no literal Telegram token, Google API key, or 
   assert.doesNotMatch(code,/AIza[0-9A-Za-z_-]{35}/);
   assert.doesNotMatch(code,/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/);
 });
+
+test('portal frontend avoids unsafe HTML injection and dynamic code execution sinks',()=>{
+  assert.doesNotMatch(html,/\\b(?:innerHTML|outerHTML|insertAdjacentHTML)\\b/);
+  assert.doesNotMatch(html,/\\beval\\s*\\(|\\bnew\\s+Function\\s*\\(/);
+  assert.doesNotMatch(html,/document\\.write\\s*\\(/);
+});
