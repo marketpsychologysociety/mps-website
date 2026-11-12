@@ -2625,8 +2625,8 @@ function apiAdminSaveNewsAnalysis(session,payload) {
   if(status==='Published'&&(!impact||!bull||!bear||!neutral||!risk))throw new Error('Analisis publikasi wajib memuat dampak, skenario bullish/bearish/netral, dan risiko volatilitas.');
   const sh=getMpsContentSheet_(MPS_NEWS_ANALYSIS.sheet,MPS_NEWS_ANALYSIS.headers,true);
   const row=[id,sheetText_(impact),usd,bias,sheetText_(bull),sheetText_(bear),sheetText_(neutral),sheetText_(risk),sheetText_(context),status,new Date()];upsertMpsContentRow_(sh,id,row);
-  CacheService.getScriptCache().remove('mps_public_center_v480');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_ANALYSIS_SAVED',id,'SUCCESS','Analisis berita disimpan dengan status '+status+'.');
-  return {ok:true,message:status==='Published'?'Analisis MPS siap dipakai untuk publikasi berita.':'Draft analisis disimpan.'};
+  CacheService.getScriptCache().remove('mps_public_center_v480');const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_ANALYSIS_SAVED',id,'SUCCESS','Analisis berita disimpan dengan status '+status+'.');
+  return {ok:true,message:status==='Published'?'Analisis MPS siap dipakai untuk publikasi berita.':'Draft analisis disimpan.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function apiSubmitAdvertisingRequest(payload) {
