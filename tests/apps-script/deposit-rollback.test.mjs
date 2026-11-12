@@ -18,15 +18,15 @@ function makeSheet(rows,label,{failAt='',state}={}) {
   getRange(r,c,nr=1,nc=1){return{
    getValues:()=>Array.from({length:nr},(_,ri)=>(rows[r-1+ri]||[]).slice(c-1,c-1+nc)),
    getDisplayValues:()=>Array.from({length:nr},(_,ri)=>(rows[r-1+ri]||[]).slice(c-1,c-1+nc).map(v=>String(v??''))),
-   setValue(v){if(!rows[r-1])rows[r-1]=[];rows[r-1][c-1]=v;if(state.failAt===label&& !state.failed){state.failed=true;throw new Error('INJECTED_'+label+'_WRITE');}},
-   setValues(values){values.forEach((line,ri)=>{if(!rows[r-1+ri])rows[r-1+ri]=[];line.forEach((v,ci)=>rows[r-1+ri][c-1+ci]=v);});if(state.failAt==='oldLinkRollback'&&label==='links'&&r===2&&values[0][3]==='Menunggu'&&!state.failed){state.failed=true;throw new Error('INJECTED_oldLinkRollback');}if(state.failAt===label&&!state.failed){state.failed=true;throw new Error('INJECTED_'+label+'_WRITE');}}
+   setValue(v){if(!rows[r-1])rows[r-1]=[];rows[r-1][c-1]=v;if((Array.isArray(state.failAt)?state.failAt.includes(label):state.failAt===label)&&!state.failed.has(label)){state.failed.add(label);throw new Error('INJECTED_'+label+'_WRITE');}},
+   setValues(values){values.forEach((line,ri)=>{if(!rows[r-1+ri])rows[r-1+ri]=[];line.forEach((v,ci)=>rows[r-1+ri][c-1+ci]=v);});if((Array.isArray(state.failAt)?state.failAt.includes('oldLinkRollback'):state.failAt==='oldLinkRollback')&&label==='links'&&r===2&&values[0][3]==='Menunggu'&&!state.failed.has('oldLinkRollback')){state.failed.add('oldLinkRollback');throw new Error('INJECTED_oldLinkRollback');}if((Array.isArray(state.failAt)?state.failAt.includes(label):state.failAt===label)&&!state.failed.has(label)){state.failed.add(label);throw new Error('INJECTED_'+label+'_WRITE');}}
   };},
   appendRow(row){rows.push(row.slice());},
   deleteRow(row){rows.splice(row-1,1);}
  };
 }
 function depositHarness({failAt=''}={}) {
- const state={failAt,failed:false},now=new Date('2026-11-12T00:00:00Z');
+ const state={failAt,failed:new Set()},now=new Date('2026-11-12T00:00:00Z');
  const appsRows=[new Array(15).fill(''),[appRef,now,'Member Test','@member_test','ID','Trading','', 'Menunggu Deposit','','','','','','',now]];
  const depositsRows=[new Array(14).fill('')];
  const linksRows=[new Array(11).fill(''),['old-hash',now,new Date(now.getTime()+600000),'Menunggu','',appRef,'','','','','']];
@@ -66,17 +66,17 @@ test('deposit rollback restores prior application/deposit/link states and cancel
  assert.throws(()=>h.run(),/INJECTED_app_WRITE/);
  assert.equal(h.appsRows[1][7],'Menunggu Deposit');assert.equal(h.depositsRows.length,1);
  assert.equal(h.linksRows[1][3],'Menunggu');assert.equal(h.linksRows[2][3],'Dibatalkan');
- assert.equal(h.proofLinked(),false);assert.equal(h.state.failed,true);
+ assert.equal(h.proofLinked(),false);assert.equal(h.state.failed.has('app'),true);
  const err={preserveProofFile:false};if(!err.preserveProofFile)h.file.setTrashed(true);
  assert.equal(h.file.trashed,true);
 });
-test('incomplete old-link rollback marks proof file for preservation and operator reconciliation',()=>{
- const h=depositHarness({failAt:'app'});
- h.state.failAt='oldLinkRollback';h.state.failed=false;
- // Force a second fault only in the restoration stage by failing the app write and then the old-link restore.
- const original=h.state.failAt;h.state.failAt='app';
- const save=h.run;
- assert.throws(()=>save(),/INJECTED_app_WRITE/);
- // The fixture can separately assert the preservation contract via the candidate source's explicit marker.
- assert.match(saveSource,/failure\.preserveProofFile=true/);
+test('incomplete old-link rollback preserves private proof and flags operator reconciliation',()=>{
+ const h=depositHarness({failAt:['app','oldLinkRollback']});
+ assert.throws(()=>h.run(),err=>{
+  assert.match(err.message,/Rollback tidak lengkap/);
+  assert.equal(err.preserveProofFile,true);
+  return true;
+ });
+ assert.equal(h.file.trashed,false);
+ assert.equal(h.proofLinked(),false);
 });
