@@ -283,9 +283,9 @@ function submitCore_(data) {
     }
   } catch (err) {
     let cleanupWarning='';
-    if (uploadedFile && !proofLinkedToSheet) {
+    if (uploadedFile && !proofLinkedToSheet && err.preserveProofFile!==true) {
       try { uploadedFile.setTrashed(true); } catch (cleanupErr) { cleanupWarning='File bukti privat mungkin masih tersimpan karena pembersihan otomatis gagal. Super Admin perlu memeriksa folder bukti.'; }
-    }
+    } else if(uploadedFile&&err.preserveProofFile===true) cleanupWarning='File bukti dipertahankan dalam folder privat karena rollback database tidak lengkap. Super Admin wajib merekonsiliasi data sebelum percobaan ulang.';
     result = { ok: false, error: safeErrorMessage_(err) };
     if(cleanupWarning)result.cleanupWarning=cleanupWarning;
     if (requestId) result.requestId = requestId;
@@ -367,7 +367,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
     else {const dr=findMpsDepositRow_(deposits,applicationRef);if(dr)try{deposits.deleteRow(dr);}catch(e){rollbackErrors.push('baris deposit baru: '+safeErrorMessage_(e));}}
     try{apps.getRange(appRow,1,oldApp.length).setValues([oldApp]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
     if(link)try{const links=getMpsMemberLinksSheet_(),lr=findMpsMemberLinkRow_(links,sha256_(link.token));if(lr)links.getRange(lr,4).setValue('Dibatalkan');}catch(e){rollbackErrors.push('tautan Telegram: '+safeErrorMessage_(e));}
-    if(rollbackErrors.length)throw new Error('Penyimpanan deposit gagal: '+safeErrorMessage_(err)+'. Rollback database tidak lengkap ('+rollbackErrors.join('; ')+'). File bukti akan dibersihkan terpisah; lakukan rekonsiliasi sebelum percobaan ulang.');
+    if(rollbackErrors.length){const failure=new Error('Penyimpanan deposit gagal: '+safeErrorMessage_(err)+'. Rollback database tidak lengkap ('+rollbackErrors.join('; ')+'). Lakukan rekonsiliasi sebelum percobaan ulang.');failure.preserveProofFile=true;throw failure;}
     throw err;
   }
   return {result:{ok:true,applicationRef:applicationRef,memberId:'',status:'Konfirmasi deposit tersimpan. Member ID baru diterbitkan setelah admin menyetujui pendaftaran.',telegramUrl:link.url,telegramExpiresAt:link.expiresAt},telegramMessage:''};
