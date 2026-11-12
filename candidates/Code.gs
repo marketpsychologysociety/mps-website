@@ -1125,9 +1125,15 @@ function apiAdminUploadLearningFile(session,payload) {
     catalogSheet=getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers,true);
     const row=[file.getId(),sheetText_(title),sheetText_(category),sheetText_(level),sheetText_(description),Math.round(order),status,new Date()];
     upsertMpsContentRow_(catalogSheet,file.getId(),row);
-  }catch(err){if(catalogSheet&&file){catalogRow=findMpsContentRow_(catalogSheet,file.getId());if(catalogRow)try{catalogSheet.deleteRow(catalogRow);}catch(ignore){}}if(file)try{file.setTrashed(true);}catch(ignore){}throw new Error('Upload Learning gagal dan file sementara dibatalkan: '+safeErrorMessage_(err));}
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_PDF_UPLOADED',file.getId(),'SUCCESS','PDF privat diunggah ke folder Learning; ukuran '+bytes.length+' byte.');
-  return {ok:true,fileId:file.getId(),name:file.getName(),message:'PDF berhasil diunggah ke folder Learning privat dan masuk katalog.'};
+  }catch(err){
+    const rollbackErrors=[];
+    if(catalogSheet&&file)try{catalogRow=findMpsContentRow_(catalogSheet,file.getId());if(catalogRow)catalogSheet.deleteRow(catalogRow);}catch(e){rollbackErrors.push('metadata katalog: '+safeErrorMessage_(e));}
+    if(file)try{file.setTrashed(true);}catch(e){rollbackErrors.push('file PDF privat: '+safeErrorMessage_(e));}
+    if(rollbackErrors.length)throw new Error('Upload Learning gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Super Admin perlu memeriksa folder Learning dan katalog sebelum mencoba ulang.');
+    throw new Error('Upload Learning gagal; file sementara dan perubahan katalog berhasil dibatalkan: '+safeErrorMessage_(err));
+  }
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_PDF_UPLOADED',file.getId(),'SUCCESS','PDF privat diunggah ke folder Learning; ukuran '+bytes.length+' byte.');
+  return {ok:true,fileId:file.getId(),name:file.getName(),message:'PDF berhasil diunggah ke folder Learning privat dan masuk katalog.',auditWarning:auditWritten?'':'Audit log gagal ditulis; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function apiAdminDeleteLearningFile(session,fileId) {
