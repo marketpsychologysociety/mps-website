@@ -87,7 +87,8 @@ for (const failAt of ['member','app','deposit']) {
 }
 for (const rollbackTarget of ['member','app','deposit']) {
   test('activation reports incomplete rollback when '+rollbackTarget+' snapshot restoration fails',()=>{
-    const h=activationHarness({failAt:['deposit:1',rollbackTarget+':2']});
+    const rollbackWrite=rollbackTarget==='member'?2:3;
+    const h=activationHarness({failAt:['deposit:1',rollbackTarget+':'+rollbackWrite]});
     assert.throws(()=>h.run(),err=>{
       assert.match(err.message,/Aktivasi gagal dan rollback tidak lengkap/);
       assert.match(err.message,new RegExp(rollbackTarget+': INJECTED_'+rollbackTarget+':2_WRITE'));
