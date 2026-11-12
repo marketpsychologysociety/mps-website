@@ -77,7 +77,7 @@ Still open:
 - Do not substitute CacheService PROCESSING/DONE markers for a proven durable transaction/outbox.
 
 ### D. Public data projection and privacy
-The public Pulse preview and Member Only messaging are present in the public UI. That is not proof of backend privacy. Direct endpoint/API authorization, exact public ticker projection, private dataset denial, and cache isolation still require exact-candidate regression and isolated runtime tests. Public ticker policy must not be weakened: only an approved display name and minimal safe event may be exposed; never expose phone/email, Telegram ID/handle, MT5 login, deposit/payment details, proof documents, PINs, or credentials.
+The public Pulse preview and Member Only messaging are present in the public UI. That is not proof of backend privacy. Direct endpoint/API authorization, exact public ticker projection, private dataset denial, and cache isolation still require exact-candidate regression and isolated runtime tests. Public ticker policy must not be weakened: the approved real member display name is intentionally visible (not masked), alongside only a minimal safe event; never expose full member IDs, phone/email, Telegram ID/handle, MT5 login, deposit/payment details, proof documents, PINs, or credentials.
 
 ### E. Public Center transport
 The frontend uses a data-only response contract and mocked Chromium tests reject executable payload injection. The public-center feature flag remains disabled. Live Apps Script CORS headers, redirects, final JSON response, and browser fetch behavior have not been verified against an isolated deployed GAS candidate.
