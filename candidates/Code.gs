@@ -2689,10 +2689,27 @@ function apiAdminPublishAdvertisingRequest(session,payload) {
     const ads=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers,true);
     const existing=readMpsContentRows_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers).some(function(a){return String(a['Request ID'])===requestId;});
     if(existing)throw new Error('Proposal ini sudah memiliki iklan terbit.');
-    const adId='AD-'+Utilities.getUuid().replace(/-/g,'').slice(0,16).toUpperCase(),now=new Date();
-    ads.appendRow([adId,requestId,now,sheetText_(String(request[2]||'')),sheetText_(title),sheetText_(description),sheetText_(image),sheetText_(target),placement,start,end,'Approved','Paid',0,now]);
-    req.getRange(rr,13).setValue('Published');req.getRange(rr,16).setValue(now);
-    CacheService.getScriptCache().remove('mps_public_center_v480');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_PUBLISHED',adId,'SUCCESS','Iklan dipublikasikan setelah status Approved dan Paid.');return {ok:true,adId:adId,message:'Iklan diterbitkan setelah persetujuan dan pembayaran terverifikasi.'};
+    const adId='AD-'+Utilities.getUuid().replace(/-/g,'').slice(0,16).toUpperCase(),now=new Date(),requestBefore=request.slice(),previousAdLast=ads.getLastRow();
+    try{
+      ads.appendRow([adId,requestId,now,sheetText_(String(request[2]||'')),sheetText_(title),sheetText_(description),sheetText_(image),sheetText_(target),placement,start,end,'Approved','Paid',0,now]);
+      req.getRange(rr,13).setValue('Published');req.getRange(rr,16).setValue(now);
+    }catch(writeErr){
+      const rollbackErrors=[];
+      try{req.getRange(rr,1,1,requestBefore.length).setValues([requestBefore]);}catch(e){rollbackErrors.push('status proposal: '+safeErrorMessage_(e));}
+      try{
+        const lastAdRow=ads.getLastRow();
+        if(lastAdRow>previousAdLast){
+          const lastAdId=String(ads.getRange(lastAdRow,1).getDisplayValue()||'');
+          if(lastAdId===adId)ads.deleteRow(lastAdRow);
+          else rollbackErrors.push('baris iklan terakhir berubah; tidak dihapus otomatis untuk menghindari penghapusan data lain');
+        }
+      }catch(e){rollbackErrors.push('baris iklan sementara: '+safeErrorMessage_(e));}
+      if(rollbackErrors.length)throw new Error('Publikasi iklan gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa proposal dan Approved Ads sebelum mencoba ulang.');
+      throw new Error('Publikasi iklan gagal; perubahan proposal dan iklan sementara berhasil dibatalkan: '+safeErrorMessage_(writeErr));
+    }
+    CacheService.getScriptCache().remove('mps_public_center_v480');
+    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_PUBLISHED',adId,'SUCCESS','Iklan dipublikasikan setelah status Approved dan Paid.');
+    return {ok:true,adId:adId,message:'Iklan diterbitkan setelah persetujuan dan pembayaran terverifikasi.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }finally{lock.releaseLock();}
 }
 
