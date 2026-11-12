@@ -320,7 +320,7 @@ test('public center and high-cost admin read endpoints are throttled after autho
     const source=body(name);
     assert.ok(source.indexOf('requireAdmin_(')<source.indexOf('consumeRateLimit_('),name+' must authorize before throttling');
     assert.ok(source.includes(key),name+' must have an actor-scoped throttle');
-    assert.match(source,/sha256_\\(String\\(admin\\.actorId\\|\\|admin\\.role\\)\\)\\.slice\\(0,20\\)/,name+' throttle must isolate authenticated admin actors');
+    assert.ok(source.includes('sha256_(String(admin.actorId||admin.role)).slice(0,20)'),name+' throttle must isolate authenticated admin actors');
   }
 });
 
