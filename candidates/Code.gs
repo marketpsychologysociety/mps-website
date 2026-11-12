@@ -794,7 +794,7 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     let tg={ok:false};try{tg=sendTelegram_(telegramMessage);}catch(tgErr){console.error('Admin archive notification: '+safeErrorMessage_(tgErr));}
     if(!tg.ok){result.telegramWarning='Perubahan tersimpan, tetapi notifikasi arsip admin gagal dikirim.';auditResult='PARTIAL';auditDetails+=' Notifikasi arsip admin gagal dikirim.';}
   }
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'MEMBER_APPROVED':'MEMBER_REJECTED',memberKey,auditResult,auditDetails);
+  if(!recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'MEMBER_APPROVED':'MEMBER_REJECTED',memberKey,auditResult,auditDetails))result.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
   return result;
 }
 
@@ -866,7 +866,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
   try{const tg=sendTelegram_(telegramMessage);if(!tg.ok)result.telegramWarning='Notifikasi arsip admin gagal dikirim.';}catch(e){result.telegramWarning='Notifikasi arsip admin gagal dikirim.';}
   const auditStatus=action==='reject'?'SUCCESS':(result.ok&&result.inviteSent!==false?'SUCCESS':'PARTIAL');
   const auditDetails=action==='approve'?'Member ID '+memberId+' diterbitkan setelah approval; aktivasi PIN '+(result.ok?'selesai':'tertunda')+'; undangan VIP '+(result.inviteSent?'berhasil':'belum berhasil atau belum dikonfirmasi')+'.':'Pengajuan ditolak tanpa menerbitkan Member ID.';
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'APPLICATION_APPROVED':'APPLICATION_REJECTED',applicationRef,auditStatus,auditDetails);
+  if(!recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'APPLICATION_APPROVED':'APPLICATION_REJECTED',applicationRef,auditStatus,auditDetails))result.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
   return result;
 }
 
@@ -2296,7 +2296,8 @@ function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
         for(let i=runs.length-1;i>=0;i--)sh.deleteRows(runs[i].start,runs[i].count);
       }
     }
-  }catch(err){console.error('MPS audit log write failed: '+safeErrorMessage_(err));}
+    return true;
+  }catch(err){console.error('MPS audit log write failed: '+safeErrorMessage_(err));return false;}
 }
 function apiAdminCheckSystemConfiguration(session) {
   requireSuperAdmin_(session);
