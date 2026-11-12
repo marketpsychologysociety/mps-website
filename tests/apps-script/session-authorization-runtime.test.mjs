@@ -59,10 +59,10 @@ test('member session is revoked when the stored PIN changes or member status is 
   assert.throws(()=>h.context.requireMember_(token),/PIN telah diperbarui/);
   h.memberSession('pending-session');
   h.setMemberStatus('Menunggu Aktivasi','Disetujui');
-  assert.throws(()=>h.context.requireMember_('pending-session'),/Akses member tidak aktif/);
+  assert.throws(()=>h.context.requireMember_('pending-session'),/Akses Learning tidak aktif/);
   h.memberSession('deposit-pending-session');
   h.setMemberStatus('Berhasil','Menunggu verifikasi');
-  assert.throws(()=>h.context.requireMember_('deposit-pending-session'),/Akses member tidak aktif/);
+  assert.throws(()=>h.context.requireMember_('deposit-pending-session'),/Akses Learning tidak aktif/);
 });
 
 test('Super Admin authorization cannot be escalated from an ordinary Admin session',()=>{
