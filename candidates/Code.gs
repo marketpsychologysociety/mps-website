@@ -1119,10 +1119,12 @@ function apiAdminUploadLearningFile(session,payload) {
   const tail=rawPdf.slice(-2048);if(tail.indexOf('%%EOF')<0)throw new Error('Struktur akhir PDF tidak valid.');
   if(/\/(?:JavaScript|JS|OpenAction|AA|Launch|EmbeddedFile|RichMedia|XFA)\b/i.test(rawPdf))throw new Error('PDF memuat penanda active content atau embedded action yang tidak diizinkan. Ekspor ulang sebagai PDF statis.');
   const folderId=getLearningFolderId_(),folder=DriveApp.getFolderById(folderId),blob=Utilities.newBlob(bytes,MimeType.PDF,name);let file=null;
+  if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder Learning tidak PRIVATE. Amankan folder sebelum mengunggah materi.');
   let catalogSheet=null,catalogRow=0;
   try{
     file=folder.createFile(blob);
     file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+    if(String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Akses PDF baru tidak dapat dipastikan PRIVATE.');
     catalogSheet=getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers,true);
     const row=[file.getId(),sheetText_(title),sheetText_(category),sheetText_(level),sheetText_(description),Math.round(order),status,new Date()];
     upsertMpsContentRow_(catalogSheet,file.getId(),row);
