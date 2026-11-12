@@ -115,6 +115,8 @@ jobs:
         run: node --test tests/apps-script/news-review-rollback.test.mjs
       - name: Run Apps Script database backup privacy and rollback tests (mocked services only)
         run: node --test tests/apps-script/database-backup-rollback.test.mjs
+      - name: Run runtime session and role-escalation security tests (mocked services only)
+        run: node --test tests/apps-script/session-authorization-runtime.test.mjs
       - name: Run Apps Script frontend/backend API contract tests
         run: node --test tests/apps-script/api-contract.test.mjs
       - name: Run Apps Script calculator template security tests
