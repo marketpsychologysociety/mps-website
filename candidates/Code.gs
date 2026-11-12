@@ -1181,6 +1181,7 @@ function adminUploadMarketPulseCore_(session,payload) {
     if(oldFile){oldFile.setName(backupName);oldRenamed=true;}
     newFile=folder.createFile(Utilities.newBlob(bytes,'text/html','MPS Market Pulse Data.html'));
     newFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+    if(String(newFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Akses file baru tidak dapat dipastikan PRIVATE.');
     if(newFile.getSize()!==bytes.length)throw new Error('Ukuran file baru tidak cocok setelah disimpan.');
   }catch(err){
     const rollbackErrors=[];
