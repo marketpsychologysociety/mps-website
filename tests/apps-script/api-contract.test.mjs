@@ -346,15 +346,19 @@ test('admin approval and website settings do not roll back committed business wr
   assert.match(legacy,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit legacy verification cache invalidation failed/);
 });
 
-test('public partner click throttles run before spreadsheet reads',()=>{
+test('public partner click global throttle runs before reads and per-ad throttle after access checks',()=>{
   const functions=[...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const i=functions.findIndex(m=>m[1]==='apiTrackPartnerClick');
   assert.ok(i>=0,'partner click endpoint must exist');
   const body=code.slice(functions[i].index,functions[i+1]?.index??code.length);
   const globalAt=body.indexOf("consumeRateLimit_('mps_ad_click_global'");
-  const perAdAt=body.indexOf("consumeRateLimit_('mps_ad_click_'+sha256_(adId)");
   const sheetAt=body.indexOf('getMpsContentSheet_(');
-  assert.ok(globalAt>=0&&perAdAt>globalAt&&sheetAt>perAdAt,'both aggregate and per-ad throttles must run before spreadsheet access');
+  const accessAt=body.indexOf("if(['Member Area','VIP Community'].includes(placement))");
+  const placementAt=body.indexOf("if(!['Public Home','Website publik','Member Area','VIP Community'].includes(placement))");
+  const perAdAt=body.indexOf("consumeRateLimit_('mps_ad_click_'+sha256_(adId)");
+  const lockAt=body.indexOf('LockService.getScriptLock()');
+  assert.ok(globalAt>=0&&sheetAt>globalAt,'aggregate throttle must run before spreadsheet access');
+  assert.ok(accessAt>sheetAt&&placementAt>accessAt&&perAdAt>placementAt&&lockAt>perAdAt,'per-ad throttle must run only after placement and member authorization checks, but before counter writes');
 });
 
 test('post-commit cache invalidation and Telegram/PIN cache hints fail safely',()=>{
