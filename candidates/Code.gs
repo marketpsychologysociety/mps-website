@@ -141,15 +141,33 @@ function apiCreateTelegramLink(session, applicationRef) {
   }finally{lock.releaseLock();}
 }
 
-function getMpsApplicationsSheet_() {
-  const ss = openDatabase_();
-  let sh = ss.getSheetByName(MPS_APPLICATIONS.sheet);
-  if (!sh) sh = ss.insertSheet(MPS_APPLICATIONS.sheet);
-  if (sh.getLastRow() === 0) { sh.getRange(1,1,1,MPS_APPLICATIONS.headers.length).setValues([MPS_APPLICATIONS.headers]); sh.setFrozenRows(1); sh.setHiddenGridlines(true); }
-  const actual = sh.getRange(1,1,1,MPS_APPLICATIONS.headers.length).getDisplayValues()[0];
-  MPS_APPLICATIONS.headers.forEach(function(h,i){if(String(actual[i]||'').trim()!==h)throw new Error('Header sheet '+MPS_APPLICATIONS.sheet+' tidak sesuai pada kolom '+(i+1)+'.');});
+function getMpsSheetStrict_(name, headers) {
+  const ss=openDatabase_(),sh=ss.getSheetByName(name);
+  if(!sh||sh.getLastRow()<1)throw new Error('Konfigurasi database belum lengkap: tab '+name+' belum disediakan. Hubungi Super Admin.');
+  const actual=sh.getRange(1,1,1,headers.length).getDisplayValues()[0];
+  headers.forEach(function(h,i){if(String(actual[i]||'').trim()!==h)throw new Error('Header sheet '+name+' tidak sesuai pada kolom '+(i+1)+'. Tidak ada data yang diubah.');});
   return sh;
 }
+function provisionMpsSheets_(definitions) {
+  const ss=openDatabase_(),seen={};
+  const defs=(definitions||[]).filter(function(item){
+    if(!item||!item.name||!Array.isArray(item.headers)||!item.headers.length)throw new Error('Definisi skema provisioning tidak valid.');
+    if(seen[item.name])return false;seen[item.name]=true;return true;
+  });
+  defs.forEach(function(item){
+    const sh=ss.getSheetByName(item.name);
+    if(sh&&sh.getLastRow()>0){
+      const actual=sh.getRange(1,1,1,item.headers.length).getDisplayValues()[0];
+      item.headers.forEach(function(h,i){if(String(actual[i]||'').trim()!==h)throw new Error('PROVISIONING_SCHEMA_MISMATCH: '+item.name+' kolom '+(i+1)+'. Tidak ada tab yang dibuat atau header yang ditulis.');});
+    }
+  });
+  defs.forEach(function(item){
+    let sh=ss.getSheetByName(item.name);if(!sh)sh=ss.insertSheet(item.name);
+    if(sh.getLastRow()<1){sh.getRange(1,1,1,item.headers.length).setValues([item.headers]);sh.setFrozenRows(1);sh.setHiddenGridlines(true);sh.getRange(1,1,1,item.headers.length).setBackground('#101f32').setFontColor('#d8b45a').setFontWeight('bold').setWrap(true);}
+  });
+  return defs.map(function(item){return ss.getSheetByName(item.name);});
+}
+function getMpsApplicationsSheet_() { return getMpsSheetStrict_(MPS_APPLICATIONS.sheet,MPS_APPLICATIONS.headers); }
 function findMpsApplicationRow_(sh,ref) {
   if (!ref || sh.getLastRow()<2) return 0;
   const vals=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();
@@ -162,14 +180,7 @@ function findMpsApplicationRowByMember_(sh,id) {
   for(let i=0;i<vals.length;i++) if(String(vals[i][0]).toUpperCase()===String(id).toUpperCase()) return i+2;
   return 0;
 }
-function getMpsMemberLinksSheet_() {
-  const ss=openDatabase_(); let sh=ss.getSheetByName(MPS_MEMBER_LINKS.sheet);
-  if(!sh) sh=ss.insertSheet(MPS_MEMBER_LINKS.sheet);
-  if(sh.getLastRow()===0){sh.getRange(1,1,1,MPS_MEMBER_LINKS.headers.length).setValues([MPS_MEMBER_LINKS.headers]);sh.setFrozenRows(1);sh.setHiddenGridlines(true);}
-  const actual=sh.getRange(1,1,1,MPS_MEMBER_LINKS.headers.length).getDisplayValues()[0];
-  MPS_MEMBER_LINKS.headers.forEach(function(h,i){if(String(actual[i]||'').trim()!==h)throw new Error('Header sheet '+MPS_MEMBER_LINKS.sheet+' tidak sesuai pada kolom '+(i+1)+'.');});
-  return sh;
-}
+function getMpsMemberLinksSheet_() { return getMpsSheetStrict_(MPS_MEMBER_LINKS.sheet,MPS_MEMBER_LINKS.headers); }
 function createMemberTelegramLink_(memberId,applicationRef,onPrepared) {
   const sh=getMpsMemberLinksSheet_();
   const token=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,'').slice(0,12);
@@ -354,7 +365,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
   const apps=getMpsApplicationsSheet_(),appRow=findMpsApplicationRow_(apps,applicationRef);if(!appRow)throw new Error('Application Ref tidak ditemukan. Periksa kembali pendaftaran MPS.');
   const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0],appStatus=String(app[7]||'');
   if(!['Menunggu Deposit','Deposit Ditolak'].includes(appStatus))throw new Error('Status pendaftaran tidak mengizinkan konfirmasi deposit atau pengajuan sudah diproses.');
-  const deposits=getMpsDepositsSheet_(),existing=findMpsDepositRow_(deposits,applicationRef);
+  const deposits=getMpsDepositsSheet_(),linksBefore=getMpsMemberLinksSheet_(),existing=findMpsDepositRow_(deposits,applicationRef);
   if(existing){const old=deposits.getRange(existing,1,1,MPS_DEPOSITS.headers.length).getValues()[0];if(['Menunggu Telegram','Menunggu Validasi Admin','Disetujui','Menunggu Aktivasi','Berhasil'].includes(String(old[9]||'')))throw new Error('Konfirmasi deposit untuk Application Ref ini sudah tercatat.');}
   let mime=String(data.proofMimeType||'').toLowerCase().trim(),base64=String(data.proofBase64||'').trim(),match=base64.match(/^data:([^;,]+);base64,(.*)$/s);
   if(match){if(!mime)mime=match[1].toLowerCase();base64=match[2];}
@@ -373,7 +384,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
     const row=[applicationRef,now,sheetText_(accountName),sheetText_(mt5),sheetText_(accountType),amount,depositDate,file.getId(),fileUrl,'Menunggu Telegram','','','',now];
     if(existing){oldDeposit=deposits.getRange(existing,1,1,MPS_DEPOSITS.headers.length).getValues()[0];deposits.getRange(existing,1,1,row.length).setValues([row]);}
     else deposits.appendRow(row);
-    const linksBefore=getMpsMemberLinksSheet_();if(linksBefore.getLastRow()>1){const linkRows=linksBefore.getRange(2,1,linksBefore.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();linkRows.forEach(function(v,i){if(String(v[5]||'').toUpperCase()===applicationRef&&String(v[3])==='Menunggu')oldLinkSnapshots.push({row:i+2,values:v.slice()});});}
+    if(linksBefore.getLastRow()>1){const linkRows=linksBefore.getRange(2,1,linksBefore.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();linkRows.forEach(function(v,i){if(String(v[5]||'').toUpperCase()===applicationRef&&String(v[3])==='Menunggu')oldLinkSnapshots.push({row:i+2,values:v.slice()});});}
     link=createMemberTelegramLink_('',applicationRef,function(prepared){link=prepared;});expireOtherApplicationLinks_(applicationRef,link.row);
     apps.getRange(appRow,8).setValue('Deposit Dikirim');apps.getRange(appRow,15).setValue(now);
     onProofLinked();
@@ -477,14 +488,7 @@ function ensureUniqueMt5_(sheet, mt5, ownRow) {
 }
 
 /** ADMIN API — role disimpan di Cache server, tidak pernah dipercaya dari browser. */
-function getMpsDepositsSheet_() {
-  const ss=openDatabase_();let sh=ss.getSheetByName(MPS_DEPOSITS.sheet);
-  if(!sh){sh=ss.insertSheet(MPS_DEPOSITS.sheet);sh.getRange(1,1,1,MPS_DEPOSITS.headers.length).setValues([MPS_DEPOSITS.headers]);sh.setFrozenRows(1);sh.setHiddenGridlines(true);}
-  if(sh.getLastRow()<1)sh.getRange(1,1,1,MPS_DEPOSITS.headers.length).setValues([MPS_DEPOSITS.headers]);
-  const actual=sh.getRange(1,1,1,MPS_DEPOSITS.headers.length).getDisplayValues()[0];
-  MPS_DEPOSITS.headers.forEach(function(h,i){if(String(actual[i]||'').trim()!==h)throw new Error('Header sheet '+MPS_DEPOSITS.sheet+' tidak sesuai pada kolom '+(i+1)+'.');});
-  return sh;
-}
+function getMpsDepositsSheet_() { return getMpsSheetStrict_(MPS_DEPOSITS.sheet,MPS_DEPOSITS.headers); }
 function findMpsDepositRow_(sh,ref) {
   if(!ref||sh.getLastRow()<2)return 0;const values=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();
   for(let i=0;i<values.length;i++)if(String(values[i][0]||'').toUpperCase()===String(ref).toUpperCase())return i+2;return 0;
@@ -1737,15 +1741,7 @@ function getTelegramLinksSheet_() {
 function getTelegramAccessSheet_() {
   return getOrCreateTelegramSheet_('VIP Access', ['ID Member','Telegram User ID','Chat ID','Username','Nama Depan','Terhubung','Status VIP','Invite Link','Invite Expiry','Joined At','Error Terakhir']);
 }
-function getOrCreateTelegramSheet_(name, headers) {
-  const ss = openDatabase_();
-  let sh = ss.getSheetByName(name);
-  if (!sh) sh = ss.insertSheet(name);
-  if (sh.getLastRow() === 0) { sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); }
-  const actual = sh.getRange(1,1,1,headers.length).getDisplayValues()[0];
-  headers.forEach(function(h,i) { if (String(actual[i] || '') !== h) throw new Error('Header sheet ' + name + ' tidak sesuai. Tidak ada data yang diubah.'); });
-  return sh;
-}
+function getOrCreateTelegramSheet_(name, headers) { return getMpsSheetStrict_(name,headers); }
 function findTelegramLinkRow_(sheet, hash) {
   const last = sheet.getLastRow(); if (last < 2) return 0;
   const vals = sheet.getRange(2,1,last-1,1).getDisplayValues();
@@ -2074,8 +2070,8 @@ function apiAdminPrepareTelegramVipTransitionStorage(session) {
     const storage=inspectMpsVipTransitionStorageSchemas_(ss,store);
     if(!storage.ok)throw new Error('VIP_TRANSITION_PREFLIGHT_FAILED: '+storage.message);
     getMemberSheet_();getTelegramAccessSheet_();
-    getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
-    getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
+    provisionMpsSheets_([{name:MPS_AUDIT_LOGS.sheet,headers:MPS_AUDIT_LOGS.headers},{name:MPS_VIP_TICKER_EVENTS.sheet,headers:MPS_VIP_TICKER_EVENTS.headers}]);
+    
     tx.migrate('audit');tx.migrate('ticker');
     function ensure_(name,headers){
       let sh=ss.getSheetByName(name);
@@ -2438,23 +2434,14 @@ function apiAdminGetMemberIntelligence(session) {
 /** Admin: buat semua sheet tambahan tanpa menyentuh Database Member. */
 function apiAdminInitializeContent(session) {
   requireSuperAdmin_(session);
+  const definitions=[];
   Object.keys(MPS_CONTENT).forEach(function(k) {
-    if (!/Headers$/.test(k)) getMpsContentSheet_(MPS_CONTENT[k], MPS_CONTENT[k.replace('Sheet','Headers')], true);
+    if (!/Headers$/.test(k)) definitions.push({name:MPS_CONTENT[k],headers:MPS_CONTENT[k.replace('Sheet','Headers')]});
   });
-  getMpsApplicationsSheet_();
-  getMpsDepositsSheet_();
-  getMpsMemberLinksSheet_();
-  getTelegramAccessSheet_();
-  getMpsContentSheet_(MPS_NEWS_ANALYSIS.sheet,MPS_NEWS_ANALYSIS.headers,true);
-  getMpsContentSheet_(MPS_ANNOUNCEMENTS.sheet,MPS_ANNOUNCEMENTS.headers,true);
-  getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers,true);
-  getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers,true);
-  getMpsContentSheet_(MPS_LEARNING_PROGRESS.sheet,MPS_LEARNING_PROGRESS.headers,true);
-  getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
-  getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
-  getMpsContentSheet_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers,true);
-  getMpsContentSheet_(MPS_AD_REQUESTS.sheet,MPS_AD_REQUESTS.headers,true);
-  getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers,true);
+  [MPS_APPLICATIONS,MPS_DEPOSITS,MPS_MEMBER_LINKS,MPS_NEWS_ANALYSIS,MPS_ANNOUNCEMENTS,MPS_SITE_SETTINGS,MPS_LEARNING_CATALOG,MPS_LEARNING_PROGRESS,MPS_AUDIT_LOGS,MPS_VIP_TICKER_EVENTS,MPS_AD_PACKAGES,MPS_AD_REQUESTS,MPS_APPROVED_ADS].forEach(function(def){definitions.push({name:def.sheet,headers:def.headers});});
+  definitions.push({name:'VIP Access',headers:['ID Member','Telegram User ID','Chat ID','Username','Nama Depan','Terhubung','Status VIP','Invite Link','Invite Expiry','Joined At','Error Terakhir']});
+  definitions.push({name:'Telegram Links',headers:['Token Hash','Dibuat','Kedaluwarsa','Status','Telegram User ID','Chat ID','Username','Nama Depan','Dikonsumsi']});
+  provisionMpsSheets_(definitions);
   return { ok:true, message:'Penyimpanan MPS Core dan Intelligence Center siap. Seluruh 30 kolom Database Member dipertahankan.' };
 }
 
@@ -3122,13 +3109,12 @@ function recordMpsActivity_(eventType, publicText, publicName) {
 }
 
 function getMpsContentSheet_(name, headers, createIfMissing) {
-  const ss = openDatabase_(); let sh = ss.getSheetByName(name);
-  if (!sh && !createIfMissing) return null;
-  if (!sh) sh = ss.insertSheet(name);
-  if (sh.getLastRow()===0) { sh.getRange(1,1,1,headers.length).setValues([headers]); sh.setFrozenRows(1); sh.setHiddenGridlines(true); sh.getRange(1,1,1,headers.length).setBackground('#101f32').setFontColor('#d8b45a').setFontWeight('bold').setWrap(true); }
-  const actual = sh.getRange(1,1,1,headers.length).getDisplayValues()[0];
-  headers.forEach(function(h,i){if(String(actual[i]||'').trim()!==h)throw new Error('Header sheet '+name+' tidak sesuai. Tidak ada data yang diubah.');});
-  return sh;
+  const ss=openDatabase_(),sh=ss.getSheetByName(name);
+  if(!sh||sh.getLastRow()<1){
+    if(createIfMissing)throw new Error('Konfigurasi database belum lengkap: tab '+name+' belum disediakan. Jalankan Inisialisasi oleh Super Admin.');
+    return null;
+  }
+  return getMpsSheetStrict_(name,headers);
 }
 
 function readMpsContentRows_(name, headers) {
