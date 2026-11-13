@@ -68,6 +68,18 @@ test('public activity projection exposes only member ID and event text, never me
   assert.ok(!/PublicAlias:r\\['Member Name'\\]/.test(source));
   assert.doesNotMatch(source,/publicActivity\\s*=\\s*activity\\.map\\(function\\(r\\)\\s*\\{\\s*return\\s*\\{[^}]*Telegram User ID|publicActivity\\s*=\\s*activity\\.map\\(function\\(r\\)\\s*\\{\\s*return\\s*\\{[^}]*Deposit Amount/i);
 });
+test('public Center rejects cached ticker payloads containing legacy names after the ID-only privacy change',()=>{
+  const start=source.indexOf('function apiGetPublicCenter() {');
+  const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
+  assert.ok(start>=0&&end>start);
+  const body=source.slice(start,end);
+  assert.ok(body.includes("cache.get('mps_public_center_v480')"));
+  assert.ok(body.includes('cachedPayload.activity.every'));
+  assert.ok(body.includes("item.PublicAlias||''"));
+  assert.ok(body.includes("isSafePublicIdentity_(item.PublicText)"));
+  assert.ok(body.indexOf('cachedTickerSafe')<body.indexOf('if(cachedTickerSafe)return cachedPayload'));
+});
+
 test('public Center does not project Market Pulse or premium calendar/news payloads',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
   const end=source.indexOf('\nfunction ',start+1);
