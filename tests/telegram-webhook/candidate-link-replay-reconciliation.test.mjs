@@ -237,3 +237,51 @@ test('actual link-notice helper appends to the existing queue under the caller-h
   assert.equal(lockReleases,0,'already-held mode must not release the caller-owned ScriptLock');
   assert.equal(rows[1][5],'','no invite URL may be stored for a link-confirmation notice');
 });
+
+
+test('admin decision intent materializes notices only after application and deposit rows confirm the committed decision',()=>{
+  const start=source.indexOf('function materializeMpsAdminDecisionIntent_(');
+  const end=source.indexOf('function enqueueMpsAdminDecisionNotices_(',start);
+  assert.ok(start>=0&&end>start,'decision intent materializer must exist');
+  const fn=source.slice(start,end);
+  const app=Array(15).fill('');app[0]='MPS-APP-0123456789ABCDEF0123';app[7]='Menunggu Aktivasi';app[8]='MPS-ABCDEF12';
+  const dep=Array(14).fill('');dep[0]=app[0];dep[9]='Menunggu Aktivasi';
+  const member=Array(30).fill('');member[0]='MPS-ABCDEF12';
+  const makeSheet=row=>({getRange:()=>({getValues:()=>[row]})});
+  let held=false,called=null;
+  const context={
+    LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(held,false);held=true;},releaseLock:()=>{assert.equal(held,true);held=false;}})},
+    getMpsApplicationsSheet_:()=>makeSheet(app),findMpsApplicationRow_:()=>2,
+    getMpsDepositsSheet_:()=>makeSheet(dep),findMpsDepositRow_:()=>2,
+    getMemberSheet_:()=>makeSheet(member),findMemberById_:()=>2,
+    MPS_APPLICATIONS:{headers:Array(15).fill('')},MPS_DEPOSITS:{headers:Array(14).fill('')},MPS:{headers:Array(30).fill('')},
+    enqueueMpsAdminDecisionNotices_:(...args)=>{assert.equal(held,true,'child outbox tasks are inserted under the same lock');called=args;return{ok:true};}
+  };
+  vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
+  const task={alertText:JSON.stringify({subject:app[0],member:'MPS-ABCDEF12',decision:'approve',chatId:'987654321'})};
+  assert.equal(context.materializeMpsAdminDecisionIntent_(task),true);
+  assert.deepEqual(called,[app[0],'MPS-ABCDEF12','approve','987654321',true]);
+  assert.equal(held,false);
+});
+
+test('admin decision intent refuses to notify when persisted application decision is incomplete',()=>{
+  const start=source.indexOf('function materializeMpsAdminDecisionIntent_(');
+  const end=source.indexOf('function enqueueMpsAdminDecisionNotices_(',start);
+  const fn=source.slice(start,end);
+  const app=Array(15).fill('');app[0]='MPS-APP-0123456789ABCDEF0123';app[7]='Deposit Dikirim';app[8]='MPS-ABCDEF12';
+  const dep=Array(14).fill('');dep[0]=app[0];dep[9]='Menunggu Validasi Admin';
+  let held=false,called=false;
+  const makeSheet=row=>({getRange:()=>({getValues:()=>[row]})});
+  const context={
+    LockService:{getScriptLock:()=>({waitLock:()=>{held=true;},releaseLock:()=>{held=false;}})},
+    getMpsApplicationsSheet_:()=>makeSheet(app),findMpsApplicationRow_:()=>2,
+    getMpsDepositsSheet_:()=>makeSheet(dep),findMpsDepositRow_:()=>2,
+    getMemberSheet_:()=>makeSheet(Array(30).fill('')),findMemberById_:()=>0,
+    MPS_APPLICATIONS:{headers:Array(15).fill('')},MPS_DEPOSITS:{headers:Array(14).fill('')},MPS:{headers:Array(30).fill('')},
+    enqueueMpsAdminDecisionNotices_:()=>{called=true;return{ok:true};}
+  };
+  vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
+  assert.throws(()=>context.materializeMpsAdminDecisionIntent_({alertText:JSON.stringify({subject:app[0],member:'MPS-ABCDEF12',decision:'approve',chatId:'987654321'})}),/ADMIN_DECISION_INTENT_NOT_COMMITTED/);
+  assert.equal(called,false,'no notification may be queued for an uncommitted decision');
+  assert.equal(held,false);
+});
