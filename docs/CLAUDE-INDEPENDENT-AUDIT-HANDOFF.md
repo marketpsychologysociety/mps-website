@@ -84,3 +84,38 @@ These are not to be marked passed based on mocks or synthetic CI.
 ## Evidence caveat
 
 The PR description contains older verification snapshots and commit references. Use the exact target SHA and live Actions run above, not historical numbers embedded in the PR body. Recheck PR head SHA after this handoff document is committed; audit the resulting new head, not the prior SHA alone. The latest CI run above validates the candidate source at the pre-document head; the document-only commit should not be described as a new code test.
+
+
+## Additional high-priority source-review finding (2026-11-13)
+
+### Auxiliary-sheet auto-creation is reachable from public request paths
+
+The current candidate `candidates/Code.gs` defines several accessors that silently create missing database sheets and write their headers:
+
+- `getMpsApplicationsSheet_()` creates `MPS Applications`.
+- `getMpsDepositsSheet_()` creates `MPS Deposit Applications`.
+- `getMpsMemberLinksSheet_()` creates `MPS Member Telegram Links`.
+- `getOrCreateTelegramSheet_()`, called by `getTelegramAccessSheet_()` and `getTelegramLinksSheet_()`, creates `VIP Access` and legacy `Telegram Links`.
+
+This is not merely an admin-only initialization mechanism. Verified call paths include:
+
+1. Public registration: `apiSubmit()` → `submitCore_()` → `registerMember_()` → `getMpsApplicationsSheet_()`.
+2. Public deposit: `apiSubmit()` → `submitCore_()` → `saveDeposit_()` → `getMpsApplicationsSheet_()` / `getMpsDepositsSheet_()` / `getMpsMemberLinksSheet_()`.
+3. Public Telegram status check: `apiCheckTelegramLink()` → `getMpsMemberLinksSheet_()`; on fallback it may call `getTelegramLinksSheet_()`.
+4. Telegram webhook/start-link handling and admin workflows also use Telegram sheet accessors.
+
+The explicit Super Admin setup path `apiAdminInitializeContent()` already provisions Applications, Deposits, Member Links, and VIP Access. It does not visibly provision the legacy `Telegram Links` tab through that same explicit list.
+
+**Security/operational concern:** a missing auxiliary sheet can be silently created as a side effect of an unauthenticated public request or webhook processing. That can mask incomplete setup, create schema outside the explicit Super Admin provisioning boundary, and leave partially initialized storage if a later step fails. This is a schema-integrity / least-privilege concern; it is not evidence that an attacker can read existing sheet contents or gain spreadsheet ownership.
+
+**Audit request:** trace every caller and distinguish public, webhook-secret, Admin, Super Admin, and test paths. Determine whether the correct design is strict read-only accessors that fail closed when a required sheet is absent, plus separate explicit Super Admin provisioning helpers. Ensure the legacy Telegram Links compatibility path is handled deliberately. Do not make production changes.
+
+**Regression tests requested:**
+- Missing auxiliary sheet + public registration: returns a controlled configuration error and creates no sheet.
+- Missing deposit/link sheet + public deposit: creates no sheet and no orphan Drive proof file; if file creation occurs before schema validation, verify rollback/trash behavior.
+- Missing Member Links/Telegram Links + public token check: returns an unavailable/invalid result without creating tabs.
+- Super Admin explicit initialization: creates only the intended missing tabs with exact headers; existing tabs and rows remain unchanged.
+- Existing but mismatched headers: fail closed without rewriting the header or creating a replacement tab.
+- Existing fully initialized storage: registration, deposit, Telegram verification, and webhook regression suites continue to pass.
+
+This finding is from direct static source tracing on the workbench branch. No live spreadsheet or Apps Script project was accessed or changed. It is an audit lead requiring independent confirmation, not a claim of a completed exploit.
