@@ -325,3 +325,23 @@ test('application rejection intent materializes without inventing a Member ID',(
   assert.equal(context.materializeMpsAdminDecisionIntent_({telegramUserId:'987654321',alertText:JSON.stringify({subject:app[0],member:'',decision:'reject'})}),true);
   assert.deepEqual(called,[app[0],'','reject','987654321',true]);
 });
+
+
+test('admin decision intent stores only minimal references and keeps chat target out of alert text',()=>{
+  const start=source.indexOf('function enqueueMpsAdminDecisionIntent_('),end=source.indexOf('function materializeMpsAdminDecisionIntent_(',start);
+  assert.ok(start>=0&&end>start,'decision intent enqueue helper must exist');
+  const fn=source.slice(start,end);
+  let captured=null;
+  const context={
+    sha256_:()=> 'b'.repeat(64),
+    enqueueMpsVipFollowup_:(task,lockAlreadyHeld)=>{assert.equal(lockAlreadyHeld,true);captured=task;return{ok:true};}
+  };
+  vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
+  const result=context.enqueueMpsAdminDecisionIntent_('MPS-APP-0123456789ABCDEF0123','MPS-ABCDEF12','approve','987654321');
+  assert.equal(result.ok,true);
+  assert.equal(captured.action,'DECISION_INTENT');
+  assert.equal(captured.telegramUserId,'987654321');
+  assert.equal(captured.groupId,'approve');
+  assert.deepEqual(JSON.parse(captured.alertText),{subject:'MPS-APP-0123456789ABCDEF0123',member:'MPS-ABCDEF12',decision:'approve'});
+  assert.doesNotMatch(captured.alertText,/987654321/);
+});
