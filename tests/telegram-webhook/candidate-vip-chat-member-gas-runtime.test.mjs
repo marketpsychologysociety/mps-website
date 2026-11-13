@@ -21,6 +21,7 @@ const candidateFunctions=[
  // These are extracted from the actual candidate Code.gs, not parallel test copies.
  'createMpsGasEffectLedger_','createMpsGasVipTransitionStore_',
  'createMpsGasVipTransitionOrchestrator_','createMpsGasVipChatMemberHandler_',
+ 'enqueueMpsVipFollowup_','runMpsVipFollowupQueue_',
  'getMpsExistingVipAccessSheetForTransition_','findUniqueMpsTransitionRow_',
  'resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_','removeMpsCacheBestEffort_',
  'processMpsVipChatMemberEvent_'
@@ -36,6 +37,7 @@ const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member
 const cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
 const auditHeaders=['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details'];
 const tickerHeaders=['Event ID','Created At','Member ID','Member Name','Event Text','Status'];
+const followupHeaders=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At'];
 
 function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}={}){
  const member=Array(memberHeaders.length).fill('');
@@ -48,7 +50,8 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
   ['MPS Audit Logs',[auditHeaders.slice()]],
   ['MPS VIP Ticker Events',[tickerHeaders.slice()]],
   ['MPS Telegram VIP Transition Intents',[intentHeaders.slice()]],
-  ['MPS Telegram VIP Member Cursor',[cursorHeaders.slice()]]
+  ['MPS Telegram VIP Member Cursor',[cursorHeaders.slice()]],
+  ['MPS Telegram VIP Follow-up Queue',[followupHeaders.slice()]]
  ]);
  let held=false,acquired=0,released=0,followups=0,networkCalls=0,cacheRemovals=0;
  const sheets=new Map();
@@ -74,6 +77,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
   MPS_COL:{id:1,nickname:3,registrationStatus:8,accountName:9,depositStatus:15},
   MPS_AUDIT_LOGS:{sheet:'MPS Audit Logs',headers:auditHeaders.slice()},
   MPS_VIP_TICKER_EVENTS:{sheet:'MPS VIP Ticker Events',headers:tickerHeaders.slice()},
+  MPS_VIP_FOLLOWUP_QUEUE:{sheet:'MPS Telegram VIP Follow-up Queue',headers:followupHeaders.slice()},
   SpreadsheetApp:{openById:id=>{assert.equal(id,'isolated-vip-runtime');return ss;},flush:()=>{}},
   LockService:{getScriptLock:()=>({waitLock:()=>{if(held)throw Error('MOCK_LOCK_REENTRANT');held=true;acquired++;},releaseLock:()=>{if(!held)throw Error('MOCK_LOCK_NOT_HELD');held=false;released++;}})},
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_SPREADSHEET_ID'?'isolated-vip-runtime':key==='MPS_TELEGRAM_VIP_CHAT_ID'?'-1001234567890':''})},
@@ -85,17 +89,18 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
   sha256_:value=>createHash('sha256').update(String(value)).digest('hex'),
   revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;return !failRevoke;},
   kickMpsUnauthorizedUser_:()=>{assert.equal(held,false,'Telegram follow-up must run after ScriptLock release');networkCalls++;return !failKick;},
-  sendTelegram_:()=>{assert.equal(held,false);networkCalls++;},
+  sendTelegram_:()=>{assert.equal(held,false);networkCalls++;return {ok:true};},
   console
  };
  vm.createContext(context);
  vm.runInContext(candidateFunctions+'\n'+
-  'this.makeLedger=createMpsGasEffectLedger_;this.runCandidateVipEvent=processMpsVipChatMemberEvent_;',context,{timeout:2000});
+  'this.makeLedger=createMpsGasEffectLedger_;this.runCandidateVipEvent=processMpsVipChatMemberEvent_;this.runFollowups=runMpsVipFollowupQueue_;',context,{timeout:2000});
  const ledger=context.makeLedger({spreadsheetId:'isolated-vip-runtime'});
  // Explicit isolated setup: append Effect Key headers before any webhook event.
  ledger.runExclusive(tx=>{tx.migrate('audit');tx.migrate('ticker');});
  return{
   process:update=>context.runCandidateVipEvent(update,update.chat_member),
+  runQueue:()=>context.runFollowups(20),
   sheets:data,stats:()=>({held,acquired,released,followups,networkCalls,cacheRemovals}),
   addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);},
   duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},
@@ -171,22 +176,30 @@ test('candidate denies an unlinked Telegram member and performs removal follow-u
  assert.equal(h.sheets.get('MPS VIP Ticker Events').length,1);
  assert.equal(h.sheets.get('MPS Audit Logs').length,2);
 });
-test('failed invite revocation keeps the webhook update retryable after the durable activation commits',()=>{
+test('failed invite revocation is durably queued and retried without Telegram webhook redelivery',()=>{
  const h=runtime({failRevoke:true});
- assert.throws(()=>h.process(event(7301,1760000300,'left','member')),/VIP_INVITE_REVOKE_PENDING/);
+ assert.equal(h.process(event(7301,1760000300,'left','member')),'ACTIVE');
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(queue.length,2);assert.equal(queue[1][2],'REVOKE_INVITE');assert.equal(queue[1][7],'RETRY');assert.equal(queue[1][8],1);
  assert.equal(h.sheets.get('VIP Access')[1][6],'Aktif');
  assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
+ h.setFollowupFailures(false);
+ assert.deepEqual(h.runQueue(),{ok:true,processed:1,completed:1,retried:0});
+ assert.equal(queue[1][7],'DONE');assert.equal(queue[1][8],2);
  assert.equal(h.stats().held,false);
- assert.equal(h.stats().networkCalls,2);
 });
-test('failed unauthorized-member removal keeps the webhook update retryable after denial commits',()=>{
+test('failed unauthorized-member removal is durably queued and retried by the scheduled worker',()=>{
  const h=runtime({failKick:true});
- assert.throws(()=>h.process(event(7302,1760000301,'left','member','555000111')),/VIP_UNAUTHORIZED_MEMBER_REMOVAL_PENDING/);
+ assert.equal(h.process(event(7302,1760000301,'left','member','555000111')),'DENIED');
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(queue.length,2);assert.equal(queue[1][2],'REMOVE_MEMBER');assert.equal(queue[1][7],'RETRY');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'DENIED');
+ h.setKickFailure(false);
+ assert.deepEqual(h.runQueue(),{ok:true,processed:1,completed:1,retried:0});
+ assert.equal(queue[1][7],'DONE');
  assert.equal(h.stats().held,false);
- assert.equal(h.stats().networkCalls,2);
 });
 
 test('duplicate Telegram identity rows in VIP Access fail closed without changing member or ticker state',()=>{
@@ -206,41 +219,41 @@ test('duplicate member IDs in Database Member fail closed before VIP activation'
  assert.equal(h.sheets.get('MPS VIP Ticker Events').length,1);
  assert.equal(h.stats().held,false);
 });
-test('transient invite revocation failure can be retried by replaying the current completed Telegram event',()=>{
+test('webhook replay does not duplicate a pending follow-up task; worker completes it once',()=>{
  const h=runtime({failRevoke:true}),update=event(7403,1760000402,'left','member');
- assert.throws(()=>h.process(update),/VIP_INVITE_REVOKE_PENDING/);
- assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
- h.setFollowupFailures(false);
+ assert.equal(h.process(update),'ACTIVE');
  assert.equal(h.process(update),'DUPLICATE');
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(queue.length,2);assert.equal(queue[1][7],'RETRY');
+ h.setFollowupFailures(false);h.runQueue();
+ assert.equal(queue.length,2);assert.equal(queue[1][7],'DONE');
  assert.equal(h.stats().held,false);
- assert.equal(h.stats().networkCalls,3);
- assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,2);
- assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
 });
-test('eligibility revoked after activation: same Telegram replay preserves immutable intent and retries invite revocation plus member removal',()=>{
+test('eligibility revoked after activation queues invite revocation and member removal independently of webhook replay',()=>{
  const h=runtime({failRevoke:true}),update=event(7404,1760000403,'left','member');
- assert.throws(()=>h.process(update),/VIP_INVITE_REVOKE_PENDING/);
- h.setEligible(false);
- h.setFollowupFailures(false);
+ assert.equal(h.process(update),'ACTIVE');
+ h.setEligible(false);h.setFollowupFailures(false);
  assert.equal(h.process(update),'DUPLICATE');
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(queue.length,3);assert.equal(queue[1][2],'REVOKE_INVITE');assert.equal(queue[2][2],'REMOVE_MEMBER');
+ h.runQueue();
+ assert.equal(queue[1][7],'DONE');assert.equal(queue[2][7],'DONE');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'ACTIVE');
  assert.equal(h.sheets.get('VIP Access')[1][6],'Aktif');
  assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
- assert.equal(h.stats().networkCalls,4,'first delivery warning+revoke, replay revoke+kick');
  assert.equal(h.stats().held,false);
 });
 
-test('eligibility revocation retries kick independently after invite link was already revoked',()=>{
+test('removal retry continues after invite revocation is already completed',()=>{
  const h=runtime(),update=event(7405,1760000404,'left','member');
  assert.equal(h.process(update),'ACTIVE');
- h.setEligible(false);
- h.setKickFailure(true);
- assert.throws(()=>h.process(update),/VIP_UNAUTHORIZED_MEMBER_REMOVAL_PENDING/);
- h.setKickFailure(false);
- assert.equal(h.process(update),'DUPLICATE');
+ h.setEligible(false);h.setKickFailure(true);h.process(update);
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(queue.length,3);assert.equal(queue[1][7],'DONE');assert.equal(queue[2][7],'RETRY');
+ h.setKickFailure(false);h.runQueue();
+ assert.equal(queue[2][7],'DONE');assert.equal(queue[2][8],2);
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'ACTIVE');
  assert.equal(h.stats().held,false);
- assert.equal(h.stats().networkCalls,6,'initial revoke, then replay revoke+failed kick, then replay revoke+successful kick');
 });
 test('same update ID with a changed Telegram payload still fails closed as an intent collision',()=>{
  const h=runtime(),update=event(7406,1760000405,'left','member');
