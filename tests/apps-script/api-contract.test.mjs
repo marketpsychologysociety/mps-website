@@ -487,3 +487,42 @@ test('ordinary Admin intelligence preview cannot include VIP-only content',()=>{
   assert.ok(body.includes("admin.role==='SUPER_ADMIN'"),'VIP preview must depend on the authenticated role');
   assert.ok(body.includes("buildMpsMemberIntelligence_({memberId:'ADMIN-PREVIEW'}, admin.role==='SUPER_ADMIN')"));
 });
+
+test('Market Pulse data reader fails closed on a shared parent folder or shared file before reading content',()=>{
+  const start=code.indexOf('function getMarketPulseData_() {');
+  const end=code.indexOf(String.fromCharCode(10)+'function ',start+1);
+  assert.ok(start>=0&&end>start,'Market Pulse reader boundaries must exist');
+  const reader=code.slice(start,end);
+  function harness({folderAccess='PRIVATE',fileAccess='PRIVATE',duplicate=false}={}){
+    let enumerations=0,blobReads=0;
+    const file={
+      isTrashed:()=>false,getSize:()=>128,getMimeType:()=> 'text/html',
+      getSharingAccess:()=>fileAccess,
+      getBlob:()=>({getDataAsString:()=>{blobReads++;return 'validated-source';}})
+    };
+    const folder={
+      getSharingAccess:()=>folderAccess,
+      getFilesByName:()=>{enumerations++;let index=0;return{hasNext:()=>index<(duplicate?2:1),next:()=>{index++;return file;}};}
+    };
+    const context={
+      MPS:{maxPulseDataBytes:1024*1024},
+      DriveApp:{Access:{PRIVATE:'PRIVATE'},getFolderById:()=>folder},
+      getLearningFolderId_:()=> 'learning-folder',
+      validateMarketPulseSource_:value=>({ok:true,source:value})
+    };
+    const result=runInNewContext('('+reader+')()',context);
+    return {result,stats:()=>({enumerations,blobReads})};
+  }
+  const sharedFolder=harness({folderAccess:'ANYONE'});
+  assert.throws(()=>sharedFolder.result,/Folder Learning tidak PRIVATE/);
+  assert.deepEqual(sharedFolder.stats(),{enumerations:0,blobReads:0});
+  const sharedFile=harness({fileAccess:'ANYONE'});
+  assert.throws(()=>sharedFile.result,/File Market Pulse tidak PRIVATE/);
+  assert.deepEqual(sharedFile.stats(),{enumerations:1,blobReads:0});
+  const privateSource=harness();
+  assert.deepEqual(privateSource.result,{ok:true,source:'validated-source'});
+  assert.deepEqual(privateSource.stats(),{enumerations:1,blobReads:1});
+  const duplicate=harness({duplicate:true});
+  assert.throws(()=>duplicate.result,/lebih dari satu file data Pulse/);
+  assert.deepEqual(duplicate.stats(),{enumerations:1,blobReads:0});
+});
