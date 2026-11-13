@@ -301,6 +301,7 @@ function submitCore_(data) {
         if(String(saved[2]||'')==='COMPLETED')return {ok:true,replayed:true,status:String(saved[8]||'Permintaan sebelumnya sudah diproses.'),applicationRef:String(saved[6]||''),memberId:String(saved[7]||'')};
         if(String(saved[2]||'')==='FAILED'){
           ledger.getRange(ledgerRow,3,1,7).setValues([['PENDING',new Date(),'','', '', '', '']]);
+          ledgerReserved=true;
         }else{
           // PENDING is fail-closed: an interrupted request is never blindly replayed.
           throw new Error('Permintaan dengan ID ini masih tercatat dalam proses atau perlu rekonsiliasi admin. Jangan kirim ulang dengan ID baru; hubungi admin MPS.');
