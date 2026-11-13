@@ -46,7 +46,7 @@ The older Library artifact MPS_Calculator_VIP_Integration_Test.mjs contains asse
 | Market Pulse | `apiAdminValidateMarketPulseUpload` then `apiAdminUploadMarketPulse`; 1 MB limit, strict dataset validator, explicit publish confirmation, private backup | Reuse pattern; do not serve raw uploaded HTML; keep validated data extraction and member backend gate |
 | Announcements | `MPS Announcement Center` schema and `apiAdminSaveAnnouncement`; public records filtered by status/audience/window | Extend with maintenance-specific fields/status timeline only if existing schema cannot express the required lifecycle; use additive migration only |
 | Website ticker settings | `MPS Website Settings`, `apiAdminSaveWebsiteSettings` | Reuse visual settings (enabled/speed/theme/label); separate presentation settings from event content |
-| VIP welcome ticker | `MPS VIP Ticker Events` currently stores raw member identity and public API emits member name | Do not reuse current public contract; privacy remediation is mandatory |
+| VIP welcome ticker | `MPS VIP Ticker Events` retains restricted internal identity evidence; public/Admin projections expose canonical Member ID only | Never project member name, display name, nickname, or alias; keep all other personal/contact/payment identifiers private |
 | Winner Board | No dedicated verified winner-record / claims workflow identified in the reviewed candidate | New isolated model and API contract required |
 | Lucky Roulette | Current public prototype is presentation-only; no verified official draw engine | Keep demo presentation clearly labelled; official draw is a separate gated backend phase |
 
@@ -182,8 +182,8 @@ Each mutation must use backend session validation, role validation, input valida
 
 ### Privacy regression
 - Existing public-center response does not contain any name/alias fields from VIP ticker history.
-- Public API contains no full Member ID, phone, email, Telegram username/ID, MT5 login, deposit/payment data, proof URL/file ID, PIN, or credential.
-- Masking is performed server-side. If the ID format is short, sequential, or otherwise re-identifiable, output generic text and no identifier.
+- Public ticker API contains only the canonical `MemberId` plus approved static event text; it never contains member names/aliases, phone, email, Telegram username/ID, MT5 login, deposit/payment data, proof URL/file ID, PIN, or credentials.
+- The ticker displays the canonical Member ID only, as explicitly requested; it never displays a name, display name, nickname, or alias. Other personal/contact/payment identifiers remain excluded.
 - Pending, rejected, expired, unverified, or inactive VIP records never create a welcome event.
 - A valid VIP activation creates no more than one event under webhook replay and concurrency.
 - Existing legacy name-bearing ticker rows are hidden and never included in public feed.
