@@ -1918,6 +1918,112 @@ function createMpsVipTransitionStatusWriter_() {
     }
   });
 }
+const MPS_VIP_FOLLOWUP_QUEUE = Object.freeze({
+  sheet:'MPS Telegram VIP Follow-up Queue',
+  headers:['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At']
+});
+
+/**
+ * Durable Telegram follow-up outbox. Queue writes and claims are serialized by
+ * ScriptLock; Telegram calls happen only after the lock has been released.
+ */
+function enqueueMpsVipFollowup_(task) {
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
+  try {
+    const ss=SpreadsheetApp.openById(String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||''));
+    const sh=ss&&ss.getSheetByName(MPS_VIP_FOLLOWUP_QUEUE.sheet);
+    if(!sh)throw new Error('VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED');
+    const headers=MPS_VIP_FOLLOWUP_QUEUE.headers,width=headers.length;
+    const actual=sh.getLastColumn()?sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0].map(String):[];
+    if(actual.length!==width||headers.some(function(h,i){return actual[i]!==h;}))throw new Error('VIP_FOLLOWUP_QUEUE_SCHEMA_MISMATCH');
+    const key=String(task.taskKey||'');
+    if(!/^[A-Za-z0-9:_-]{1,160}$/.test(key))throw new Error('VIP_FOLLOWUP_TASK_KEY_INVALID');
+    const last=sh.getLastRow();
+    if(last>1){
+      const keys=sh.getRange(2,1,last-1,1).getDisplayValues();
+      for(let i=0;i<keys.length;i++)if(String(keys[i][0])===key)return {ok:true,duplicate:true};
+    }
+    const now=new Date(),values=[
+      key,String(task.intentKey||''),String(task.action||''),String(task.groupId||''),
+      String(task.telegramUserId||''),String(task.inviteLink||''),String(task.alertText||''),
+      'PENDING',0,now,'', '',now,now
+    ];
+    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
+    if(values[2]==='REVOKE_INVITE'&&!values[5])throw new Error('VIP_FOLLOWUP_INVITE_REQUIRED');
+    if(values[2]==='REMOVE_MEMBER'&&!/^[0-9]{1,20}$/.test(values[4]))throw new Error('VIP_FOLLOWUP_USER_REQUIRED');
+    sh.getRange(last+1,1,1,width).setValues([values]);SpreadsheetApp.flush();
+    return {ok:true,duplicate:false};
+  } finally {lock.releaseLock();}
+}
+
+function runMpsVipFollowupQueue_(maxTasks) {
+  const limit=Math.max(1,Math.min(25,Number(maxTasks)||10)),now=Date.now();
+  const ssId=String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||'');
+  if(!ssId)throw new Error('MPS_SPREADSHEET_ID_REQUIRED_FOR_VIP_FOLLOWUPS');
+  let processed=0,completed=0,retried=0;
+  while(processed<limit){
+    let task=null,rowNumber=0;
+    const claimLock=LockService.getScriptLock();claimLock.waitLock(10000);
+    try{
+      const ss=SpreadsheetApp.openById(ssId),sh=ss&&ss.getSheetByName(MPS_VIP_FOLLOWUP_QUEUE.sheet);
+      if(!sh)throw new Error('VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED');
+      const headers=MPS_VIP_FOLLOWUP_QUEUE.headers;
+      const actual=sh.getLastColumn()?sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0].map(String):[];
+      if(actual.length!==headers.length||headers.some(function(h,i){return actual[i]!==h;}))throw new Error('VIP_FOLLOWUP_QUEUE_SCHEMA_MISMATCH');
+      const last=sh.getLastRow();if(last<2)break;
+      const rows=sh.getRange(2,1,last-1,headers.length).getValues();
+      for(let i=0;i<rows.length;i++){
+        const r=rows[i],state=String(r[7]||''),due=r[9] instanceof Date?r[9].getTime():new Date(r[9]).getTime();
+        const lease=r[10] instanceof Date?r[10].getTime():new Date(r[10]).getTime();
+        if((state==='PENDING'||state==='RETRY')&&(!Number.isFinite(due)||due<=now)||
+           state==='PROCESSING'&&Number.isFinite(lease)&&lease<=now){
+          task={key:String(r[0]),intentKey:String(r[1]),action:String(r[2]),groupId:String(r[3]),
+            telegramUserId:String(r[4]),inviteLink:String(r[5]),alertText:String(r[6]),attempts:Number(r[8])||0};
+          rowNumber=i+2;break;
+        }
+      }
+      if(task){
+        const row=sh.getRange(rowNumber,1,1,headers.length).getValues()[0];
+        row[7]='PROCESSING';row[8]=task.attempts+1;row[10]=new Date(now+10*60*1000);row[13]=new Date(now);
+        sh.getRange(rowNumber,1,1,headers.length).setValues([row]);SpreadsheetApp.flush();
+      }
+    } finally {claimLock.releaseLock();}
+    if(!task)break;
+    let ok=false,error='FOLLOWUP_FAILED';
+    try{
+      if(task.action==='REVOKE_INVITE')ok=revokeVipInviteLink_(task.groupId,task.inviteLink);
+      else if(task.action==='REMOVE_MEMBER')ok=kickMpsUnauthorizedUser_(task.groupId,task.telegramUserId);
+      else if(task.action==='ADMIN_ALERT'){const result=sendTelegram_(task.alertText);ok=!!result&&result.ok===true;}
+      else error='FOLLOWUP_ACTION_INVALID';
+    }catch(err){error=String(err&&err.message||err).slice(0,120);}
+    const finishLock=LockService.getScriptLock();finishLock.waitLock(10000);
+    try{
+      const sh=SpreadsheetApp.openById(ssId).getSheetByName(MPS_VIP_FOLLOWUP_QUEUE.sheet);
+      const row=sh.getRange(rowNumber,1,1,MPS_VIP_FOLLOWUP_QUEUE.headers.length).getValues()[0];
+      if(String(row[0])!==task.key||String(row[7])!=='PROCESSING')throw new Error('VIP_FOLLOWUP_CLAIM_LOST');
+      const stamp=new Date();
+      if(ok){row[7]='DONE';row[9]='';row[10]='';row[11]='';completed++;}
+      else{
+        const attempts=Number(row[8])||1,delay=Math.min(6*60*60*1000,Math.pow(2,Math.min(10,attempts-1))*60*1000);
+        row[7]='RETRY';row[9]=new Date(stamp.getTime()+delay);row[10]='';row[11]=error;retried++;
+      }
+      row[13]=stamp;sh.getRange(rowNumber,1,1,row.length).setValues([row]);SpreadsheetApp.flush();
+    } finally {finishLock.releaseLock();}
+    processed++;
+  }
+  return {ok:true,processed:processed,completed:completed,retried:retried};
+}
+
+function processMpsVipFollowupQueueScheduled_() {
+  return runMpsVipFollowupQueue_(20);
+}
+
+function ensureMpsVipFollowupAutomation_() {
+  const exists=ScriptApp.getProjectTriggers().some(function(t){return t.getHandlerFunction()==='processMpsVipFollowupQueueScheduled_';});
+  if(!exists)ScriptApp.newTrigger('processMpsVipFollowupQueueScheduled_').timeBased().everyMinutes(5).create();
+  return !exists;
+}
+
 function processMpsVipChatMemberEvent_(update,memberUpdate) {
   const props=PropertiesService.getScriptProperties(),groupId=String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_ID')||'');
   const spreadsheetId=String(props.getProperty('MPS_SPREADSHEET_ID')||'');
@@ -1931,32 +2037,17 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
     hashEvent:function(event){return sha256_(JSON.stringify(event));},
     resolveTransition:resolveMpsVipChatMemberTransition_,
     afterTransition:function(context){
-      const r=context.resolved;
+      const r=context.resolved,intentKey='telegram:'+context.input.epoch+':'+context.input.updateId+':vip_transition';
       if(context.targetState==='ACTIVE'){
         removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
-        if(r.inviteToRevoke&&!revokeVipInviteLink_(groupId,r.inviteToRevoke)){
-          sendTelegram_('⚠️ PERINGATAN MPS: member '+r.memberId+' sudah bergabung, tetapi tautan undangan lama gagal dicabut. Periksa invite link VIP Community.');
-          // Keep the webhook retryable: the durable transition is complete, but this
-          // external security follow-up must be attempted again on Telegram redelivery.
-          throw new Error('VIP_INVITE_REVOKE_PENDING');
-        }
-        // Same immutable activation event can be redelivered after eligibility is
-        // revoked. Revoke its old invite and actively remove the now-ineligible user.
-        if(r.currentTargetState==='DENIED'&&r.kickNeeded&&!kickMpsUnauthorizedUser_(groupId,r.telegramUserId)){
-          sendTelegram_('⚠️ PERINGATAN KEAMANAN MPS: kelayakan member berubah setelah aktivasi. Bot gagal menghapus akun dari VIP Community; admin harus segera memeriksa akses.');
-          throw new Error('VIP_UNAUTHORIZED_MEMBER_REMOVAL_PENDING');
-        }
+        if(r.inviteToRevoke)enqueueMpsVipFollowup_({taskKey:intentKey+':revoke-invite',intentKey:intentKey,action:'REVOKE_INVITE',groupId:groupId,inviteLink:r.inviteToRevoke});
+        if(r.currentTargetState==='DENIED'&&r.kickNeeded)enqueueMpsVipFollowup_({taskKey:intentKey+':remove-member',intentKey:intentKey,action:'REMOVE_MEMBER',groupId:groupId,telegramUserId:r.telegramUserId});
       }else if(context.targetState==='DENIED'){
-        if(r.kickNeeded&&!kickMpsUnauthorizedUser_(groupId,r.telegramUserId)){
-          sendTelegram_('⚠️ PERINGATAN KEAMANAN MPS: akun Telegram '+r.telegramUserId+' tidak memenuhi syarat member, tetapi bot gagal memastikan penghapusannya dari VIP Community. Admin harus segera memeriksa keanggotaan grup.');
-          // processTelegramUpdate_ will clear its PROCESSING marker and return an
-          // error to Telegram, allowing a redelivery to retry the idempotent kick.
-          throw new Error('VIP_UNAUTHORIZED_MEMBER_REMOVAL_PENDING');
-        }else if(r.adminAlert){
-          const alert=sendTelegram_('⚠️ PERINGATAN KEAMANAN MPS: akun Telegram '+r.telegramUserId+' memiliki status '+r.telegramStatus+' di grup VIP, tetapi tidak cocok dengan member MPS yang disetujui. Bot tidak melakukan demosi otomatis. Admin perlu memeriksa manual.');
-          if(!alert||alert.ok!==true)throw new Error('VIP_ADMIN_SECURITY_ALERT_PENDING');
-        }
+        if(r.kickNeeded)enqueueMpsVipFollowup_({taskKey:intentKey+':remove-member',intentKey:intentKey,action:'REMOVE_MEMBER',groupId:groupId,telegramUserId:r.telegramUserId});
+        else if(r.adminAlert)enqueueMpsVipFollowup_({taskKey:intentKey+':admin-alert',intentKey:intentKey,action:'ADMIN_ALERT',groupId:groupId,telegramUserId:r.telegramUserId,alertText:'⚠️ PERINGATAN KEAMANAN MPS: akun Telegram '+r.telegramUserId+' memiliki status '+r.telegramStatus+' di grup VIP, tetapi tidak cocok dengan member MPS yang disetujui. Bot tidak melakukan demosi otomatis. Admin perlu memeriksa manual.'});
       }
+      // Best-effort immediate drain; failures remain durable and the 5-minute trigger retries.
+      runMpsVipFollowupQueue_(10);
     }
   });
   return handler.process(update);
@@ -2009,6 +2100,7 @@ function inspectMpsVipTransitionStorageSchemas_(ss,store) {
   check_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
   check_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
   check_('MPS Telegram VIP Transition Intents',store.headers.intents,false);
+  check_(MPS_VIP_FOLLOWUP_QUEUE.sheet,MPS_VIP_FOLLOWUP_QUEUE.headers,false);
   check_('MPS Telegram VIP Member Cursor',store.headers.cursor,false);
   const blocked=checks.filter(function(x){return !x.ok;});
   return {ok:blocked.length===0,checks:checks,message:blocked.length?'Storage preflight diblokir: '+blocked.map(function(x){return x.name+' ('+x.state+')';}).join(', '):'Seluruh skema storage transisi cocok atau aman untuk dibuat/migrasi.'};
@@ -2103,9 +2195,11 @@ function apiAdminPrepareTelegramVipTransitionStorage(session) {
       if(actual.length!==headers.length||headers.some(function(h,i){return actual[i]!==h;}))throw new Error('VIP_TRANSITION_SCHEMA_MISMATCH: '+name);
     }
     ensure_('MPS Telegram VIP Transition Intents',store.headers.intents);
+    ensure_(MPS_VIP_FOLLOWUP_QUEUE.sheet,MPS_VIP_FOLLOWUP_QUEUE.headers);
     ensure_('MPS Telegram VIP Member Cursor',store.headers.cursor);
   });
-  return {ok:true,message:'Penyimpanan transisi VIP siap. Webhook belum diaktifkan otomatis; lakukan uji runtime terisolasi sebelum aktivasi.'};
+  ensureMpsVipFollowupAutomation_();
+  return {ok:true,message:'Penyimpanan transisi VIP dan antrean tindak lanjut siap. Worker otomatis berjalan setiap 5 menit; webhook belum diaktifkan otomatis.'};
 }
 
 function kickMpsUnauthorizedUser_(groupId,userId){
