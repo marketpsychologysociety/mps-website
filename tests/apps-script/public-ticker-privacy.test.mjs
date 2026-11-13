@@ -107,6 +107,43 @@ test('direct Market Pulse endpoint requires a verified member session before rea
   assert.match(body,/^function apiGetMarketPulse\(session\) \{\s*const member\s*=\s*requireMember_\(session\);\s*\/\/ Dataset historis berukuran hingga 1 MB; batasi pembacaan Drive per member\.\s*consumeRateLimit_\('mps_market_pulse_'.*?return getMarketPulseData_\(\);/s);
 });
 
+test('Market Pulse refuses a publicly shared parent folder before enumerating the data file',()=>{
+  const start=source.indexOf('function getMarketPulseData_() {');
+  const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
+  assert.ok(start>=0&&end>start,'Market Pulse data helper boundaries must exist');
+  const calls={folder:0,files:0};
+  const isolated={
+    MPS:{maxPulseDataBytes:1024*1024},
+    DriveApp:{Access:{PRIVATE:'PRIVATE'},getFolderById:()=>{calls.folder++;return{
+      getSharingAccess:()=> 'ANYONE',
+      getFilesByName:()=>{calls.files++;return{hasNext:()=>false};}
+    };}},
+    getLearningFolderId_:()=>'learning-folder'
+  };
+  vm.createContext(isolated);
+  vm.runInContext(source.slice(start,end),isolated,{timeout:1000});
+  assert.throws(()=>isolated.getMarketPulseData_(),/Folder Learning tidak PRIVATE/);
+  assert.equal(calls.folder,1);
+  assert.equal(calls.files,0,'must fail before listing Pulse files');
+});
+
+test('Market Pulse keeps its file-level PRIVATE check after the parent folder check',()=>{
+  const start=source.indexOf('function getMarketPulseData_() {');
+  const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
+  const file={isTrashed:()=>false,getSize:()=>100,getMimeType:()=>'text/html',getSharingAccess:()=>'ANYONE'};
+  const isolated={
+    MPS:{maxPulseDataBytes:1024*1024},
+    DriveApp:{Access:{PRIVATE:'PRIVATE'},getFolderById:()=>({
+      getSharingAccess:()=>'PRIVATE',
+      getFilesByName:()=>{let first=true;return{hasNext:()=>first,next:()=>{first=false;return file;}};}
+    })},
+    getLearningFolderId_:()=>'learning-folder'
+  };
+  vm.createContext(isolated);
+  vm.runInContext(source.slice(start,end),isolated,{timeout:1000});
+  assert.throws(()=>isolated.getMarketPulseData_(),/File Market Pulse tidak PRIVATE/);
+});
+
 test('all member-only data APIs enforce a server-side member session',()=>{
   const functions=[...source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)];
   const body=name=>{const i=functions.findIndex(m=>m[1]===name);assert.ok(i>=0,name);return source.slice(functions[i].index,functions[i+1]?.index??source.length);};
