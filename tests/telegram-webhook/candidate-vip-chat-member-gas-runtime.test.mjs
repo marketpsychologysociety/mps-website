@@ -338,7 +338,7 @@ test('candidate ignores member-to-admin role changes because membership remains 
 test('VIP invite delivery is durably queued, validated against current member state, and sent once by the worker',()=>{
  const h=runtime(),link='https://t.me/+new-invite';
  h.setInvite(link);
- const queued=h.enqueueInviteTask(link);
+ const queued=h.enqueueInviteTask(link,'');
  assert.equal(queued.ok,true);assert.equal(queued.duplicate,false);
  assert.equal(h.enqueueInviteTask(link).duplicate,true,'replay must reuse the stable invite task key');
  const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
@@ -352,7 +352,7 @@ test('VIP invite delivery is durably queued, validated against current member st
 test('VIP invite delivery is quarantined when the stored invite is stale or member eligibility changed',()=>{
  const h=runtime(),link='https://t.me/+stale-invite';
  h.setInvite(link);
- h.enqueueInviteTask(link);
+ h.enqueueInviteTask(link,'');
  h.setEligible(false);
  const result=h.runQueue();
  const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
@@ -364,7 +364,7 @@ test('VIP invite delivery is quarantined when the stored invite is stale or memb
 test('expired in-flight Telegram send lease is quarantined instead of blindly re-sent after a worker crash',()=>{
  const h=runtime(),link='https://t.me/+crash-window';
  h.setInvite(link);
- h.enqueueInviteTask(link);
+ h.enqueueInviteTask(link,'');
  const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
  queue[1][7]='PROCESSING';queue[1][10]=new Date(0);
  const result=h.runQueue();
