@@ -1616,7 +1616,7 @@ function processVipJoinRequest_(request,update) {
       const retryCheck=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChatMember',{method:'post',payload:{chat_id:chatId,user_id:userId},muteHttpExceptions:true});
       const state=parseTelegramResponse_(retryCheck),status=state.ok&&state.result?String(state.result.status||''):'';
       if(status==='member'||status==='administrator'||status==='creator'||(status==='restricted'&&state.result.is_member===true)){if(allowed)enqueueMpsVipJoinRequestNotice_(request,update,true);return true;}
-      if(!allowed&&(status==='left'||status==='kicked')){recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_ALREADY_DECLINED',userId,'SUCCESS','Permintaan join sudah tidak aktif saat webhook dicoba ulang.');return true;}
+      if(!allowed&&(status==='left'||status==='kicked')){recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_ALREADY_DECLINED',userId,'SUCCESS','Permintaan join sudah tidak aktif saat webhook dicoba ulang.');enqueueMpsVipJoinRequestNotice_(request,update,false);return true;}
       if(allowed&&(status==='left'||status==='kicked')&&/USER_ID_INVALID|request.*not found|no.*join request/i.test(String(result.description||''))){recordMpsAudit_('TELEGRAM',memberId,'VIP_JOIN_REQUEST_ALREADY_CLOSED',memberId,'SUCCESS','Telegram tidak lagi memiliki join request aktif; tidak ada akses grup yang diberikan.');return true;}
     }catch(checkErr){if(!allowed&&/USER_ID_INVALID|user.*not found|chat.*not found/i.test(String(result.description||'')))return true;}
     if(!allowed&&/USER_ID_INVALID|request.*not found|no.*join request/i.test(String(result.description||'')))return true;
@@ -1626,7 +1626,7 @@ function processVipJoinRequest_(request,update) {
     // Approval is not a membership-state event; wait for Telegram chat_member.
     enqueueMpsVipJoinRequestNotice_(request,update,true);
   }else{
-    try{const dm=telegramSendToChat_(String(request.user_chat_id||userId),'Permintaan bergabung belum dapat disetujui. Pastikan Telegram sudah terhubung dan status member MPS sudah Berhasil.');if(!dm.ok)recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_DECLINE_DM_FAILED',userId,'WARNING','Permintaan join ditolak, tetapi pesan penjelasan gagal dikirim.');}catch(dmErr){recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_DECLINE_DM_FAILED',userId,'WARNING','Permintaan join ditolak, tetapi pengiriman pesan penjelasan gagal.');}
+    enqueueMpsVipJoinRequestNotice_(request,update,false);
   }
   return true;
 }
