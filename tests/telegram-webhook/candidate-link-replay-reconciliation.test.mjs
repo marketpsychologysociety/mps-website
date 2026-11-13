@@ -155,6 +155,50 @@ test('replayed link confirmation reuses one stable notification task key',()=>{
   assert.equal(h.stats().lockReleases,2);
 });
 
+
+test('admin decision notices use stable member/admin outbox tasks without persisting names or free-form notes',()=>{
+  const start=source.indexOf('function enqueueMpsAdminDecisionNotices_(');
+  const end=source.indexOf('function runMpsVipFollowupQueue_(',start);
+  assert.ok(start>=0&&end>start,'admin decision notice helper must exist');
+  const helper=source.slice(start,end);
+  const headers=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At'];
+  const rows=[headers.slice()];
+  const sheet={
+    getLastColumn:()=>headers.length,getLastRow:()=>rows.length,
+    getRange:(row,col,nr=1,nc=1)=>({
+      getDisplayValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>String(rows[row-1+ri]?.[col-1+ci]??''))),
+      setValues:values=>values.forEach((line,ri)=>{rows[row-1+ri]=line.slice();})
+    })
+  };
+  let held=false,acquires=0,releases=0;
+  const context={
+    MPS_VIP_FOLLOWUP_QUEUE:{sheet:'MPS Telegram VIP Follow-up Queue',headers},
+    LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(held,false);held=true;acquires++;},releaseLock:()=>{assert.equal(held,true);held=false;releases++;}})},
+    PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'synthetic-spreadsheet'})},
+    SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet}),flush:()=>{}},
+    sha256_:value=>Array.from(String(value)).reduce((n,c)=>((n*33+c.charCodeAt(0))>>>0),5381).toString(16).padStart(8,'0').repeat(8).slice(0,64),
+    safeErrorMessage_:e=>String(e&&e.message||e)
+  };
+  vm.createContext(context);
+  vm.runInContext(queueSource+'\\n'+helper,context,{timeout:1000});
+  const first=context.enqueueMpsAdminDecisionNotices_('MPS-APP-0123456789ABCDEF0123','MPS-ABCDEF12','approve','987654321');
+  const replay=context.enqueueMpsAdminDecisionNotices_('MPS-APP-0123456789ABCDEF0123','MPS-ABCDEF12','approve','987654321');
+  assert.equal(first.ok,true);
+  assert.equal(replay.ok,true);
+  assert.equal(rows.length,3,'member and admin tasks are inserted once each');
+  assert.deepEqual(rows.slice(1).map(r=>r[2]),['SEND_DM','ADMIN_ALERT']);
+  assert.ok(rows.every(r=>!String(r[6]||'').includes('Nama')&&!String(r[6]||'').includes('Catatan')));
+  assert.ok(rows.slice(1).every(r=>r[5]==='','no secret invite link may be stored'));
+  assert.equal(acquires,4,'each enqueue obtains and releases its own ScriptLock; no caller lock is held');
+  assert.equal(releases,4);
+  assert.equal(held,false);
+  assert.match(rows[1][6],/PIN akses dikirim terpisah/);
+  assert.match(rows[2][6],/MPS-APP-0123456789ABCDEF0123/);
+  assert.doesNotMatch(rows[2][6],/Nama|Catatan admin|email|telepon/i);
+  assert.equal(source.includes("telegramSendToChat_(chatId,action==='approve'"),false,'application direct decision DM must be removed');
+  assert.equal(source.includes("try{const tg=sendTelegram_(telegramMessage)"),false,'legacy direct archive send must be removed');
+});
+
 test('actual link-notice helper appends to the existing queue under the caller-held lock without nested acquisition',()=>{
   const headers=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At'];
   const rows=[headers.slice()];
