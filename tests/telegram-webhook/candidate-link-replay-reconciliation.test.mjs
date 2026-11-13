@@ -258,7 +258,7 @@ test('admin decision intent materializes notices only after application and depo
     enqueueMpsAdminDecisionNotices_:(...args)=>{assert.equal(held,true,'child outbox tasks are inserted under the same lock');called=args;return{ok:true};}
   };
   vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
-  const task={alertText:JSON.stringify({subject:app[0],member:'MPS-ABCDEF12',decision:'approve',chatId:'987654321'})};
+  const task={telegramUserId:'987654321',alertText:JSON.stringify({subject:app[0],member:'MPS-ABCDEF12',decision:'approve'})};
   assert.equal(context.materializeMpsAdminDecisionIntent_(task),true);
   assert.deepEqual(called,[app[0],'MPS-ABCDEF12','approve','987654321',true]);
   assert.equal(held,false);
@@ -281,7 +281,7 @@ test('admin decision intent refuses to notify when persisted application decisio
     enqueueMpsAdminDecisionNotices_:()=>{called=true;return{ok:true};}
   };
   vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
-  assert.throws(()=>context.materializeMpsAdminDecisionIntent_({alertText:JSON.stringify({subject:app[0],member:'MPS-ABCDEF12',decision:'approve',chatId:'987654321'})}),/ADMIN_DECISION_INTENT_NOT_COMMITTED/);
+  assert.throws(()=>context.materializeMpsAdminDecisionIntent_({telegramUserId:'987654321',alertText:JSON.stringify({subject:app[0],member:'MPS-ABCDEF12',decision:'approve'})}),/ADMIN_DECISION_INTENT_NOT_COMMITTED/);
   assert.equal(called,false,'no notification may be queued for an uncommitted decision');
   assert.equal(held,false);
 });
@@ -302,7 +302,7 @@ test('legacy decision intent accepts a fully activated member and matching appli
     enqueueMpsAdminDecisionNotices_:(...args)=>{assert.equal(held,true);called=args;return{ok:true};}
   };
   vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
-  assert.equal(context.materializeMpsAdminDecisionIntent_({alertText:JSON.stringify({subject:member[0],member:member[0],decision:'approve',chatId:'987654321'})}),true);
+  assert.equal(context.materializeMpsAdminDecisionIntent_({telegramUserId:'987654321',alertText:JSON.stringify({subject:member[0],member:member[0],decision:'approve'})}),true);
   assert.deepEqual(called,[member[0],member[0],'approve','987654321',true]);
   assert.equal(held,false);
 });
@@ -322,6 +322,6 @@ test('application rejection intent materializes without inventing a Member ID',(
     enqueueMpsAdminDecisionNotices_:(...args)=>{called=args;return{ok:true};}
   };
   vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
-  assert.equal(context.materializeMpsAdminDecisionIntent_({alertText:JSON.stringify({subject:app[0],member:'',decision:'reject',chatId:'987654321'})}),true);
+  assert.equal(context.materializeMpsAdminDecisionIntent_({telegramUserId:'987654321',alertText:JSON.stringify({subject:app[0],member:'',decision:'reject'})}),true);
   assert.deepEqual(called,[app[0],'','reject','987654321',true]);
 });
