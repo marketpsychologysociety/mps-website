@@ -67,6 +67,25 @@ test('chat_member ingress passes the complete original update and event to durab
  context.processTelegramUpdateCore_(update);
  assert.equal(calls.length,1);assert.equal(calls[0].update,update);assert.equal(calls[0].event,update.chat_member);
 });
+test('private /start welcome is update-scoped and group /start messages accept a signed chat ID',()=>{
+ const tasks=[],keys=new Set(),attempts=[];
+ const context={
+  PropertiesService:{getScriptProperties:()=>({getProperty:()=>''})},
+  sha256_:value=>'d'.repeat(64),
+  enqueueMpsVipFollowup_:task=>{const duplicate=keys.has(task.taskKey);keys.add(task.taskKey);attempts.push({task,duplicate});if(!duplicate)tasks.push(task);return{ok:true,duplicate};},
+  runMpsVipFollowupQueue_:()=>({ok:true,processed:0})
+ };
+ vm.createContext(context);vm.runInContext(coreSource,context,{timeout:1000});
+ const update={update_id:88100,message:{chat:{id:'987654321',type:'private'},from:{id:987654321},text:'/start'}};
+ context.processTelegramUpdateCore_(update);
+ context.processTelegramUpdateCore_(update);
+ assert.equal(tasks.length,1);assert.equal(tasks[0].action,'SEND_DM');assert.equal(tasks[0].telegramUserId,'987654321');
+ assert.equal(attempts[1].duplicate,true);
+ const groupUpdate={update_id:88101};
+ context.enqueueMpsTelegramMessage_(groupUpdate,'-1001234567890','group-start-candidate','SEND_MESSAGE','group notice');
+ assert.equal(tasks.length,2);assert.equal(tasks[1].action,'SEND_MESSAGE');assert.equal(tasks[1].groupId,'-1001234567890');
+});
+
 test('my_chat_member permission warnings use a durable update-scoped admin-alert task',()=>{
  const tasks=[],attempts=[],keys=new Set(),audits=[];
  const context={
