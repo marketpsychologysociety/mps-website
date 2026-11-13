@@ -1565,7 +1565,7 @@ function processTelegramUpdateCore_(update) {
     if(chat.type==='private'&&msg.from&&/^\/start(?:@[A-Za-z0-9_]+)?(?:\s+([A-Fa-f0-9]{40,64}))?/.test(String(msg.text||''))){
       const match=String(msg.text||'').match(/^\/start(?:@[A-Za-z0-9_]+)?(?:\s+([A-Fa-f0-9]{40,64}))?/),token=match&&match[1];
       if(!token){enqueueMpsTelegramMessage_(update,String(chat.id),'private-start-welcome','SEND_DM','Selamat datang di MPS. Untuk verifikasi pendaftaran, buka kembali formulir MPS lalu tekan Hubungkan Telegram.');}
-      else verifyTelegramLinkFromUpdate_(token,msg);
+      else verifyTelegramLinkFromUpdate_(token,msg,update);
     }
   }
   if(update.chat_join_request)processVipJoinRequest_(update.chat_join_request,update);
@@ -1671,12 +1671,12 @@ function enqueueMpsVipJoinRequestNotice_(request,update,approved) {
   }catch(err){throw new Error('VIP_JOIN_NOTICE_QUEUE_FAILED:'+safeErrorMessage_(err));}
 }
 
-function verifyTelegramLinkFromUpdate_(token,msg) {
+function verifyTelegramLinkFromUpdate_(token,msg,update) {
   const hash=sha256_(token),links=getMpsMemberLinksSheet_(),row=findMpsMemberLinkRow_(links,hash);
-  if(!row){telegramSendToChat_(String(msg.chat.id),'Tautan verifikasi tidak ditemukan. Buat tautan baru dari portal MPS.');return false;}
+  if(!row){enqueueMpsTelegramMessage_(update,String(msg.chat.id),'link-not-found','SEND_DM','Tautan verifikasi tidak ditemukan. Buat tautan baru dari portal MPS.');return false;}
   const v=links.getRange(row,1,1,MPS_MEMBER_LINKS.headers.length).getValues()[0];
-  if(!String(v[4]||'')&&String(v[5]||''))return verifyTelegramApplication_(row,v,msg);
-  return verifyTelegramLinkLegacy_(token,msg);
+  if(!String(v[4]||'')&&String(v[5]||''))return verifyTelegramApplication_(row,v,msg,update);
+  return verifyTelegramLinkLegacy_(token,msg,update);
 }
 function enqueueMpsTelegramLinkConfirmation_(tokenHash,chatId,message) {
   if(!/^[0-9]{1,20}$/.test(String(chatId||'')))throw new Error('TELEGRAM_LINK_NOTICE_CHAT_INVALID');
@@ -1689,12 +1689,15 @@ function enqueueMpsTelegramLinkConfirmation_(tokenHash,chatId,message) {
     groupId:String(chatId||''),telegramUserId:String(chatId||''),alertText:String(message||'')},true);
 }
 
-function verifyTelegramApplication_(linkRow,link,msg) {
+function verifyTelegramApplication_(linkRow,link,msg,update) {
   const chatId=String(msg.chat&&msg.chat.id||''),userId=String(msg.from&&msg.from.id||''),appRef=String(link[5]||'');
-  if(!userId||userId!==chatId){telegramSendToChat_(chatId,'Verifikasi harus dilakukan melalui chat pribadi bot MPS.');return false;}
+  if(!userId||userId!==chatId){
+    if(/^[0-9]{1,20}$/.test(chatId))enqueueMpsTelegramMessage_(update,chatId,'link-private-chat-required','SEND_DM','Verifikasi harus dilakukan melalui chat pribadi bot MPS.');
+    return false;
+  }
   consumeRateLimit_('mps_tg_verify_'+sha256_(userId).slice(0,20),5,900,'Terlalu banyak percobaan verifikasi Telegram. Coba lagi 15 menit.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
-  let appSheet=null,appRow=0,appSnapshot=null,depSheet=null,depRow=0,depSnapshot=null,access=null,accessRow=0,accessSnapshot=null,accessCreated=false,linkSheet=null,actualLinkRow=0,linkSnapshot=null,committed=false;
+  let appSheet=null,appRow=0,appSnapshot=null,depSheet=null,depRow=0,depSnapshot=null,access=null,accessRow=0,accessSnapshot=null,accessCreated=false,linkSheet=null,actualLinkRow=0,linkSnapshot=null,committed=false,failureMessage='';
   try{
     linkSheet=getMpsMemberLinksSheet_();actualLinkRow=findMpsMemberLinkRow_(linkSheet,String(link[0]||''));if(!actualLinkRow)throw new Error('Token verifikasi tidak ditemukan.');
     const fresh=linkSheet.getRange(actualLinkRow,1,1,MPS_MEMBER_LINKS.headers.length).getValues()[0];linkSnapshot=fresh.slice();
@@ -1739,13 +1742,17 @@ function verifyTelegramApplication_(linkRow,link,msg) {
     if(appSheet&&appRow&&appSnapshot)try{appSheet.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
     if(linkSheet&&actualLinkRow&&linkSnapshot)try{linkSheet.getRange(actualLinkRow,1,1,linkSnapshot.length).setValues([linkSnapshot]);}catch(e){rollbackErrors.push('tautan Telegram: '+safeErrorMessage_(e));}
     if(rollbackErrors.length)throw new Error('Verifikasi Telegram gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
-    throw err;
+    failureMessage='Tautan verifikasi belum dapat diproses. Periksa status pendaftaran atau hubungi admin MPS.';
   }finally{lock.releaseLock();}
+  if(failureMessage){
+    if(/^[0-9]{1,20}$/.test(chatId))enqueueMpsTelegramMessage_(update,chatId,'link-verification-result','SEND_DM',failureMessage);
+    return false;
+  }
   if(committed){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}}
   return committed;
 }
 
-function verifyTelegramLinkLegacy_(token,msg) {
+function verifyTelegramLinkLegacy_(token,msg,update) {
   const tokenHash=sha256_(token),sh=getMpsMemberLinksSheet_(),lock=LockService.getScriptLock();
   lock.waitLock(10000);
   let verifiedMemberId='',chatId=String(msg.chat&&msg.chat.id||''),committed=false,failureMessage='';
@@ -1809,7 +1816,10 @@ function verifyTelegramLinkLegacy_(token,msg) {
     if(rollbackErrors.length)failureMessage='Verifikasi Telegram gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.';
     else if(!failureMessage)failureMessage='Verifikasi Telegram belum dapat diselesaikan. Periksa kembali status tautan atau hubungi admin MPS.';
   }finally{lock.releaseLock();}
-  if(failureMessage){try{telegramSendToChat_(chatId,failureMessage);}catch(noticeErr){console.error('Telegram legacy verification notice failed: '+safeErrorMessage_(noticeErr));}return false;}
+  if(failureMessage){
+    if(/^[0-9]{1,20}$/.test(chatId))enqueueMpsTelegramMessage_(update,chatId,'link-verification-result','SEND_DM',failureMessage);
+    return false;
+  }
   if(committed){
     recordMpsAudit_('TELEGRAM',verifiedMemberId,'TELEGRAM_LINKED',verifiedMemberId,'SUCCESS','Akun Telegram terverifikasi menggunakan token sekali pakai.');
     try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}
