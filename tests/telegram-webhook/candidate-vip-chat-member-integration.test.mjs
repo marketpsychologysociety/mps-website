@@ -21,7 +21,7 @@ const request=()=>({chat:{id:'-1001234567890'},from:{id:987654321,is_bot:false},
 const tgResponse=(status,ok=true)=>({ok,result:{status,is_member:status==='member'},description:ok?'':'temporary failure'});
 
 function joinHarness(fetchImpl){
- const calls=[],memberId='MPS-ABCDEF12',userId='987654321';
+ const calls=[],queuedTasks=[],queuedKeys=new Set(),memberId='MPS-ABCDEF12',userId='987654321';
  const requestDate=1760000000;
   const accessRow=[memberId,userId,userId,'test_user','Test',true,'Undangan dikirim','https://t.me/+invite',new Date((requestDate+86400)*1000),null,''];
  const memberRow=new Array(30).fill('');
@@ -37,11 +37,14 @@ function joinHarness(fetchImpl){
   parseTelegramResponse_:r=>r,
   updateVipJoinStatus_:()=>{throw new Error('LEGACY_STATUS_MUTATION_FORBIDDEN');},
   telegramSendToChat_:(...args)=>{calls.push({type:'dm',args});return{ok:true};},
+  sha256_:value=>'a'.repeat(64),
+  enqueueMpsVipFollowup_:task=>{const duplicate=queuedKeys.has(task.taskKey);queuedKeys.add(task.taskKey);queuedTasks.push({...task,duplicate});return{ok:true,duplicate};},
+  runMpsVipFollowupQueue_:()=>({ok:true,processed:0}),
   recordMpsAudit_:(...args)=>calls.push({type:'audit',args}),
   clean_:v=>String(v),safeErrorMessage_:e=>String(e&&e.message||e)
  };
  vm.createContext(context);vm.runInContext(joinSource,context,{timeout:1000});
- return{context,calls,accessSheet,accessRow,memberSheet,memberRow,requestDate};
+ return{context,calls,queuedTasks,accessSheet,accessRow,memberSheet,memberRow,requestDate};
 }
 
 test('candidate Code.gs compiles and removes every legacy status-handler callsite',()=>{
@@ -103,20 +106,21 @@ test('duplicate member IDs fail closed before any Telegram approval call',()=>{
 test('pre-approval getChatMember reconciliation does not mutate VIP status',()=>{
  const h=joinHarness(()=>tgResponse('member'));
  h.context.processVipJoinRequest_(request());
- assert.equal(h.calls.filter(x=>x.type==='dm').length,1);
+ assert.equal(h.queuedTasks.length,1);assert.equal(h.queuedTasks[0].action,'SEND_DM');
  assert.equal(h.calls.some(x=>x.type==='audit'),false);
 });
 test('successful join-request approval waits for chat_member before status mutation',()=>{
  let n=0;const h=joinHarness(()=>++n===1?tgResponse('left'):{ok:true,result:true});
  h.context.processVipJoinRequest_(request());
  assert.equal(n,2);
- assert.equal(h.calls.filter(x=>x.type==='dm').length,1);
+ assert.equal(h.queuedTasks.length,1);assert.equal(h.queuedTasks[0].action,'SEND_DM');
 });
 test('failed approval followed by getChatMember member observation does not mutate VIP status',()=>{
  let n=0;const h=joinHarness(()=>++n===1?tgResponse('left'):n===2?tgResponse('',false):tgResponse('member'));
  h.context.processVipJoinRequest_(request());
  assert.equal(n,3);
  assert.equal(h.calls.some(x=>x.type==='audit'),false);
+ assert.equal(h.queuedTasks.length,1);assert.equal(h.queuedTasks[0].action,'SEND_DM');
 });
 test('in-lock resolver selects ACTIVE with real safe member name and ticker only for a true join',()=>{
  const memberId='MPS-ABCDEF12',userId='987654321';
