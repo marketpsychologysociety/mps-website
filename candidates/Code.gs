@@ -1613,6 +1613,11 @@ function verifyTelegramApplication_(linkRow,link,msg) {
   try{
     linkSheet=getMpsMemberLinksSheet_();actualLinkRow=findMpsMemberLinkRow_(linkSheet,String(link[0]||''));if(!actualLinkRow)throw new Error('Token verifikasi tidak ditemukan.');
     const fresh=linkSheet.getRange(actualLinkRow,1,1,MPS_MEMBER_LINKS.headers.length).getValues()[0];linkSnapshot=fresh.slice();
+    // Reconcile a replay only for the exact Telegram identity that consumed this one-time link.
+    if(String(fresh[3])==='Terverifikasi'){
+      if(String(fresh[6]||'')===userId&&String(fresh[7]||'')===chatId)return true;
+      throw new Error('Tautan verifikasi sudah digunakan oleh akun Telegram lain.');
+    }
     if(String(fresh[3])!=='Menunggu'||!(fresh[2] instanceof Date)||fresh[2].getTime()<=Date.now())throw new Error('Tautan verifikasi kedaluwarsa atau sudah digunakan.');
     appSheet=getMpsApplicationsSheet_();appRow=findMpsApplicationRow_(appSheet,appRef);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
     appSnapshot=appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
@@ -1654,11 +1659,16 @@ function verifyTelegramLinkLegacy_(token,msg) {
     const row=findMpsMemberLinkRow_(sh,tokenHash);
     if(!row){failureMessage='Tautan verifikasi tidak ditemukan. Kembali ke website MPS dan buat tautan baru.';throw new Error('MPS_TELEGRAM_LINK_NOT_FOUND');}
     const v=sh.getRange(row,1,1,MPS_MEMBER_LINKS.headers.length).getValues()[0];linkSnapshot=v.slice();
+    const userId=String(msg.from&&msg.from.id||'');if(!userId||userId!==chatId){failureMessage='Verifikasi harus dilakukan melalui chat pribadi bot MPS.';throw new Error('MPS_TELEGRAM_PRIVATE_CHAT_REQUIRED');}
+    // A consumed token is a successful replay only for its original user and private chat.
+    if(v[3]==='Terverifikasi'){
+      if(String(v[6]||'')===userId&&String(v[7]||'')===chatId)return true;
+      failureMessage='Tautan verifikasi sudah digunakan oleh akun Telegram lain.';throw new Error('MPS_TELEGRAM_LINK_IDENTITY_MISMATCH');
+    }
     if(!(v[2] instanceof Date)||v[2].getTime()<=Date.now()||v[3]!=='Menunggu'){
       if(v[3]==='Menunggu'&&v[2] instanceof Date&&v[2].getTime()<=Date.now()){sh.getRange(row,4).setValue('Expired');linkSnapshot[3]='Expired';}
       failureMessage='Tautan verifikasi sudah kedaluwarsa atau pernah digunakan. Minta tautan baru melalui website MPS.';throw new Error('MPS_TELEGRAM_LINK_EXPIRED');
     }
-    const userId=String(msg.from&&msg.from.id||'');if(!userId||userId!==chatId){failureMessage='Verifikasi harus dilakukan melalui chat pribadi bot MPS.';throw new Error('MPS_TELEGRAM_PRIVATE_CHAT_REQUIRED');}
     const memberId=String(v[4]||'');verifiedMemberId=memberId;
     access=getTelegramAccessSheet_();const existingUser=findTelegramAccessByUserId_(access,userId);
     if(existingUser){const existingMember=String(access.getRange(existingUser,1).getDisplayValue()||'');if(existingMember!==memberId)throw new Error('Akun Telegram ini sudah terhubung ke member lain.');accessRow=existingUser;}
