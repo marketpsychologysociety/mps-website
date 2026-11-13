@@ -95,3 +95,34 @@ The per-member ordering model requires an epoch that is assigned once at ingress
 The caller must execute epoch allocation, update-journal append, and global stream-state write under the same ScriptLock critical section. Store both `epoch` and `receivedAt` on the update journal row. A retry/reconciliation must read and reuse that stored epoch; it must never allocate a new epoch from its retry time. If the ingress clock moves backward, state is malformed, or epoch assignment cannot be persisted, fail closed and do not run the VIP handler.
 
 The local idle boundary is intentionally conservative. Telegram retains incoming updates for no longer than 24 hours, and documents a random next update ID after at least one week without new updates. A webhook/Apps Script outage may cause a local epoch increment even if Telegram's IDs continued sequentially during the outage; this remains safe for ordering if all newly delivered backlog updates are assigned to the same local epoch and compared by update ID. The adapter integration must test backlog delivery, retries, and process restart before use.
+
+## 9. Candidate integration status reconciliation — 2026-11-13
+
+**Important:** Sections 1–7 above record the earlier source-review state and must not be read as a description of the current workbench head. The isolated candidate has since been changed and the integration is now present in `candidates/Code.gs`.
+
+Verified by reading the candidate source at workbench head `9dea87015232e712395d5518163a794566e36fea` and the matching test files:
+
+- `processTelegramUpdateCore_` passes the complete original Telegram update and `chat_member` event to `processMpsVipChatMemberEvent_(update, memberUpdate)`. The handler requires the original `update_id`, source event date, old/new membership state, and hashes the original event.
+- `createMpsGasVipChatMemberHandler_` derives the membership transition from `old_chat_member` and `new_chat_member`; unchanged membership and unknown states are ignored. It sends the update into the transition orchestrator with a deterministic ordering epoch and source timestamp.
+- `createMpsGasVipTransitionOrchestrator_` requires `ledger.runExclusive()`. It uses the ledger's scoped transaction object for intent/cursor writes, status-writer calls, and keyed ticker/audit appends. The adapter's `runExclusive` acquires one ScriptLock and exposes a scoped API that does not acquire a nested lock; direct nested lock acquisition is explicitly rejected.
+- Each immutable transition intent has a key `telegram:<epoch>:<update_id>:vip_transition`, a payload hash, source timestamp, member/Telegram identity binding, target state, and separate ticker/audit effect keys. Replays validate the immutable event binding; completed intents return duplicate, stale events are superseded, and same-key/different-payload collisions fail closed.
+- Ticker/audit payload timestamps are derived from the Telegram source event time and the ticker event ID is deterministic from the transition key. A keyed append with a different payload returns a collision outcome that the orchestrator turns into an error rather than silently accepting it.
+- The status writer updates the VIP Access and Database Member records inside the same scoped lock ownership boundary. Follow-up cache invalidation and Telegram queue processing occur after the transition orchestrator returns; the durable follow-up queue worker performs Telegram HTTP calls outside ScriptLock.
+- The effect-ledger adapter remains append-only and requires an explicit spreadsheet ID and pre-existing exact schemas. The Super Admin provisioning path performs explicit schema preflight/migration; no migration or provisioning is run automatically.
+
+Candidate test evidence currently recorded in PR #12 includes:
+- Candidate chat-member integration and failure/replay contract coverage.
+- Candidate end-to-end isolated Apps Script-like V8 runtime tests extracted from the actual Code.gs source, with mocked SpreadsheetApp, LockService, PropertiesService, and CacheService.
+- Effect-ledger adapter tests for schema migration, idempotent append, key collision, lock contention/ownership, interrupted writes, and replay.
+- Latest relevant CI run on the documentation head is tracked separately in the PR/checklist; CI is not evidence of execution in Google's hosted Apps Script runtime.
+
+### Remaining limitations — still open
+
+- No real isolated Google Apps Script project or separate Google spreadsheet has been provisioned/executed from this chat. Actual ScriptLock semantics, Spreadsheet flush/persistence, Apps Script execution interruption, quotas, latency, permissions, and Drive/Sheets ACLs remain unverified.
+- The Sheets status writes, intent/cursor writes, and keyed effect appends share one lock but are not a native multi-row database transaction. Recovery relies on durable intent states and replay; the real-runtime interruption matrix must still be exercised.
+- The generic webhook update-level cache key in `processTelegramUpdateCore_` remains unset (`updateKey = ''`). VIP `chat_member` idempotency is handled by the durable transition intent/cursor/effect ledger, but this does not establish general exactly-once processing for every Telegram update type.
+- Join-request approval/welcome messaging, private bot commands, and bot permission alerts are not all protected by the VIP transition effect ledger. Their delivery/reconciliation semantics must not be described as exactly-once.
+- Public/Admin ticker projection is Member-ID-only, but the restricted internal legacy ticker schema may still contain a historical Member Name field. The public projection does not expose that field.
+- No production webhook, production spreadsheet, member rows, Script Properties, Telegram bot, or trigger has been changed or provisioned. Draft PR #12 remains NO-GO for merge/deploy.
+
+This section supersedes the earlier statements in Sections 1–7 that the Code.gs integration had not yet been implemented. The earlier hazard analysis remains useful as the rationale for the scoped-lock design, not as a claim that the current candidate still has the old nested-lock call structure.
