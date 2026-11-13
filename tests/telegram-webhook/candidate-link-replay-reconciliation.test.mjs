@@ -37,7 +37,7 @@ function harness({kind='application',storedUser=userId,storedChat=chatId,expired
       appendRow:row=>data.push(row.slice())
     };
   }
-  const accessRows=[Array(11).fill(''),['MPS-ABCDEF12',storedUser,storedChat,'same_user','Same',true,'Menunggu','','','','']];
+  const accessRows=[Array(11).fill(''),[kind==='application'?'MPS-APP-0123456789ABCDEF0123':'MPS-ABCDEF12',storedUser,storedChat,'same_user','Same',true,'Menunggu','','','','']];
   const appData=Array(15).fill('');appData[0]='MPS-APP-0123456789ABCDEF0123';appData[10]='Terverifikasi';appData[11]=storedUser;appData[12]=storedChat;
   const appRows=[Array(15).fill(''),appData];
   const memberData=Array(30).fill('');memberData[0]='MPS-ABCDEF12';
