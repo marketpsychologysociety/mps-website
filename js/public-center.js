@@ -66,9 +66,9 @@
     if (!data.tickerSettings || data.tickerSettings.enabled !== true) { ticker.hidden = true; return; }
     const items = [];
     data.activity.slice(0, 12).forEach(item => {
-      const mask = /^MPS-\*{4}-[A-F0-9]{4}$/.test(String(item.MaskedMemberId || "")) ? item.MaskedMemberId : "";
-      items.push(mask ? "Member VIP berhasil diaktifkan dan diverifikasi — ID " + mask :
-        "Keanggotaan Member VIP MPS berhasil diaktifkan dan diverifikasi");
+      const memberId = /^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(item.PublicAlias || "")) ? String(item.PublicAlias) : "";
+      const eventText = safeText(item.PublicText, 120).trim();
+      if (memberId) items.push("Member ID " + memberId + (eventText ? " — " + eventText : ""));
     });
     data.announcements.filter(item => {
       const category = String(item.Category || "").toLowerCase();
