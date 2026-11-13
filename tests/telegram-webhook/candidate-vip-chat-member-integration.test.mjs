@@ -32,7 +32,7 @@ function joinHarness(fetchImpl){
   console,MPS:{headers:new Array(30)},MPS_COL:{id:1,registrationStatus:8,depositStatus:15},
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>({MPS_TELEGRAM_VIP_CHAT_ID:'-1001234567890',MPS_TELEGRAM_BOT_TOKEN:'123456:TEST_TOKEN_NOT_REAL'})[key]||''})},
   getTelegramAccessSheet_:()=>accessSheet,findUniqueMpsTransitionRow_:(sheet,col,value)=>sheet===accessSheet?2:2,
-  getMemberSheet_:()=>memberSheet,,
+  getMemberSheet_:()=>memberSheet,
   UrlFetchApp:{fetch:(...args)=>{calls.push({type:'fetch',args});return fetchImpl(...args);}},
   parseTelegramResponse_:r=>r,
   updateVipJoinStatus_:()=>{throw new Error('LEGACY_STATUS_MUTATION_FORBIDDEN');},
