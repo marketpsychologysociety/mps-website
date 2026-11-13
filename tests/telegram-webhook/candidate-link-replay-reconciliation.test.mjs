@@ -180,7 +180,7 @@ test('admin decision notices use stable member/admin outbox tasks without persis
     safeErrorMessage_:e=>String(e&&e.message||e)
   };
   vm.createContext(context);
-  vm.runInContext(queueSource+'\\n'+helper,context,{timeout:1000});
+  vm.runInContext(queueSource+'\n'+helper,context,{timeout:1000});
   const first=context.enqueueMpsAdminDecisionNotices_('MPS-APP-0123456789ABCDEF0123','MPS-ABCDEF12','approve','987654321');
   const replay=context.enqueueMpsAdminDecisionNotices_('MPS-APP-0123456789ABCDEF0123','MPS-ABCDEF12','approve','987654321');
   assert.equal(first.ok,true);
