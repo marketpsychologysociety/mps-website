@@ -1,6 +1,6 @@
 # MPS v4.8 remaining acceptance gates
 
-**Snapshot:** 2026-11-11  
+**Snapshot:** 2026-11-13  
 **Scope:** workbench / Draft PR #12 only. This checklist separates verified repository checks from work that still requires isolated Google Apps Script, Telegram test infrastructure, Android-device testing, independent review, or explicit production authorization.
 
 ## Verified in the workbench
@@ -50,7 +50,10 @@
 - [x] Replace stale legacy ticker test assertions with `tests/apps-script/public-ticker-privacy.test.mjs`, which exercises the exact candidate `Code.gs` identity guard and public projection.
 - [x] Regression tests verify that public and Admin ticker projections expose Member ID only, never member names/aliases, and that the website renderer consumes the explicit MemberId field. Phone/email, Telegram IDs/handles, MT5 logins, deposits/payment details, proof documents, PINs, and credentials are excluded. Live isolated-runtime authorization remains open.
 - [x] Harden VIP join-request approval to require the exact unexpired invite link stored for one unique Telegram identity and one unique Member ID; forged/missing/expired invites and duplicate identity rows fail closed in mocked tests.\n- [ ] Prove direct URL and API authorization using authenticated and unauthenticated tests in an isolated Apps Script runtime. UI hiding is not an authorization control.
-- [x] Add candidate checks that Market Pulse data access fails closed when the parent Learning folder is not PRIVATE, while retaining the file-level PRIVATE check. Live isolated-runtime and Drive ACL verification remain open.\n- [ ] Confirm Market Pulse and other member-only data remain inaccessible through direct endpoint/API calls without the required verified member authorization.
+- [x] Add candidate checks that Market Pulse data access fails closed when the parent Learning folder is not PRIVATE, while retaining the file-level PRIVATE check. Runtime mocks verify shared-folder denial before Drive file enumeration, shared-file denial before blob reads, duplicate data files fail closed, and private-file access proceeds to source validation.
+- [x] Add candidate API-boundary tests confirming direct Market Pulse member/Admin calls reject missing sessions before Drive access, with authorization before per-principal throttling. These tests use mocked session guards and are not live Apps Script authorization evidence.
+- [ ] Prove direct URL and API authorization for all member-only resources using authenticated, unauthenticated, wrong-role, pending, rejected, suspended, expired-session, and revoked-session cases in an isolated Apps Script runtime. UI hiding and mocked guards are not sufficient.
+- [ ] Verify actual Drive folder/file ACL inheritance and Market Pulse access against a separately deployed isolated Apps Script project.
 
 ### E. Database, Android, and Winner Draw
 
@@ -117,3 +120,12 @@ The Apps Script adapter, effect-outbox contract, and handler-reconciliation cont
 - [ ] Integrate stable ticker/audit effects into the isolated Code.gs candidate only after the above tests pass.
 
 See docs/MPS-TELEGRAM-EFFECT-LEDGER-INTEGRATION-PLAN.md. These are static source-review findings and an integration plan, not runtime acceptance. No Code.gs change or live resource change was made.
+
+
+### Market Pulse folder and direct API guard regression — 2026-11-13
+
+- [x] The candidate data reader checks the configured Learning parent folder is PRIVATE before enumerating the Market Pulse data file. The existing file-level PRIVATE check remains in place.
+- [x] Runtime-mock regression cases cover a shared parent folder, shared data file, valid private file, and duplicate named files. Shared access is rejected before reading file contents.
+- [x] Direct member/Admin endpoint guard tests confirm missing sessions are rejected before Drive access and before rate-limit consumption.
+- [x] GitHub Actions runs #1726 and #1727 on candidate head `b49682351b57a1a7c4fbf1f0c97179cec5a3f3ac` completed successfully, each with **68/68 steps** and zero failed steps.
+- [ ] Actual isolated Apps Script deployment, Google Drive ACL/inheritance behavior, and direct URL/API authorization with real Apps Script session/cache services remain unverified. No production resources were touched.
