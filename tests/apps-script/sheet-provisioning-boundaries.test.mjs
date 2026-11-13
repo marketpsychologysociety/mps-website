@@ -113,9 +113,8 @@ test('deposit storage is validated before any proof file is created',()=>{
     'Member Links schema must be checked before Drive proof creation');
 });
 
-test('all operational content-sheet reads use a non-mutating false path',()=>{
+test('all operational content-sheet reads use a strict read-only path with no provisioning flag',()=>{
   const body=extract('getMpsContentSheet_');
-  assert.match(body,/if\(!sh\|\|sh\.getLastRow\(\)<1\)/);
-  assert.match(body,/if\(createIfMissing\)throw new Error/);
-  assert.doesNotMatch(body,/insertSheet|setValues|setFrozenRows|setBackground/);
+  assert.match(body,/if\\(!sh\\|\\|sh\\.getLastRow\\(\\)<1\\)return null/);
+  assert.doesNotMatch(body,/createIfMissing|insertSheet|setValues|setFrozenRows|setBackground|LockService/);
 });
