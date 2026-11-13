@@ -7,8 +7,8 @@
 
 This section supersedes older checkpoint bullets below wherever they conflict. Older sections are retained as historical implementation notes; their unchecked boxes are not a current statement that already-integrated candidate work is absent.
 
-- Current PR head: `531db25ad79bb8851b605c00bb2ad9c5e7dbacb6`; PR #12 is still **OPEN / DRAFT / NOT MERGED**.
-- Latest PR-triggered CI for that head (run #1733) completed successfully. Its `validate-pwa` job passed, including candidate integration tests, mocked Apps Script checks, isolated-harness static validation, and Chromium browser checks. These are repository/CI results, not a live Google Apps Script acceptance.
+- Current PR head: `396af301190c3cf4810e6f3fb4b548999d574fd4`; PR #12 is still **OPEN / DRAFT / NOT MERGED**.
+- Latest PR-triggered CI for this head (run #1735) and push CI (run #1734) both completed **SUCCESS**. The workflow includes candidate integration tests, mocked Apps Script checks, isolated-harness static validation, and Chromium browser checks. These are repository/CI results, not a live Google Apps Script acceptance.
 - The VIP `chat_member` path in candidate `Code.gs` is integrated with the durable intent/cursor/effect-ledger orchestration and the spreadsheet-backed VIP follow-up queue. The queue handles invite revocation, ineligible-member removal, and admin security alerts with leases and retry scheduling. This is **candidate-only** and still requires real isolated GAS/Sheets and Telegram test-environment acceptance.
 - The public and Admin ticker projections expose **Member ID only**; member names and aliases are not projected. Public cache compatibility checks reject stale pre-change identity payloads.
 - Market Pulse candidate reads reject a non-private parent Learning folder before enumerating the data file; file-level privacy checks and direct endpoint session guards also have mocked regression coverage.
@@ -47,9 +47,9 @@ This section supersedes older checkpoint bullets below wherever they conflict. O
 - [ ] Integrate the isolated effect-outbox contract with durable Apps Script/external storage and handler transactions for welcome DMs, group notices, ticker events, audit records, invite revocation, moderation actions, and admin alerts.
 - [x] Add a separate handler-reconciliation contract with 15 synthetic tests for same-identity application/legacy link replay, cross-identity rejection, and transition-scoped VIP activation keys.
 - [x] Wire link replay reconciliation into the isolated Code.gs candidate and add candidate-level mocked tests for exact Telegram identity plus access/member/Application Ref binding. Real Apps Script runtime acceptance remains open.
-- [ ] Wire stable update-scoped VIP ticker/audit effects into the isolated Code.gs candidate; current source review confirms member status is written before ticker/audit and update_id is not passed to the helper.
+- [x] Wire stable update-scoped VIP ticker/audit effects into the isolated Code.gs candidate via the chat_member transition orchestrator and keyed effect ledger. Real GAS runtime acceptance remains open.
 - [x] Define conservative synthetic contract for ambiguous Telegram `sendMessage`: move to REVIEW unless authoritative reconciliation proves APPLIED/NOT_APPLIED; only explicitly confirmed no-effect failures may be retried. [ ] Obtain business approval for any notification class that instead accepts at-least-once duplicate delivery.
-- [ ] Give each VIP activation transition a distinct effect key; do not deduplicate all future activations solely by member ID.
+- [x] Give each VIP activation transition a distinct effect key; replay is scoped to immutable transition/update intent rather than member ID alone.
 - [ ] Exercise each handler with mocked Telegram and spreadsheet adapters, then with a separate Telegram test bot/group.
 
 ### C. Public Center live transport
@@ -109,7 +109,7 @@ The candidate VIP `chat_member` transition path is wired to its scoped effect-le
 - [x] Add the synthetic suite to GitHub Actions.
 - [ ] Implement and review an isolated Apps Script Sheets adapter that appends the key column only through an explicit migration, under lock, with before/after snapshots and rollback evidence.
 - [ ] Verify the adapter against a separate test spreadsheet and Apps Script project, including interrupted writes, concurrent executions, malformed headers, duplicate keys, and backup/restore.
-- [ ] Integrate stable effect keys into audit/ticker writes and handler update-ID propagation only after the isolated adapter tests pass.
+- [x] Integrate stable effect keys into candidate VIP chat_member audit/ticker writes and update-ID propagation. Real GAS runtime and broader handler acceptance remain open.
 
 
 
@@ -128,9 +128,9 @@ The candidate VIP `chat_member` transition path is wired to its scoped effect-le
 - [x] Review the isolated Code.gs call graph for update-ID propagation, activation transitions, audit/ticker writers, and legacy readers.
 - [x] Document a critical nested-ScriptLock hazard: updateVipJoinStatus_ currently holds the script lock while calling ticker/audit writers; directly invoking the new adapter's lock-acquiring appendOnce() there would attempt recursive lock acquisition.
 - [x] Document deterministic row-value requirements, audit-row retention risk, and the fact that audit/ticker keys do not deduplicate Telegram DMs, invite revocation, moderation actions, or admin alerts.
-- [ ] Select and implement a single lock-ownership design, then test it with mocked Apps Script and Telegram adapters.
-- [ ] Propagate update_id through chat-member and join-request call chains; derive genuine activation transitions from Telegram's old/new membership state rather than only the already-mutated database flag.
-- [ ] Integrate stable ticker/audit effects into the isolated Code.gs candidate only after the above tests pass.
+- [x] Select and implement scoped lock ownership for candidate VIP transition writes; mocked Apps Script and Telegram-adapter tests cover lock ownership and nested-lock rejection.
+- [x] Propagate original update metadata through the candidate chat_member handler and derive VIP transitions from Telegram old/new membership state. Join-request and other update types still require separate reconciliation.
+- [x] Integrate stable ticker/audit effects into the isolated Code.gs candidate for VIP chat_member transitions. This is candidate-only; actual GAS runtime remains unverified.
 
 See docs/MPS-TELEGRAM-EFFECT-LEDGER-INTEGRATION-PLAN.md. These are static source-review findings and an integration plan, not runtime acceptance. No Code.gs change or live resource change was made.
 
@@ -145,7 +145,7 @@ See docs/MPS-TELEGRAM-EFFECT-LEDGER-INTEGRATION-PLAN.md. These are static source
 
 ### Telegram VIP effect-ledger integration status reconciliation — 2026-11-13
 
-The earlier checklist entries describing the Code.gs lock-ownership design and update-ID propagation as not yet implemented are superseded by the current candidate source and test suites. Current workbench evidence:
+The earlier checklist entries describing the Code.gs lock-ownership design, update-ID propagation, VIP activation effect keys, and ticker/audit integration as not yet implemented are superseded by the current candidate source and test suites. Current workbench evidence:
 
 - [x] Candidate chat-member handler passes the original Telegram update and derives state from old/new membership events.
 - [x] Candidate transition orchestrator persists update-scoped intent/cursor state and uses distinct deterministic ticker/audit effect keys.
