@@ -1615,8 +1615,16 @@ function verifyTelegramApplication_(linkRow,link,msg) {
     const fresh=linkSheet.getRange(actualLinkRow,1,1,MPS_MEMBER_LINKS.headers.length).getValues()[0];linkSnapshot=fresh.slice();
     // Reconcile a replay only for the exact Telegram identity that consumed this one-time link.
     if(String(fresh[3])==='Terverifikasi'){
-      if(String(fresh[6]||'')===userId&&String(fresh[7]||'')===chatId)return true;
-      throw new Error('Tautan verifikasi sudah digunakan oleh akun Telegram lain.');
+      if(String(fresh[6]||'')!==userId||String(fresh[7]||'')!==chatId)throw new Error('Tautan verifikasi sudah digunakan oleh akun Telegram lain.');
+      const replayAccess=getTelegramAccessSheet_(),replayAccessRow=findTelegramAccessByUserId_(replayAccess,userId);
+      if(!replayAccessRow)throw new Error('Rekonsiliasi tautan gagal: akses Telegram tersimpan tidak ditemukan.');
+      const replayAccessData=replayAccess.getRange(replayAccessRow,1,1,11).getValues()[0];
+      if(String(replayAccessData[0]||'')!==appRef||String(replayAccessData[1]||'')!==userId||String(replayAccessData[2]||'')!==chatId)throw new Error('Rekonsiliasi tautan gagal: identitas akses Telegram tidak cocok.');
+      const replayApps=getMpsApplicationsSheet_(),replayAppRow=findMpsApplicationRow_(replayApps,appRef);
+      if(!replayAppRow)throw new Error('Rekonsiliasi tautan gagal: Application Ref tidak ditemukan.');
+      const replayApp=replayApps.getRange(replayAppRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
+      if(String(replayApp[0]||'')!==appRef||String(replayApp[10]||'')!=='Terverifikasi'||String(replayApp[11]||'')!==userId||String(replayApp[12]||'')!==chatId)throw new Error('Rekonsiliasi tautan gagal: pengajuan tidak terikat pada identitas Telegram yang sama.');
+      return true;
     }
     if(String(fresh[3])!=='Menunggu'||!(fresh[2] instanceof Date)||fresh[2].getTime()<=Date.now())throw new Error('Tautan verifikasi kedaluwarsa atau sudah digunakan.');
     appSheet=getMpsApplicationsSheet_();appRow=findMpsApplicationRow_(appSheet,appRef);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
@@ -1662,8 +1670,20 @@ function verifyTelegramLinkLegacy_(token,msg) {
     const userId=String(msg.from&&msg.from.id||'');if(!userId||userId!==chatId){failureMessage='Verifikasi harus dilakukan melalui chat pribadi bot MPS.';throw new Error('MPS_TELEGRAM_PRIVATE_CHAT_REQUIRED');}
     // A consumed token is a successful replay only for its original user and private chat.
     if(v[3]==='Terverifikasi'){
-      if(String(v[6]||'')===userId&&String(v[7]||'')===chatId)return true;
-      failureMessage='Tautan verifikasi sudah digunakan oleh akun Telegram lain.';throw new Error('MPS_TELEGRAM_LINK_IDENTITY_MISMATCH');
+      if(String(v[6]||'')!==userId||String(v[7]||'')!==chatId){failureMessage='Tautan verifikasi sudah digunakan oleh akun Telegram lain.';throw new Error('MPS_TELEGRAM_LINK_IDENTITY_MISMATCH');}
+      const replayAccess=getTelegramAccessSheet_(),replayAccessRow=findTelegramAccessByUserId_(replayAccess,userId);
+      if(!replayAccessRow){failureMessage='Rekonsiliasi tautan gagal: akses Telegram tersimpan tidak ditemukan.';throw new Error('MPS_TELEGRAM_LINK_ACCESS_MISSING');}
+      const replayAccessData=replayAccess.getRange(replayAccessRow,1,1,11).getValues()[0];
+      if(String(replayAccessData[0]||'')!==String(v[4]||'')||String(replayAccessData[1]||'')!==userId||String(replayAccessData[2]||'')!==chatId){failureMessage='Rekonsiliasi tautan gagal: identitas akses Telegram tidak cocok.';throw new Error('MPS_TELEGRAM_LINK_ACCESS_MISMATCH');}
+      memberSheet=getMemberSheet_();memberRow=findMemberById_(memberSheet,String(v[4]||''));
+      if(!memberRow){failureMessage='Rekonsiliasi tautan gagal: data member tidak ditemukan.';throw new Error('MPS_TELEGRAM_LINK_MEMBER_MISSING');}
+      if(String(v[5]||'')){
+        appSheet=getMpsApplicationsSheet_();appRow=findMpsApplicationRow_(appSheet,String(v[5]));
+        if(!appRow){failureMessage='Rekonsiliasi tautan gagal: Application Ref tidak ditemukan.';throw new Error('MPS_TELEGRAM_LINK_APPLICATION_MISSING');}
+        const replayApp=appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
+        if(String(replayApp[0]||'')!==String(v[5])||String(replayApp[10]||'')!=='Terverifikasi'||String(replayApp[11]||'')!==userId||String(replayApp[12]||'')!==chatId){failureMessage='Rekonsiliasi tautan gagal: pengajuan tidak terikat pada identitas Telegram yang sama.';throw new Error('MPS_TELEGRAM_LINK_APPLICATION_MISMATCH');}
+      }
+      return true;
     }
     if(!(v[2] instanceof Date)||v[2].getTime()<=Date.now()||v[3]!=='Menunggu'){
       if(v[3]==='Menunggu'&&v[2] instanceof Date&&v[2].getTime()<=Date.now()){sh.getRange(row,4).setValue('Expired');linkSnapshot[3]='Expired';}
