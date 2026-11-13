@@ -49,6 +49,7 @@ test('public VIP ticker identity is member ID only; stored names are never proje
   assert.ok(body.includes("MemberId:r['Member ID']"));
   assert.ok(body.includes("r['Member ID']"));
   assert.ok(!body.includes("MemberId:r['Member Name']"));
+  assert.ok(!body.includes('PublicAlias'));
   assert.ok(body.includes("r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))"));
 });
 test('empty, oversized, and identifier-like names are denied',()=>{
@@ -72,7 +73,7 @@ test('public website ticker renders validated Member IDs and never reads member 
   assert.ok(renderer.includes('item.MemberId'));
   assert.ok(renderer.includes('item.PublicText'));
   assert.ok(renderer.includes('"Member ID " + memberId'));
-  assert.doesNotMatch(renderer,/item\.Member\s*Name|item\[['"]Member Name['"]\]|MaskedMemberId/);
+  assert.doesNotMatch(renderer,/item\.Member\s*Name|item\[['"]Member Name['"]\]|MaskedMemberId|PublicAlias/);
 });
 
 test('public Center rejects cached ticker payloads containing legacy names after the ID-only privacy change',()=>{
