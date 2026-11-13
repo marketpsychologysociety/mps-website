@@ -1521,6 +1521,25 @@ function processTelegramUpdate_(update) {
   }
 }
 
+function enqueueMpsTelegramMessage_(update,chatId,effectName,action,message) {
+  const updateId=update&&update.update_id;
+  const validUpdateId=(typeof updateId==='number'&&Number.isSafeInteger(updateId)&&updateId>=0)||(typeof updateId==='string'&&/^(0|[1-9]\\d{0,19})$/.test(updateId));
+  if(!validUpdateId)throw new Error('TELEGRAM_MESSAGE_UPDATE_ID_INVALID');
+  const target=String(chatId||''),kind=String(action||''),effect=String(effectName||'');
+  if(!/^[a-z0-9_-]{1,64}$/.test(effect)||!['SEND_DM','SEND_MESSAGE'].includes(kind)||!String(message||''))throw new Error('TELEGRAM_MESSAGE_TASK_INVALID');
+  if(kind==='SEND_DM'&&!/^[0-9]{1,20}$/.test(target))throw new Error('TELEGRAM_DM_TARGET_INVALID');
+  if(kind==='SEND_MESSAGE'&&!/^-?[0-9]{1,20}$/.test(target))throw new Error('TELEGRAM_MESSAGE_TARGET_INVALID');
+  const taskKey='telegram:'+kind.toLowerCase()+':'+sha256_(String(updateId)+':'+effect+':'+target);
+  try{
+    const queued=enqueueMpsVipFollowup_({
+      taskKey:taskKey,intentKey:taskKey,action:kind,
+      groupId:target,telegramUserId:kind==='SEND_DM'?target:'',alertText:String(message).slice(0,3900)
+    });
+    runMpsVipFollowupQueue_(5);
+    return queued;
+  }catch(err){throw new Error('TELEGRAM_MESSAGE_QUEUE_FAILED:'+safeErrorMessage_(err));}
+}
+
 function processTelegramUpdateCore_(update) {
   if (!update || typeof update !== 'object') return;
   const updateId=update.update_id;
@@ -1540,14 +1559,13 @@ function processTelegramUpdateCore_(update) {
         if(!['creator','administrator'].includes(senderStatus))return;
         const candidateLock=LockService.getScriptLock();candidateLock.waitLock(5000);
         try{props.setProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_ID',String(chat.id));props.setProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_TITLE',clean_(chat.title,120));}finally{candidateLock.releaseLock();}
-        const notice=telegramSendToChat_(String(chat.id),'Permintaan koneksi grup diterima. Admin MPS harus memeriksa dan mengonfirmasi ID grup sebelum undangan VIP diaktifkan.');
-        if(!notice.ok)throw new Error('Pemberitahuan kandidat grup Telegram gagal dikirim.');
+        enqueueMpsTelegramMessage_(update,String(chat.id),'group-start-candidate','SEND_MESSAGE','Permintaan koneksi grup diterima. Admin MPS harus memeriksa dan mengonfirmasi ID grup sebelum undangan VIP diaktifkan.');
       }
       if(updateKey)cache.put(updateKey,'1',21600);return;
     }
     if(chat.type==='private'&&msg.from&&/^\/start(?:@[A-Za-z0-9_]+)?(?:\s+([A-Fa-f0-9]{40,64}))?/.test(String(msg.text||''))){
       const match=String(msg.text||'').match(/^\/start(?:@[A-Za-z0-9_]+)?(?:\s+([A-Fa-f0-9]{40,64}))?/),token=match&&match[1];
-      if(!token){const welcome=telegramSendToChat_(String(chat.id),'Selamat datang di MPS. Untuk verifikasi pendaftaran, buka kembali formulir MPS lalu tekan Hubungkan Telegram.');if(!welcome.ok)throw new Error('Pesan sambutan Telegram gagal dikirim.');}
+      if(!token){enqueueMpsTelegramMessage_(update,String(chat.id),'private-start-welcome','SEND_DM','Selamat datang di MPS. Untuk verifikasi pendaftaran, buka kembali formulir MPS lalu tekan Hubungkan Telegram.');}
       else verifyTelegramLinkFromUpdate_(token,msg);
     }
   }
@@ -1993,10 +2011,11 @@ function enqueueMpsVipFollowup_(task) {
       String(task.telegramUserId||''),String(task.inviteLink||''),String(task.alertText||''),
       'PENDING',0,now,'', '',now,now
     ];
-    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT','SEND_DM'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
+    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT','SEND_DM','SEND_MESSAGE'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
     if(values[2]==='REVOKE_INVITE'&&!values[5])throw new Error('VIP_FOLLOWUP_INVITE_REQUIRED');
     if(values[2]==='REMOVE_MEMBER'&&!/^[0-9]{1,20}$/.test(values[4]))throw new Error('VIP_FOLLOWUP_USER_REQUIRED');
     if(values[2]==='SEND_DM'&&(!/^[0-9]{1,20}$/.test(values[4])||!values[6]))throw new Error('VIP_FOLLOWUP_DM_TARGET_OR_MESSAGE_REQUIRED');
+    if(values[2]==='SEND_MESSAGE'&&(!/^-?[0-9]{1,20}$/.test(values[3])||!values[6]))throw new Error('VIP_FOLLOWUP_MESSAGE_TARGET_OR_MESSAGE_REQUIRED');
     sh.getRange(last+1,1,1,width).setValues([values]);SpreadsheetApp.flush();
     return {ok:true,duplicate:false};
   } finally {lock.releaseLock();}
@@ -2041,6 +2060,7 @@ function runMpsVipFollowupQueue_(maxTasks) {
       else if(task.action==='REMOVE_MEMBER')ok=kickMpsUnauthorizedUser_(task.groupId,task.telegramUserId);
       else if(task.action==='ADMIN_ALERT'){const result=sendTelegram_(task.alertText);ok=!!result&&result.ok===true;if(!ok)error='ADMIN_ALERT_DELIVERY_UNCONFIRMED';}
       else if(task.action==='SEND_DM'){const result=telegramSendToChat_(task.telegramUserId,task.alertText);ok=!!result&&result.ok===true;if(!ok)error='MEMBER_DM_DELIVERY_UNCONFIRMED';}
+      else if(task.action==='SEND_MESSAGE'){const result=telegramSendToChat_(task.groupId,task.alertText);ok=!!result&&result.ok===true;if(!ok)error='TELEGRAM_MESSAGE_DELIVERY_UNCONFIRMED';}
       else error='FOLLOWUP_ACTION_INVALID';
     }catch(err){error=String(err&&err.message||err).slice(0,120);}
     const finishLock=LockService.getScriptLock();finishLock.waitLock(10000);
@@ -2050,10 +2070,10 @@ function runMpsVipFollowupQueue_(maxTasks) {
       if(String(row[0])!==task.key||String(row[7])!=='PROCESSING')throw new Error('VIP_FOLLOWUP_CLAIM_LOST');
       const stamp=new Date();
       if(ok){row[7]='DONE';row[9]='';row[10]='';row[11]='';completed++;}
-      else if(task.action==='ADMIN_ALERT'||task.action==='SEND_DM'){
+      else if(task.action==='ADMIN_ALERT'||task.action==='SEND_DM'||task.action==='SEND_MESSAGE'){
         // Telegram may have accepted sendMessage even if its response was lost.
         // Quarantine ambiguous alerts/DMs; blind retry could duplicate a notification.
-        row[7]='REVIEW';row[9]='';row[10]='';row[11]=error||(task.action==='SEND_DM'?'MEMBER_DM_DELIVERY_UNCONFIRMED':'ADMIN_ALERT_DELIVERY_UNCONFIRMED');reviewed++;
+        row[7]='REVIEW';row[9]='';row[10]='';row[11]=error||(task.action==='SEND_DM'?'MEMBER_DM_DELIVERY_UNCONFIRMED':task.action==='SEND_MESSAGE'?'TELEGRAM_MESSAGE_DELIVERY_UNCONFIRMED':'ADMIN_ALERT_DELIVERY_UNCONFIRMED');reviewed++;
       }else{
         const attempts=Number(row[8])||1,delay=Math.min(6*60*60*1000,Math.pow(2,Math.min(10,attempts-1))*60*1000);
         row[7]='RETRY';row[9]=new Date(stamp.getTime()+delay);row[10]='';row[11]=error;retried++;
