@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
+import {createHash} from 'node:crypto';
 
 const candidate=readFileSync(fileURLToPath(new URL('../../candidates/Code.gs',import.meta.url)),'utf8');
 function extractFunction(source,name){
@@ -81,7 +82,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
   getMemberSheet_:()=>sheet('Database Member'),
   clean_:(v,n)=>String(v??'').replace(/\\s+/g,' ').trim().slice(0,n),
   isSafePublicIdentity_:v=>!/[0-9@]/.test(String(v||'')),
-  sha256_:()=> 'a'.repeat(64),
+  sha256_:value=>createHash('sha256').update(String(value)).digest('hex'),
   revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;return !failRevoke;},
   kickMpsUnauthorizedUser_:()=>{assert.equal(held,false,'Telegram follow-up must run after ScriptLock release');networkCalls++;return !failKick;},
   sendTelegram_:()=>{assert.equal(held,false);networkCalls++;},
