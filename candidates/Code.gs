@@ -1978,7 +1978,7 @@ function runMpsVipFollowupQueue_(maxTasks) {
   const limit=Math.max(1,Math.min(25,Number(maxTasks)||10)),now=Date.now();
   const ssId=String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||'');
   if(!ssId)throw new Error('MPS_SPREADSHEET_ID_REQUIRED_FOR_VIP_FOLLOWUPS');
-  let processed=0,completed=0,retried=0;
+  let processed=0,completed=0,retried=0,reviewed=0;
   while(processed<limit){
     let task=null,rowNumber=0;
     const claimLock=LockService.getScriptLock();claimLock.waitLock(10000);
@@ -2011,7 +2011,7 @@ function runMpsVipFollowupQueue_(maxTasks) {
     try{
       if(task.action==='REVOKE_INVITE')ok=revokeVipInviteLink_(task.groupId,task.inviteLink);
       else if(task.action==='REMOVE_MEMBER')ok=kickMpsUnauthorizedUser_(task.groupId,task.telegramUserId);
-      else if(task.action==='ADMIN_ALERT'){const result=sendTelegram_(task.alertText);ok=!!result&&result.ok===true;}
+      else if(task.action==='ADMIN_ALERT'){const result=sendTelegram_(task.alertText);ok=!!result&&result.ok===true;if(!ok)error='ADMIN_ALERT_DELIVERY_UNCONFIRMED';}
       else error='FOLLOWUP_ACTION_INVALID';
     }catch(err){error=String(err&&err.message||err).slice(0,120);}
     const finishLock=LockService.getScriptLock();finishLock.waitLock(10000);
@@ -2021,7 +2021,11 @@ function runMpsVipFollowupQueue_(maxTasks) {
       if(String(row[0])!==task.key||String(row[7])!=='PROCESSING')throw new Error('VIP_FOLLOWUP_CLAIM_LOST');
       const stamp=new Date();
       if(ok){row[7]='DONE';row[9]='';row[10]='';row[11]='';completed++;}
-      else{
+      else if(task.action==='ADMIN_ALERT'){
+        // sendMessage may have reached Telegram even when the response was lost.
+        // Quarantine ambiguous delivery; automatic retry could duplicate a security alert.
+        row[7]='REVIEW';row[9]='';row[10]='';row[11]=error||'ADMIN_ALERT_DELIVERY_UNCONFIRMED';reviewed++;
+      }else{
         const attempts=Number(row[8])||1,delay=Math.min(6*60*60*1000,Math.pow(2,Math.min(10,attempts-1))*60*1000);
         row[7]='RETRY';row[9]=new Date(stamp.getTime()+delay);row[10]='';row[11]=error;retried++;
       }
@@ -2029,7 +2033,7 @@ function runMpsVipFollowupQueue_(maxTasks) {
     } finally {finishLock.releaseLock();}
     processed++;
   }
-  return {ok:true,processed:processed,completed:completed,retried:retried};
+  return {ok:true,processed:processed,completed:completed,retried:retried,reviewed:reviewed};
 }
 
 function processMpsVipFollowupQueueScheduled_() {
