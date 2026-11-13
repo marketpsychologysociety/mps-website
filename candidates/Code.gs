@@ -1391,7 +1391,11 @@ function validateMarketPulseSource_(source) {
 }
 
 function getMarketPulseData_() {
-  const folderId=getLearningFolderId_(),folder=DriveApp.getFolderById(folderId),files=folder.getFilesByName('MPS Market Pulse Data.html');
+  const folderId=getLearningFolderId_(),folder=DriveApp.getFolderById(folderId);
+  // The file-level PRIVATE flag is not a substitute for checking inherited access
+  // on its parent folder. Fail closed before enumerating or reading Pulse data.
+  if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder Learning tidak PRIVATE. Akses Market Pulse dihentikan sampai folder diamankan.');
+  const files=folder.getFilesByName('MPS Market Pulse Data.html');
   if(!files.hasNext())throw new Error('Data Market Pulse belum dipasang admin. Hubungi admin MPS.');
   const file=files.next();if(files.hasNext())throw new Error('Ditemukan lebih dari satu file data Pulse. Admin perlu menyisakan satu file dengan nama yang ditentukan.');
   if(file.isTrashed()||file.getSize()>MPS.maxPulseDataBytes)throw new Error('File data Market Pulse tidak tersedia atau melebihi batas 1 MB.');
