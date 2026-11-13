@@ -2157,7 +2157,7 @@ function deliverMpsVipInviteTask_(task) {
   if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||String(m[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('VIP_INVITE_MEMBER_NOT_ELIGIBLE');
   const expiry=a[8] instanceof Date?a[8]:new Date(a[8]);
   if(!Number.isFinite(expiry.getTime())||expiry.getTime()<=Date.now())throw new Error('VIP_INVITE_LINK_EXPIRED');
-  const message='🎉 Selamat! Keanggotaan MPS Anda telah disetujui.\\nGunakan tautan berikut untuk meminta bergabung ke MPS VIP Community. Admin bot akan memverifikasi akun Telegram Anda.\\nTautan berlaku sampai '+expiry.toLocaleString()+':\\n'+link+'\\nJangan bagikan tautan ini.';
+  const message='🎉 Selamat! Keanggotaan MPS Anda telah disetujui.\nGunakan tautan berikut untuk meminta bergabung ke MPS VIP Community. Admin bot akan memverifikasi akun Telegram Anda.\nTautan berlaku sampai '+expiry.toLocaleString()+':\n'+link+'\nJangan bagikan tautan ini.';
   const sent=telegramSendToChat_(chatId,message);
   if(!sent||sent.ok!==true)throw new Error('VIP_INVITE_DM_DELIVERY_UNCONFIRMED');
   const stateLock=LockService.getScriptLock();stateLock.waitLock(10000);
