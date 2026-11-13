@@ -97,6 +97,7 @@ test('submission reserves request ID under script lock before business writes an
   assert.match(body,/String\(saved\[2\]\|\|''\)==='COMPLETED'/);
   assert.match(body,/String\(saved\[2\]\|\|''\)==='FAILED'/);
   assert.match(body,/PENDING is fail-closed/);
+  assert.match(body,/const requestId=suppliedRequestId\|\|\('mps'\+requestFingerprint\.slice\(0,40\)\)/);
   assert.match(body,/telegramUrl:String\(saved\[9\]\|\|''\)/);
   assert.match(body,/telegramExpiresAt:String\(saved\[10\]\|\|''\)/);
   assert.doesNotMatch(body,/cache\.put\('mps_req_/);
