@@ -784,7 +784,7 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     if(String(current[MPS_COL.depositStatus-1]||'')!=='Menunggu verifikasi')throw new Error('Deposit ini sudah diproses atau tidak lagi menunggu verifikasi.');
     if(action==='approve')validateProofFileForApproval_(current[MPS_COL.proofUrl-1]);
     accessSheet=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(accessSheet,memberKey);
-    if(accessRow)accessCurrent=accessSheet.getRange(accessRow,1,1,11).getValues()[0];
+    if(accessRow){accessCurrent=accessSheet.getRange(accessRow,1,1,11).getValues()[0];memberChatId=String(accessCurrent[2]||'');}
     if(action==='approve'){
       if(!accessRow)throw new Error('Member belum menghubungkan Telegram. Verifikasi Telegram wajib sebelum persetujuan.');
       const av=accessCurrent;
@@ -2026,7 +2026,7 @@ function enqueueMpsVipFollowup_(task, lockAlreadyHeld) {
       String(task.telegramUserId||''),String(task.inviteLink||''),String(task.alertText||''),
       'PENDING',0,now,'', '',now,now
     ];
-    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT','SEND_DM','SEND_MESSAGE'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
+    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT','SEND_DM','SEND_MESSAGE','DECISION_INTENT'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
     if(values[2]==='REVOKE_INVITE'&&!values[5])throw new Error('VIP_FOLLOWUP_INVITE_REQUIRED');
     if(values[2]==='REMOVE_MEMBER'&&!/^[0-9]{1,20}$/.test(values[4]))throw new Error('VIP_FOLLOWUP_USER_REQUIRED');
     if(values[2]==='SEND_DM'&&(!/^[0-9]{1,20}$/.test(values[4])||!values[6]))throw new Error('VIP_FOLLOWUP_DM_TARGET_OR_MESSAGE_REQUIRED');
@@ -2081,11 +2081,11 @@ function materializeMpsAdminDecisionIntent_(task) {
       if(memberRow&&appRow) {
         const row=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
         const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
-        const expectedReg=decision==='approve'?'Menunggu Aktivasi':'Ditolak';
+        const registration=String(row[MPS_COL.registrationStatus-1]||'');
+        const registrationMatches=decision==='approve'?['Menunggu Aktivasi','Berhasil'].includes(registration):registration==='Ditolak';
         const expectedDeposit=decision==='approve'?'Disetujui':'Ditolak';
         const expectedApp=decision==='approve'?'Menunggu Aktivasi':'Deposit Ditolak';
-        committed=String(row[MPS_COL.registrationStatus-1]||'')===expectedReg&&
-          String(row[MPS_COL.depositStatus-1]||'')===expectedDeposit&&String(app[7]||'')===expectedApp;
+        committed=registrationMatches&&String(row[MPS_COL.depositStatus-1]||'')===expectedDeposit&&String(app[7]||'')===expectedApp;
       }
     }
     if(!committed)throw new Error('ADMIN_DECISION_INTENT_NOT_COMMITTED');
