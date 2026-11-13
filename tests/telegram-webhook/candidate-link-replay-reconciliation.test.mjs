@@ -19,6 +19,7 @@ const headers=['Token Hash','Created At','Expires At','Status','Member ID','Appl
 const userId='987654321';
 const chatId=userId;
 const msg={chat:{id:chatId,type:'private'},from:{id:Number(userId),username:'same_user',first_name:'Same'}};
+const update={update_id:123456789};
 
 function harness({kind='application',storedUser=userId,storedChat=chatId,expired=true}={}){
   const link=['hash',new Date(Date.now()-3600000),new Date(expired?Date.now()-1000:Date.now()+60000),'Terverifikasi',
@@ -68,6 +69,7 @@ function harness({kind='application',storedUser=userId,storedChat=chatId,expired
     getMpsDepositsSheet_:()=>{events.push('deposit-read');throw Error('deposit must not be changed on replay');},
     sha256_:()=> 'hash',
     telegramSendToChat_:(...args)=>{events.push(['telegram',...args]);return{ok:true};},
+    enqueueMpsTelegramMessage_:(...args)=>{events.push(['queued-message',...args]);return{ok:true};},
     enqueueMpsTelegramLinkConfirmation_:(tokenHash,target,message)=>{
       assert.equal(lockHeld,true,'notification intent must be appended under the existing verification lock');
       const taskKey='telegram-link-confirmation:'+String(tokenHash);
@@ -86,8 +88,8 @@ function harness({kind='application',storedUser=userId,storedChat=chatId,expired
   vm.runInContext(kind==='application'?applicationSource:legacySource,context,{timeout:1000});
   return{
     run:()=>kind==='application'
-      ?context.verifyTelegramApplication_(2,rows[1].slice(),msg)
-      :context.verifyTelegramLinkLegacy_('token',msg),
+      ?context.verifyTelegramApplication_(2,rows[1].slice(),msg,update)
+      :context.verifyTelegramLinkLegacy_('token',msg,update),
     rows,accessRows,appRows,memberRows,events,queueTasks,stats:()=>({lockHeld,lockAcquires,lockReleases})
   };
 }
@@ -103,7 +105,8 @@ test('application link replay from the same Telegram identity succeeds even afte
 });
 test('application link replay from a different Telegram identity is rejected and does not mutate linked records',()=>{
   const h=harness({kind:'application',storedUser:'111111111',storedChat:'111111111'});
-  assert.throws(()=>h.run(),/akun Telegram lain/);
+  assert.equal(h.run(),false);
+  assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='queued-message').length,1);
   assert.equal(h.rows[1][6],'111111111');
   assert.equal(h.rows[1][7],'111111111');
   assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
@@ -122,27 +125,29 @@ test('legacy link replay from a different Telegram identity is rejected without 
   assert.equal(h.run(),false);
   assert.equal(h.rows[1][6],'111111111');
   assert.equal(h.rows[1][7],'111111111');
-  assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='telegram').length,1);
+  assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='queued-message').length,1);
   assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
 });
 
 test('application link replay is rejected when the persisted access row points to another application',()=>{
   const h=harness({kind:'application'});
   h.accessRows[1][0]='MPS-APP-OTHER';
-  assert.throws(()=>h.run(),/identitas akses Telegram tidak cocok/);
+  assert.equal(h.run(),false);
+  assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='queued-message').length,1);
   assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
 });
 test('application link replay is rejected when the application record has a different Telegram binding',()=>{
   const h=harness({kind:'application'});
   h.appRows[1][11]='111111111';
-  assert.throws(()=>h.run(),/pengajuan tidak terikat/);
+  assert.equal(h.run(),false);
+  assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='queued-message').length,1);
   assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
 });
 test('legacy link replay is rejected when the linked application no longer matches the Telegram identity',()=>{
   const h=harness({kind:'legacy'});
   h.appRows[1][12]='111111111';
   assert.equal(h.run(),false);
-  assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='telegram').length,1);
+  assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='queued-message').length,1);
   assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
 });
 
@@ -344,4 +349,22 @@ test('admin decision intent stores only minimal references and keeps chat target
   assert.equal(captured.groupId,'approve');
   assert.deepEqual(JSON.parse(captured.alertText),{subject:'MPS-APP-0123456789ABCDEF0123',member:'MPS-ABCDEF12',decision:'approve'});
   assert.doesNotMatch(captured.alertText,/987654321/);
+});
+
+test('one-time-link verification notices use the durable update-scoped message outbox, never direct Telegram sends',()=>{
+  const body=name=>{
+    const start=source.indexOf('function '+name+'('),end=source.indexOf('\nfunction ',start+1);
+    assert.ok(start>=0&&end>start,'missing '+name);
+    return source.slice(start,end);
+  };
+  const dispatch=body('verifyTelegramLinkFromUpdate_'),application=body('verifyTelegramApplication_'),
+    legacy=body('verifyTelegramLinkLegacy_'),core=body('processTelegramUpdateCore_');
+  assert.match(core,/verifyTelegramLinkFromUpdate_\(token,msg,update\)/);
+  assert.match(dispatch,/enqueueMpsTelegramMessage_\(update,[\s\S]*?'link-not-found','SEND_DM'/);
+  assert.match(dispatch,/verifyTelegramApplication_\(row,v,msg,update\)/);
+  assert.match(dispatch,/verifyTelegramLinkLegacy_\(token,msg,update\)/);
+  assert.match(application,/enqueueMpsTelegramMessage_\(update,chatId,'link-private-chat-required','SEND_DM'/);
+  assert.match(application,/enqueueMpsTelegramMessage_\(update,chatId,'link-verification-result','SEND_DM'/);
+  assert.match(legacy,/enqueueMpsTelegramMessage_\(update,chatId,'link-verification-result','SEND_DM'/);
+  for(const [name,fn] of [['dispatch',dispatch],['application',application],['legacy',legacy]])assert.doesNotMatch(fn,/telegramSendToChat_\(/,name+' must not send verification notices directly');
 });
