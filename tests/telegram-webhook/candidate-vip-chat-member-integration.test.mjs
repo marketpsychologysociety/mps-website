@@ -475,3 +475,58 @@ test('candidate Index exposes guarded migration controls only for super-admin an
  assert.equal((candidateIndex.match(/api\('apiAdminMigrateMemberSheetToV480'/g)||[]).length,1);
  assert.equal((candidateIndex.match(/api\('apiAdminPrepareTelegramVipTransitionStorage'/g)||[]).length,1);
 });
+
+
+const contentSheetReadSource=extract('getMpsContentSheet_','readMpsContentRows_');
+const contentRowsReadSource=extract('readMpsContentRows_','findMpsContentRow_');
+function contentReadHarness({exists=true,lastRow=1,headers=['ID','Status'],actualHeaders=headers,rows=[]}={}) {
+ let reads=0,writes=0,formatting=0,inserts=0,locks=0;
+ const sheet={
+  getLastRow:()=>lastRow,
+  getRange:(row,col,nr=1,nc=1)=>({
+   getDisplayValues:()=>{reads++;return row===1?[actualHeaders.slice(col-1,col-1+nc)]:[];},
+   getValues:()=>{reads++;return rows.slice(0,nr).map(r=>r.slice(col-1,col-1+nc));},
+   setValues:()=>{writes++;},setValue:()=>{writes++;},
+   setBackground:()=>{formatting++;},setFontColor:()=>{formatting++;},
+   setFontWeight:()=>{formatting++;},setWrap:()=>{formatting++;}
+  }),
+  appendRow:()=>{writes++;},setFrozenRows:()=>{formatting++;},setHiddenGridlines:()=>{formatting++;}
+ };
+ const ss={getSheetByName:name=>exists?sheet:null,insertSheet:()=>{inserts++;return sheet;}};
+ const context={
+  openDatabase_:()=>ss,
+  LockService:{getScriptLock:()=>{locks++;throw new Error('READ_PATH_MUST_NOT_LOCK');}},
+  console
+ };
+ vm.createContext(context);
+ vm.runInContext(contentSheetReadSource,context,{timeout:1000});
+ vm.runInContext(contentRowsReadSource,context,{timeout:1000});
+ return{run:()=>context.readMpsContentRows_('MPS Test Content',headers),stats:()=>({reads,writes,formatting,inserts,locks})};
+}
+test('content read path treats a missing optional tab as empty without provisioning or writes',()=>{
+ const h=contentReadHarness({exists:false});
+ assert.deepEqual(h.run(),[]);
+ assert.deepEqual(h.stats(),{reads:0,writes:0,formatting:0,inserts:0,locks:0});
+});
+test('content read path treats an existing empty tab as empty without writing headers or formatting',()=>{
+ const h=contentReadHarness({lastRow:0});
+ assert.deepEqual(h.run(),[]);
+ assert.deepEqual(h.stats(),{reads:0,writes:0,formatting:0,inserts:0,locks:0});
+});
+test('content read path accepts an exact header-only tab as an empty dataset and stays read-only',()=>{
+ const h=contentReadHarness({lastRow:1});
+ assert.deepEqual(h.run(),[]);
+ assert.deepEqual(h.stats(),{reads:1,writes:0,formatting:0,inserts:0,locks:0});
+});
+test('content read path fails closed on a mismatched existing schema without attempting repair',()=>{
+ const h=contentReadHarness({lastRow:1,actualHeaders:['Wrong ID','Status']});
+ assert.throws(()=>h.run(),/Header sheet MPS Test Content tidak sesuai/);
+ assert.deepEqual(h.stats(),{reads:1,writes:0,formatting:0,inserts:0,locks:0});
+});
+test('content sheet provisioning is reachable only through the explicit Super Admin initializer',()=>{
+ const source=extract('apiAdminInitializeContent','readMpsWebsiteSettings_');
+ const gate=source.indexOf('requireSuperAdmin_(session)');
+ const provision=source.indexOf('provisionMpsSheets_(definitions)');
+ assert.ok(gate>=0&&provision>gate);
+ assert.match(source,/provisionMpsSheets_\(definitions\)/);
+});
