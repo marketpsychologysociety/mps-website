@@ -98,6 +98,28 @@ test('Admin ticker API also omits stored member names and returns only approved 
   assert.ok(body.includes("Status:r.Status"));
 });
 
+test('publicCenter GET bridge returns a text-only strict data envelope without executing remote JavaScript',()=>{
+  const start=source.indexOf('function doGet(e) {');
+  const end=source.indexOf(String.fromCharCode(10)+'function doPost(e)',start+1);
+  assert.ok(start>=0&&end>start,'doGet boundaries must exist');
+  const payload={ok:true,activity:[{MemberId:'MPS-ABCDEF12',PublicText:'telah bergabung ke MPS VIP Community'}],announcements:[]};
+  const isolated={
+    apiGetPublicCenter:()=>payload,
+    ContentService:{
+      MimeType:{TEXT:'text/plain'},
+      createTextOutput:body=>({body,mime:'',setMimeType(value){this.mime=value;return this;}})
+    }
+  };
+  vm.createContext(isolated);
+  vm.runInContext(source.slice(start,end),isolated,{timeout:1000});
+  const response=isolated.doGet({parameter:{publicCenter:'1'}});
+  assert.equal(response.mime,'text/plain');
+  assert.equal(response.body,'window.MPS_PUBLIC_CENTER_DATA='+JSON.stringify(payload)+';');
+  const parsed=JSON.parse(response.body.slice('window.MPS_PUBLIC_CENTER_DATA='.length,-1));
+  assert.equal(parsed.activity[0].MemberId,'MPS-ABCDEF12');
+  assert.doesNotMatch(response.body,/\\beval\\s*\\(|<script|javascript:/i);
+});
+
 test('public Center does not project Market Pulse or premium calendar/news payloads',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
   const end=source.indexOf('\nfunction ',start+1);
