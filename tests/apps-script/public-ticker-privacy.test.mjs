@@ -43,12 +43,13 @@ vm.runInContext(source.slice(readSettingsStart,readSettingsEnd),context,{timeout
 
 test('public VIP ticker identity is member ID only; stored names are never projected',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
-  const end=source.indexOf('\\nfunction ',start+1);
+  const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
   assert.ok(start>=0&&end>start,'public Center endpoint boundaries must exist');
   const body=source.slice(start,end);
   assert.ok(body.includes("PublicAlias:r['Member ID']"));
   assert.ok(body.includes("r['Member ID']"));
   assert.ok(!body.includes("PublicAlias:r['Member Name']"));
+  assert.ok(body.includes("r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))"));
 });
 test('empty, oversized, and identifier-like names are denied',()=>{
   for(const value of ['', '   ', 'A'.repeat(101), 'MPS-ABCDEF1234', 'MPS-APP-0123456789ABCDEF', '@trader_mps', 'MT5 Login: 12345678', 'LOGIN 12345678']) {
@@ -61,9 +62,10 @@ test('contact details, payment amounts, and links are denied from public ticker 
   }
 });
 test('public activity projection exposes only member ID and event text, never member name',()=>{
-  assert.match(source,/const publicActivity\\s*=\\s*activity\\.map\\(function\\(r\\)\\s*\\{\\s*return\\s*\\{PublicAlias:r\\['Member ID'\\],PublicText:r\\['Event Text'\\]\\};\\s*\\}\\);/);
-  assert.match(source,/r\\.Status==='Visible'&&\\/^MPS-\\(\\?:\\[A-F0-9\\]\\{8\\}\\|\\[A-F0-9\\]\\{10\\}\\)\\$\\/.test\\(String\\(r\\['Member ID'\\]\\|\\|'\\)\\)/);
-  assert.doesNotMatch(source,/PublicAlias:r\\['Member Name'\\]/);
+  assert.ok(source.includes("const publicActivity = activity.map(function(r){return {PublicAlias:r['Member ID'],PublicText:r['Event Text']};});"));
+  assert.ok(source.includes("r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))"));
+  assert.ok(!source.includes("PublicAlias:r['Member Name']"));
+  assert.ok(!/PublicAlias:r\\['Member Name'\\]/.test(source));
   assert.doesNotMatch(source,/publicActivity\\s*=\\s*activity\\.map\\(function\\(r\\)\\s*\\{\\s*return\\s*\\{[^}]*Telegram User ID|publicActivity\\s*=\\s*activity\\.map\\(function\\(r\\)\\s*\\{\\s*return\\s*\\{[^}]*Deposit Amount/i);
 });
 test('public Center does not project Market Pulse or premium calendar/news payloads',()=>{
