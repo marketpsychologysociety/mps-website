@@ -2068,7 +2068,8 @@ function materializeMpsAdminDecisionIntent_(task) {
         const dep=deposits.getRange(depositRow,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
         const expected=decision==='approve'?'Menunggu Aktivasi':'Deposit Ditolak';
         const expectedDeposit=decision==='approve'?'Menunggu Aktivasi':'Ditolak';
-        committed=String(app[7]||'')===expected&&String(dep[9]||'')===expectedDeposit;
+        const appStatus=String(app[7]||''),depositStatus=String(dep[9]||'');
+        committed=decision==='approve'?['Menunggu Aktivasi','Berhasil'].includes(appStatus)&&['Menunggu Aktivasi','Berhasil'].includes(depositStatus):appStatus===expected&&depositStatus===expectedDeposit;
         if(committed&&decision==='approve') {
           const storedMember=String(app[8]||'');
           const db=getMemberSheet_(),memberRow=storedMember?findMemberById_(db,storedMember):0;
@@ -2084,8 +2085,8 @@ function materializeMpsAdminDecisionIntent_(task) {
         const registration=String(row[MPS_COL.registrationStatus-1]||'');
         const registrationMatches=decision==='approve'?['Menunggu Aktivasi','Berhasil'].includes(registration):registration==='Ditolak';
         const expectedDeposit=decision==='approve'?'Disetujui':'Ditolak';
-        const expectedApp=decision==='approve'?'Menunggu Aktivasi':'Deposit Ditolak';
-        committed=registrationMatches&&String(row[MPS_COL.depositStatus-1]||'')===expectedDeposit&&String(app[7]||'')===expectedApp;
+        const appStatus=String(app[7]||''),appMatches=decision==='approve'?['Menunggu Aktivasi','Berhasil'].includes(appStatus):appStatus==='Deposit Ditolak';
+        committed=registrationMatches&&String(row[MPS_COL.depositStatus-1]||'')===expectedDeposit&&appMatches;
       }
     }
     if(!committed)throw new Error('ADMIN_DECISION_INTENT_NOT_COMMITTED');
