@@ -1680,6 +1680,7 @@ function verifyTelegramLinkFromUpdate_(token,msg) {
   return verifyTelegramLinkLegacy_(token,msg);
 }
 function enqueueMpsTelegramLinkConfirmation_(tokenHash,chatId,message) {
+  if(!/^[0-9]{1,20}$/.test(String(chatId||'')))throw new Error('TELEGRAM_LINK_NOTICE_CHAT_INVALID');
   const digest=sha256_(String(tokenHash||''));
   if(!/^[a-f0-9]{64}$/i.test(digest))throw new Error('TELEGRAM_LINK_NOTICE_KEY_INVALID');
   const taskKey='telegram-link-confirmation:'+digest.slice(0,40);
