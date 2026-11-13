@@ -300,6 +300,15 @@ test('VIP join welcome DM is durably keyed and ambiguous delivery is quarantined
  assert.equal(failed.stats().networkCalls,1,'ambiguous DM outcome must never be automatically resent');
 });
 
+test('group start message is delivered through the durable queue and completed once',()=>{
+ const h=runtime();
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ queue.push(['group-start-success','intent-group-start','SEND_MESSAGE','-1001234567890','','','group notice','PENDING',0,new Date(0),'','','',new Date()]);
+ const result=h.runQueue();
+ assert.equal(result.processed,1);assert.equal(result.completed,1);assert.equal(queue[1][7],'DONE');
+ assert.equal(h.stats().networkCalls,1);
+});
+
 test('ambiguous group start message is quarantined and never auto-retried',()=>{
  const h=runtime({failMemberDm:true});
  const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
