@@ -96,7 +96,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
  return{
   process:update=>context.runCandidateVipEvent(update,update.chat_member),
   sheets:data,stats:()=>({held,acquired,released,followups,networkCalls,cacheRemovals}),
-  addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);}
+  addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);},\n  duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},\n  duplicateMember(){data.get('Database Member').push(data.get('Database Member')[1].slice());},\n  setEligible(value){data.get('Database Member')[1][7]=value?'Berhasil':'Menunggu Verifikasi';data.get('Database Member')[1][14]=value?'Disetujui':'Menunggu Verifikasi';},\n  setFollowupFailures(value){failRevoke=value;failKick=value;}
  };
 }
 function event(updateId,sourceDate,oldStatus,newStatus,userId='987654321'){
@@ -182,7 +182,45 @@ test('failed unauthorized-member removal keeps the webhook update retryable afte
  assert.equal(h.stats().held,false);
  assert.equal(h.stats().networkCalls,2);
 });
-test('candidate ignores member-to-admin role changes because membership remains active',()=>{
+
+test('duplicate Telegram identity rows in VIP Access fail closed without changing member or ticker state',()=>{
+ const h=runtime();h.duplicateAccess();
+ assert.throws(()=>h.process(event(7401,1760000400,'left','member')),/VIP_TRANSITION_DUPLICATE_IDENTITY_ROW/);
+ assert.equal(h.sheets.get('VIP Access')[1][6],'Menunggu Aktivasi');
+ assert.equal(h.sheets.get('Database Member')[1][29],'');
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,1);
+ assert.equal(h.sheets.get('MPS VIP Ticker Events').length,1);
+ assert.equal(h.stats().held,false);
+});
+test('duplicate member IDs in Database Member fail closed before VIP activation',()=>{
+ const h=runtime();h.duplicateMember();
+ assert.throws(()=>h.process(event(7402,1760000401,'left','member')),/VIP_TRANSITION_DUPLICATE_IDENTITY_ROW/);
+ assert.equal(h.sheets.get('VIP Access')[1][6],'Menunggu Aktivasi');
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,1);
+ assert.equal(h.sheets.get('MPS VIP Ticker Events').length,1);
+ assert.equal(h.stats().held,false);
+});
+test('transient invite revocation failure can be retried by replaying the current completed Telegram event',()=>{
+ const h=runtime({failRevoke:true}),update=event(7403,1760000402,'left','member');
+ assert.throws(()=>h.process(update),/VIP_INVITE_REVOKE_PENDING/);
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
+ h.setFollowupFailures(false);
+ assert.equal(h.process(update),'DUPLICATE');
+ assert.equal(h.stats().held,false);
+ assert.equal(h.stats().networkCalls,3);
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,2);
+ assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
+});
+test('eligibility revocation after activation makes a redelivered event fail closed instead of silently replaying the old activation',()=>{
+ const h=runtime({failRevoke:true}),update=event(7404,1760000403,'left','member');
+ assert.throws(()=>h.process(update),/VIP_INVITE_REVOKE_PENDING/);
+ h.setEligible(false);
+ assert.throws(()=>h.process(update),/VIP_TRANSITION_INTENT_COLLISION/);
+ assert.equal(h.sheets.get('VIP Access')[1][6],'Aktif');
+ assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
+ assert.equal(h.stats().held,false);
+});
+\ntest('candidate ignores member-to-admin role changes because membership remains active',()=>{
  const h=runtime();
  assert.equal(h.process(event(7200,1760000200,'member','administrator')),'IGNORED');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,1);
