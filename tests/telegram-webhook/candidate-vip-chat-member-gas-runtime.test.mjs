@@ -241,6 +241,15 @@ test('eligibility revocation retries kick independently after invite link was al
  assert.equal(h.stats().held,false);
  assert.equal(h.stats().networkCalls,6,'initial revoke, then replay revoke+failed kick, then replay revoke+successful kick');
 });
+test('same update ID with a changed Telegram payload still fails closed as an intent collision',()=>{
+ const h=runtime(),update=event(7406,1760000405,'left','member');
+ assert.equal(h.process(update),'ACTIVE');
+ const tampered=event(7406,1760000405,'left','administrator');
+ assert.throws(()=>h.process(tampered),/VIP_TRANSITION_INTENT_COLLISION/);
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,2);
+ assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
+ assert.equal(h.stats().held,false);
+});
 test('candidate ignores member-to-admin role changes because membership remains active',()=>{
  const h=runtime();
  assert.equal(h.process(event(7200,1760000200,'member','administrator')),'IGNORED');
