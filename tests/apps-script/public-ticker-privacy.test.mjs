@@ -67,6 +67,14 @@ test('public activity projection exposes only member ID and event text, never me
   assert.ok(!source.includes("PublicAlias:r['Member Name']"));
   assert.ok(!/PublicAlias:r\\['Member Name'\\]/.test(source));
 });
+test('public website ticker renders validated Member IDs and never reads member names or masked IDs',()=>{
+  const renderer=readFileSync(fileURLToPath(new URL('../../js/public-center.js',import.meta.url)),'utf8');
+  assert.ok(renderer.includes('item.PublicAlias'));
+  assert.ok(renderer.includes('item.PublicText'));
+  assert.ok(renderer.includes('"Member ID " + memberId'));
+  assert.doesNotMatch(renderer,/item\.Member\s*Name|item\[['"]Member Name['"]\]|MaskedMemberId/);
+});
+
 test('public Center rejects cached ticker payloads containing legacy names after the ID-only privacy change',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
   const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
