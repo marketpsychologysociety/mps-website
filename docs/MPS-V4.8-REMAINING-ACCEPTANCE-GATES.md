@@ -164,3 +164,12 @@ Still open and not promoted to PASS:
 - [ ] Keep production webhook, production spreadsheet, member data, Script Properties, Telegram configuration, and triggers untouched until separately authorized.
 
 The candidate still has a generic webhook cache update key left unset. VIP `chat_member` replay safety is handled by the transition intent/cursor/effect ledger; this must not be generalized into a claim of global Telegram webhook exactly-once processing. The real GAS runtime gate remains open.
+
+### Non-chat_member Telegram source-call-site cross-audit — 2026-11-13
+
+- Re-read the candidate `processTelegramUpdate_`, `processTelegramUpdateCore_`, `processVipJoinRequest_`, `sendVipInvite_`, admin approval/notification paths, and Telegram send helpers directly from the current workbench branch.
+- Confirmed the durable transition intent/cursor/effect ledger and VIP follow-up outbox are scoped to the authoritative VIP `chat_member` transition path. They do not wrap every Telegram side effect elsewhere in the webhook.
+- Remaining non-`chat_member` side-effect paths requiring handler-specific reconciliation and test-bot acceptance include: group `/start` candidate-group notice; private `/start` welcome and one-time-link responses; `chat_join_request` approval/decline and member DMs; `my_chat_member` permission-change admin alert; admin approval/rejection archive notices and applicant DMs; and VIP invite-link DM delivery/rollback.
+- The generic webhook ingress PROCESSING/DONE marker still uses CacheService. A failed handler clears the marker for Telegram redelivery; this is not a durable cross-handler effect ledger. A response-loss/timeout around a `sendMessage` can therefore remain ambiguous for those non-ledger paths. The VIP admin-alert outbox's REVIEW quarantine must not be generalized to these other notification classes.
+- No broad automatic retry was added during this audit: doing so without per-effect identity and authoritative reconciliation could duplicate messages or repeat consequential actions. These paths remain explicitly open for separately scoped changes and regression tests.
+- This is a source-level call-site audit only. No live Telegram calls, bot settings, webhook changes, GAS deployment, production database, or production triggers were touched.
