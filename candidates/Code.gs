@@ -1510,7 +1510,8 @@ function processTelegramUpdateCore_(update) {
   if (!update || typeof update !== 'object') return;
   const updateId=update.update_id;
   const updateKey='';
-  const msg=update.message||update.edited_message;
+  // Only new message updates may trigger bot commands; edited_message is not a fresh command.
+  const msg=update.message;
   if(msg&&msg.chat){
     const chat=msg.chat;
     if((chat.type==='group'||chat.type==='supergroup')&&/\/start(?:@[A-Za-z0-9_]+)?(?:\s|$)/i.test(String(msg.text||''))){
