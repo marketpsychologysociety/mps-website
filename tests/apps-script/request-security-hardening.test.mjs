@@ -94,8 +94,8 @@ test('submission reserves request ID under script lock before business writes an
   assert.ok(body.indexOf('lock.waitLock(20000)')<body.indexOf('ledger.appendRow('));
   assert.ok(body.indexOf('ledger.appendRow(')<body.indexOf('registerMember_(null, data'));
   assert.ok(body.indexOf('ledger.appendRow(')<body.indexOf('saveDeposit_(sheet, data'));
-  assert.match(body,/String\(saved\[2\]\|\|'\)===?'COMPLETED'/);
-  assert.match(body,/String\(saved\[2\]\|\|'\)===?'FAILED'/);
+  assert.match(body,/String\(saved\[2\]\|\|''\)==='COMPLETED'/);
+  assert.match(body,/String\(saved\[2\]\|\|''\)==='FAILED'/);
   assert.match(body,/PENDING is fail-closed/);
   assert.match(body,/telegramUrl:String\(saved\[9\]\|\|''\)/);
   assert.match(body,/telegramExpiresAt:String\(saved\[10\]\|\|''\)/);
