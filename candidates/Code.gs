@@ -1618,7 +1618,7 @@ function processVipJoinRequest_(request,update) {
       if(status==='member'||status==='administrator'||status==='creator'||(status==='restricted'&&state.result.is_member===true)){if(allowed)enqueueMpsVipJoinRequestNotice_(request,update,true);return true;}
       if(!allowed&&(status==='left'||status==='kicked')){recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_ALREADY_DECLINED',userId,'SUCCESS','Permintaan join sudah tidak aktif saat webhook dicoba ulang.');enqueueMpsVipJoinRequestNotice_(request,update,false);return true;}
       if(allowed&&(status==='left'||status==='kicked')&&/USER_ID_INVALID|request.*not found|no.*join request/i.test(String(result.description||''))){recordMpsAudit_('TELEGRAM',memberId,'VIP_JOIN_REQUEST_ALREADY_CLOSED',memberId,'SUCCESS','Telegram tidak lagi memiliki join request aktif; tidak ada akses grup yang diberikan.');return true;}
-    }catch(checkErr){if(!allowed&&/USER_ID_INVALID|user.*not found|chat.*not found/i.test(String(result.description||'')))return true;}
+    }catch(checkErr){if(String(checkErr&&checkErr.message||checkErr).indexOf('VIP_JOIN_NOTICE_QUEUE_FAILED:')===0)throw checkErr;if(!allowed&&/USER_ID_INVALID|user.*not found|chat.*not found/i.test(String(result.description||'')))return true;}
     if(!allowed&&/USER_ID_INVALID|request.*not found|no.*join request/i.test(String(result.description||'')))return true;
     throw new Error(result.description||'Telegram join request gagal diproses.');
   }
