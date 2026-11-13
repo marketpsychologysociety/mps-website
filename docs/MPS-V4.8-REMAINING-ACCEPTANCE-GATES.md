@@ -42,7 +42,7 @@
 ### C. Public Center live transport
 
 - [ ] Verify the Apps Script deployment's CORS headers, redirect chain, final response body, and browser fetch behavior from an isolated deployment.
-- [ ] Confirm the JSON envelope and fallback behavior against the actual deployed candidate.
+- [x] Add a candidate `doGet(?publicCenter=1)` text-only bridge with strict JSON envelope; no remote script execution.\n- [ ] Confirm the JSON envelope, CORS/redirect chain, and fallback behavior against a separately deployed isolated candidate.
 - [ ] Keep the feature flag disabled until the live transport test passes. Do not restore JSONP or executable script injection as a workaround.
 
 ### D. Backend privacy and API authorization
