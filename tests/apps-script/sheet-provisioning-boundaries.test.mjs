@@ -67,9 +67,9 @@ test('read-only content access leaves missing and existing-empty tabs unchanged'
   assert.deepEqual(h.created,[]);
 });
 
-test('legacy createIfMissing flag cannot create sheets from operational/public call paths',()=>{
+test('legacy createIfMissing argument is ignored and cannot create sheets from operational/public call paths',()=>{
   const h=harness();
-  assert.throws(()=>h.context.getMpsContentSheet_('PublicRequests',contentHeaders,true),/Jalankan Inisialisasi oleh Super Admin/);
+  assert.equal(h.context.getMpsContentSheet_('PublicRequests',contentHeaders,true),null);
   assert.deepEqual(h.created,[]);
   assert.equal(h.sheets.has('PublicRequests'),false);
 });
