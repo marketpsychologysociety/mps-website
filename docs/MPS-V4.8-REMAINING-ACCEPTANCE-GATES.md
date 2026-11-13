@@ -183,3 +183,10 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - This is scoped to the approved VIP join-request welcome DM only. Decline notices, private `/start` messages, one-time-link responses, group `/start` notices, `my_chat_member` admin alerts, admin approval/rejection notifications, and invite-link delivery remain separate open reconciliation items.
 - The queue sheet and 5-minute worker trigger must already have been explicitly provisioned in the isolated candidate spreadsheet before this path can complete. This change does not provision or alter any live resource.
 - Candidate-only source and mocked-runtime regression; real GAS persistence/locking, Telegram test-bot delivery, and live group behavior remain NOT RUN. No production configuration, member data, webhook, trigger, or deployment was changed.
+
+### Telegram bot-permission warning outbox — candidate update 2026-11-13
+
+- The `my_chat_member` handler no longer sends a bot-permission warning directly through `sendTelegram_`. It enqueues an `ADMIN_ALERT` task keyed by the Telegram update ID and VIP chat, then performs the best-effort queue drain outside the queue lock.
+- Replaying the same update reuses the same task key; the existing worker quarantines an unconfirmed admin-alert delivery as `REVIEW` rather than automatically resending it.
+- Added a candidate integration regression asserting the warning uses the update-scoped outbox and does not call the direct admin-alert sender. Existing queue runtime regression covers ambiguous alert quarantine.
+- Candidate/mock-only verification. Actual Telegram test-bot delivery and isolated real GAS queue persistence/trigger behavior remain NOT RUN. Other admin notices and non-VIP notification paths remain open.
