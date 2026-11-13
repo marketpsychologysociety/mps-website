@@ -119,3 +119,18 @@ The explicit Super Admin setup path `apiAdminInitializeContent()` already provis
 - Existing fully initialized storage: registration, deposit, Telegram verification, and webhook regression suites continue to pass.
 
 This finding is from direct static source tracing on the workbench branch. No live spreadsheet or Apps Script project was accessed or changed. It is an audit lead requiring independent confirmation, not a claim of a completed exploit.
+
+
+### Additional creation paths found by enumerating every `insertSheet()` and `getMpsContentSheet_(..., true)` call
+
+A second source pass found the following beyond the four primary accessors above:
+
+- `getTelegramLinksSheet_()` also delegates to the auto-creating `getOrCreateTelegramSheet_()`. The explicit `apiAdminInitializeContent()` list visibly initializes `VIP Access`, but does not initialize the legacy `Telegram Links` tab. Audit whether the fallback is still required and provision it explicitly if retained.
+- `recordMpsAudit_()` calls `getMpsContentSheet_(MPS_AUDIT_LOGS..., true)`. This helper is called from public workflows as well as admin workflows; for example, public `apiSubmitAdvertisingRequest()` writes an ad request and then records an audit event. Because the audit helper catches errors, missing audit storage may be silently auto-created or audit failure may be hidden from the caller.
+- Authenticated member endpoint `apiMemberSetLearningProgress()` calls `getMpsContentSheet_(MPS_LEARNING_PROGRESS..., true)`. The sheet is also included in explicit Super Admin initialization.
+- `apiAdminPrepareTelegramVipTransitionStorage()` contains a nested `ensure_()` that creates only the two transition tabs after Super Admin authorization and schema preflight. This is an intentional explicit provisioning path; keep it distinct from request-path auto-creation.
+- `getMpsContentSheet_(name, headers, createIfMissing)` already supports a strict `false` read path. Several public read endpoints correctly use `false`; preserve this pattern.
+
+A repository-wide source scan found six direct `insertSheet()` sites in the candidate: Applications, Member Links, Deposits, generic Telegram sheets, the explicitly Super Admin-gated transition `ensure_()`, and generic content sheets when `createIfMissing` is true.
+
+Please classify all `true` call sites by endpoint role and side-effect boundary, not just by the accessor name. Public submissions may legitimately append business records to pre-provisioned tabs, but should not silently create or repair database schema. A missing required tab should fail closed with a controlled configuration error; explicit Super Admin initialization should be the only route that creates ordinary MPS auxiliary tabs. Audit writes must not silently imply that an incomplete audit subsystem is healthy.
