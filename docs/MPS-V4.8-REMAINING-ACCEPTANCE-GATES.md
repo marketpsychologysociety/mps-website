@@ -44,10 +44,11 @@ This section supersedes older checkpoint bullets below wherever they conflict. O
 ### B. Telegram handler idempotency and outbox
 
 - [ ] Implement handler-specific reconciliation for every update type in the handler matrix.
-- [ ] Reconcile already-consumed one-time links to the exact same Telegram user/chat; reject different identities.
+- [x] Reconcile already-consumed one-time links to the exact same Telegram user/chat; reject different identities in candidate mocked tests. Real Apps Script runtime acceptance remains open.
 - [ ] Integrate the isolated effect-outbox contract with durable Apps Script/external storage and handler transactions for welcome DMs, group notices, ticker events, audit records, invite revocation, moderation actions, and admin alerts.
 - [x] Add a separate handler-reconciliation contract with 15 synthetic tests for same-identity application/legacy link replay, cross-identity rejection, and transition-scoped VIP activation keys.
 - [x] Wire link replay reconciliation into the isolated Code.gs candidate and add candidate-level mocked tests for exact Telegram identity plus access/member/Application Ref binding. Real Apps Script runtime acceptance remains open.
+- [x] Route one-time-link missing/invalid/private-chat and verification-failure notices through the existing durable update-scoped Telegram message outbox. The verifier no longer sends these notices directly; queue failures propagate for webhook retry, and ambiguous Telegram delivery is quarantined as `REVIEW`. No raw link token or PIN is persisted in the notice task.
 - [x] Wire stable update-scoped VIP ticker/audit effects into the isolated Code.gs candidate via the chat_member transition orchestrator and keyed effect ledger. Real GAS runtime acceptance remains open.
 - [x] Quarantine an unconfirmed VIP admin-alert send outcome as `REVIEW` rather than automatically retrying a potentially delivered security notification; regression test verifies no duplicate retry. This does not yet establish live Telegram delivery.
 - [x] Define conservative synthetic contract for ambiguous Telegram `sendMessage`: move to REVIEW unless authoritative reconciliation proves APPLIED/NOT_APPLIED; only explicitly confirmed no-effect failures may be retried. [ ] Obtain business approval for any notification class that instead accepts at-least-once duplicate delivery.
@@ -169,7 +170,7 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 
 - Re-read the candidate `processTelegramUpdate_`, `processTelegramUpdateCore_`, `processVipJoinRequest_`, `sendVipInvite_`, admin approval/notification paths, and Telegram send helpers directly from the current workbench branch.
 - Confirmed the durable transition intent/cursor/effect ledger and VIP follow-up outbox are scoped to the authoritative VIP `chat_member` transition path. They do not wrap every Telegram side effect elsewhere in the webhook.
-- Remaining non-`chat_member` side-effect paths requiring handler-specific reconciliation and test-bot acceptance include: group `/start` candidate-group notice; private `/start` welcome and one-time-link responses; `chat_join_request` approval/decline and member DMs; `my_chat_member` permission-change admin alert; admin approval/rejection archive notices and applicant DMs; and VIP invite-link DM delivery/rollback.
+- Remaining non-`chat_member` side-effect paths requiring handler-specific reconciliation and test-bot acceptance include: group `/start` candidate-group notice; private `/start` welcome; `chat_join_request` approval/decline and member DMs; `my_chat_member` permission-change admin alert; admin approval/rejection archive notices and applicant DMs; and VIP invite-link DM delivery/rollback.
 - The generic webhook ingress PROCESSING/DONE marker still uses CacheService. A failed handler clears the marker for Telegram redelivery; this is not a durable cross-handler effect ledger. A response-loss/timeout around a `sendMessage` can therefore remain ambiguous for those non-ledger paths. The VIP admin-alert outbox's REVIEW quarantine must not be generalized to these other notification classes.
 - No broad automatic retry was added during this audit: doing so without per-effect identity and authoritative reconciliation could duplicate messages or repeat consequential actions. These paths remain explicitly open for separately scoped changes and regression tests.
 - This is a source-level call-site audit only. No live Telegram calls, bot settings, webhook changes, GAS deployment, production database, or production triggers were touched.
@@ -180,7 +181,7 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - The task key is deterministic from the VIP chat, Telegram requester identity, request timestamp (or update-ID fallback), and exact invite-link identity. A redelivered request therefore reuses the existing task rather than creating another welcome DM.
 - Queue writes occur before the immediate worker drain. If queue provisioning or persistence fails, the handler surfaces a retryable error rather than silently treating the welcome notice as complete.
 - `SEND_DM` uses the same lock/lease/outside-lock network boundary as other outbox actions. An unconfirmed Telegram send is moved to `REVIEW`, not automatically retried, because the DM may already have reached the member. The regression verifies exact request replay does not send twice and ambiguous delivery is not resent by a later worker pass.
-- This is scoped to VIP join-request member notices (approval welcome and rejection explanation), the separate `my_chat_member` admin warning, private `/start` welcome, and group `/start` candidate notice. One-time-link verification responses, admin approval/rejection notifications, and invite-link delivery remain separate open reconciliation items.
+- This is scoped to VIP join-request member notices (approval welcome and rejection explanation), the separate `my_chat_member` admin warning, private `/start` welcome, and group `/start` candidate notice. Admin approval/rejection notifications and VIP invite-link delivery remain separate open reconciliation items; live one-time-link outbox acceptance remains outstanding.
 - The queue sheet and 5-minute worker trigger must already have been explicitly provisioned in the isolated candidate spreadsheet before this path can complete. This change does not provision or alter any live resource.
 - Candidate-only source and mocked-runtime regression; real GAS persistence/locking, Telegram test-bot delivery, and live group behavior remain NOT RUN. No production configuration, member data, webhook, trigger, or deployment was changed.
 
@@ -205,7 +206,7 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - Task identity is scoped to Telegram update ID, effect type, and target chat. Private chats use `SEND_DM`; group notices use `SEND_MESSAGE` and validate signed Telegram chat IDs.
 - Ambiguous send outcomes for both task types are quarantined as `REVIEW`; no blind automatic resend is performed. Queue write/worker failures propagate so Telegram can redeliver the update and the stable task key prevents a second task.
 - Added candidate integration coverage for private welcome replay, group-chat target validation, and worker quarantine for ambiguous group-message delivery.
-- Live Telegram and real GAS queue acceptance remain NOT RUN. One-time-link verification responses and other direct notification paths remain open.
+- Live Telegram and real GAS queue acceptance remain NOT RUN. One-time-link verification responses are now routed through the durable update-scoped outbox in the candidate; live GAS/Telegram acceptance and other direct notification paths remain open.
 
 ### Latest Telegram message-outbox verification — 2026-11-13
 
@@ -225,3 +226,14 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - GitHub Actions PR run **#1801** on commit `5f952bc91d5f4a872dab4ed4c45e3fa01d6fa72d` completed **SUCCESS, 68/68 workflow steps, 0 failures**.
 - Added an explicit candidate GAS-runtime regression proving a valid `SEND_MESSAGE` task is delivered once, transitions to `DONE`, and performs exactly one Telegram-send mock call. The adjacent ambiguous-delivery regression continues to require `REVIEW` and no automatic retry.
 - This is mocked CI only. It does not prove live Telegram delivery or live Google Apps Script queue/trigger behavior.
+
+
+### One-time-link verification response outbox — candidate update 2026-11-14
+
+- Candidate `processTelegramUpdateCore_` now passes the immutable Telegram `update_id` into the one-time-link verification path.
+- Missing-link, private-chat guard, and application/legacy verification-failure notices are queued as update-scoped `SEND_DM` tasks using the existing spreadsheet-backed follow-up outbox. The verifier paths no longer call `telegramSendToChat_` directly for these notices.
+- Task identity is derived from update ID, effect type, and target chat. Notice text is generic; the raw verification token, PIN, invite URL, and member/payment details are not included in the outbox payload.
+- Queue persistence errors propagate so the webhook can retry with the same stable task key. Ambiguous Telegram send outcomes remain quarantined as `REVIEW`; no blind resend is introduced.
+- GitHub Actions run **#1867** (run ID `43527607406`) on commit `9e76df5796c99ba65aa814d26ac04699b9ff352d` completed **SUCCESS**. The candidate Telegram one-time-link replay/notice suite passed **16/16**, and Chromium browser checks completed successfully.
+- Verification used repository CI with mocked Apps Script/Telegram services and local Chromium. It is not live Apps Script persistence, live Telegram test-bot delivery, trigger behavior, or production acceptance. Real isolated GAS and Telegram test-bot acceptance remain open; admin decision notices and VIP invite-link delivery remain separate open paths.
+- PR #12 remains Draft/unmerged; production remains unchanged.
