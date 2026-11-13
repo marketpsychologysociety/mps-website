@@ -947,7 +947,9 @@ function apiAdminRetryVipInvite(session, memberId) {
   const r = sheet.getRange(row,1,1,MPS.headers.length).getValues()[0];
   if (String(r[MPS_COL.registrationStatus-1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus-1]) !== 'Disetujui') throw new Error('Undangan VIP hanya dapat dikirim untuk member yang sudah Berhasil.');
   let result;try{result=sendVipInvite_(memberKey);}catch(err){result={ok:false,error:safeErrorMessage_(err)};}
-  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_INVITE_RETRY',memberKey,result.ok?'SUCCESS':'DELIVERY_FAILED','Pengiriman undangan VIP dicoba ulang.');
+  if(result.ok&&result.queued){try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('VIP invite retry queue drain deferred: '+safeErrorMessage_(queueErr));}}
+  const auditStatus=result.queued?'QUEUED':result.ok?'SUCCESS':'DELIVERY_FAILED';
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_INVITE_RETRY',memberKey,auditStatus,result.queued?'Undangan VIP masuk antrean durable; konfirmasi pengiriman Telegram masih menunggu.':'Pengiriman undangan VIP dicoba ulang.');
   return { ok: !!result.ok, queued:!!result.queued, message: result.ok ? (result.queued?'Undangan VIP tersimpan dalam antrean pengiriman. Status pengiriman akan diperbarui setelah bot mengonfirmasi.':'Member sudah bergabung di grup VIP.') : (result.error || 'Undangan VIP gagal dikirim.'), auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.' };
 }
 
