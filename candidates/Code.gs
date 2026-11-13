@@ -280,7 +280,7 @@ function submitCore_(data) {
   const requestId = cleanRequestId_(data.requestId);
   const cache = CacheService.getScriptCache();
   const replayPayload=Object.assign({},data);delete replayPayload.requestId;const requestFingerprint=sha256_(JSON.stringify(replayPayload));
-  let ledgerRow=0,ledger=null,ledgerReserved=false;
+  let ledgerRow=0,ledger=null,ledgerReserved=false,businessCommitStarted=false;
   try {
     if (data.website) return { ok: true, ignored: true };
     if(data.requestId&&!requestId)throw new Error('Request ID tidak valid. Muat ulang formulir sebelum mencoba lagi.');
@@ -299,21 +299,25 @@ function submitCore_(data) {
         const saved=ledger.getRange(ledgerRow,1,MPS_REQUEST_LEDGER.headers.length).getValues()[0];
         if(String(saved[1]||'')!==requestFingerprint)throw new Error('Request ID sudah digunakan untuk data yang berbeda.');
         if(String(saved[2]||'')==='COMPLETED')return {ok:true,replayed:true,status:String(saved[8]||'Permintaan sebelumnya sudah diproses.'),applicationRef:String(saved[6]||''),memberId:String(saved[7]||'')};
-        // PENDING is fail-closed: an interrupted request is never blindly replayed.
-        throw new Error('Permintaan dengan ID ini masih tercatat dalam proses atau perlu rekonsiliasi admin. Jangan kirim ulang dengan ID baru; hubungi admin MPS.');
+        if(String(saved[2]||'')==='FAILED'){
+          ledger.getRange(ledgerRow,3,1,7).setValues([['PENDING',new Date(),'','', '', '', '']]);
+        }else{
+          // PENDING is fail-closed: an interrupted request is never blindly replayed.
+          throw new Error('Permintaan dengan ID ini masih tercatat dalam proses atau perlu rekonsiliasi admin. Jangan kirim ulang dengan ID baru; hubungi admin MPS.');
+        }
       }
       ledger.appendRow([requestId,requestFingerprint,'PENDING',new Date(),'','', '', '', '']);
       ledgerRow=ledger.getLastRow();ledgerReserved=true;
     }
     if (action === 'register') {
-      const registration = registerMember_(null, data);
+      const registration = registerMember_(null, data,function(){businessCommitStarted=true;});
       result = registration.result;
       telegramMessage = registration.telegramMessage;
     } else {
       const sheet = getMemberSheet_();
       const deposit = saveDeposit_(sheet, data, function(file) { uploadedFile = file; }, function() {
         proofLinkedToSheet = true;
-      });
+      },function(){businessCommitStarted=true;});
       result = deposit.result;
       telegramMessage = deposit.telegramMessage;
     }
@@ -329,8 +333,9 @@ function submitCore_(data) {
     }
     if (requestId) result.requestId = requestId;
   } catch (err) {
-    // Keep a reserved ledger row PENDING after an uncertain failure. This prevents
-    // duplicate business writes if Apps Script stopped after a partial commit.
+    // Validation failures before the first business write are retryable; uncertain
+    // failures after commit begins remain PENDING to prevent duplicate writes.
+    if(ledgerReserved&&ledgerRow&&!businessCommitStarted){try{ledger.getRange(ledgerRow,3).setValue('FAILED');}catch(ledgerErr){console.error('MPS request ledger could not mark a pre-commit failure.');}}
     let cleanupWarning='';
     if (uploadedFile && !proofLinkedToSheet && err.preserveProofFile!==true) {
       try { uploadedFile.setTrashed(true); } catch (cleanupErr) { cleanupWarning='File bukti privat mungkin masih tersimpan karena pembersihan otomatis gagal. Super Admin perlu memeriksa folder bukti.'; }
@@ -354,7 +359,7 @@ function submitCore_(data) {
   return result || { ok: false, error: 'Permintaan tidak dapat diproses.' };
 }
 
-function registerMember_(sheet, data) {
+function registerMember_(sheet, data, onCommitStarted) {
   const nickname = clean_(data.nickname, 60);
   const telegram = normalizeTelegram_(data.telegram);
   const country = clean_(data.country, 60);
@@ -370,6 +375,7 @@ function registerMember_(sheet, data) {
   }
   const applicationRef = 'MPS-APP-' + Utilities.getUuid().replace(/-/g, '').slice(0, 20).toUpperCase();
   const now = new Date();
+  if(typeof onCommitStarted==='function')onCommitStarted();
   apps.appendRow([applicationRef, now, sheetText_(nickname), sheetText_(telegram), sheetText_(country),
     sheetText_(goal), sheetText_(note), 'Menunggu Deposit', '', '', 'Belum Terhubung', '', '', '', now]);
   return {
@@ -378,7 +384,7 @@ function registerMember_(sheet, data) {
   };
 }
 
-function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
+function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted) {
   const applicationRef=clean_(data.applicationRef,40).toUpperCase(),accountName=clean_(data.memberName,80),mt5=clean_(data.mt5Login,20),accountType=clean_(data.accountType,40),amount=Number(data.depositAmount),dateText=clean_(data.depositDate,10);
   if(!/^MPS-APP-[A-F0-9]{20}$/.test(applicationRef)||!accountName||!/^[0-9]{4,20}$/.test(mt5)||!accountType||!Number.isSafeInteger(amount)||amount<MPS.minDeposit||!validDate_(dateText))throw new Error('Data konfirmasi tidak valid. Periksa Application Ref, nama akun, login MT5, jenis akun, tanggal, dan minimum deposit Rp1.000.000.');
   const today=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyy-MM-dd');if(dateText>today)throw new Error('Tanggal deposit tidak boleh berada di masa depan.');
@@ -401,6 +407,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {
   const now=new Date(),depositDate=new Date(dateText+'T00:00:00'),fileUrl=file.getUrl();
   let link=null,oldDeposit=null,oldApp=app.slice(),oldLinkSnapshots=[];
   try{
+    if(typeof onCommitStarted==='function')onCommitStarted();
     const row=[applicationRef,now,sheetText_(accountName),sheetText_(mt5),sheetText_(accountType),amount,depositDate,file.getId(),fileUrl,'Menunggu Telegram','','','',now];
     if(existing){oldDeposit=deposits.getRange(existing,1,1,MPS_DEPOSITS.headers.length).getValues()[0];deposits.getRange(existing,1,1,row.length).setValues([row]);}
     else deposits.appendRow(row);
