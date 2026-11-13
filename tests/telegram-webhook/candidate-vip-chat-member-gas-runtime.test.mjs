@@ -96,7 +96,11 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
  return{
   process:update=>context.runCandidateVipEvent(update,update.chat_member),
   sheets:data,stats:()=>({held,acquired,released,followups,networkCalls,cacheRemovals}),
-  addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);},\n  duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},\n  duplicateMember(){data.get('Database Member').push(data.get('Database Member')[1].slice());},\n  setEligible(value){data.get('Database Member')[1][7]=value?'Berhasil':'Menunggu Verifikasi';data.get('Database Member')[1][14]=value?'Disetujui':'Menunggu Verifikasi';},\n  setFollowupFailures(value){failRevoke=value;failKick=value;}
+  addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);},
+  duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},
+  duplicateMember(){data.get('Database Member').push(data.get('Database Member')[1].slice());},
+  setEligible(value){data.get('Database Member')[1][7]=value?'Berhasil':'Menunggu Verifikasi';data.get('Database Member')[1][14]=value?'Disetujui':'Menunggu Verifikasi';},
+  setFollowupFailures(value){failRevoke=value;failKick=value;}
  };
 }
 function event(updateId,sourceDate,oldStatus,newStatus,userId='987654321'){
