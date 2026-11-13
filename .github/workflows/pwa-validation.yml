@@ -101,6 +101,8 @@ jobs:
         run: node --test tests/telegram-webhook/gas-vip-chat-member-handler.test.mjs
       - name: Run candidate Code.gs VIP transition integration tests
         run: node --test tests/telegram-webhook/candidate-vip-chat-member-integration.test.mjs
+      - name: Run candidate Telegram one-time link replay reconciliation tests
+        run: node --test tests/telegram-webhook/candidate-link-replay-reconciliation.test.mjs
       - name: Run Telegram webhook ingress update-ID validation tests
         run: node --test tests/telegram-webhook/candidate-update-ingress-validation.test.mjs
       - name: Run Apps Script member activation transaction regression tests (mocked services only)
