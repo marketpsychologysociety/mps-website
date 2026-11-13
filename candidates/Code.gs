@@ -2491,7 +2491,7 @@ function apiGetPublicCenter() {
     // A deployment may inherit a pre-privacy cache entry containing real names.
     // Reuse cache only when every public ticker identity is already a valid Member ID.
     const cachedTickerSafe=!!cachedPayload&&Array.isArray(cachedPayload.activity)&&cachedPayload.activity.every(function(item){
-      return item&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(item.PublicAlias||''))&&isSafePublicIdentity_(item.PublicText);
+      return item&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(item.MemberId||''))&&isSafePublicIdentity_(item.PublicText);
     });
     if(cachedTickerSafe)return cachedPayload;
   }
@@ -2512,7 +2512,7 @@ function apiGetPublicCenter() {
   const publicAnnouncements = announcements.map(function(r){return {ID:r.ID,Title:r.Title,Category:r.Category,Body:r.Body,Audience:r.Audience,DisplayType:r['Display Type'],ImageURL:r['Image URL'],ButtonText:r['Button Text'],ButtonURL:r['Button URL'],Frequency:r.Frequency,ColorTheme:r['Color Theme'],Animation:r.Animation};});
   const publicAds = ads.map(function(r){return {ID:r['Ad ID'],Brand:r.Brand,Title:r.Title,Description:r.Description,ImageURL:r['Image URL'],TargetURL:r['Target URL'],Placement:r.Placement};});
   const adPackages=readMpsContentRows_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers).filter(function(r){return r.Status==='Active';}).map(function(r){return {id:r['Package ID'],name:r.Name,description:r.Description,price:Number(r['Price IDR']||0),durationDays:Number(r['Duration Days']||0),placement:r.Placement};});
-  const publicActivity = activity.map(function(r){return {PublicAlias:r['Member ID'],PublicText:r['Event Text']};});
+  const publicActivity = activity.map(function(r){return {MemberId:r['Member ID'],PublicText:r['Event Text']};});
   const tickerSettings=readMpsWebsiteSettings_();
   const out = { ok:true, news:publicNews, calendar:publicCalendar, announcements:publicAnnouncements, ads:publicAds, adPackages:adPackages, activity:publicActivity, tickerSettings:tickerSettings,
     updatedAt: PropertiesService.getScriptProperties().getProperty('MPS_CONTENT_LAST_SYNC') || '',
