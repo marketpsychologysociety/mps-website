@@ -3,6 +3,19 @@
 **Snapshot:** 2026-11-13  
 **Scope:** workbench / Draft PR #12 only. This checklist separates verified repository checks from work that still requires isolated Google Apps Script, Telegram test infrastructure, Android-device testing, independent review, or explicit production authorization.
 
+## Current authoritative snapshot — 2026-11-13
+
+This section supersedes older checkpoint bullets below wherever they conflict. Older sections are retained as historical implementation notes; their unchecked boxes are not a current statement that already-integrated candidate work is absent.
+
+- Current PR head: `531db25ad79bb8851b605c00bb2ad9c5e7dbacb6`; PR #12 is still **OPEN / DRAFT / NOT MERGED**.
+- Latest PR-triggered CI for that head (run #1733) completed successfully. Its `validate-pwa` job passed, including candidate integration tests, mocked Apps Script checks, isolated-harness static validation, and Chromium browser checks. These are repository/CI results, not a live Google Apps Script acceptance.
+- The VIP `chat_member` path in candidate `Code.gs` is integrated with the durable intent/cursor/effect-ledger orchestration and the spreadsheet-backed VIP follow-up queue. The queue handles invite revocation, ineligible-member removal, and admin security alerts with leases and retry scheduling. This is **candidate-only** and still requires real isolated GAS/Sheets and Telegram test-environment acceptance.
+- The public and Admin ticker projections expose **Member ID only**; member names and aliases are not projected. Public cache compatibility checks reject stale pre-change identity payloads.
+- Market Pulse candidate reads reject a non-private parent Learning folder before enumerating the data file; file-level privacy checks and direct endpoint session guards also have mocked regression coverage.
+- Still open: actual isolated GAS execution and Sheets persistence/locking/trigger behavior; actual Drive ACL inheritance and direct-route/API authorization; live isolated Public Center CORS/redirect behavior; Telegram test-bot delivery and non-`chat_member` reconciliation; physical Android testing; independent security/operational review; backup/restore and release authorization.
+- Production `main`, live spreadsheet/member records, Apps Script deployment and Script Properties, Drive ACLs, Telegram configuration, and production triggers remain untouched. **NO-GO remains in force.**
+
+
 ## Verified in the workbench
 
 - [x] Latest PR CI run #43022365652 and push CI run #43022358082 both completed successfully on commit `b841690cb14f21ad98434cd5e4dd0972a2d77986`; each completed all 38 workflow steps, including Chromium browser checks and all three Telegram contract suites.
@@ -74,7 +87,7 @@
 
 Passing GitHub Actions proves only the repository's automated checks, including synthetic/mocked tests and local Chromium checks. It does **not** prove live Apps Script persistence, real spreadsheet locking, Telegram API behavior, production CORS/redirect behavior, direct-endpoint authorization, physical Android behavior, or production readiness.
 
-The Apps Script adapter, effect-outbox contract, and handler-reconciliation contract are not wired into the webhook. The current webhook candidate still uses CacheService for update-level PROCESSING/DONE state. The public-center feature flag remains disabled. The backend candidate is not deployed. No production migration, merge, or deployment is authorized by this checklist.
+The candidate VIP `chat_member` transition path is wired to its scoped effect-ledger orchestration and spreadsheet-backed follow-up queue; this does not provide global exactly-once processing for every Telegram update type. Generic webhook update-level PROCESSING/DONE still uses CacheService and its update key is not a global durable idempotency guarantee. Non-`chat_member` reconciliation, ambiguous-send handling, real GAS runtime, public-center live transport, and all production dependencies remain open. The public-center feature flag remains disabled, and the backend candidate is not deployed. No production migration, merge, or deployment is authorized by this checklist.
 
 **Release status: NO-GO for production activation until the relevant gates above are evidenced and separately approved.**
 
