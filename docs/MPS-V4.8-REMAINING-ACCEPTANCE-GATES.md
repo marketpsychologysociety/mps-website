@@ -176,11 +176,11 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 
 ### VIP join-request welcome DM durable outbox — candidate update 2026-11-13
 
-- Replaced the direct welcome-DM send on the approved `chat_join_request` path with a durable `SEND_DM` task in the existing VIP follow-up queue. The same task is used when Telegram already shows the member joined after a previous ambiguous approval attempt.
+- Replaced direct member DMs on the approved and declined `chat_join_request` paths with durable `SEND_DM` tasks in the existing VIP follow-up queue. The approved welcome task is also used when Telegram already shows the member joined after a previous ambiguous approval attempt; a declined-request replay queues its rejection notice when Telegram confirms the request is closed.
 - The task key is deterministic from the VIP chat, Telegram requester identity, request timestamp (or update-ID fallback), and exact invite-link identity. A redelivered request therefore reuses the existing task rather than creating another welcome DM.
 - Queue writes occur before the immediate worker drain. If queue provisioning or persistence fails, the handler surfaces a retryable error rather than silently treating the welcome notice as complete.
 - `SEND_DM` uses the same lock/lease/outside-lock network boundary as other outbox actions. An unconfirmed Telegram send is moved to `REVIEW`, not automatically retried, because the DM may already have reached the member. The regression verifies exact request replay does not send twice and ambiguous delivery is not resent by a later worker pass.
-- This is scoped to the approved VIP join-request welcome DM only. Decline notices, private `/start` messages, one-time-link responses, group `/start` notices, `my_chat_member` admin alerts, admin approval/rejection notifications, and invite-link delivery remain separate open reconciliation items.
+- This is scoped to VIP join-request member notices (approval welcome and rejection explanation) plus the separate `my_chat_member` admin warning. Private `/start` messages, one-time-link responses, group `/start` notices, admin approval/rejection notifications, and invite-link delivery remain separate open reconciliation items.
 - The queue sheet and 5-minute worker trigger must already have been explicitly provisioned in the isolated candidate spreadsheet before this path can complete. This change does not provision or alter any live resource.
 - Candidate-only source and mocked-runtime regression; real GAS persistence/locking, Telegram test-bot delivery, and live group behavior remain NOT RUN. No production configuration, member data, webhook, trigger, or deployment was changed.
 
