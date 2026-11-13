@@ -149,3 +149,33 @@ Confirmed source shape at the helper:
 Audit call paths that read through `readMpsContentRows_()` and `getMpsContentSheet_(..., false)`, including public-center rendering and partner-click tracking. A public request against a pre-existing blank auxiliary tab can therefore initialize its schema without Super Admin authorization even though the call site passes false.
 
 **Required regression:** for every read-only call, missing and existing-empty sheets must both remain unchanged (no tab creation, no header write, no formatting change). Move all header initialization to explicit Super Admin provisioning or a separately authorized setup routine. Keep write operations requiring a pre-provisioned sheet and fail closed if missing/empty/mismatched.
+
+
+## Remediation update — sheet provisioning boundary (2026-11-13)
+
+The candidate source was updated on the workbench branch after reviewing Claude's F-01/F-02/F-03/F-09 findings. This is a candidate-only change; no live Apps Script project, spreadsheet, Drive file, Script Property, Telegram configuration, or production deployment was accessed or changed.
+
+### Implemented in `candidates/Code.gs`
+
+- Added `getMpsSheetStrict_()`: operational getters now fail closed when a required tab is missing or empty and validate the expected header without creating or repairing a tab.
+- Added `provisionMpsSheets_()`: the explicit provisioning helper preflights every existing target schema before creating any missing/empty target. A mismatched existing header aborts before any target tab is created or header is written.
+- Changed Applications, Deposits, Member Links, VIP Access and legacy Telegram Links accessors to strict operational access. The explicit Super Admin `apiAdminInitializeContent()` provisions the intended auxiliary schemas, including legacy `Telegram Links` while its fallback remains supported.
+- Changed `getMpsContentSheet_()` so read-only calls return null for both missing and existing-empty tabs without writing headers, formatting or creating tabs. A call with the legacy `createIfMissing=true` flag now fails closed and instructs the operator to run Super Admin initialization; it no longer creates a tab. This also constrains public ad requests, member learning-progress writes, ordinary admin writes and audit logging.
+- Updated the Super Admin VIP transition-storage preparation path to use the explicit provisioning helper for Audit Logs and VIP Ticker Events after its existing schema preflight.
+- Moved Member Links schema validation in `saveDeposit_()` before Drive proof-file creation, preventing a missing link tab from leaving an orphan proof file.
+
+### Regression coverage and CI
+
+- Added `tests/apps-script/sheet-provisioning-boundaries.test.mjs`: runtime tests for missing/empty strict access, read-only missing/empty content reads, rejection of operational create flags, preflight-before-create, exact header provisioning, legacy Telegram Links initialization, and deposit storage validation before Drive file creation.
+- Updated `tests/telegram-webhook/candidate-vip-chat-member-integration.test.mjs` to assert and mock the new explicit provisioning boundary rather than the former content getter.
+- Added the new test to `.github/workflows/pwa-validation.yml`.
+- Final GitHub Actions run [#43352928309](https://github.com/marketpsychologysociety/mps-website/actions/runs/43352928309) completed successfully on head `caee5183834e6b10ca3280fc0ccfd26352f54b7f`; all 68 job steps succeeded. The new sheet-provisioning boundary test and the existing candidate VIP integration test both passed. These are Node/V8 tests with mocked Apps Script services plus the existing repository checks; they are not live GAS/Sheets/Telegram/Android acceptance.
+
+### Remaining limitations / audit instructions
+
+- Review every remaining `getMpsContentSheet_(..., true)` caller. It is now fail-closed rather than a creation path, but callers should eventually be renamed/refactored to remove the misleading legacy boolean and receive endpoint-specific controlled errors.
+- Verify all required tabs are represented in the Super Admin initialization manifest and that the legacy Telegram Links fallback can be retired safely before removing its provisioned tab.
+- `recordMpsAudit_()` still catches a missing-audit-sheet error and returns false; the system configuration diagnostic should explicitly report missing/empty Audit Logs and VIP Ticker Events, and callers must surface audit-persistence warnings where required.
+- The helper `provisionMpsSheets_()` is internal and is currently called only from Super Admin-guarded initialization/transition setup paths. Independently verify its call-site inventory remains restricted.
+- F-04 through F-08 (including Telegram candidate authorization, durable webhook idempotency, backup/restore completeness and the remainder of Claude's truncated F-08) remain separate review/remediation items.
+- PR #12 remains Draft and unmerged. Do not merge or deploy based on this CI result. Live GAS/Sheets, Telegram, production CORS and physical Android/WebView tests remain outstanding.
