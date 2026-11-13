@@ -1934,12 +1934,19 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
         removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
         if(r.inviteToRevoke&&!revokeVipInviteLink_(groupId,r.inviteToRevoke)){
           sendTelegram_('⚠️ PERINGATAN MPS: member '+r.memberId+' sudah bergabung, tetapi tautan undangan lama gagal dicabut. Periksa invite link VIP Community.');
+          // Keep the webhook retryable: the durable transition is complete, but this
+          // external security follow-up must be attempted again on Telegram redelivery.
+          throw new Error('VIP_INVITE_REVOKE_PENDING');
         }
       }else if(context.targetState==='DENIED'){
         if(r.kickNeeded&&!kickMpsUnauthorizedUser_(groupId,r.telegramUserId)){
           sendTelegram_('⚠️ PERINGATAN KEAMANAN MPS: akun Telegram '+r.telegramUserId+' tidak memenuhi syarat member, tetapi bot gagal memastikan penghapusannya dari VIP Community. Admin harus segera memeriksa keanggotaan grup.');
+          // processTelegramUpdate_ will clear its PROCESSING marker and return an
+          // error to Telegram, allowing a redelivery to retry the idempotent kick.
+          throw new Error('VIP_UNAUTHORIZED_MEMBER_REMOVAL_PENDING');
         }else if(r.adminAlert){
-          sendTelegram_('⚠️ PERINGATAN KEAMANAN MPS: akun Telegram '+r.telegramUserId+' memiliki status '+r.telegramStatus+' di grup VIP, tetapi tidak cocok dengan member MPS yang disetujui. Bot tidak melakukan demosi otomatis. Admin perlu memeriksa manual.');
+          const alert=sendTelegram_('⚠️ PERINGATAN KEAMANAN MPS: akun Telegram '+r.telegramUserId+' memiliki status '+r.telegramStatus+' di grup VIP, tetapi tidak cocok dengan member MPS yang disetujui. Bot tidak melakukan demosi otomatis. Admin perlu memeriksa manual.');
+          if(!alert||alert.ok!==true)throw new Error('VIP_ADMIN_SECURITY_ALERT_PENDING');
         }
       }
     }
