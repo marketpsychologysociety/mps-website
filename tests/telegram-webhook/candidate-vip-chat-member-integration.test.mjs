@@ -67,6 +67,28 @@ test('chat_member ingress passes the complete original update and event to durab
  context.processTelegramUpdateCore_(update);
  assert.equal(calls.length,1);assert.equal(calls[0].update,update);assert.equal(calls[0].event,update.chat_member);
 });
+test('my_chat_member permission warnings use a durable update-scoped admin-alert task',()=>{
+ const tasks=[],keys=new Set(),audits=[];
+ const context={
+  PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_TELEGRAM_VIP_CHAT_ID'?'-1001234567890':''})},
+  recordMpsAudit_:(...args)=>audits.push(args),
+  clean_:v=>String(v),
+  sha256_:v=>'c'.repeat(64),
+  enqueueMpsVipFollowup_:task=>{const duplicate=keys.has(task.taskKey);keys.add(task.taskKey);tasks.push({...task,duplicate});return{ok:true,duplicate};},
+  runMpsVipFollowupQueue_:()=>({ok:true,processed:0}),
+  sendTelegram_:()=>{throw new Error('DIRECT_ADMIN_ALERT_SEND_FORBIDDEN');}
+ };
+ vm.createContext(context);vm.runInContext(coreSource,context,{timeout:1000});
+ const update={update_id:998877,my_chat_member:{chat:{id:'-1001234567890'},new_chat_member:{status:'member',can_invite_users:false}}};
+ context.processTelegramUpdateCore_(update);
+ context.processTelegramUpdateCore_(update);
+ assert.equal(tasks.length,2);
+ assert.equal(tasks[0].action,'ADMIN_ALERT');
+ assert.equal(tasks[0].taskKey,tasks[1].taskKey);
+ assert.equal(tasks[1].duplicate,true);
+ assert.equal(audits.length,2);
+});
+
 test('join request without the exact stored MPS invite is declined',()=>{
   const h=joinHarness(()=>({ok:true,result:true}));
   const req=request();delete req.invite_link;
