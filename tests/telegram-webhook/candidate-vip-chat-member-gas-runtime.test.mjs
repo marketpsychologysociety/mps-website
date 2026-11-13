@@ -17,6 +17,7 @@ function extractFunction(source,name){
  if(!block.endsWith('}'))throw new Error('CANDIDATE_FUNCTION_UNCLOSED:'+name);
  return block;
 }
+const queueConstant=candidate.match(/const MPS_VIP_FOLLOWUP_QUEUE = Object\.freeze\([\s\S]*?\);/)[0];
 const candidateFunctions=[
  // These are extracted from the actual candidate Code.gs, not parallel test copies.
  'createMpsGasEffectLedger_','createMpsGasVipTransitionStore_',
@@ -93,7 +94,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
   console
  };
  vm.createContext(context);
- vm.runInContext(candidateFunctions+'\n'+
+ vm.runInContext(queueConstant+'\n'+candidateFunctions+'\n'+
   'this.makeLedger=createMpsGasEffectLedger_;this.runCandidateVipEvent=processMpsVipChatMemberEvent_;this.runFollowups=runMpsVipFollowupQueue_;',context,{timeout:2000});
  const ledger=context.makeLedger({spreadsheetId:'isolated-vip-runtime'});
  // Explicit isolated setup: append Effect Key headers before any webhook event.
@@ -107,7 +108,8 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
   duplicateMember(){data.get('Database Member').push(data.get('Database Member')[1].slice());},
   setEligible(value){data.get('Database Member')[1][7]=value?'Berhasil':'Menunggu Verifikasi';data.get('Database Member')[1][14]=value?'Disetujui':'Menunggu Verifikasi';},
   setFollowupFailures(value){failRevoke=value;failKick=value;},
-  setKickFailure(value){failKick=value;}
+  setKickFailure(value){failKick=value;},
+  makeQueueDue(row){data.get('MPS Telegram VIP Follow-up Queue')[row][9]=new Date(0);}
  };
 }
 function event(updateId,sourceDate,oldStatus,newStatus,userId='987654321'){
@@ -185,7 +187,7 @@ test('failed invite revocation is durably queued and retried without Telegram we
  assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
  h.setFollowupFailures(false);
- assert.deepEqual(h.runQueue(),{ok:true,processed:1,completed:1,retried:0});
+ h.makeQueueDue(1);assert.deepEqual(h.runQueue(),{ok:true,processed:1,completed:1,retried:0});
  assert.equal(queue[1][7],'DONE');assert.equal(queue[1][8],2);
  assert.equal(h.stats().held,false);
 });
@@ -196,7 +198,7 @@ test('failed unauthorized-member removal is durably queued and retried by the sc
  assert.equal(queue.length,2);assert.equal(queue[1][2],'REMOVE_MEMBER');assert.equal(queue[1][7],'RETRY');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'DENIED');
- h.setKickFailure(false);
+ h.setKickFailure(false);h.makeQueueDue(1);
  assert.deepEqual(h.runQueue(),{ok:true,processed:1,completed:1,retried:0});
  assert.equal(queue[1][7],'DONE');
  assert.equal(h.stats().held,false);
@@ -225,7 +227,7 @@ test('webhook replay does not duplicate a pending follow-up task; worker complet
  assert.equal(h.process(update),'DUPLICATE');
  const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
  assert.equal(queue.length,2);assert.equal(queue[1][7],'RETRY');
- h.setFollowupFailures(false);h.runQueue();
+ h.setFollowupFailures(false);h.makeQueueDue(1);h.runQueue();
  assert.equal(queue.length,2);assert.equal(queue[1][7],'DONE');
  assert.equal(h.stats().held,false);
 });
@@ -236,7 +238,7 @@ test('eligibility revoked after activation queues invite revocation and member r
  assert.equal(h.process(update),'DUPLICATE');
  const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
  assert.equal(queue.length,3);assert.equal(queue[1][2],'REVOKE_INVITE');assert.equal(queue[2][2],'REMOVE_MEMBER');
- h.runQueue();
+ h.makeQueueDue(1);h.runQueue();
  assert.equal(queue[1][7],'DONE');assert.equal(queue[2][7],'DONE');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'ACTIVE');
  assert.equal(h.sheets.get('VIP Access')[1][6],'Aktif');
@@ -250,7 +252,7 @@ test('removal retry continues after invite revocation is already completed',()=>
  h.setEligible(false);h.setKickFailure(true);h.process(update);
  const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
  assert.equal(queue.length,3);assert.equal(queue[1][7],'DONE');assert.equal(queue[2][7],'RETRY');
- h.setKickFailure(false);h.runQueue();
+ h.setKickFailure(false);h.makeQueueDue(2);h.runQueue();
  assert.equal(queue[2][7],'DONE');assert.equal(queue[2][8],2);
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'ACTIVE');
  assert.equal(h.stats().held,false);
