@@ -58,6 +58,7 @@ function harness({kind='application',storedUser=userId,storedChat=chatId,expired
     findMpsMemberLinkRow_:()=>2,
     getTelegramAccessSheet_:()=>accessSheet,
     findTelegramAccessByUserId_:()=>storedUser===userId?2:0,
+    consumeRateLimit_:()=>true,
     getMpsApplicationsSheet_:()=>appSheet,
     findMpsApplicationRow_:()=>2,
     getMemberSheet_:()=>memberSheet,
