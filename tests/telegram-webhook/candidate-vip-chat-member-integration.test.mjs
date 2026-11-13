@@ -17,18 +17,19 @@ const coreSource=extract('processTelegramUpdateCore_','processVipJoinRequest_');
 const joinSource=extract('processVipJoinRequest_','verifyTelegramLinkFromUpdate_');
 const resolverSource=extract('resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_');
 const writerSource=extract('createMpsVipTransitionStatusWriter_','processMpsVipChatMemberEvent_');
-const request=()=>({chat:{id:'-1001234567890'},from:{id:987654321,is_bot:false},user_chat_id:987654321,date:1760000000});
+const request=()=>({chat:{id:'-1001234567890'},from:{id:987654321,is_bot:false},user_chat_id:987654321,date:1760000000,invite_link:{invite_link:'https://t.me/+invite',creates_join_request:true}});
 const tgResponse=(status,ok=true)=>({ok,result:{status,is_member:status==='member'},description:ok?'':'temporary failure'});
 
 function joinHarness(fetchImpl){
  const calls=[],memberId='MPS-ABCDEF12',userId='987654321';
- const accessRow=[memberId,userId,userId,'test_user','Test',true,'Menunggu','https://t.me/+invite',null,null,''];
+ const requestDate=1760000000;
+  const accessRow=[memberId,userId,userId,'test_user','Test',true,'Undangan dikirim','https://t.me/+invite',new Date((requestDate+86400)*1000),null,''];
  const memberRow=new Array(30).fill('');
  memberRow[7]='Berhasil';memberRow[14]='Disetujui';memberRow[8]='Test Member';
  const accessSheet={getRange:()=>({getValues:()=>[accessRow]})};
  const memberSheet={getRange:()=>({getValues:()=>[memberRow]})};
  const context={
-  console,MPS:{headers:new Array(30)},MPS_COL:{registrationStatus:8,depositStatus:15},
+  console,MPS:{headers:new Array(30)},MPS_COL:{id:1,registrationStatus:8,depositStatus:15},
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>({MPS_TELEGRAM_VIP_CHAT_ID:'-1001234567890',MPS_TELEGRAM_BOT_TOKEN:'123456:TEST_TOKEN_NOT_REAL'})[key]||''})},
   getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByUserId_:()=>2,
   getMemberSheet_:()=>memberSheet,findMemberById_:()=>2,
@@ -40,7 +41,7 @@ function joinHarness(fetchImpl){
   clean_:v=>String(v),safeErrorMessage_:e=>String(e&&e.message||e)
  };
  vm.createContext(context);vm.runInContext(joinSource,context,{timeout:1000});
- return{context,calls};
+ return{context,calls,accessSheet,accessRow,memberSheet,memberRow,requestDate};
 }
 
 test('candidate Code.gs compiles and removes every legacy status-handler callsite',()=>{
@@ -63,6 +64,42 @@ test('chat_member ingress passes the complete original update and event to durab
  context.processTelegramUpdateCore_(update);
  assert.equal(calls.length,1);assert.equal(calls[0].update,update);assert.equal(calls[0].event,update.chat_member);
 });
+test('join request without the exact stored MPS invite is declined',()=>{
+  const h=joinHarness(()=>({ok:true,result:true}));
+  const req=request();delete req.invite_link;
+  h.context.processVipJoinRequest_(req);
+  assert.ok(h.calls.some(x=>x.type==='fetch'&&String(x.args[0]).includes('/declineChatJoinRequest')));
+  assert.equal(h.calls.some(x=>x.type==='fetch'&&String(x.args[0]).includes('/approveChatJoinRequest')),false);
+});
+
+test('join request using a replaced or forged invite link is declined',()=>{
+  const h=joinHarness(()=>({ok:true,result:true}));
+  const req=request();req.invite_link.invite_link='https://t.me/+attacker-controlled';
+  h.context.processVipJoinRequest_(req);
+  assert.ok(h.calls.some(x=>x.type==='fetch'&&String(x.args[0]).includes('/declineChatJoinRequest')));
+});
+
+test('join request created after the stored invite expiry is declined',()=>{
+  const h=joinHarness(()=>({ok:true,result:true}));
+  h.accessRow[8]=new Date((h.requestDate-60)*1000);
+  h.context.processVipJoinRequest_(request());
+  assert.ok(h.calls.some(x=>x.type==='fetch'&&String(x.args[0]).includes('/declineChatJoinRequest')));
+});
+
+test('duplicate Telegram identity rows fail closed before any Telegram approval call',()=>{
+  const h=joinHarness(()=>({ok:true,result:true}));
+  h.context.findUniqueMpsTransitionRow_=()=>{throw new Error('VIP_TRANSITION_DUPLICATE_IDENTITY_ROW');};
+  assert.throws(()=>h.context.processVipJoinRequest_(request()),/VIP_TRANSITION_DUPLICATE_IDENTITY_ROW/);
+  assert.equal(h.calls.length,0);
+});
+
+test('duplicate member IDs fail closed before any Telegram approval call',()=>{
+  const h=joinHarness(()=>({ok:true,result:true}));
+  h.context.findUniqueMpsTransitionRow_=(sheet)=>sheet===h.accessSheet?2:(()=>{throw new Error('VIP_TRANSITION_DUPLICATE_IDENTITY_ROW');})();
+  assert.throws(()=>h.context.processVipJoinRequest_(request()),/VIP_TRANSITION_DUPLICATE_IDENTITY_ROW/);
+  assert.equal(h.calls.length,0);
+});
+
 test('pre-approval getChatMember reconciliation does not mutate VIP status',()=>{
  const h=joinHarness(()=>tgResponse('member'));
  h.context.processVipJoinRequest_(request());
