@@ -372,3 +372,16 @@ test('expired in-flight Telegram send lease is quarantined instead of blindly re
  assert.equal(queue[1][7],'REVIEW');
  assert.equal(h.stats().networkCalls,0,'uncertain previous send is not repeated');
 });
+
+
+test('candidate sendVipInvite_ persists a durable invite task instead of sending directly from the admin request',()=>{
+ const start=candidate.indexOf('function sendVipInvite_('),end=candidate.indexOf('\nfunction isSafePublicIdentity_',start);
+ assert.ok(start>=0&&end>start);
+ const invite=candidate.slice(start,end);
+ assert.doesNotMatch(invite,/telegramSendToChat_\(/);
+ assert.match(invite,/action:'VIP_INVITE_DM'/);
+ assert.match(invite,/taskKey:'vip-invite-dm:'/);
+ assert.match(candidate,/function deliverMpsVipInviteTask_\(task\)/);
+ assert.match(candidate,/task\.action==='VIP_INVITE_DM'/);
+ assert.match(candidate,/DELIVERY_OUTCOME_UNKNOWN_AFTER_WORKER_LEASE/);
+});
