@@ -106,8 +106,10 @@ test('pre-commit validation failures are retryable while uncertain post-commit f
   const submit=extract('submitCore_');
   assert.match(submit,/if\(ledgerReserved&&ledgerRow&&!businessCommitStarted\)[\s\S]{0,180}setValue\('FAILED'\)/);
   assert.match(submit,/PENDING is fail-closed/);
-  assert.match(submit,/onCommitStarted\(\)/);
+  assert.match(submit,/businessCommitStarted=true/);
   assert.match(source,/function registerMember_\(sheet, data, onCommitStarted\)/);
+  assert.match(source,/function saveDeposit_\(sheet, data, onFileCreated, onProofLinked, onCommitStarted\)/);
+  assert.equal((source.match(/if\(typeof onCommitStarted==='function'\)onCommitStarted\(\);/g)||[]).length,2);
   assert.match(source,/function saveDeposit_\(sheet, data, onFileCreated, onProofLinked, onCommitStarted\)/);
 });
 
