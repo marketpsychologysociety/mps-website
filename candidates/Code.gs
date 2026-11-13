@@ -2546,6 +2546,7 @@ function consumePersistentBucketRateLimit_(bucket, maxAttempts, windowSeconds, m
     const props=PropertiesService.getScriptProperties(),propertyKey='MPS_RATE_BUCKET_'+bucket;
     const now=Date.now(),windowMs=Math.max(1000,Math.min(21600000,(Number(windowSeconds)||60)*1000));
     const raw=props.getProperty(propertyKey);let state=raw?safeParseJson_(raw,null):null;
+    if(raw&&!state)throw new Error('Status rate limit tidak valid. Permintaan ditahan demi keamanan; hubungi Super Admin.');
     if(state&&(!Number.isFinite(Number(state.startedAt))||!Number.isFinite(Number(state.count))||Number(state.count)<0))throw new Error('Status rate limit tidak valid. Permintaan ditahan demi keamanan; hubungi Super Admin.');
     if(!state||now<Number(state.startedAt)||now-Number(state.startedAt)>=windowMs)state={startedAt:now,count:0};
     if(Number(state.count)>=maxAttempts)throw new Error(message);
