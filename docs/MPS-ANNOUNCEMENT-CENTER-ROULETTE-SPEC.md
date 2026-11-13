@@ -403,8 +403,8 @@ The user has explicitly confirmed that the experience must include a prominent *
 - Use only backend-published, approved records. Do not fabricate member activity or create fake social-proof entries.
 
 ### 13.2 Required ticker message types
-1. **Official winner announcement:** e.g. “Selamat kepada pemenang event [nama event] MPS — hasil resmi telah diverifikasi.” Do not display a real name, display name, or alias. A masked Member ID may be included only if backend-generated and independently assessed as non-identifying; otherwise omit the identifier. Publish only after the official draw has passed verification and publication approval.
-2. **VIP registration welcome:** e.g. “Member VIP baru berhasil diaktifkan — ID MPS-****-4821.” Do not include the member's name or alias. Trigger only after backend confirms the member's final successful/active VIP registration state; never trigger from a submitted form, pending application, or unverified payment.
+1. **Official winner announcement:** e.g. “Selamat kepada pemenang event [nama event] MPS — hasil resmi telah diverifikasi.” Do not display a real name, display name, or alias. The canonical Member ID may be shown; never show the member's name, display name, or alias. Publish only after the official draw has passed verification and publication approval.
+2. **VIP registration welcome:** e.g. “Member VIP baru berhasil diaktifkan — Member ID MPS-ABCDEF1234.” Do not include the member's name or alias. Trigger only after backend confirms the member's final successful/active VIP registration state; never trigger from a submitted form, pending application, or unverified payment.
 3. **Important announcements:** maintenance schedule/status, service disruptions, system repairs, feature updates, event openings/closing dates, policy notices, and urgent operational updates.
 4. **Optional community milestones:** only genuine, backend-verifiable events and only if the publication policy permits them.
 
@@ -412,9 +412,9 @@ The user has explicitly confirmed that the experience must include a prominent *
 - Generate the ticker item from a real state transition in the authoritative backend, not from frontend form submission.
 - Make event creation idempotent so retries, refreshes, or duplicate triggers cannot produce repeated welcome messages.
 - Never display a member's real name, display name, or alias in the ticker, including VIP welcomes and winner announcements.
-- If the product genuinely needs a member identifier, show only a masked Member ID (e.g. `MPS-****-4821`) generated server-side from the authoritative member record. Prefer masking all but the final 3–4 characters; never accept a pre-masked value supplied by the browser.
-- If the Member ID format is short, sequential, guessable, or cannot be masked without re-identification risk, omit it entirely and use generic wording such as “Member VIP baru berhasil diaktifkan”.
-- Never expose the full Member ID, phone number, email, Telegram username/ID, MT5 login, deposit amount, payment details, proof documents, PIN, credentials, or internal participant references.
+- The user has explicitly selected Member ID as the only ticker identity. Show the canonical Member ID from the authoritative backend record; never show a name, display name, nickname, or alias, and never accept an identity supplied by the browser.
+- Validate the canonical Member ID format before rendering it; if the ID is invalid or absent, omit the identifier and use generic wording such as “Member VIP baru berhasil diaktifkan”.
+- Never expose phone numbers, email addresses, Telegram username/ID, MT5 login, deposit amount, payment details, proof documents, PIN, credentials, or internal participant references. The canonical Member ID is the only permitted member identity in the ticker.
 - Do not fall back to a name or alias when a masked ID cannot safely be shown; use generic wording instead.
 - The ticker must not imply “VIP aktif” while the account is pending, rejected, expired, or otherwise inactive.
 - Provide an admin correction/withdrawal workflow with an audit trail if a welcome item was published incorrectly; do not silently rewrite history.
@@ -446,7 +446,7 @@ The VIP welcome ticker should preferably be emitted by a backend domain event/ou
 - [ ] Critical ticker can take priority and links to full detail.
 - [ ] A pending/rejected member never triggers a VIP welcome.
 - [ ] A successful VIP activation produces at most one ticker event, including under retries/concurrency.
-- [ ] Ticker never contains member names/aliases; any Member ID shown is backend-masked and passes re-identification review, otherwise the identifier is omitted.
+- [ ] Ticker never contains member names/aliases; any Member ID shown is the canonical backend value and is not accompanied by a name or alias, otherwise the identifier is omitted.
 - [ ] No contact/payment/member credentials or private identifiers appear in HTML, API responses, caches, logs, or URLs.
 - [ ] Withdrawn/expired ticker items stop displaying while historical audit remains.
 - [ ] Synthetic/fake activity cannot be inserted through public endpoints.
