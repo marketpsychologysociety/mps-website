@@ -46,9 +46,9 @@ test('public VIP ticker identity is member ID only; stored names are never proje
   const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
   assert.ok(start>=0&&end>start,'public Center endpoint boundaries must exist');
   const body=source.slice(start,end);
-  assert.ok(body.includes("PublicAlias:r['Member ID']"));
+  assert.ok(body.includes("MemberId:r['Member ID']"));
   assert.ok(body.includes("r['Member ID']"));
-  assert.ok(!body.includes("PublicAlias:r['Member Name']"));
+  assert.ok(!body.includes("MemberId:r['Member Name']"));
   assert.ok(body.includes("r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))"));
 });
 test('empty, oversized, and identifier-like names are denied',()=>{
@@ -69,7 +69,7 @@ test('public activity projection exposes only member ID and event text, never me
 });
 test('public website ticker renders validated Member IDs and never reads member names or masked IDs',()=>{
   const renderer=readFileSync(fileURLToPath(new URL('../../js/public-center.js',import.meta.url)),'utf8');
-  assert.ok(renderer.includes('item.PublicAlias'));
+  assert.ok(renderer.includes('item.MemberId'));
   assert.ok(renderer.includes('item.PublicText'));
   assert.ok(renderer.includes('"Member ID " + memberId'));
   assert.doesNotMatch(renderer,/item\.Member\s*Name|item\[['"]Member Name['"]\]|MaskedMemberId/);
@@ -82,7 +82,7 @@ test('public Center rejects cached ticker payloads containing legacy names after
   const body=source.slice(start,end);
   assert.ok(body.includes("cache.get('mps_public_center_v480')"));
   assert.ok(body.includes('cachedPayload.activity.every'));
-  assert.ok(body.includes("item.PublicAlias||''"));
+  assert.ok(body.includes("item.MemberId||''"));
   assert.ok(body.includes("isSafePublicIdentity_(item.PublicText)"));
   assert.ok(body.indexOf('cachedTickerSafe')<body.indexOf('if(cachedTickerSafe)return cachedPayload'));
 });
