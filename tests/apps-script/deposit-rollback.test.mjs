@@ -6,7 +6,7 @@ import vm from 'node:vm';
 
 const source=readFileSync(fileURLToPath(new URL('../../candidates/Code.gs',import.meta.url)),'utf8');
 new vm.Script(source,{filename:'candidate/Code.gs'});
-const start=source.indexOf('function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {');
+const start=source.indexOf('function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted) {');
 const end=source.indexOf('function setupMPSStorage_(',start+1);
 assert.ok(start>=0&&end>start,'saveDeposit_ source boundaries must exist');
 const saveSource=source.slice(start,end);
