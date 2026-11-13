@@ -285,3 +285,43 @@ test('admin decision intent refuses to notify when persisted application decisio
   assert.equal(called,false,'no notification may be queued for an uncommitted decision');
   assert.equal(held,false);
 });
+
+
+test('legacy decision intent accepts a fully activated member and matching application state',()=>{
+  const start=source.indexOf('function materializeMpsAdminDecisionIntent_('),end=source.indexOf('function enqueueMpsAdminDecisionNotices_(',start);
+  const fn=source.slice(start,end);
+  const member=Array(30).fill('');member[0]='MPS-ABCDEF12';member[7]='Berhasil';member[14]='Disetujui';
+  const app=Array(15).fill('');app[0]='MPS-APP-0123456789ABCDEF0123';app[7]='Berhasil';app[8]=member[0];
+  const makeSheet=row=>({getRange:()=>({getValues:()=>[row]})});
+  let held=false,called=null;
+  const context={
+    LockService:{getScriptLock:()=>({waitLock:()=>{held=true;},releaseLock:()=>{held=false;}})},
+    getMemberSheet_:()=>makeSheet(member),findMemberById_:()=>2,
+    getMpsApplicationsSheet_:()=>makeSheet(app),findMpsApplicationRowByMember_:()=>2,
+    MPS:{headers:Array(30)},MPS_COL:{registrationStatus:8,depositStatus:15},MPS_APPLICATIONS:{headers:Array(15)},
+    enqueueMpsAdminDecisionNotices_:(...args)=>{assert.equal(held,true);called=args;return{ok:true};}
+  };
+  vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
+  assert.equal(context.materializeMpsAdminDecisionIntent_({alertText:JSON.stringify({subject:member[0],member:member[0],decision:'approve',chatId:'987654321'})}),true);
+  assert.deepEqual(called,[member[0],member[0],'approve','987654321',true]);
+  assert.equal(held,false);
+});
+
+test('application rejection intent materializes without inventing a Member ID',()=>{
+  const start=source.indexOf('function materializeMpsAdminDecisionIntent_('),end=source.indexOf('function enqueueMpsAdminDecisionNotices_(',start);
+  const fn=source.slice(start,end);
+  const app=Array(15).fill('');app[0]='MPS-APP-0123456789ABCDEF0123';app[7]='Deposit Ditolak';
+  const dep=Array(14).fill('');dep[0]=app[0];dep[9]='Ditolak';
+  const makeSheet=row=>({getRange:()=>({getValues:()=>[row]})});
+  let called=null;
+  const context={
+    LockService:{getScriptLock:()=>({waitLock:()=>{},releaseLock:()=>{}})},
+    getMpsApplicationsSheet_:()=>makeSheet(app),findMpsApplicationRow_:()=>2,
+    getMpsDepositsSheet_:()=>makeSheet(dep),findMpsDepositRow_:()=>2,
+    MPS_APPLICATIONS:{headers:Array(15)},MPS_DEPOSITS:{headers:Array(14)},MPS:{headers:Array(30)},
+    enqueueMpsAdminDecisionNotices_:(...args)=>{called=args;return{ok:true};}
+  };
+  vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
+  assert.equal(context.materializeMpsAdminDecisionIntent_({alertText:JSON.stringify({subject:app[0],member:'',decision:'reject',chatId:'987654321'})}),true);
+  assert.deepEqual(called,[app[0],'','reject','987654321',true]);
+});
