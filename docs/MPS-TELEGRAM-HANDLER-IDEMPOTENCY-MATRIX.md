@@ -59,3 +59,28 @@ The 24-test mocked Apps Script suite covers migration, preservation, schema fail
 Order membership transitions by a durable ingress-assigned `epoch` and canonical decimal Telegram `update_id`, not by event timestamp first. Telegram documents sequential update IDs for restoring out-of-order delivery and a random next ID after at least one week without new updates; updates are retained for no longer than 24 hours. Effect keys include epoch and update ID. Retries reuse the epoch persisted on first receipt.
 
 Keep source dates type-tagged for evidence only: `ChatMemberUpdated.date` is when membership changed; `ChatJoinRequest.date` is when the request was sent. They are not interchangeable activation timestamps. The synthetic model tests stale ordering in both directions, differing source dates, and a lower ID in a later epoch. Durable epoch assignment remains an integration gate.
+
+## Additional direct-send audit — 13 November 2026
+
+A second read-only pass over every `telegramSendToChat_()` and `sendTelegram_()` call site in `candidates/Code.gs` found the following remaining notification classes. These are deliberately not represented as outbox-complete:
+
+| Notification path | Data classification | Current delivery path | Decision / remaining work |
+|---|---|---|---|
+| Member PIN issuance and PIN reset | **Secret authentication material** (member ID + PIN) | Direct private Telegram send | Keep out of the generic queue. Design a secret-delivery mechanism with short-lived encrypted payload or reference-based retrieval, strict access controls, expiry, one-time consumption, and audit that never records the PIN. Add failure/retry semantics before changing this path. |
+| Admin approval/rejection member notice | Member decision and optional admin note; may contain personal context | Direct private Telegram send | Needs a stable decision/effect identity and a reviewed message-minimization policy. Do not blindly queue free-form admin notes. Separate member-safe templates from internal admin notification content. |
+| Admin archive notification | Operational/admin context | Direct admin Telegram send | Review payload for PII and make the decision event idempotent before moving to the generic outbox. |
+| VIP invite delivery | **Bearer access credential** (invite URL) | Direct private Telegram send after invite creation | Keep invite URL out of the generic text queue. Use a reference-only durable task and resolve the live invite at send time, or a separately protected encrypted secret store; revoke/expire on failed or ambiguous delivery. |
+| Application and legacy Telegram-link confirmation | Generic success text, no token/PIN | Direct private Telegram send after durable business writes | Suitable for a durable outbox, but requires a lock-safe refactor: current same-identity replay returns from inside ScriptLock, while queue insertion also acquires ScriptLock. Do not enqueue from inside the existing critical section. Persist a stable notification intent or restructure replay/commit flow so queue insertion occurs after lock release and is recoverable on same-identity replay. |
+| Invalid/expired-link and private-chat guidance | Generic operational guidance | Direct private Telegram send | Lower sensitivity, but still needs update-scoped idempotency and a clear policy for webhook retries. May be migrated after the verification confirmation path is made lock-safe. |
+
+### Security boundary
+
+The existing generic follow-up queue stores `Alert Text` in a spreadsheet. That storage model is appropriate only for reviewed non-secret templates and messages. It must not receive raw PINs, one-time verification tokens, invite URLs, webhook secrets, proof documents, or unrestricted admin notes. Hashing a task key does not protect secret text stored in the queue body.
+
+### Verification status
+
+- The audit is source inspection only; no live Telegram message was sent and no production resource was accessed or changed.
+- Existing candidate link replay tests verify identity binding and that replay does not repeat business writes. They do not yet verify durable delivery/recovery of the post-verification success notice.
+- No claim is made that the remaining direct-send paths are idempotent or crash-safe.
+- Next safe implementation slice: build a lock-safe, non-secret verification-notice intent with stable identity and mocked crash/replay tests; separately design protected PIN and invite-credential delivery before touching those flows.
+
