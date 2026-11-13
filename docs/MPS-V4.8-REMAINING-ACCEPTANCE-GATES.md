@@ -213,3 +213,9 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - Candidate Telegram handler integration and outbox suites, the `/start` command suppression/regression suite, candidate VIP runtime mocks, isolated-harness static checks, and Chromium browser checks all passed.
 - The run validates the candidate changes that route private `/start` welcomes and verified group `/start` notices through update-scoped durable message tasks, with ambiguous delivery quarantined rather than blindly retried.
 - This remains CI evidence using mocked Apps Script/Telegram services and local Chromium. It does not establish live GAS persistence, live Telegram delivery, trigger behavior, production authorization, or Android-device acceptance.
+
+### Telegram group-message delivery regression — 2026-11-13
+
+- GitHub Actions PR run **#1801** on code/test commit `5f952bc91d5f4a872dab4ed4c45e3fa01d6fa72d` completed **SUCCESS, 68/68 workflow steps, 0 failures**.
+- The run includes a positive-path regression proving a queued group `/start` message reaches `DONE` exactly once, plus the ambiguous-delivery test proving an uncertain send is quarantined as `REVIEW` and not resent automatically.
+- Candidate Telegram handler integration, edited-message suppression, VIP runtime mocks, static isolated-GAS safety, and Chromium browser checks all passed. No live GAS or Telegram test-bot execution is implied.
