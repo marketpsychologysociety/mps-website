@@ -21,11 +21,14 @@ function fakeSheet(headers=[]){
   let writes=0,formats=0;
   const sheet={
     getLastRow:()=>values.length,
-    getRange:(row,col,numRows=1,numCols=1)=>({
-      getDisplayValues:()=>Array.from({length:numRows},(_,ri)=>Array.from({length:numCols},(_,ci)=>String(values[row-1+ri]?.[col-1+ci]??''))),
-      setValues:data=>{writes++;for(let ri=0;ri<data.length;ri++){values[row-1+ri]??=[];for(let ci=0;ci<data[ri].length;ci++)values[row-1+ri][col-1+ci]=data[ri][ci];}return this;},
-      setBackground:()=>{formats++;return this;},setFontColor:()=>{formats++;return this;},setFontWeight:()=>{formats++;return this;},setWrap:()=>{formats++;return this;}
-    }),
+    getRange:(row,col,numRows=1,numCols=1)=>{
+      const range={
+        getDisplayValues:()=>Array.from({length:numRows},(_,ri)=>Array.from({length:numCols},(_,ci)=>String(values[row-1+ri]?.[col-1+ci]??''))),
+        setValues:data=>{writes++;for(let ri=0;ri<data.length;ri++){values[row-1+ri]??=[];for(let ci=0;ci<data[ri].length;ci++)values[row-1+ri][col-1+ci]=data[ri][ci];}return range;},
+        setBackground:()=>{formats++;return range;},setFontColor:()=>{formats++;return range;},setFontWeight:()=>{formats++;return range;},setWrap:()=>{formats++;return range;}
+      };
+      return range;
+    },
     setFrozenRows:()=>{formats++;},setHiddenGridlines:()=>{formats++;},
     stats:()=>({writes,formats,values:values.map(row=>row.slice())})
   };
