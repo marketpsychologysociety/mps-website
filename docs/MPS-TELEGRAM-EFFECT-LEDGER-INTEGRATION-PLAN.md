@@ -1,6 +1,6 @@
 # MPS Telegram effect-ledger integration plan
 
-**Status:** source-review plan only. The isolated Code.gs candidate was read without modification. The effect-ledger adapter is a mocked Apps Script candidate and is not connected to any webhook handler. No live spreadsheet, Apps Script deployment, Telegram bot, Script Properties, or production resource was accessed.
+**Status:** historical source-review plan with current candidate integration reconciliation in Section 9. Sections 1–7 preserve the original risks and acceptance design; they are not a statement that the current VIP `chat_member` integration is absent. The current Code.gs candidate wires that path to the scoped effect ledger and follow-up queue. No live spreadsheet, Apps Script deployment, Telegram bot, Script Properties, or production resource was accessed.
 
 ## 1. Source integration points
 
@@ -100,7 +100,7 @@ The local idle boundary is intentionally conservative. Telegram retains incoming
 
 **Important:** Sections 1–7 above record the earlier source-review state and must not be read as a description of the current workbench head. The isolated candidate has since been changed and the integration is now present in `candidates/Code.gs`.
 
-Verified by reading the candidate source at workbench head `9dea87015232e712395d5518163a794566e36fea` and the matching test files:
+Verified by reading the current workbench candidate source and matching integration/runtime test files:
 
 - `processTelegramUpdateCore_` passes the complete original Telegram update and `chat_member` event to `processMpsVipChatMemberEvent_(update, memberUpdate)`. The handler requires the original `update_id`, source event date, old/new membership state, and hashes the original event.
 - `createMpsGasVipChatMemberHandler_` derives the membership transition from `old_chat_member` and `new_chat_member`; unchanged membership and unknown states are ignored. It sends the update into the transition orchestrator with a deterministic ordering epoch and source timestamp.
