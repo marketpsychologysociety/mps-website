@@ -320,7 +320,7 @@ test('audit pruning may exceed soft cap rather than delete durable keyed rows',(
 });
 
 
-const queueConstant=candidate.match(/const MPS_VIP_FOLLOWUP_QUEUE = Object\\.freeze\\([\\s\\S]*?\\);/)[0];
+const queueConstant=candidate.match(/const MPS_VIP_FOLLOWUP_QUEUE = Object\.freeze\([\s\S]*?\);/)[0];
 const schemaStorageInspectorSource=queueConstant+'\n'+extract('inspectMpsVipTransitionStorageSchemas_','apiAdminInspectMemberSchemaV480');
 const schemaPreflightSource=extract('apiAdminInspectMemberSchemaV480','apiAdminMigrateMemberSheetToV480');
 const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Telegram User ID','Target State','Source Type','Source Date','Payload SHA-256','Ticker Allowed','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
