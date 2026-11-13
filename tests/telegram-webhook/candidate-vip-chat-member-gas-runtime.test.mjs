@@ -100,7 +100,8 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
   duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},
   duplicateMember(){data.get('Database Member').push(data.get('Database Member')[1].slice());},
   setEligible(value){data.get('Database Member')[1][7]=value?'Berhasil':'Menunggu Verifikasi';data.get('Database Member')[1][14]=value?'Disetujui':'Menunggu Verifikasi';},
-  setFollowupFailures(value){failRevoke=value;failKick=value;}
+  setFollowupFailures(value){failRevoke=value;failKick=value;},
+  setKickFailure(value){failKick=value;}
  };
 }
 function event(updateId,sourceDate,oldStatus,newStatus,userId='987654321'){
@@ -228,6 +229,18 @@ test('eligibility revoked after activation: same Telegram replay preserves immut
  assert.equal(h.stats().held,false);
 });
 
+test('eligibility revocation retries kick independently after invite link was already revoked',()=>{
+ const h=runtime(),update=event(7405,1760000404,'left','member');
+ assert.equal(h.process(update),'ACTIVE');
+ h.setEligible(false);
+ h.setKickFailure(true);
+ assert.throws(()=>h.process(update),/VIP_UNAUTHORIZED_MEMBER_REMOVAL_PENDING/);
+ h.setKickFailure(false);
+ assert.equal(h.process(update),'DUPLICATE');
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'ACTIVE');
+ assert.equal(h.stats().held,false);
+ assert.equal(h.stats().networkCalls,6,'initial revoke, then replay revoke+failed kick, then replay revoke+successful kick');
+});
 test('candidate ignores member-to-admin role changes because membership remains active',()=>{
  const h=runtime();
  assert.equal(h.process(event(7200,1760000200,'member','administrator')),'IGNORED');
