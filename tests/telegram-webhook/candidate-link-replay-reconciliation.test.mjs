@@ -23,35 +23,46 @@ function harness({kind='application',storedUser=userId,storedChat=chatId,expired
     kind==='legacy'?'MPS-ABCDEF12':'','MPS-APP-0123456789ABCDEF0123',storedUser,storedChat,'same_user','Same',new Date()];
   const rows=[headers.slice(),link.slice()];
   const events=[];
-  const sheet={
-    getLastRow:()=>rows.length,
-    getRange(row,col,nr=1,nc=1){return{
-      getValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>rows[row-1+ri]?.[col-1+ci]??'')),
-      getDisplayValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>String(rows[row-1+ri]?.[col-1+ci]??''))),
-      getValue:()=>rows[row-1]?.[col-1]??'',
-      getDisplayValue:()=>String(rows[row-1]?.[col-1]??''),
-      setValue:value=>{rows[row-1][col-1]=value;},
-      setValues:values=>values.forEach((line,ri)=>line.forEach((value,ci)=>{rows[row-1+ri][col-1+ci]=value;}))
-    };},
-    appendRow:row=>rows.push(row.slice())
-  };
+  function makeSheet(data){
+    return{
+      getLastRow:()=>data.length,
+      getRange(row,col,nr=1,nc=1){return{
+        getValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>data[row-1+ri]?.[col-1+ci]??'')),
+        getDisplayValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>String(data[row-1+ri]?.[col-1+ci]??''))),
+        getValue:()=>data[row-1]?.[col-1]??'',
+        getDisplayValue:()=>String(data[row-1]?.[col-1]??''),
+        setValue:value=>{data[row-1][col-1]=value;},
+        setValues:values=>values.forEach((line,ri)=>line.forEach((value,ci)=>{data[row-1+ri][col-1+ci]=value;}))
+      };},
+      appendRow:row=>data.push(row.slice())
+    };
+  }
+  const accessRows=[Array(11).fill(''),['MPS-ABCDEF12',storedUser,storedChat,'same_user','Same',true,'Menunggu','','','','']];
+  const appData=Array(15).fill('');appData[0]='MPS-APP-0123456789ABCDEF0123';appData[10]='Terverifikasi';appData[11]=storedUser;appData[12]=storedChat;
+  const appRows=[Array(15).fill(''),appData];
+  const memberData=Array(30).fill('');memberData[0]='MPS-ABCDEF12';
+  const memberRows=[Array(30).fill(''),memberData];
+  const sheet=makeSheet(rows),accessSheet=makeSheet(accessRows),appSheet=makeSheet(appRows),memberSheet=makeSheet(memberRows);
   let lockHeld=false,lockAcquires=0,lockReleases=0;
   const context={
     console,
     MPS_MEMBER_LINKS:{headers},
-    MPS_APPLICATIONS:{headers:[]},
-    MPS:{headers:[]},
-    MPS_COL:{},
+    MPS_APPLICATIONS:{headers:Array(15).fill('')},
+    MPS:{headers:Array(30).fill('')},
+    MPS_COL:{id:1},
     LockService:{getScriptLock:()=>({
       waitLock:()=>{assert.equal(lockHeld,false);lockHeld=true;lockAcquires++;},
       releaseLock:()=>{assert.equal(lockHeld,true);lockHeld=false;lockReleases++;}
     })},
     getMpsMemberLinksSheet_:()=>sheet,
     findMpsMemberLinkRow_:()=>2,
-    getTelegramAccessSheet_:()=>{events.push('access-read');throw Error('must not read access on replay');},
-    getMpsApplicationsSheet_:()=>{events.push('application-read');throw Error('must not read application on replay');},
-    getMpsDepositsSheet_:()=>{events.push('deposit-read');throw Error('must not read deposit on replay');},
-    getMemberSheet_:()=>{events.push('member-read');throw Error('must not read member on replay');},
+    getTelegramAccessSheet_:()=>accessSheet,
+    findTelegramAccessByUserId_:()=>storedUser===userId?2:0,
+    getMpsApplicationsSheet_:()=>appSheet,
+    findMpsApplicationRow_:()=>2,
+    getMemberSheet_:()=>memberSheet,
+    findMemberById_:()=>2,
+    getMpsDepositsSheet_:()=>{events.push('deposit-read');throw Error('deposit must not be changed on replay');},
     sha256_:()=> 'hash',
     telegramSendToChat_:(...args)=>{events.push(['telegram',...args]);return{ok:true};},
     recordMpsAudit_:(...args)=>events.push(['audit',...args]),
