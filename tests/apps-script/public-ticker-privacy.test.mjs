@@ -117,7 +117,9 @@ test('publicCenter GET bridge returns a text-only strict data envelope without e
   assert.equal(response.body,'window.MPS_PUBLIC_CENTER_DATA='+JSON.stringify(payload)+';');
   const parsed=JSON.parse(response.body.slice('window.MPS_PUBLIC_CENTER_DATA='.length,-1));
   assert.equal(parsed.activity[0].MemberId,'MPS-ABCDEF12');
-  assert.doesNotMatch(response.body,/\\beval\\s*\\(|<script|javascript:/i);
+  assert.ok(!response.body.includes('eval('));
+  assert.ok(!response.body.includes('<script'));
+  assert.ok(!response.body.toLowerCase().includes('javascript:'));
 });
 
 test('public Center does not project Market Pulse or premium calendar/news payloads',()=>{
