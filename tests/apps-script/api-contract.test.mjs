@@ -510,21 +510,21 @@ test('Market Pulse data reader fails closed on a shared parent folder or shared 
       getLearningFolderId_:()=> 'learning-folder',
       validateMarketPulseSource_:value=>({ok:true,source:value})
     };
-    const result=runInNewContext('('+reader+')()',context);
-    return {result,stats:()=>({enumerations,blobReads})};
+    const read=runInNewContext('('+reader+')',context);
+    return {read,stats:()=>({enumerations,blobReads})};
   }
   const sharedFolder=harness({folderAccess:'ANYONE'});
-  assert.throws(()=>sharedFolder.result,/Folder Learning tidak PRIVATE/);
+  assert.throws(()=>sharedFolder.read(),/Folder Learning tidak PRIVATE/);
   assert.deepEqual(sharedFolder.stats(),{enumerations:0,blobReads:0});
   const sharedFile=harness({fileAccess:'ANYONE'});
-  assert.throws(()=>sharedFile.result,/File Market Pulse tidak PRIVATE/);
+  assert.throws(()=>sharedFile.read(),/File Market Pulse tidak PRIVATE/);
   assert.deepEqual(sharedFile.stats(),{enumerations:1,blobReads:0});
   const privateSource=harness();
   assert.equal(privateSource.result.ok,true);
   assert.equal(privateSource.result.source,'validated-source');
   assert.deepEqual(privateSource.stats(),{enumerations:1,blobReads:1});
   const duplicate=harness({duplicate:true});
-  assert.throws(()=>duplicate.result,/lebih dari satu file data Pulse/);
+  assert.throws(()=>duplicate.read(),/lebih dari satu file data Pulse/);
   assert.deepEqual(duplicate.stats(),{enumerations:1,blobReads:0});
 });
 
