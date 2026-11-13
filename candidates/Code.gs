@@ -1173,7 +1173,7 @@ function apiAdminSaveLearningCatalog(session,payload) {
   if(file.isTrashed()||file.getMimeType()!==MimeType.PDF||file.getSize()>MPS.maxLearningFileBytes||String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('File harus berupa PDF aktif maksimal 8 MB dan berstatus PRIVATE.');
   let inFolder=false,parents=file.getParents();while(parents.hasNext())if(parents.next().getId()===folderId)inFolder=true;
   if(!inFolder)throw new Error('PDF harus berada di folder Learning privat MPS.');
-  const sh=getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers,false);
+  const sh=getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers);
   upsertMpsContentRow_(sh,fileId,[fileId,sheetText_(title),sheetText_(category),sheetText_(level),sheetText_(description),Math.round(order),status,new Date()]);const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'LEARNING_CATALOG_UPDATED',fileId,'SUCCESS','Katalog materi '+status+'.');
   return {ok:true,message:'Katalog materi Learning diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
@@ -1196,7 +1196,7 @@ function apiAdminUploadLearningFile(session,payload) {
     file=folder.createFile(blob);
     file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     if(String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Akses PDF baru tidak dapat dipastikan PRIVATE.');
-    catalogSheet=getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers,false);
+    catalogSheet=getMpsContentSheet_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers);
     const row=[file.getId(),sheetText_(title),sheetText_(category),sheetText_(level),sheetText_(description),Math.round(order),status,new Date()];
     upsertMpsContentRow_(catalogSheet,file.getId(),row);
   }catch(err){
@@ -1279,7 +1279,7 @@ function apiMemberSetLearningProgress(session,fileId,completed) {
     'Pembaruan progres terlalu sering. Tunggu satu menit lalu coba kembali.');
   const id=String(fileId||'').trim();if(!/^[A-Za-z0-9_-]{15,}$/.test(id))throw new Error('File materi tidak valid.');
   const visible=listLearningFiles_(member.memberId,false).files.some(f=>f.id===id);if(!visible)throw new Error('Materi tidak tersedia untuk member ini.');
-  const sh=getMpsContentSheet_(MPS_LEARNING_PROGRESS.sheet,MPS_LEARNING_PROGRESS.headers,false),done=completed===true||String(completed)==='true',now=new Date(),record=[member.memberId,id,done,done?now:'',now];
+  const sh=getMpsContentSheet_(MPS_LEARNING_PROGRESS.sheet,MPS_LEARNING_PROGRESS.headers),done=completed===true||String(completed)==='true',now=new Date(),record=[member.memberId,id,done,done?now:'',now];
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{let row=0;if(sh.getLastRow()>1){const vals=sh.getRange(2,1,sh.getLastRow()-1,2).getDisplayValues();for(let i=0;i<vals.length;i++)if(vals[i][0]===member.memberId&&vals[i][1]===id){row=i+2;break;}}
     if(row)sh.getRange(row,1,1,5).setValues([record]);else sh.appendRow(record);
@@ -2563,7 +2563,7 @@ function apiAdminInitializeContent(session) {
 
 function readMpsWebsiteSettings_() {
   const defaults={enabled:true,speed:34,theme:'Neon',prefix:'VIP LIVE',suffix:'bergabung ke MPS VIP Community'};
-  const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers,false);if(!sh||sh.getLastRow()<2)return defaults;
+  const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers);if(!sh||sh.getLastRow()<2)return defaults;
   const rows=readMpsContentRows_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers),out=Object.assign({},defaults);
   rows.forEach(function(r){const k=String(r.Key||'');if(k==='VIP_TICKER_ENABLED')out.enabled=String(r.Value)==='true';if(k==='VIP_TICKER_SPEED')out.speed=Math.max(10,Math.min(120,Number(r.Value)||34));if(k==='VIP_TICKER_THEME'&&['Neon','Gold','Blue','Purple'].includes(String(r.Value)))out.theme=String(r.Value);if(k==='VIP_TICKER_PREFIX'){const v=clean_(r.Value,24);if(v&&isSafePublicIdentity_(v))out.prefix=v;}if(k==='VIP_TICKER_SUFFIX'){const v=clean_(r.Value,100);if(v&&isSafePublicIdentity_(v))out.suffix=v;}});
   return out;
@@ -2577,7 +2577,7 @@ function apiAdminSaveWebsiteSettings(session,payload) {
   if(!isSafePublicIdentity_(prefix)||!isSafePublicIdentity_(suffix))throw new Error('Label ticker tidak boleh memuat nomor kontak, email, ID member, login MT5, atau tautan pribadi.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
-    const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers,false);
+    const sh=getMpsContentSheet_(MPS_SITE_SETTINGS.sheet,MPS_SITE_SETTINGS.headers);
     const values={VIP_TICKER_ENABLED:String(payload.enabled===true),VIP_TICKER_SPEED:String(Math.round(speed)),VIP_TICKER_THEME:theme,VIP_TICKER_PREFIX:prefix,VIP_TICKER_SUFFIX:suffix};
     const changes=[];
     try{
@@ -2608,7 +2608,7 @@ function putMpsCacheBestEffort_(key,value,ttl,context) {
 
 function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
   try{
-    const sh=getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,false);
+    const sh=getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers);
     sh.appendRow([new Date(),clean_(role,20),sheetText_(clean_(actorRef,60)),clean_(action,60),sheetText_(clean_(targetRef,100)),clean_(result,30),sheetText_(cleanNewsText_(details,240))]);
     const last=sh.getLastRow();
     if(last>2001){
@@ -2859,7 +2859,7 @@ function syncMpsNews_() {
 }
 
 function syncMpsNewsCore_() {
-  const sh = getMpsContentSheet_(MPS_CONTENT.newsSheet,MPS_CONTENT.newsHeaders,false);
+  const sh = getMpsContentSheet_(MPS_CONTENT.newsSheet,MPS_CONTENT.newsHeaders);
   const existing = {};
   if (sh.getLastRow() > 1) sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues().forEach(function(r){existing[String(r[0])]=true;});
   const sources = [
@@ -2926,7 +2926,7 @@ function syncMpsNewsCore_() {
 function apiAdminSaveNewsAnalysis(session,payload) {
   requireSuperAdmin_(session);payload=payload||{};
   const id=clean_(payload.newsId,60);if(!id)throw new Error('ID berita wajib diisi.');
-  const newsSheet=getMpsContentSheet_(MPS_CONTENT.newsSheet,MPS_CONTENT.newsHeaders,false);
+  const newsSheet=getMpsContentSheet_(MPS_CONTENT.newsSheet,MPS_CONTENT.newsHeaders);
   if(!newsSheet||!findMpsContentRow_(newsSheet,id))throw new Error('Berita sumber tidak ditemukan.');
   const impact=cleanNewsText_(payload.impactSummary,700),usd=String(payload.usdImpact||'Mixed'),bias=String(payload.xauusdBias||'Two-way');
   const bull=cleanNewsText_(payload.bullishScenario,700),bear=cleanNewsText_(payload.bearishScenario,700),neutral=cleanNewsText_(payload.neutralScenario,700);
@@ -2934,7 +2934,7 @@ function apiAdminSaveNewsAnalysis(session,payload) {
   const status=String(payload.status||'Draft');
   if(!['Stronger','Weaker','Mixed','Neutral'].includes(usd)||!['Bullish','Bearish','Neutral','Two-way'].includes(bias)||!['Draft','Published'].includes(status))throw new Error('Pilihan analisis tidak valid.');
   if(status==='Published'&&(!impact||!bull||!bear||!neutral||!risk))throw new Error('Analisis publikasi wajib memuat dampak, skenario bullish/bearish/netral, dan risiko volatilitas.');
-  const sh=getMpsContentSheet_(MPS_NEWS_ANALYSIS.sheet,MPS_NEWS_ANALYSIS.headers,false);
+  const sh=getMpsContentSheet_(MPS_NEWS_ANALYSIS.sheet,MPS_NEWS_ANALYSIS.headers);
   const row=[id,sheetText_(impact),usd,bias,sheetText_(bull),sheetText_(bear),sheetText_(neutral),sheetText_(risk),sheetText_(context),status,new Date()];upsertMpsContentRow_(sh,id,row);
   removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_ANALYSIS_SAVED',id,'SUCCESS','Analisis berita disimpan dengan status '+status+'.');
   return {ok:true,message:status==='Published'?'Analisis MPS siap dipakai untuk publikasi berita.':'Draft analisis disimpan.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
@@ -2953,7 +2953,7 @@ function apiSubmitAdvertisingRequest(payload) {
   consumeRateLimit_('mps_ad_request_'+sha256_(email).slice(0,24),3,86400,'Email ini sudah mengirim beberapa proposal dalam 24 jam terakhir. Hubungi admin MPS.');
   const packageId=clean_(payload.packageId,60);
   if(packageId){const packages=readMpsContentRows_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers);if(!packages.some(function(x){return String(x['Package ID'])===packageId&&x.Status==='Active';}))throw new Error('Paket iklan tidak tersedia. Pilih paket yang masih aktif.');}
-  const sh=getMpsContentSheet_(MPS_AD_REQUESTS.sheet,MPS_AD_REQUESTS.headers,false);
+  const sh=getMpsContentSheet_(MPS_AD_REQUESTS.sheet,MPS_AD_REQUESTS.headers);
   const id='AR-'+Utilities.getUuid().replace(/-/g,'').slice(0,16).toUpperCase(),now=new Date();
   sh.appendRow([id,now,sheetText_(brand),sheetText_(contact),sheetText_(email),sheetText_(handle),sheetText_(proposal),sheetText_(material),sheetText_(target),sheetText_(clean_(payload.placement||'Belum ditentukan',40)),sheetText_(clean_(payload.duration,60)),sheetText_(cleanNewsText_(payload.offer,1000)),'Pending','','Belum Diverifikasi',now,packageId]);
   recordMpsAudit_('PUBLIC','ADVERTISER','AD_REQUEST_SUBMITTED',id,'SUCCESS','Proposal kerja sama iklan diterima untuk review admin.');
@@ -2965,7 +2965,7 @@ function apiAdminSaveAdPackage(session,payload) {
   const name=clean_(payload.name,100),description=cleanNewsText_(payload.description,500),price=Number(payload.price),days=Number(payload.durationDays),placement=clean_(payload.placement||'Public Home',50),status=String(payload.status||'Draft');
   if(!name||!Number.isSafeInteger(price)||price<0||!Number.isInteger(days)||days<1||days>365||!['Active','Draft','Hidden'].includes(status))throw new Error('Nama, harga, durasi, atau status paket tidak valid.');
   if(!['Public Home','Member Area','VIP Community'].includes(placement))throw new Error('Placement paket iklan tidak valid.');
-  const sh=getMpsContentSheet_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers,false),id=clean_(payload.packageId,60)||('PKG-'+Utilities.getUuid().replace(/-/g,'').slice(0,12).toUpperCase());
+  const sh=getMpsContentSheet_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers),id=clean_(payload.packageId,60)||('PKG-'+Utilities.getUuid().replace(/-/g,'').slice(0,12).toUpperCase());
   upsertMpsContentRow_(sh,id,[id,sheetText_(name),sheetText_(description),price,days,sheetText_(placement),status,new Date()]);
   removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_PACKAGE_SAVED',id,'SUCCESS','Paket iklan diperbarui.');return {ok:true,packageId:id,message:'Paket iklan disimpan.'};
 }
@@ -2982,7 +2982,7 @@ function apiAdminReviewAdvertisingRequest(session,requestId,decision,note,paymen
   if(!['Belum Diverifikasi','Menunggu Pembayaran','Paid','Gagal'].includes(payment))throw new Error('Status pembayaran tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
-    const sh=getMpsContentSheet_(MPS_AD_REQUESTS.sheet,MPS_AD_REQUESTS.headers,false),row=sh?findMpsContentRow_(sh,id):0;
+    const sh=getMpsContentSheet_(MPS_AD_REQUESTS.sheet,MPS_AD_REQUESTS.headers),row=sh?findMpsContentRow_(sh,id):0;
     if(!row)throw new Error('Proposal iklan tidak ditemukan.');
     const status=choice==='review'?'Under Review':choice==='approve'?'Approved':'Rejected';
     sh.getRange(row,13,1,4).setValues([[status,sheetText_(clean_(note,500)),payment,new Date()]]);
@@ -3000,11 +3000,11 @@ function apiAdminPublishAdvertisingRequest(session,payload) {
   const placement=clean_(payload.placement||'Public Home',40);if(!['Public Home','Website publik','Member Area','VIP Community'].includes(placement))throw new Error('Placement iklan tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(15000);
   try{
-    const req=getMpsContentSheet_(MPS_AD_REQUESTS.sheet,MPS_AD_REQUESTS.headers,false),rr=req?findMpsContentRow_(req,requestId):0;
+    const req=getMpsContentSheet_(MPS_AD_REQUESTS.sheet,MPS_AD_REQUESTS.headers),rr=req?findMpsContentRow_(req,requestId):0;
     if(!rr)throw new Error('Proposal iklan tidak ditemukan.');
     const request=req.getRange(rr,1,1,MPS_AD_REQUESTS.headers.length).getValues()[0];
     if(String(request[12])!=='Approved'||String(request[14])!=='Paid')throw new Error('Iklan hanya dapat diterbitkan setelah disetujui admin dan pembayaran dikonfirmasi Paid.');
-    const ads=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers,false);
+    const ads=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers);
     const existing=readMpsContentRows_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers).some(function(a){return String(a['Request ID'])===requestId;});
     if(existing)throw new Error('Proposal ini sudah memiliki iklan terbit.');
     const adId='AD-'+Utilities.getUuid().replace(/-/g,'').slice(0,16).toUpperCase(),now=new Date(),requestBefore=request.slice(),previousAdLast=ads.getLastRow();
@@ -3042,13 +3042,13 @@ function apiAdminSaveNewsReview(session, id, decision, category, summary) {
   requireSuperAdmin_(session);
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
-  const sh = getMpsContentSheet_(MPS_CONTENT.newsSheet,MPS_CONTENT.newsHeaders,false);
+  const sh = getMpsContentSheet_(MPS_CONTENT.newsSheet,MPS_CONTENT.newsHeaders);
   const row = findMpsContentRow_(sh,id);
   if (!row) throw new Error('Berita tidak ditemukan.');
   const choice = String(decision||'').toLowerCase();
   if (choice !== 'publish' && choice !== 'hide') throw new Error('Keputusan berita tidak valid.');
   if(choice==='publish'){
-    const analysisSheet=getMpsContentSheet_(MPS_NEWS_ANALYSIS.sheet,MPS_NEWS_ANALYSIS.headers,false);
+    const analysisSheet=getMpsContentSheet_(MPS_NEWS_ANALYSIS.sheet,MPS_NEWS_ANALYSIS.headers);
     const analysisRow=analysisSheet?findMpsContentRow_(analysisSheet,id):0;
     if(!analysisRow||String(analysisSheet.getRange(analysisRow,10).getDisplayValue()||'')!=='Published') throw new Error('Lengkapi dan publikasikan analisis dampak USD/XAUUSD sebelum berita diterbitkan.');
   }
@@ -3088,7 +3088,7 @@ function apiAdminSaveAnnouncement(session,payload) {
   if(!Number.isFinite(priority)||priority<0||priority>9)throw new Error('Prioritas pengumuman harus bernilai 0 sampai 9.');
   if(startAt&&endAt&&endAt.getTime()<startAt.getTime())throw new Error('Akhir tayang tidak boleh lebih awal dari mulai tayang.');
   const status=String(payload.status||'Draft');if(!['Draft','Published','Hidden'].includes(status))throw new Error('Status pengumuman tidak valid.');
-  const sh=getMpsContentSheet_(MPS_ANNOUNCEMENTS.sheet,MPS_ANNOUNCEMENTS.headers,false),id=clean_(payload.id,60)||('A-'+Utilities.getUuid().slice(0,12).toUpperCase());
+  const sh=getMpsContentSheet_(MPS_ANNOUNCEMENTS.sheet,MPS_ANNOUNCEMENTS.headers),id=clean_(payload.id,60)||('A-'+Utilities.getUuid().slice(0,12).toUpperCase());
   const existing=findMpsContentRow_(sh,id),created=existing?sh.getRange(existing,2).getValue():new Date();
   const row=[id,created,sheetText_(title),sheetText_(clean_(payload.category||'Pengumuman',50)),sheetText_(body),audience,Math.round(priority),startAt,endAt,status,display,sheetText_(image),sheetText_(clean_(payload.buttonText||'',50)),sheetText_(buttonUrl),frequency,theme,animation,new Date()];
   upsertMpsContentRow_(sh,id,row);removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'ANNOUNCEMENT_SAVED',id,'SUCCESS','Pengumuman '+audience+' diperbarui.');
@@ -3104,7 +3104,7 @@ function apiAdminSaveCalendarEvent(session, payload) {
   if (source && !validHttpsUrl_(source)) throw new Error('URL sumber harus menggunakan HTTPS.');
   if(!['Draft','Published','Hidden'].includes(status))throw new Error('Status event tidak valid.');
   if(status==='Published'&&!validHttpsUrl_(source))throw new Error('Event kalender harus memiliki URL sumber HTTPS sebelum dipublikasikan.');
-  const sh = getMpsContentSheet_(MPS_CONTENT.calendarSheet,MPS_CONTENT.calendarHeaders,false);
+  const sh = getMpsContentSheet_(MPS_CONTENT.calendarSheet,MPS_CONTENT.calendarHeaders);
   const id = clean_(payload.id,60) || ('E-'+Utilities.getUuid().slice(0,12).toUpperCase());
   const row = [id,date,time,sheetText_(clean_(payload.country||'United States',50)),sheetText_(name),impact,sheetText_(clean_(payload.forecast,80)),sheetText_(clean_(payload.previous,80)),sheetText_(clean_(payload.actual,80)),sheetText_(source),status,new Date()];
   upsertMpsContentRow_(sh,id,row);
@@ -3120,7 +3120,7 @@ function apiAdminSavePartnerAd(session, payload) {
   if (image && !validHttpsUrl_(image)) throw new Error('URL gambar harus menggunakan HTTPS.');
   const startAt = parseOptionalDate_(payload.startAt), endAt = parseOptionalDate_(payload.endAt);
   if (startAt && endAt && endAt.getTime() < startAt.getTime()) throw new Error('Akhir tayang iklan tidak boleh lebih awal dari mulai tayang.');
-  const sh = getMpsContentSheet_(MPS_CONTENT.adsSheet,MPS_CONTENT.adsHeaders,false);
+  const sh = getMpsContentSheet_(MPS_CONTENT.adsSheet,MPS_CONTENT.adsHeaders);
   const id = clean_(payload.id,60) || ('AD-'+Utilities.getUuid().slice(0,12).toUpperCase());
   const existing = findMpsContentRow_(sh,id), created = existing ? sh.getRange(existing,2).getValue() : new Date();
   const row = [id,created,sheetText_(brand),sheetText_(title),sheetText_(clean_(payload.description,500)),sheetText_(image),sheetText_(target),sheetText_(clean_(payload.placement||'Main',30)),startAt,endAt,String(payload.status||'Active')==='Hidden'?'Hidden':'Active',existing?Number(sh.getRange(existing,12).getValue()||0):0,new Date()];
@@ -3137,7 +3137,7 @@ function apiAdminSaveVipBriefing(session, payload) {
   if (source && !validHttpsUrl_(source)) throw new Error('URL sumber harus menggunakan HTTPS.');
   if(!['Draft','Published','Hidden'].includes(status))throw new Error('Status briefing tidak valid.');
   if(status==='Published'&&!source)throw new Error('VIP briefing Published wajib memiliki sumber atau referensi HTTPS.');
-  const sh = getMpsContentSheet_(MPS_CONTENT.briefingSheet,MPS_CONTENT.briefingHeaders,false);
+  const sh = getMpsContentSheet_(MPS_CONTENT.briefingSheet,MPS_CONTENT.briefingHeaders);
   const id = clean_(payload.id,60) || ('VIP-'+Utilities.getUuid().slice(0,12).toUpperCase());
   const existing = findMpsContentRow_(sh,id), created = existing ? sh.getRange(existing,2).getValue() : new Date();
   upsertMpsContentRow_(sh,id,[id,created,sheetText_(title),sheetText_(clean_(payload.category||'Market Intelligence',50)),sheetText_(cleanNewsText_(payload.summary,500)),sheetText_(body),sheetText_(source),status,new Date()]);
@@ -3153,7 +3153,7 @@ function apiAdminUpdateApprovedAd(session,payload) {
   const placement=clean_(payload.placement||'Public Home',40);if(!['Public Home','Website publik','Member Area','VIP Community'].includes(placement))throw new Error('Placement iklan tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
-    const sh=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers,false),row=sh?findMpsContentRow_(sh,id):0;if(!row)throw new Error('Iklan tidak ditemukan.');
+    const sh=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers),row=sh?findMpsContentRow_(sh,id):0;if(!row)throw new Error('Iklan tidak ditemukan.');
     const v=sh.getRange(row,1,1,MPS_APPROVED_ADS.headers.length).getValues()[0];if(String(v[12])!=='Paid')throw new Error('Iklan yang belum lunas tidak dapat diperbarui atau ditayangkan.');
     const values=[sheetText_(title),sheetText_(description),sheetText_(image),sheetText_(target),placement,start,end,v[11],v[12],v[13],new Date()];
     sh.getRange(row,5,1,11).setValues([values]);removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_UPDATED',id,'SUCCESS','Materi, placement, atau jadwal iklan diperbarui.');return {ok:true,message:'Materi, placement, atau jadwal iklan diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
@@ -3168,7 +3168,7 @@ function apiAdminSetContentStatus(session,type,id,status) {
   if(allowed.indexOf(String(status))<0)throw new Error(type==='news'&&status==='Published'?'Publikasi berita harus melalui News Review agar analisis, sumber, dan verifikasi diperiksa.':'Status konten tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
-    const sh=getMpsContentSheet_(cfg[0],cfg[1],false),row=sh?findMpsContentRow_(sh,id):0;if(!row)throw new Error('Konten tidak ditemukan.');
+    const sh=getMpsContentSheet_(cfg[0],cfg[1]),row=sh?findMpsContentRow_(sh,id):0;if(!row)throw new Error('Konten tidak ditemukan.');
     const values=sh.getRange(row,1,1,cfg[1].length).getDisplayValues()[0];
     if(status==='Published'&&type==='calendar'){
       if(!String(values[4]||'').trim()||!['High','Medium','Low'].includes(String(values[5]||''))||!dateMs_(values[1]))throw new Error('Event kalender wajib memiliki tanggal, nama event, dan tingkat dampak yang valid.');
@@ -3200,7 +3200,7 @@ function apiTrackPartnerClick(id,session) {
   const adId=clean_(id,60);if(!/^AD-[A-F0-9-]{8,}$/i.test(adId))return {ok:false};
   // Bound public traffic before any Spreadsheet read, including syntactically valid unknown IDs.
   consumeRateLimit_('mps_ad_click_global',1200,60,'Terlalu banyak klik iklan.');
-  const sh=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers,false),row=sh?findMpsContentRow_(sh,adId):0;
+  const sh=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers),row=sh?findMpsContentRow_(sh,adId):0;
   if(!row)return {ok:false};
   const v=sh.getRange(row,1,1,MPS_APPROVED_ADS.headers.length).getValues()[0],placement=String(v[8]||'');
   if(String(v[11])!=='Approved'||String(v[12])!=='Paid'||!isWithinWindow_(v[9],v[10]))return {ok:false};
@@ -3221,20 +3221,25 @@ function apiTrackPartnerClick(id,session) {
 function recordMpsActivity_(eventType, publicText, publicName) {
   const text=clean_(publicText,180),name=clean_(publicName,80);
   if(!text||/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b\+?\d[\d ()-]{7,}\b|\b(?:MT5|LOGIN)\s*[:#-]?\s*\d{4,}\b)/i.test(text+' '+name))return false;
-  const sh=getMpsContentSheet_(MPS_ACTIVITY.sheet,MPS_ACTIVITY.headers,false);sh.appendRow([Utilities.getUuid(),String(eventType||'').slice(0,40),sheetText_(text),sheetText_(name),new Date()]);return true;
+  const sh=getMpsContentSheet_(MPS_ACTIVITY.sheet,MPS_ACTIVITY.headers);sh.appendRow([Utilities.getUuid(),String(eventType||'').slice(0,40),sheetText_(text),sheetText_(name),new Date()]);return true;
 }
 
-function getMpsContentSheet_(name, headers, createIfMissing) {
+/**
+ * Read-only lookup for optional content sheets. Missing and existing-but-empty
+ * tabs are both treated as an empty dataset. This function MUST NOT create tabs,
+ * write headers, format cells, or acquire locks; schema creation belongs only
+ * to the explicit Super Admin provisioning endpoints.
+ */
+function getMpsContentSheet_(name, headers) {
   const ss=openDatabase_(),sh=ss.getSheetByName(name);
-  if(!sh||sh.getLastRow()<1){
-    if(createIfMissing)throw new Error('Konfigurasi database belum lengkap: tab '+name+' belum disediakan. Jalankan Inisialisasi oleh Super Admin.');
-    return null;
-  }
-  return getMpsSheetStrict_(name,headers);
+  if(!sh||sh.getLastRow()<1)return null;
+  const actual=sh.getRange(1,1,1,headers.length).getDisplayValues()[0];
+  headers.forEach(function(h,i){if(String(actual[i]||'').trim()!==h)throw new Error('Header sheet '+name+' tidak sesuai pada kolom '+(i+1)+'. Tidak ada data yang diubah.');});
+  return sh;
 }
 
 function readMpsContentRows_(name, headers) {
-  const sh = getMpsContentSheet_(name,headers,false); if (!sh || sh.getLastRow()<2) return [];
+  const sh = getMpsContentSheet_(name,headers); if (!sh || sh.getLastRow()<2) return [];
   const values = sh.getRange(2,1,sh.getLastRow()-1,headers.length).getValues();
   return values.filter(function(row){return String(row[0]||'').trim()!=='';}).map(function(row){const o={};headers.forEach(function(h,i){o[h]=row[i] instanceof Date ? row[i].toISOString() : row[i];});return o;});
 }
