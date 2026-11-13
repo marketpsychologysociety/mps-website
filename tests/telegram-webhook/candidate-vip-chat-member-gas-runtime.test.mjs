@@ -36,7 +36,7 @@ const cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Up
 const auditHeaders=['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details'];
 const tickerHeaders=['Event ID','Created At','Member ID','Member Name','Event Text','Status'];
 
-function runtime({eligible=true,failCache=false}={}){
+function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}={}){
  const member=Array(memberHeaders.length).fill('');
  member[0]='MPS-ABCDEF12';member[2]='Trader MPS';member[7]=eligible?'Berhasil':'Menunggu Verifikasi';
  member[8]='Budi Santoso';member[14]=eligible?'Disetujui':'Menunggu Verifikasi';
