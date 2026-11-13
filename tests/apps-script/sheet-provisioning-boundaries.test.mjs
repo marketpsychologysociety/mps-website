@@ -115,6 +115,7 @@ test('deposit storage is validated before any proof file is created',()=>{
 
 test('all operational content-sheet reads use a strict read-only path with no provisioning flag',()=>{
   const body=extract('getMpsContentSheet_');
-  assert.match(body,/if\\(!sh\\|\\|sh\\.getLastRow\\(\\)<1\\)return null/);
+  assert.ok(body.includes('if(!sh||sh.getLastRow()<1)return null'));
+
   assert.doesNotMatch(body,/createIfMissing|insertSheet|setValues|setFrozenRows|setBackground|LockService/);
 });
