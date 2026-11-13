@@ -2486,14 +2486,14 @@ function apiGetPublicCenter() {
     .filter(function(r){return r['Approval Status']==='Approved'&&r['Payment Status']==='Paid'&&['Public Home','Website publik'].includes(String(r.Placement||''))&&isWithinWindow_(r['Start At'],r['End At']);})
     .sort(function(a,b){return dateMs_(a['Created At'])-dateMs_(b['Created At']);}).slice(0,8);
   const activity = readMpsContentRows_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers)
-    .filter(function(r){return r.Status==='Visible'&&isSafePublicIdentity_(r['Member Name'])&&isSafePublicIdentity_(r['Event Text']);})
+    .filter(function(r){return r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))&&isSafePublicIdentity_(r['Event Text']);})
     .sort(function(a,b){return dateMs_(b['Created At'])-dateMs_(a['Created At']);}).slice(0,30);
   const publicNews = news.map(function(r){return {ID:r.ID,PublishedAt:r['Published At'],Source:r.Source,Category:r.Category,Title:r.Title,Summary:r.Summary,SourceURL:r['Source URL'],Verification:r.Verification,Pinned:!!r.Pinned};});
   const publicCalendar = calendar.map(function(r){return {EventDate:r['Event Date'],EventTimeWIB:r['Event Time WIB'],Country:r.Country,EventName:r['Event Name'],Impact:r.Impact,Forecast:r.Forecast,Previous:r.Previous,Actual:r.Actual,SourceURL:r['Source URL']};});
   const publicAnnouncements = announcements.map(function(r){return {ID:r.ID,Title:r.Title,Category:r.Category,Body:r.Body,Audience:r.Audience,DisplayType:r['Display Type'],ImageURL:r['Image URL'],ButtonText:r['Button Text'],ButtonURL:r['Button URL'],Frequency:r.Frequency,ColorTheme:r['Color Theme'],Animation:r.Animation};});
   const publicAds = ads.map(function(r){return {ID:r['Ad ID'],Brand:r.Brand,Title:r.Title,Description:r.Description,ImageURL:r['Image URL'],TargetURL:r['Target URL'],Placement:r.Placement};});
   const adPackages=readMpsContentRows_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers).filter(function(r){return r.Status==='Active';}).map(function(r){return {id:r['Package ID'],name:r.Name,description:r.Description,price:Number(r['Price IDR']||0),durationDays:Number(r['Duration Days']||0),placement:r.Placement};});
-  const publicActivity = activity.map(function(r){return {PublicAlias:r['Member Name'],PublicText:r['Event Text']};});
+  const publicActivity = activity.map(function(r){return {PublicAlias:r['Member ID'],PublicText:r['Event Text']};});
   const tickerSettings=readMpsWebsiteSettings_();
   const out = { ok:true, news:publicNews, calendar:publicCalendar, announcements:publicAnnouncements, ads:publicAds, adPackages:adPackages, activity:publicActivity, tickerSettings:tickerSettings,
     updatedAt: PropertiesService.getScriptProperties().getProperty('MPS_CONTENT_LAST_SYNC') || '',
