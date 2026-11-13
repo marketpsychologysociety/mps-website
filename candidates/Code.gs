@@ -2153,12 +2153,27 @@ function deliverMpsVipInviteTask_(task) {
   if(!accessRow||!memberRow)throw new Error('VIP_INVITE_MEMBER_NOT_FOUND');
   const a=access.getRange(accessRow,1,1,11).getValues()[0],m=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
   if(String(a[1])!==chatId||String(a[2])!==chatId||String(a[7])!==link)throw new Error('VIP_INVITE_TASK_NO_LONGER_CURRENT');
+  if(String(a[6])==='Aktif'||String(m[29]||'')==='Aktif')return {ok:true,alreadyJoined:true};
   if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||String(m[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('VIP_INVITE_MEMBER_NOT_ELIGIBLE');
   const expiry=a[8] instanceof Date?a[8]:new Date(a[8]);
   if(!Number.isFinite(expiry.getTime())||expiry.getTime()<=Date.now())throw new Error('VIP_INVITE_LINK_EXPIRED');
   const message='🎉 Selamat! Keanggotaan MPS Anda telah disetujui.\\nGunakan tautan berikut untuk meminta bergabung ke MPS VIP Community. Admin bot akan memverifikasi akun Telegram Anda.\\nTautan berlaku sampai '+expiry.toLocaleString()+':\\n'+link+'\\nJangan bagikan tautan ini.';
   const sent=telegramSendToChat_(chatId,message);
   if(!sent||sent.ok!==true)throw new Error('VIP_INVITE_DM_DELIVERY_UNCONFIRMED');
+  const stateLock=LockService.getScriptLock();stateLock.waitLock(10000);
+  try{
+    const latestAccess=getTelegramAccessSheet_(),latestAccessRow=findTelegramAccessByMemberId_(latestAccess,memberId);
+    const latestDb=getMemberSheet_(),latestMemberRow=findMemberById_(latestDb,memberId);
+    if(latestAccessRow&&latestMemberRow){
+      const latestAccessValues=latestAccess.getRange(latestAccessRow,1,1,11).getValues()[0];
+      const latestMemberValues=latestDb.getRange(latestMemberRow,1,1,MPS.headers.length).getValues()[0];
+      if(String(latestAccessValues[7])===link&&String(latestAccessValues[6])!=='Aktif'&&String(latestMemberValues[29]||'')!=='Aktif'){
+        latestAccess.getRange(latestAccessRow,7).setValue('Undangan dikirim');
+        latestDb.getRange(latestMemberRow,30).setValue('Undangan Dikirim');
+        SpreadsheetApp.flush();
+      }
+    }
+  }finally{stateLock.releaseLock();}
   const previousLink=String(task.alertText||'');
   if(previousLink&&previousLink!==link&&!revokeVipInviteLink_(groupId,previousLink))
     recordMpsAudit_('TELEGRAM',memberId,'OLD_VIP_INVITE_REVOKE_FAILED',memberId,'WARNING','Undangan baru telah masuk antrean dan dikirim; tautan undangan sebelumnya gagal dicabut.');
