@@ -322,6 +322,7 @@ test('audit pruning may exceed soft cap rather than delete durable keyed rows',(
 
 const queueConstant=candidate.match(/const MPS_VIP_FOLLOWUP_QUEUE = Object\.freeze\([\s\S]*?\);/)[0];
 const schemaStorageInspectorSource=queueConstant+'\n'+extract('inspectMpsVipTransitionStorageSchemas_','apiAdminInspectMemberSchemaV480');
+const ensureAutomationSource=extract('ensureMpsVipFollowupAutomation_','processMpsVipChatMemberEvent_');
 const schemaPreflightSource=extract('apiAdminInspectMemberSchemaV480','apiAdminMigrateMemberSheetToV480');
 const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Telegram User ID','Target State','Source Type','Source Date','Payload SHA-256','Ticker Allowed','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
 const cursorHeaders=['Member ID','Last Update Epoch','Last Source Date','Last Update ID','Last Transition Key','Updated At'];
@@ -440,13 +441,13 @@ function vipProvisionHarness({badVipHeader=false,badMemberHeader=false}={}) {
   provisionMpsSheets_:definitions=>{contentCalls+=definitions.length;return definitions.map(()=>makeSheet());},
   console
  };
- vm.createContext(context);vm.runInContext(schemaStorageInspectorSource,context,{timeout:1000});vm.runInContext(extract('apiAdminPrepareTelegramVipTransitionStorage','kickMpsUnauthorizedUser_'),context,{timeout:1000});
+ vm.createContext(context);vm.runInContext(schemaStorageInspectorSource,context,{timeout:1000});vm.runInContext(ensureAutomationSource,context,{timeout:1000});vm.runInContext(extract('apiAdminPrepareTelegramVipTransitionStorage','kickMpsUnauthorizedUser_'),context,{timeout:1000});
  return{run:()=>context.apiAdminPrepareTelegramVipTransitionStorage('admin-session'),stats:()=>({inserts,flushes,telegramAccessCalls,contentCalls,migrations,memberSheetCalls,triggerCreates})};
 }
 test('VIP provisioning aborts before every write when an existing storage schema is mismatched',()=>{
  const h=vipProvisionHarness({badVipHeader:true});
  assert.throws(()=>h.run(),/VIP_TRANSITION_PREFLIGHT_FAILED/);
- assert.deepEqual(h.stats(),{inserts:0,flushes:0,telegramAccessCalls:0,contentCalls:0,migrations:0,memberSheetCalls:0});
+ assert.deepEqual(h.stats(),{inserts:0,flushes:0,telegramAccessCalls:0,contentCalls:0,migrations:0,memberSheetCalls:0,triggerCreates:0});
 });
 test('VIP provisioning verifies exact member schema, creates three durable transition tabs, and installs one scheduled worker',()=>{
  const h=vipProvisionHarness();
