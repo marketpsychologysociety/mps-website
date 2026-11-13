@@ -1572,11 +1572,18 @@ function processVipJoinRequest_(request) {
     const rejected=parseTelegramResponse_(response);if(!rejected.ok&&!/USER_ALREADY_PARTICIPANT|request.*not found|no.*request/i.test(String(rejected.description||'')))throw new Error(rejected.description||'Permintaan bot tidak dapat ditolak.');
     return true;
   }
-  const access=getTelegramAccessSheet_(),accessRow=findTelegramAccessByUserId_(access,userId);let allowed=false,memberId='';
+  const access=getTelegramAccessSheet_(),accessRow=findUniqueMpsTransitionRow_(access,2,userId);let allowed=false,memberId='';
   if(accessRow){
     const a=access.getRange(accessRow,1,1,11).getValues()[0];memberId=String(a[0]||'');
-    const memberSheet=getMemberSheet_(),memberRow=findMemberById_(memberSheet,memberId);
-    if(memberRow){const m=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];allowed=String(m[MPS_COL.registrationStatus-1])==='Berhasil'&&String(m[MPS_COL.depositStatus-1])==='Disetujui'&&String(a[1])===userId&&String(a[2])===userId;}
+    const invite=request.invite_link&&typeof request.invite_link==='object'?request.invite_link:{};
+    const inviteUrl=String(invite.invite_link||''),requestDate=Number(request.date);
+    const inviteExpiry=a[8] instanceof Date?Math.floor(a[8].getTime()/1000):NaN;
+    const inviteBound=invite.creates_join_request===true&&!!inviteUrl&&inviteUrl===String(a[7]||'')&&
+      Number.isSafeInteger(requestDate)&&requestDate>0&&Number.isFinite(inviteExpiry)&&inviteExpiry>requestDate;
+    if(inviteBound&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(memberId)&&String(a[1])===userId&&String(a[2])===userId){
+      const memberSheet=getMemberSheet_(),memberRow=findUniqueMpsTransitionRow_(memberSheet,MPS_COL.id,memberId);
+      if(memberRow){const m=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];allowed=String(m[MPS_COL.registrationStatus-1])==='Berhasil'&&String(m[MPS_COL.depositStatus-1])==='Disetujui';}
+    }
   }
   if(allowed){
     // Telegram may have approved the previous delivery even if Apps Script timed out.
