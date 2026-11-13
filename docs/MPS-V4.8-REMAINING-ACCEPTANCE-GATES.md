@@ -7,7 +7,7 @@
 
 This section supersedes older checkpoint bullets below wherever they conflict. Older sections are retained as historical implementation notes; their unchecked boxes are not a current statement that already-integrated candidate work is absent.
 
-- Current PR head: `396af301190c3cf4810e6f3fb4b548999d574fd4`; PR #12 is still **OPEN / DRAFT / NOT MERGED**.
+- PR #12 remains **OPEN / DRAFT / NOT MERGED**. The latest completed CI snapshot recorded below is for the immediately preceding candidate commit; each subsequent documentation-only reconciliation triggers a fresh CI run.
 - Latest PR-triggered CI for this head (run #1735) and push CI (run #1734) both completed **SUCCESS**. The workflow includes candidate integration tests, mocked Apps Script checks, isolated-harness static validation, and Chromium browser checks. These are repository/CI results, not a live Google Apps Script acceptance.
 - The VIP `chat_member` path in candidate `Code.gs` is integrated with the durable intent/cursor/effect-ledger orchestration and the spreadsheet-backed VIP follow-up queue. The queue handles invite revocation, ineligible-member removal, and admin security alerts with leases and retry scheduling. This is **candidate-only** and still requires real isolated GAS/Sheets and Telegram test-environment acceptance.
 - The public and Admin ticker projections expose **Member ID only**; member names and aliases are not projected. Public cache compatibility checks reject stale pre-change identity payloads.
