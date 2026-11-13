@@ -23,7 +23,7 @@ const candidateFunctions=[
  // These are extracted from the actual candidate Code.gs, not parallel test copies.
  'createMpsGasEffectLedger_','createMpsGasVipTransitionStore_',
  'createMpsGasVipTransitionOrchestrator_','createMpsGasVipChatMemberHandler_',
- 'enqueueMpsVipFollowup_','runMpsVipFollowupQueue_',
+ 'enqueueMpsVipFollowup_','runMpsVipFollowupQueue_','enqueueMpsVipJoinRequestNotice_',
  'getMpsExistingVipAccessSheetForTransition_','findUniqueMpsTransitionRow_',
  'resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_','removeMpsCacheBestEffort_',
  'processMpsVipChatMemberEvent_'
@@ -41,7 +41,7 @@ const auditHeaders=['Timestamp','Actor Role','Actor Ref','Action','Target Ref','
 const tickerHeaders=['Event ID','Created At','Member ID','Member Name','Event Text','Status'];
 const followupHeaders=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At'];
 
-function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,failAdminAlert=false}={}){
+function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,failAdminAlert=false,failMemberDm=false}={}){
  const member=Array(memberHeaders.length).fill('');
  member[0]='MPS-ABCDEF12';member[2]='Trader MPS';member[7]=eligible?'Berhasil':'Menunggu Verifikasi';
  member[8]='Budi Santoso';member[14]=eligible?'Disetujui':'Menunggu Verifikasi';
@@ -92,17 +92,19 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;return !failRevoke;},
   kickMpsUnauthorizedUser_:()=>{assert.equal(held,false,'Telegram follow-up must run after ScriptLock release');networkCalls++;return !failKick;},
   sendTelegram_:()=>{assert.equal(held,false);networkCalls++;return failAdminAlert?{ok:false,error:'MOCK_AMBIGUOUS_SEND'}:{ok:true};},
+  telegramSendToChat_:(id,message)=>{assert.equal(held,false);assert.match(String(id),/^[0-9]{1,20}$/);assert.ok(String(message));networkCalls++;return failMemberDm?{ok:false,error:'MOCK_AMBIGUOUS_DM'}:{ok:true};},
   console
  };
  vm.createContext(context);
  vm.runInContext(queueConstant+'\n'+candidateFunctions+'\n'+
-  'this.makeLedger=createMpsGasEffectLedger_;this.runCandidateVipEvent=processMpsVipChatMemberEvent_;this.runFollowups=runMpsVipFollowupQueue_;',context,{timeout:2000});
+  'this.makeLedger=createMpsGasEffectLedger_;this.runCandidateVipEvent=processMpsVipChatMemberEvent_;this.runFollowups=runMpsVipFollowupQueue_;this.enqueueJoinNotice=enqueueMpsVipJoinRequestNotice_;',context,{timeout:2000});
  const ledger=context.makeLedger({spreadsheetId:'isolated-vip-runtime'});
  // Explicit isolated setup: append Effect Key headers before any webhook event.
  ledger.runExclusive(tx=>{tx.migrate('audit');tx.migrate('ticker');});
  return{
   process:update=>context.runCandidateVipEvent(update,update.chat_member),
   runQueue:()=>context.runFollowups(20),
+  enqueueJoinNotice:(request,update,approved)=>context.enqueueJoinNotice(request,update,approved),
   sheets:data,stats:()=>({held,acquired,released,followups,networkCalls,cacheRemovals}),
   addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);},
   duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},
@@ -276,6 +278,26 @@ test('ambiguous admin-alert delivery is quarantined for review and never auto-re
  assert.equal(queue[1][7],'REVIEW');assert.equal(queue[1][11],'ADMIN_ALERT_DELIVERY_UNCONFIRMED');
  const second=h.runQueue();
  assert.equal(second.processed,0);assert.equal(queue[1][7],'REVIEW');assert.equal(h.stats().networkCalls,1);
+});
+
+test('VIP join welcome DM is durably keyed and ambiguous delivery is quarantined without duplicate resend',()=>{
+ const h=runtime(),request={chat:{id:-1001234567890},from:{id:987654321},user_chat_id:987654321,date:1760000500};
+ const update={update_id:7501};
+ const first=h.enqueueJoinNotice(request,update,true);
+ assert.equal(first.duplicate,false);
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(queue.length,2);assert.equal(queue[1][2],'SEND_DM');assert.equal(queue[1][7],'DONE');
+ h.enqueueJoinNotice(request,{update_id:7502},true);
+ assert.equal(queue.length,2,'same Telegram join request date must retain one durable task key');
+ assert.equal(h.stats().networkCalls,1,'replay must not send a second welcome DM');
+ const failed=runtime({failMemberDm:true});
+ failed.enqueueJoinNotice(request,update,true);
+ const failedQueue=failed.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(failedQueue[1][7],'REVIEW');
+ assert.equal(failedQueue[1][11],'MEMBER_DM_DELIVERY_UNCONFIRMED');
+ failed.enqueueJoinNotice(request,{update_id:7502},true);
+ assert.equal(failedQueue[1][7],'REVIEW');
+ assert.equal(failed.stats().networkCalls,1,'ambiguous DM outcome must never be automatically resent');
 });
 
 test('candidate ignores member-to-admin role changes because membership remains active',()=>{
