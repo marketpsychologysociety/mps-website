@@ -1577,7 +1577,7 @@ function processVipJoinRequest_(request) {
     const a=access.getRange(accessRow,1,1,11).getValues()[0];memberId=String(a[0]||'');
     const invite=request.invite_link&&typeof request.invite_link==='object'?request.invite_link:{};
     const inviteUrl=String(invite.invite_link||''),requestDate=Number(request.date);
-    const inviteExpiry=a[8] instanceof Date?Math.floor(a[8].getTime()/1000):NaN;
+    const inviteExpiryMs=new Date(a[8]).getTime(),inviteExpiry=Number.isFinite(inviteExpiryMs)?Math.floor(inviteExpiryMs/1000):NaN;
     const inviteBound=invite.creates_join_request===true&&!!inviteUrl&&inviteUrl===String(a[7]||'')&&
       Number.isSafeInteger(requestDate)&&requestDate>0&&Number.isFinite(inviteExpiry)&&inviteExpiry>requestDate;
     if(inviteBound&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(memberId)&&String(a[1])===userId&&String(a[2])===userId){
