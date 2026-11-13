@@ -62,10 +62,10 @@ test('contact details, payment amounts, and links are denied from public ticker 
   }
 });
 test('public activity projection exposes only member ID and event text, never member name',()=>{
-  assert.ok(source.includes("const publicActivity = activity.map(function(r){return {PublicAlias:r['Member ID'],PublicText:r['Event Text']};});"));
+  assert.ok(source.includes("const publicActivity = activity.map(function(r){return {MemberId:r['Member ID'],PublicText:r['Event Text']};});"));
   assert.ok(source.includes("r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))"));
-  assert.ok(!source.includes("PublicAlias:r['Member Name']"));
-  assert.ok(!/PublicAlias:r\\['Member Name'\\]/.test(source));
+  assert.ok(!source.includes("MemberId:r['Member Name']"));
+  assert.ok(!/MemberId:r\\['Member Name'\\]/.test(source));
 });
 test('public website ticker renders validated Member IDs and never reads member names or masked IDs',()=>{
   const renderer=readFileSync(fileURLToPath(new URL('../../js/public-center.js',import.meta.url)),'utf8');
