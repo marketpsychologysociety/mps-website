@@ -1634,7 +1634,8 @@ function enqueueMpsVipJoinRequestNotice_(request,update,approved) {
   const source=Number.isSafeInteger(requestDate)&&requestDate>0?'date:'+requestDate:
     (updateId!==undefined&&updateId!==null?'update:'+String(updateId):'');
   if(!source)throw new Error('VIP_JOIN_NOTICE_SOURCE_ID_REQUIRED');
-  const intentKey='telegram:join-request:'+sha256_(chatId+':'+String(request.from&&request.from.id||'')+':'+source);
+  const inviteUrl=String(request.invite_link&&request.invite_link.invite_link||'');
+  const intentKey='telegram:join-request:'+sha256_(chatId+':'+String(request.from&&request.from.id||'')+':'+source+':'+inviteUrl);
   const message=approved
     ?'✅ Permintaan bergabung Anda sudah disetujui. Selamat datang di MPS VIP Community.'
     :'Permintaan bergabung belum dapat disetujui. Pastikan Telegram sudah terhubung dan status member MPS sudah Berhasil.';
