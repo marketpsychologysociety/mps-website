@@ -77,7 +77,7 @@ function harness({kind='application',storedUser=userId,storedChat=chatId,expired
     run:()=>kind==='application'
       ?context.verifyTelegramApplication_(2,rows[1].slice(),msg)
       :context.verifyTelegramLinkLegacy_('token',msg),
-    rows,events,stats:()=>({lockHeld,lockAcquires,lockReleases})
+    rows,accessRows,appRows,memberRows,events,stats:()=>({lockHeld,lockAcquires,lockReleases})
   };
 }
 
@@ -105,6 +105,26 @@ test('legacy link replay from a different Telegram identity is rejected without 
   assert.equal(h.run(),false);
   assert.equal(h.rows[1][6],'111111111');
   assert.equal(h.rows[1][7],'111111111');
+  assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='telegram').length,1);
+  assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
+});
+
+test('application link replay is rejected when the persisted access row points to another application',()=>{
+  const h=harness({kind:'application'});
+  h.accessRows[1][0]='MPS-APP-OTHER';
+  assert.throws(()=>h.run(),/identitas akses Telegram tidak cocok/);
+  assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
+});
+test('application link replay is rejected when the application record has a different Telegram binding',()=>{
+  const h=harness({kind:'application'});
+  h.appRows[1][11]='111111111';
+  assert.throws(()=>h.run(),/pengajuan tidak terikat/);
+  assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
+});
+test('legacy link replay is rejected when the linked application no longer matches the Telegram identity',()=>{
+  const h=harness({kind:'legacy'});
+  h.appRows[1][12]='111111111';
+  assert.equal(h.run(),false);
   assert.equal(h.events.filter(x=>Array.isArray(x)&&x[0]==='telegram').length,1);
   assert.deepEqual(h.stats(),{lockHeld:false,lockAcquires:1,lockReleases:1});
 });
