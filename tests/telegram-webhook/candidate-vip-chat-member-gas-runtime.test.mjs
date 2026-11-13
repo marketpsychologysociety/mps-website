@@ -11,7 +11,8 @@ function extractFunction(source,name){
  if(start<0)throw new Error('CANDIDATE_FUNCTION_MISSING:'+name);
  const nextFunction=source.indexOf('\nfunction ',start+1);
  const nextDoc=source.indexOf('\n/**',start+1);
- const ends=[nextFunction,nextDoc].filter(index=>index>=0);
+ const nextTopLevelConst=source.indexOf('\nconst ',start+1);
+ const ends=[nextFunction,nextDoc,nextTopLevelConst].filter(index=>index>=0);
  const end=ends.length?Math.min(...ends):source.length;
  const block=source.slice(start,end).trim();
  if(!block.endsWith('}'))throw new Error('CANDIDATE_FUNCTION_UNCLOSED:'+name);
