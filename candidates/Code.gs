@@ -64,7 +64,7 @@ const MPS_MEMBER_LINKS = Object.freeze({
 });
 const MPS_REQUEST_LEDGER = Object.freeze({
   sheet: 'MPS Request Ledger',
-  headers: ['Request ID','Fingerprint','Status','Started At','Completed At','Action','Application Ref','Member ID','Result Status']
+  headers: ['Request ID','Fingerprint','Status','Started At','Completed At','Action','Application Ref','Member ID','Result Status','Telegram URL','Telegram Expires At']
 });
 
 /** Web app entry point. */
@@ -298,7 +298,7 @@ function submitCore_(data) {
       if(ledgerRow){
         const saved=ledger.getRange(ledgerRow,1,MPS_REQUEST_LEDGER.headers.length).getValues()[0];
         if(String(saved[1]||'')!==requestFingerprint)throw new Error('Request ID sudah digunakan untuk data yang berbeda.');
-        if(String(saved[2]||'')==='COMPLETED')return {ok:true,replayed:true,status:String(saved[8]||'Permintaan sebelumnya sudah diproses.'),applicationRef:String(saved[6]||''),memberId:String(saved[7]||'')};
+        if(String(saved[2]||'')==='COMPLETED')return {ok:true,replayed:true,status:String(saved[8]||'Permintaan sebelumnya sudah diproses.'),applicationRef:String(saved[6]||''),memberId:String(saved[7]||''),telegramUrl:String(saved[9]||''),telegramExpiresAt:String(saved[10]||'')};
         if(String(saved[2]||'')==='FAILED'){
           ledger.getRange(ledgerRow,3,1,7).setValues([['PENDING',new Date(),'','', '', '', '']]);
           ledgerReserved=true;
@@ -307,8 +307,8 @@ function submitCore_(data) {
           throw new Error('Permintaan dengan ID ini masih tercatat dalam proses atau perlu rekonsiliasi admin. Jangan kirim ulang dengan ID baru; hubungi admin MPS.');
         }
       }
-      ledger.appendRow([requestId,requestFingerprint,'PENDING',new Date(),'','', '', '', '']);
-      ledgerRow=ledger.getLastRow();ledgerReserved=true;
+      if(!ledgerRow){ledger.appendRow([requestId,requestFingerprint,'PENDING',new Date(),'','', '', '', '', '', '']);ledgerRow=ledger.getLastRow();}
+      ledgerReserved=true;
     }
     if (action === 'register') {
       const registration = registerMember_(null, data,function(){businessCommitStarted=true;});
@@ -323,12 +323,11 @@ function submitCore_(data) {
       telegramMessage = deposit.telegramMessage;
     }
     if(requestId&&result&&result.ok){
-      ledger.getRange(ledgerRow,3,1,7).setValues([['COMPLETED',ledger.getRange(ledgerRow,4).getValue(),new Date(),action,result.applicationRef||'',result.memberId||'',result.status||'Selesai diproses']]);
+      ledger.getRange(ledgerRow,3,1,9).setValues([['COMPLETED',ledger.getRange(ledgerRow,4).getValue(),new Date(),action,result.applicationRef||'',result.memberId||'',result.status||'Selesai diproses',result.telegramUrl||'',result.telegramExpiresAt||'']]);
       ledgerReserved=false;
     }
-    // Persistent business writes have completed at this point. CacheService is
-    // an optimization/idempotency hint, not part of the business commit boundary.
-    // Cache failures must never turn a committed registration/deposit into ok:false.
+    // Persistent business writes and the durable request ledger have completed.
+    // CacheService is used only for best-effort dashboard invalidation.
     if (result && result.ok) {
       try { cache.remove('mps_public_dashboard_v480'); } catch (cacheErr) { console.warn('MPS post-commit dashboard cache invalidation failed.'); }
     }
