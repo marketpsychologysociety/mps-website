@@ -277,13 +277,14 @@ function submitCore_(data) {
   let result;
   let telegramMessage = '';
   let action = '';
-  const requestId = cleanRequestId_(data.requestId);
-  const cache = CacheService.getScriptCache();
   const replayPayload=Object.assign({},data);delete replayPayload.requestId;const requestFingerprint=sha256_(JSON.stringify(replayPayload));
+  const suppliedRequestId=cleanRequestId_(data.requestId);
+  const requestId=suppliedRequestId||('mps'+requestFingerprint.slice(0,40));
+  const cache = CacheService.getScriptCache();
   let ledgerRow=0,ledger=null,ledgerReserved=false,businessCommitStarted=false;
   try {
     if (data.website) return { ok: true, ignored: true };
-    if(data.requestId&&!requestId)throw new Error('Request ID tidak valid. Muat ulang formulir sebelum mencoba lagi.');
+    if(data.requestId&&!suppliedRequestId)throw new Error('Request ID tidak valid. Muat ulang formulir sebelum mencoba lagi.');
     action = String(data.action || '').toLowerCase();
     if (action !== 'register' && action !== 'deposit') throw new Error('Jenis permintaan tidak dikenal.');
     consumePersistentBucketRateLimit_('public_submit_' + action, 600, MPS.submitWindowSeconds, 'Terlalu banyak pengiriman ke MPS. Coba lagi beberapa menit.');
