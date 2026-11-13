@@ -191,6 +191,13 @@ function findMpsApplicationRowByMember_(sh,id) {
   return 0;
 }
 function getMpsMemberLinksSheet_() { return getMpsSheetStrict_(MPS_MEMBER_LINKS.sheet,MPS_MEMBER_LINKS.headers); }
+function getMpsRequestLedgerSheet_() { return getMpsSheetStrict_(MPS_REQUEST_LEDGER.sheet,MPS_REQUEST_LEDGER.headers); }
+function findMpsRequestLedgerRow_(sh,requestId) {
+  if(!requestId||sh.getLastRow()<2)return 0;
+  const values=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();
+  for(let i=0;i<values.length;i++)if(String(values[i][0]||'')===String(requestId))return i+2;
+  return 0;
+}
 function createMemberTelegramLink_(memberId,applicationRef,onPrepared) {
   const sh=getMpsMemberLinksSheet_();
   const token=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,'').slice(0,12);
