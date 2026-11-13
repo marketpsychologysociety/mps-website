@@ -215,13 +215,16 @@ test('transient invite revocation failure can be retried by replaying the curren
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,2);
  assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
 });
-test('eligibility revocation after activation makes a redelivered event fail closed instead of silently replaying the old activation',()=>{
+test('eligibility revoked after activation: same Telegram replay preserves immutable intent and retries invite revocation plus member removal',()=>{
  const h=runtime({failRevoke:true}),update=event(7404,1760000403,'left','member');
  assert.throws(()=>h.process(update),/VIP_INVITE_REVOKE_PENDING/);
  h.setEligible(false);
- assert.throws(()=>h.process(update),/VIP_TRANSITION_INTENT_COLLISION/);
+ h.setFollowupFailures(false);
+ assert.equal(h.process(update),'DUPLICATE');
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'ACTIVE');
  assert.equal(h.sheets.get('VIP Access')[1][6],'Aktif');
  assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
+ assert.equal(h.stats().networkCalls,4,'first delivery warning+revoke, replay revoke+kick');
  assert.equal(h.stats().held,false);
 });
 
