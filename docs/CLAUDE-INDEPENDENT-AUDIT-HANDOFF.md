@@ -134,3 +134,18 @@ A second source pass found the following beyond the four primary accessors above
 A repository-wide source scan found six direct `insertSheet()` sites in the candidate: Applications, Member Links, Deposits, generic Telegram sheets, the explicitly Super Admin-gated transition `ensure_()`, and generic content sheets when `createIfMissing` is true.
 
 Please classify all `true` call sites by endpoint role and side-effect boundary, not just by the accessor name. Public submissions may legitimately append business records to pre-provisioned tabs, but should not silently create or repair database schema. A missing required tab should fail closed with a controlled configuration error; explicit Super Admin initialization should be the only route that creates ordinary MPS auxiliary tabs. Audit writes must not silently imply that an incomplete audit subsystem is healthy.
+
+
+### Further important nuance: `createIfMissing=false` still writes headers to an existing empty sheet
+
+The generic helper `getMpsContentSheet_(name, headers, createIfMissing)` returns `null` only when the sheet itself is absent and `createIfMissing` is false. If the tab exists but `getLastRow()===0`, it still writes the header row unconditionally. Therefore, the `false` argument is **not fully read-only**: a read path can mutate an existing blank tab.
+
+Confirmed source shape at the helper:
+- Missing tab + false → returns null.
+- Missing tab + true → creates tab, then writes headers.
+- Existing empty tab + either true or false → writes headers.
+- Existing non-empty tab → validates headers, then returns it.
+
+Audit call paths that read through `readMpsContentRows_()` and `getMpsContentSheet_(..., false)`, including public-center rendering and partner-click tracking. A public request against a pre-existing blank auxiliary tab can therefore initialize its schema without Super Admin authorization even though the call site passes false.
+
+**Required regression:** for every read-only call, missing and existing-empty sheets must both remain unchanged (no tab creation, no header write, no formatting change). Move all header initialization to explicit Super Admin provisioning or a separately authorized setup routine. Keep write operations requiring a pre-provisioned sheet and fail closed if missing/empty/mismatched.
