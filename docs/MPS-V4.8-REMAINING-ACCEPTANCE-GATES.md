@@ -180,7 +180,7 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - The task key is deterministic from the VIP chat, Telegram requester identity, request timestamp (or update-ID fallback), and exact invite-link identity. A redelivered request therefore reuses the existing task rather than creating another welcome DM.
 - Queue writes occur before the immediate worker drain. If queue provisioning or persistence fails, the handler surfaces a retryable error rather than silently treating the welcome notice as complete.
 - `SEND_DM` uses the same lock/lease/outside-lock network boundary as other outbox actions. An unconfirmed Telegram send is moved to `REVIEW`, not automatically retried, because the DM may already have reached the member. The regression verifies exact request replay does not send twice and ambiguous delivery is not resent by a later worker pass.
-- This is scoped to VIP join-request member notices (approval welcome and rejection explanation) plus the separate `my_chat_member` admin warning. Private `/start` messages, one-time-link responses, group `/start` notices, admin approval/rejection notifications, and invite-link delivery remain separate open reconciliation items.
+- This is scoped to VIP join-request member notices (approval welcome and rejection explanation), the separate `my_chat_member` admin warning, private `/start` welcome, and group `/start` candidate notice. One-time-link verification responses, admin approval/rejection notifications, and invite-link delivery remain separate open reconciliation items.
 - The queue sheet and 5-minute worker trigger must already have been explicitly provisioned in the isolated candidate spreadsheet before this path can complete. This change does not provision or alter any live resource.
 - Candidate-only source and mocked-runtime regression; real GAS persistence/locking, Telegram test-bot delivery, and live group behavior remain NOT RUN. No production configuration, member data, webhook, trigger, or deployment was changed.
 
@@ -198,3 +198,11 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - New coverage includes stable task-key deduplication for approved and rejected VIP join-request notices, replay after Telegram confirms a rejected request is closed, propagation of queue persistence failures for webhook retry, bot-permission warning routing through the update-scoped admin-alert outbox, and quarantine of ambiguous admin-alert/member-DM delivery as `REVIEW`.
 - The run used repository CI with mocked Apps Script/Telegram services and local Chromium. It is not live Google Apps Script, live Sheets/ScriptLock/trigger, Telegram test-bot, public deployment, or physical Android acceptance.
 - The latest tested code/test commit remains candidate-only. The follow-up documentation commit is separate. PR #12 remains Draft/unmerged and release remains NO-GO; production resources remain untouched.
+
+### Telegram /start notice outbox — candidate update 2026-11-13
+
+- Private `/start` welcome messages and the verified-admin group `/start` candidate notice now use the durable message outbox instead of direct `sendMessage` calls.
+- Task identity is scoped to Telegram update ID, effect type, and target chat. Private chats use `SEND_DM`; group notices use `SEND_MESSAGE` and validate signed Telegram chat IDs.
+- Ambiguous send outcomes for both task types are quarantined as `REVIEW`; no blind automatic resend is performed. Queue write/worker failures propagate so Telegram can redeliver the update and the stable task key prevents a second task.
+- Added candidate integration coverage for private welcome replay, group-chat target validation, and worker quarantine for ambiguous group-message delivery.
+- Live Telegram and real GAS queue acceptance remain NOT RUN. One-time-link verification responses and other direct notification paths remain open.
