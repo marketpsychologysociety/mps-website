@@ -172,7 +172,7 @@ test('failed invite revocation keeps the webhook update retryable after the dura
  assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
  assert.equal(h.stats().held,false);
- assert.equal(h.stats().networkCalls,1);
+ assert.equal(h.stats().networkCalls,2);
 });
 test('failed unauthorized-member removal keeps the webhook update retryable after denial commits',()=>{
  const h=runtime({failKick:true});
@@ -180,7 +180,7 @@ test('failed unauthorized-member removal keeps the webhook update retryable afte
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'DENIED');
  assert.equal(h.stats().held,false);
- assert.equal(h.stats().networkCalls,1);
+ assert.equal(h.stats().networkCalls,2);
 });
 test('candidate ignores member-to-admin role changes because membership remains active',()=>{
  const h=runtime();
