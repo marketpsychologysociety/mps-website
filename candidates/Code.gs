@@ -66,6 +66,13 @@ const MPS_MEMBER_LINKS = Object.freeze({
 /** Web app entry point. */
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  if (p.publicCenter === '1') {
+    // Static-site bridge is data-only: the browser fetches text and JSON.parse()s
+    // the strict envelope; no remote JavaScript is injected or executed.
+    const payload=apiGetPublicCenter();
+    return ContentService.createTextOutput('window.MPS_PUBLIC_CENTER_DATA='+JSON.stringify(payload)+';')
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
   if (p.health === '1' || p.format === 'json') {
     return json_({ service: 'MPS Member Backend', status: 'ready', version: MPS.version });
   }
