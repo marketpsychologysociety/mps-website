@@ -244,8 +244,8 @@ test('admin decision intent materializes notices only after application and depo
   const end=source.indexOf('function enqueueMpsAdminDecisionNotices_(',start);
   assert.ok(start>=0&&end>start,'decision intent materializer must exist');
   const fn=source.slice(start,end);
-  const app=Array(15).fill('');app[0]='MPS-APP-0123456789ABCDEF0123';app[7]='Menunggu Aktivasi';app[8]='MPS-ABCDEF12';
-  const dep=Array(14).fill('');dep[0]=app[0];dep[9]='Menunggu Aktivasi';
+  const app=Array(15).fill('');app[0]='MPS-APP-0123456789ABCDEF0123';app[7]='Berhasil';app[8]='MPS-ABCDEF12';
+  const dep=Array(14).fill('');dep[0]=app[0];dep[9]='Berhasil';
   const member=Array(30).fill('');member[0]='MPS-ABCDEF12';
   const makeSheet=row=>({getRange:()=>({getValues:()=>[row]})});
   let held=false,called=null;
