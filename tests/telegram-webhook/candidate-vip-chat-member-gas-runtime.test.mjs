@@ -224,7 +224,8 @@ test('eligibility revocation after activation makes a redelivered event fail clo
  assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
  assert.equal(h.stats().held,false);
 });
-\ntest('candidate ignores member-to-admin role changes because membership remains active',()=>{
+
+test('candidate ignores member-to-admin role changes because membership remains active',()=>{
  const h=runtime();
  assert.equal(h.process(event(7200,1760000200,'member','administrator')),'IGNORED');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,1);
