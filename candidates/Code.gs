@@ -1813,7 +1813,7 @@ function verifyTelegramLinkLegacy_(token,msg,update) {
     if(memberRow&&memberSnapshot&&memberSheet)try{memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberSnapshot]);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}
     if(appRow&&appSnapshot&&appSheet)try{appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
     if(linkSnapshot){const row=findMpsMemberLinkRow_(sh,tokenHash);if(row)try{sh.getRange(row,1,1,MPS_MEMBER_LINKS.headers.length).setValues([linkSnapshot]);}catch(e){rollbackErrors.push('tautan Telegram: '+safeErrorMessage_(e));}}
-    if(rollbackErrors.length)failureMessage='Verifikasi Telegram gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.';
+    if(rollbackErrors.length){console.error('MPS Telegram verification rollback incomplete; reconciliation required. Count='+rollbackErrors.length);failureMessage='Verifikasi belum dapat diselesaikan. Jangan gunakan ulang tautan ini; hubungi admin MPS untuk pemeriksaan.';}
     else if(!failureMessage)failureMessage='Verifikasi Telegram belum dapat diselesaikan. Periksa kembali status tautan atau hubungi admin MPS.';
   }finally{lock.releaseLock();}
   if(failureMessage){
