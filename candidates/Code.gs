@@ -2492,7 +2492,7 @@ function putMpsCacheBestEffort_(key,value,ttl,context) {
 
 function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
   try{
-    const sh=getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,true);
+    const sh=getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers,false);
     sh.appendRow([new Date(),clean_(role,20),sheetText_(clean_(actorRef,60)),clean_(action,60),sheetText_(clean_(targetRef,100)),clean_(result,30),sheetText_(cleanNewsText_(details,240))]);
     const last=sh.getLastRow();
     if(last>2001){
