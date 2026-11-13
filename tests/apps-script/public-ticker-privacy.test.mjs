@@ -79,6 +79,17 @@ test('public Center rejects cached ticker payloads containing legacy names after
   assert.ok(body.indexOf('cachedTickerSafe')<body.indexOf('if(cachedTickerSafe)return cachedPayload'));
 });
 
+test('Admin ticker API also omits stored member names and returns only approved event fields',()=>{
+  const start=source.indexOf('function apiAdminGetContent(session) {');
+  const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
+  assert.ok(start>=0&&end>start,'admin content endpoint boundaries must exist');
+  const body=source.slice(start,end);
+  assert.ok(body.includes("'Member ID':r['Member ID']"));
+  assert.ok(body.includes("'Event Text':r['Event Text']"));
+  assert.ok(!body.includes("'Member Name':r['Member Name']"));
+  assert.ok(body.includes("Status:r.Status"));
+});
+
 test('public Center does not project Market Pulse or premium calendar/news payloads',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
   const end=source.indexOf('\nfunction ',start+1);
