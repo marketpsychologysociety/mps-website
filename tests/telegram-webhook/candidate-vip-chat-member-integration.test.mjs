@@ -96,6 +96,7 @@ test('join request without the exact stored MPS invite is declined',()=>{
   h.context.processVipJoinRequest_(req);
   assert.ok(h.calls.some(x=>x.type==='fetch'&&String(x.args[0]).includes('/declineChatJoinRequest')));
   assert.equal(h.calls.some(x=>x.type==='fetch'&&String(x.args[0]).includes('/approveChatJoinRequest')),false);
+  assert.equal(h.queuedTasks.length,1);assert.equal(h.queuedTasks[0].action,'SEND_DM');assert.match(h.queuedTasks[0].alertText,/belum dapat disetujui/);
 });
 
 test('join request using a replaced or forged invite link is declined',()=>{
@@ -103,6 +104,7 @@ test('join request using a replaced or forged invite link is declined',()=>{
   const req=request();req.invite_link.invite_link='https://t.me/+attacker-controlled';
   h.context.processVipJoinRequest_(req);
   assert.ok(h.calls.some(x=>x.type==='fetch'&&String(x.args[0]).includes('/declineChatJoinRequest')));
+  assert.equal(h.queuedTasks.length,1);assert.match(h.queuedTasks[0].alertText,/belum dapat disetujui/);
 });
 
 test('join request created after the stored invite expiry is declined',()=>{
@@ -110,6 +112,15 @@ test('join request created after the stored invite expiry is declined',()=>{
   h.accessRow[8]=new Date((h.requestDate-60)*1000);
   h.context.processVipJoinRequest_(request());
   assert.ok(h.calls.some(x=>x.type==='fetch'&&String(x.args[0]).includes('/declineChatJoinRequest')));
+  assert.equal(h.queuedTasks.length,1);assert.match(h.queuedTasks[0].alertText,/belum dapat disetujui/);
+});
+
+test('declined join-request replay queues the same rejection notice after Telegram confirms the request is closed',()=>{
+ let n=0;const h=joinHarness(()=>++n===1?{ok:false,description:'request not found'}:tgResponse('left'));
+ h.context.processVipJoinRequest_(request(),{update_id:88001});
+ assert.equal(n,2);
+ assert.equal(h.queuedTasks.length,1);
+ assert.match(h.queuedTasks[0].alertText,/belum dapat disetujui/);
 });
 
 test('duplicate Telegram identity rows fail closed before any Telegram approval call',()=>{
