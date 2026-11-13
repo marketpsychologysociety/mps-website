@@ -23,7 +23,7 @@ const candidateFunctions=[
  // These are extracted from the actual candidate Code.gs, not parallel test copies.
  'createMpsGasEffectLedger_','createMpsGasVipTransitionStore_',
  'createMpsGasVipTransitionOrchestrator_','createMpsGasVipChatMemberHandler_',
- 'enqueueMpsVipFollowup_','runMpsVipFollowupQueue_','enqueueMpsVipJoinRequestNotice_',
+ 'enqueueMpsVipFollowup_','deliverMpsVipInviteTask_','runMpsVipFollowupQueue_','enqueueMpsVipJoinRequestNotice_',
  'getMpsExistingVipAccessSheetForTransition_','findUniqueMpsTransitionRow_',
  'resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_','removeMpsCacheBestEffort_',
  'processMpsVipChatMemberEvent_'
@@ -82,10 +82,13 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   MPS_VIP_FOLLOWUP_QUEUE:{sheet:'MPS Telegram VIP Follow-up Queue',headers:followupHeaders.slice()},
   SpreadsheetApp:{openById:id=>{assert.equal(id,'isolated-vip-runtime');return ss;},flush:()=>{}},
   LockService:{getScriptLock:()=>({waitLock:()=>{if(held)throw Error('MOCK_LOCK_REENTRANT');held=true;acquired++;},releaseLock:()=>{if(!held)throw Error('MOCK_LOCK_NOT_HELD');held=false;released++;}})},
-  PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_SPREADSHEET_ID'?'isolated-vip-runtime':key==='MPS_TELEGRAM_VIP_CHAT_ID'?'-1001234567890':''})},
+  PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_SPREADSHEET_ID'?'isolated-vip-runtime':key==='MPS_TELEGRAM_VIP_CHAT_ID'?'-1001234567890':key==='MPS_PIN_DELIVERED_MPS-ABCDEF12'?'1':''})},
   CacheService:{getScriptCache:()=>({remove:key=>{assert.equal(held,false,'cache/network follow-up must run after ScriptLock release');cacheRemovals++;if(failCache)throw Error('MOCK_CACHE_UNAVAILABLE');}})},
   openDatabase_:()=>ss,
   getMemberSheet_:()=>sheet('Database Member'),
+  getTelegramAccessSheet_:()=>sheet('VIP Access'),
+  findMemberById_:(sh,id)=>{const rows=data.get('Database Member');const i=rows.findIndex((r,n)=>n>0&&String(r[0])===String(id));return i<0?0:i+1;},
+  findTelegramAccessByMemberId_:(sh,id)=>{const rows=data.get('VIP Access');const i=rows.findIndex((r,n)=>n>0&&String(r[0])===String(id));return i<0?0:i+1;},
   clean_:(v,n)=>String(v??'').replace(/\\s+/g,' ').trim().slice(0,n),
   isSafePublicIdentity_:v=>!/[0-9@]/.test(String(v||'')),
   sha256_:value=>createHash('sha256').update(String(value)).digest('hex'),
@@ -110,6 +113,9 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},
   duplicateMember(){data.get('Database Member').push(data.get('Database Member')[1].slice());},
   setEligible(value){data.get('Database Member')[1][7]=value?'Berhasil':'Menunggu Verifikasi';data.get('Database Member')[1][14]=value?'Disetujui':'Menunggu Verifikasi';},
+  enqueueInviteTask(link='https://t.me/+new-invite',previous='old-invite-link'){return context.enqueueMpsVipFollowup_({taskKey:'vip-invite-dm:'+'a'.repeat(40),intentKey:'vip-invite:MPS-ABCDEF12:'+'a'.repeat(40),action:'VIP_INVITE_DM',groupId:'-1001234567890',telegramUserId:'987654321',inviteLink:link,alertText:previous});},
+  setInvite(link='https://t.me/+new-invite',expiry=new Date(Date.now()+3600000)){const a=data.get('VIP Access')[1];a[7]=link;a[8]=expiry;a[6]='Undangan antre';const m=data.get('Database Member')[1];m[25]=link;m[26]=expiry;},
+  makeInviteTaskDue(row=1){const r=data.get('MPS Telegram VIP Follow-up Queue')[row];r[9]=new Date(0);},
   setFollowupFailures(value){failRevoke=value;failKick=value;},
   setKickFailure(value){failKick=value;},
   makeQueueDue(row){data.get('MPS Telegram VIP Follow-up Queue')[row][9]=new Date(0);}
@@ -326,4 +332,43 @@ test('candidate ignores member-to-admin role changes because membership remains 
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents').length,1);
  assert.equal(h.sheets.get('MPS Audit Logs').length,1);
  assert.equal(h.stats().acquired,1,'both explicit setup migrations share one ScriptLock scope');
+});
+
+
+test('VIP invite delivery is durably queued, validated against current member state, and sent once by the worker',()=>{
+ const h=runtime(),link='https://t.me/+new-invite';
+ h.setInvite(link);
+ const queued=h.enqueueInviteTask(link);
+ assert.equal(queued.ok,true);assert.equal(queued.duplicate,false);
+ assert.equal(h.enqueueInviteTask(link).duplicate,true,'replay must reuse the stable invite task key');
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(queue.length,2);assert.equal(queue[1][2],'VIP_INVITE_DM');assert.equal(queue[1][5],link);
+ assert.equal(h.runQueue().completed,1);
+ assert.equal(queue[1][7],'DONE');
+ assert.equal(h.stats().networkCalls,1,'worker performs exactly one Telegram send');
+ assert.equal(h.stats().held,false);
+});
+
+test('VIP invite delivery is quarantined when the stored invite is stale or member eligibility changed',()=>{
+ const h=runtime(),link='https://t.me/+stale-invite';
+ h.setInvite(link);
+ h.enqueueInviteTask(link);
+ h.setEligible(false);
+ const result=h.runQueue();
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(result.reviewed,1);
+ assert.equal(queue[1][7],'REVIEW');
+ assert.equal(h.stats().networkCalls,0,'stale invite must not be sent');
+});
+
+test('expired in-flight Telegram send lease is quarantined instead of blindly re-sent after a worker crash',()=>{
+ const h=runtime(),link='https://t.me/+crash-window';
+ h.setInvite(link);
+ h.enqueueInviteTask(link);
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ queue[1][7]='PROCESSING';queue[1][10]=new Date(0);
+ const result=h.runQueue();
+ assert.equal(result.reviewed,1);
+ assert.equal(queue[1][7],'REVIEW');
+ assert.equal(h.stats().networkCalls,0,'uncertain previous send is not repeated');
 });
