@@ -19,32 +19,24 @@ The candidate already contains useful building blocks:
 
 The new work is therefore an integration and controlled extension, not a reason to rebuild all CMS infrastructure.
 
-## 2. Blocking privacy finding — existing VIP ticker candidate
+## 2. Final ticker identity policy — Member ID only
 
-**Release blocker: the candidate VIP ticker currently conflicts with the user's explicit privacy instruction. Do not reuse its current public activity feed as-is.**
+**The user's final instruction is explicit: public and Admin ticker displays must show the Member ID only. Never display a member's real name, display name, nickname, or alias.**
 
-Observed in the reviewed candidate:
-1. `MPS VIP Ticker Events` currently has columns `Member ID` and `Member Name`.
-2. `recordMpsVipTickerEvent_` accepts a member name and writes it to the event row.
-3. `isSafePublicIdentity_` explicitly permits ordinary names; its comment says real names may be displayed.
-4. `apiGetPublicCenter()` filters by that name and maps it to `PublicAlias`, which is sent to the public browser.
-5. `Index.html` renders `PublicAlias` as the bold ticker identity.
-6. The Admin ticker history also renders the member name and full Member ID.
+The existing transition ledger may retain the member name as restricted internal operational evidence where required, but the public and Admin ticker API projections must not return that field. The ticker presentation must use the canonical Member ID field, not a generic alias property.
 
-That behavior violates the final requirement: **never show real names, display names, or aliases in the ticker**. If an identifier is used, it must be a server-generated masked Member ID only, and omitted whenever masking is not sufficiently safe. The candidate must be corrected before any of its ticker data is exposed publicly. Existing historical name-bearing rows must not be republished or copied into the new public feed.
-
-### Required correction
-- Stop generating new name-bearing activity rows.
-- Remove the public `PublicAlias` field and never send raw Member ID or member identity fields from the public endpoint.
-- Replace the public VIP welcome copy with generic text, optionally followed by a backend-generated masked ID (example: `MPS-****-4821`) only after a masking/re-identification check.
-- Never fall back to a name or alias if the ID is omitted.
-- Keep any internal correlation value private; do not place raw Member ID in public API payloads, URLs, browser storage, analytics, or logs.
-- Preserve old history only as restricted internal audit material if policy requires it; default old events to hidden and do not backfill them into the new ticker.
-- Test the serialized public API response, not only the rendered UI, for names, aliases, full IDs, Telegram identifiers, MT5, contact details, and payment information.
+### Required behavior
+- Public VIP activity API returns only `MemberId` and sanitized `PublicText`; it must not return `Member Name`, Telegram identifiers, or unrelated member fields.
+- Admin ticker history returns only Event ID, Created At, Member ID, Event Text, and Status. It must not return the stored Member Name field.
+- The website renders the validated Member ID only; no name, display name, nickname, or alias fallback is permitted.
+- Keep phone numbers, email addresses, Telegram usernames/IDs, MT5 logins, deposit amounts, payment details, proof documents, PINs, credentials, and internal transition identifiers out of public/Admin ticker projections.
+- Legacy name-bearing rows may remain restricted in the source sheet for audit continuity, but only Member ID and approved static event text may be projected to the ticker.
+- Reject stale public-center cache entries that do not use the current Member-ID-only contract.
+- Test the serialized API response and the actual website renderer, not only a source-level field allowlist.
 
 ### Test lineage caution
 
-The older Library artifact MPS_Calculator_VIP_Integration_Test.mjs contains assertions from the earlier public-name ticker policy (including an expectation that PublicAlias contains a member name). Those assertions conflict with the later privacy requirement and the current masked-ID-only candidate projection. Do not use that older test as the acceptance gate for the current privacy behavior; replace it with a privacy-specific test against the exact candidate Code.gs before release. The public website CI in this PR does not execute the private Apps Script candidate.
+The older Library artifact MPS_Calculator_VIP_Integration_Test.mjs contains assertions from the earlier public-name ticker policy (including an expectation that PublicAlias contains a member name). Those assertions conflict with the later privacy requirement and the current Member-ID-only candidate projection. Do not use that older test as the acceptance gate for the current privacy behavior; replace it with a privacy-specific test against the exact candidate Code.gs before release. The public website CI in this PR does not execute the private Apps Script candidate.
 
 ## 3. Existing candidate capability map
 
@@ -110,13 +102,13 @@ Never infer service state from a client clock. ETA is informational; actual reso
 - ticker_id, source_event_hash (private idempotency reference)
 - kind: ANNOUNCEMENT / VIP_WELCOME / WINNER / MAINTENANCE
 - public_text (sanitized plain text)
-- masked_member_id (optional; already masked server-side)
+- member_id (canonical Member ID; only identity field allowed in ticker output)
 - priority, audience, starts_at_utc, ends_at_utc
 - status: DRAFT / APPROVED / SCHEDULED / ACTIVE / EXPIRED / WITHDRAWN
 - target_announcement_id (optional)
 - created_at, approved_at, updated_at, actor refs, version
 
-The public feed returns only: ticker ID, safe text, priority, and a safe public target. It never returns the source event hash, raw member ID, raw member name, actor identity, or private fields. For the static GitHub Pages site, `?publicCenter=1` must use a separate strict projection: only public announcements, masked VIP ticker activity, allowlisted ticker presentation settings, and update timestamp. Do not forward news, calendar, ads, ad packages, Admin settings, or unknown fields.
+The public feed returns only: ticker ID, safe text, priority, and a safe public target. It never returns the source event hash, raw member name, actor identity, or private fields; Member ID is the sole permitted member identity field. For the static GitHub Pages site, `?publicCenter=1` must use a separate strict projection: only public announcements, Member-ID-only VIP ticker activity, allowlisted ticker presentation settings, and update timestamp. Do not forward news, calendar, ads, ad packages, Admin settings, or unknown fields.
 
 ### 5.4 Winner record
 - winner_event_id, event_title, prize_public_description
@@ -233,11 +225,11 @@ The feature flag remains false until CORS and redirect behavior are verified aga
 ### Static public feed integration status (isolated workbench)
 - Added a consistent ticker and `js/public-center.js` loader to 11 public-facing routes: homepage, Announcement Center, About, Membership, System, Education, Rewards, Rebate, Contact, Market Pulse landing page, and Member Portal. The loader calls the read-only Apps Script `?publicCenter=1` bridge only when `MPS_CONFIG.publicCenter.enabled === true`.
 - The feature flag is intentionally `false` in `config.js`; the repository's currently configured endpoint is a live endpoint, and the new bridge has not been deployed or runtime-tested there. This prevents accidental calls to an endpoint that does not yet implement the bridge.
-- Frontend renders announcement text through DOM `textContent`, validates links, accepts only a strict masked-ID format, and uses a generic VIP activation message when masking is absent. Ticker announcement items are limited to important/maintenance/winner categories; no names or raw IDs are rendered.
+- Frontend renders announcement text through DOM `textContent`, validates links, accepts only a strict canonical MPS Member ID format, and uses a generic VIP activation message when masking is absent. Ticker announcement items are limited to important/maintenance/winner categories; no names or raw IDs are rendered.
 - Winner Board now shows no-result state rather than a sample winner. Service status now states that no status has been published rather than claiming normal operation. Roulette remains clearly labelled visual simulation.
 - `sw.js` cache namespace advanced to v6 and the new controller was added to the explicit public asset allowlist.
 - Route audit: all 11 public-facing routes contain exactly one ticker, one shared feed loader, config, and pause controller.
-- Local Node syntax check and synthetic DOM tests: PASS (feature-flag fail-closed behavior, masked-ID-only acceptance, generic VIP fallback, generic winner ticker copy, no JSONP callback, and textContent-only ticker rendering).
+- Local Node syntax check and synthetic DOM tests: PASS (feature-flag fail-closed behavior, Member-ID-only acceptance, generic VIP fallback, generic winner ticker copy, no JSONP callback, and textContent-only ticker rendering).
 - GitHub Actions runs Chromium against a local static server and a mocked CORS endpoint, including malformed/executable-response rejection. This is not a live Apps Script CORS/redirect test, live-data test, Apps Script runtime test, or physical Android test.
 5. **Backend isolated implementation:** additive schema only in a separate test Apps Script project and separate test resources; no production migration.
 6. **Failure injection and security tests:** duplicate events, concurrent publish, rollback, invalid roles, direct API access, cache leakage, and draw replay.
@@ -249,6 +241,6 @@ The feature flag remains false until CORS and redirect behavior are verified aga
 - The current workbench frontend prototype includes a read-only feed renderer behind a disabled feature flag; the roulette remains UI-only and is not an official draw.
 - The reviewed reconstructed v4.8 candidate has an existing Announcement CMS foundation and Super Admin role checks.
 - Learning and Market Pulse management already have candidate APIs and UI; they should be reused rather than duplicated.
-- The original candidate VIP ticker was not privacy-compliant. A local reconstructed-v4.8 candidate patch now removes names/aliases from public and Super Admin ticker projections, masks IDs only when the suffix is unique, excludes legacy name-bearing events, rotates the public cache namespace, and adds a strict read-only static-site bridge. This patch has only synthetic/static verification and is not deployed or Apps Script-runtime verified.
+- The original candidate VIP ticker was not privacy-compliant. A local reconstructed-v4.8 candidate patch now removes names/aliases from public and Super Admin ticker projections, projects only the canonical Member ID and never projects names, excludes legacy name-bearing events, rotates the public cache namespace, and adds a strict read-only static-site bridge. This patch has only synthetic/static verification and is not deployed or Apps Script-runtime verified.
 - A verified winner workflow and official roulette engine remain new work, not existing functionality.
 - No backend implementation, spreadsheet creation, deployment, production data change, or live draw was performed by this design review.
