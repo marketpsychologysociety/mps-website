@@ -1551,7 +1551,7 @@ function processTelegramUpdateCore_(update) {
       else verifyTelegramLinkFromUpdate_(token,msg);
     }
   }
-  if(update.chat_join_request)processVipJoinRequest_(update.chat_join_request);
+  if(update.chat_join_request)processVipJoinRequest_(update.chat_join_request,update);
   const memberUpdate=update.chat_member;
   if(memberUpdate&&memberUpdate.chat&&memberUpdate.new_chat_member&&memberUpdate.new_chat_member.user){
     const chatId=String(memberUpdate.chat.id),userId=String(memberUpdate.new_chat_member.user.id),newMember=memberUpdate.new_chat_member,status=String(newMember.status||'');
@@ -1569,7 +1569,7 @@ function processTelegramUpdateCore_(update) {
   if(updateKey)cache.put(updateKey,'1',21600);
 }
 
-function processVipJoinRequest_(request) {
+function processVipJoinRequest_(request,update) {
   const props=PropertiesService.getScriptProperties(),configuredGroup=String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_ID')||'');
   const chatId=String(request.chat&&request.chat.id||''),userId=String(request.from&&request.from.id||'');
   if(!configuredGroup||chatId!==configuredGroup||!userId)return true;
@@ -1599,7 +1599,7 @@ function processVipJoinRequest_(request) {
       const statusData=parseTelegramResponse_(check),status=statusData.ok&&statusData.result?String(statusData.result.status||''):'';
       if(status==='member'||status==='administrator'||status==='creator'||(status==='restricted'&&statusData.result.is_member===true)){
         // Status changes are applied only from the original chat_member update.
-        try{const welcome=telegramSendToChat_(String(request.user_chat_id||userId),'✅ Permintaan bergabung Anda sudah disetujui. Selamat datang di MPS VIP Community.');if(!welcome.ok)recordMpsAudit_('TELEGRAM',memberId,'VIP_JOIN_DM_FAILED',memberId,'WARNING','Member sudah berada di grup, tetapi pesan sambutan gagal dikirim.');}catch(dmErr){recordMpsAudit_('TELEGRAM',memberId,'VIP_JOIN_DM_FAILED',memberId,'WARNING','Member sudah berada di grup, tetapi pengiriman pesan sambutan gagal.');}
+        enqueueMpsVipJoinRequestNotice_(request,update,true);
         return true;
       }
     }catch(checkErr){console.error('VIP join idempotency check: '+safeErrorMessage_(checkErr));}
@@ -1611,7 +1611,7 @@ function processVipJoinRequest_(request) {
     try{
       const retryCheck=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChatMember',{method:'post',payload:{chat_id:chatId,user_id:userId},muteHttpExceptions:true});
       const state=parseTelegramResponse_(retryCheck),status=state.ok&&state.result?String(state.result.status||''):'';
-      if(status==='member'||status==='administrator'||status==='creator'||(status==='restricted'&&state.result.is_member===true)){return true;}
+      if(status==='member'||status==='administrator'||status==='creator'||(status==='restricted'&&state.result.is_member===true)){if(allowed)enqueueMpsVipJoinRequestNotice_(request,update,true);return true;}
       if(!allowed&&(status==='left'||status==='kicked')){recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_ALREADY_DECLINED',userId,'SUCCESS','Permintaan join sudah tidak aktif saat webhook dicoba ulang.');return true;}
       if(allowed&&(status==='left'||status==='kicked')&&/USER_ID_INVALID|request.*not found|no.*join request/i.test(String(result.description||''))){recordMpsAudit_('TELEGRAM',memberId,'VIP_JOIN_REQUEST_ALREADY_CLOSED',memberId,'SUCCESS','Telegram tidak lagi memiliki join request aktif; tidak ada akses grup yang diberikan.');return true;}
     }catch(checkErr){if(!allowed&&/USER_ID_INVALID|user.*not found|chat.*not found/i.test(String(result.description||'')))return true;}
@@ -1620,11 +1620,31 @@ function processVipJoinRequest_(request) {
   }
   if(allowed){
     // Approval is not a membership-state event; wait for Telegram chat_member.
-    try{const dm=telegramSendToChat_(String(request.user_chat_id||userId),'✅ Permintaan bergabung disetujui. Selamat datang di MPS VIP Community.');if(!dm.ok)recordMpsAudit_('TELEGRAM',memberId,'VIP_JOIN_DM_FAILED',memberId,'WARNING','Permintaan join berhasil disetujui, tetapi pesan sambutan gagal dikirim.');}catch(dmErr){recordMpsAudit_('TELEGRAM',memberId,'VIP_JOIN_DM_FAILED',memberId,'WARNING','Permintaan join berhasil disetujui, tetapi pengiriman pesan sambutan gagal.');}
+    enqueueMpsVipJoinRequestNotice_(request,update,true);
   }else{
     try{const dm=telegramSendToChat_(String(request.user_chat_id||userId),'Permintaan bergabung belum dapat disetujui. Pastikan Telegram sudah terhubung dan status member MPS sudah Berhasil.');if(!dm.ok)recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_DECLINE_DM_FAILED',userId,'WARNING','Permintaan join ditolak, tetapi pesan penjelasan gagal dikirim.');}catch(dmErr){recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_DECLINE_DM_FAILED',userId,'WARNING','Permintaan join ditolak, tetapi pengiriman pesan penjelasan gagal.');}
   }
   return true;
+}
+
+function enqueueMpsVipJoinRequestNotice_(request,update,approved) {
+  const chatId=String(request.chat&&request.chat.id||''),telegramUserId=String(request.user_chat_id||request.from&&request.from.id||'');
+  if(!chatId||!/^[0-9]{1,20}$/.test(telegramUserId))throw new Error('VIP_JOIN_NOTICE_IDENTITY_INVALID');
+  const requestDate=Number(request.date),updateId=update&&update.update_id;
+  const source=Number.isSafeInteger(requestDate)&&requestDate>0?'date:'+requestDate:
+    (updateId!==undefined&&updateId!==null?'update:'+String(updateId):'');
+  if(!source)throw new Error('VIP_JOIN_NOTICE_SOURCE_ID_REQUIRED');
+  const intentKey='telegram:join-request:'+sha256_(chatId+':'+String(request.from&&request.from.id||'')+':'+source);
+  const message=approved
+    ?'✅ Permintaan bergabung Anda sudah disetujui. Selamat datang di MPS VIP Community.'
+    :'Permintaan bergabung belum dapat disetujui. Pastikan Telegram sudah terhubung dan status member MPS sudah Berhasil.';
+  const queued=enqueueMpsVipFollowup_({
+    taskKey:intentKey+':member-notice',intentKey:intentKey,action:'SEND_DM',
+    groupId:chatId,telegramUserId:telegramUserId,alertText:message
+  });
+  // Ambiguous DM delivery is quarantined by the worker; it is never blindly resent.
+  runMpsVipFollowupQueue_(5);
+  return queued;
 }
 
 function verifyTelegramLinkFromUpdate_(token,msg) {
@@ -1966,9 +1986,10 @@ function enqueueMpsVipFollowup_(task) {
       String(task.telegramUserId||''),String(task.inviteLink||''),String(task.alertText||''),
       'PENDING',0,now,'', '',now,now
     ];
-    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
+    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT','SEND_DM'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
     if(values[2]==='REVOKE_INVITE'&&!values[5])throw new Error('VIP_FOLLOWUP_INVITE_REQUIRED');
     if(values[2]==='REMOVE_MEMBER'&&!/^[0-9]{1,20}$/.test(values[4]))throw new Error('VIP_FOLLOWUP_USER_REQUIRED');
+    if(values[2]==='SEND_DM'&&(!/^[0-9]{1,20}$/.test(values[4])||!values[6]))throw new Error('VIP_FOLLOWUP_DM_TARGET_OR_MESSAGE_REQUIRED');
     sh.getRange(last+1,1,1,width).setValues([values]);SpreadsheetApp.flush();
     return {ok:true,duplicate:false};
   } finally {lock.releaseLock();}
@@ -2012,6 +2033,7 @@ function runMpsVipFollowupQueue_(maxTasks) {
       if(task.action==='REVOKE_INVITE')ok=revokeVipInviteLink_(task.groupId,task.inviteLink);
       else if(task.action==='REMOVE_MEMBER')ok=kickMpsUnauthorizedUser_(task.groupId,task.telegramUserId);
       else if(task.action==='ADMIN_ALERT'){const result=sendTelegram_(task.alertText);ok=!!result&&result.ok===true;if(!ok)error='ADMIN_ALERT_DELIVERY_UNCONFIRMED';}
+      else if(task.action==='SEND_DM'){const result=telegramSendToChat_(task.telegramUserId,task.alertText);ok=!!result&&result.ok===true;if(!ok)error='MEMBER_DM_DELIVERY_UNCONFIRMED';}
       else error='FOLLOWUP_ACTION_INVALID';
     }catch(err){error=String(err&&err.message||err).slice(0,120);}
     const finishLock=LockService.getScriptLock();finishLock.waitLock(10000);
@@ -2021,10 +2043,10 @@ function runMpsVipFollowupQueue_(maxTasks) {
       if(String(row[0])!==task.key||String(row[7])!=='PROCESSING')throw new Error('VIP_FOLLOWUP_CLAIM_LOST');
       const stamp=new Date();
       if(ok){row[7]='DONE';row[9]='';row[10]='';row[11]='';completed++;}
-      else if(task.action==='ADMIN_ALERT'){
-        // sendMessage may have reached Telegram even when the response was lost.
-        // Quarantine ambiguous delivery; automatic retry could duplicate a security alert.
-        row[7]='REVIEW';row[9]='';row[10]='';row[11]=error||'ADMIN_ALERT_DELIVERY_UNCONFIRMED';reviewed++;
+      else if(task.action==='ADMIN_ALERT'||task.action==='SEND_DM'){
+        // Telegram may have accepted sendMessage even if its response was lost.
+        // Quarantine ambiguous alerts/DMs; blind retry could duplicate a notification.
+        row[7]='REVIEW';row[9]='';row[10]='';row[11]=error||(task.action==='SEND_DM'?'MEMBER_DM_DELIVERY_UNCONFIRMED':'ADMIN_ALERT_DELIVERY_UNCONFIRMED');reviewed++;
       }else{
         const attempts=Number(row[8])||1,delay=Math.min(6*60*60*1000,Math.pow(2,Math.min(10,attempts-1))*60*1000);
         row[7]='RETRY';row[9]=new Date(stamp.getTime()+delay);row[10]='';row[11]=error;retried++;
