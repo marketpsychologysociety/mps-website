@@ -520,9 +520,35 @@ test('Market Pulse data reader fails closed on a shared parent folder or shared 
   assert.throws(()=>sharedFile.result,/File Market Pulse tidak PRIVATE/);
   assert.deepEqual(sharedFile.stats(),{enumerations:1,blobReads:0});
   const privateSource=harness();
-  assert.deepEqual(privateSource.result,{ok:true,source:'validated-source'});
+  assert.equal(privateSource.result.ok,true);
+  assert.equal(privateSource.result.source,'validated-source');
   assert.deepEqual(privateSource.stats(),{enumerations:1,blobReads:1});
   const duplicate=harness({duplicate:true});
   assert.throws(()=>duplicate.result,/lebih dari satu file data Pulse/);
   assert.deepEqual(duplicate.stats(),{enumerations:1,blobReads:0});
+});
+
+test('direct Market Pulse API calls reject missing or invalid member/Admin sessions before Drive access',()=>{
+  const names=['getMarketPulseData_','apiGetMarketPulse','apiAdminGetMarketPulse'];
+  const bodies=names.map(name=>{
+    const start=code.indexOf('function '+name+'(');
+    const end=code.indexOf(String.fromCharCode(10)+'function ',start+1);
+    assert.ok(start>=0&&end>start,name+' boundaries must exist');
+    return code.slice(start,end);
+  }).join('\n');
+  let folderLookups=0,rateCalls=0;
+  const context={
+    MPS:{maxPulseDataBytes:1024*1024},
+    DriveApp:{Access:{PRIVATE:'PRIVATE'},getFolderById:()=>{folderLookups++;throw Error('Drive must not be reached');}},
+    getLearningFolderId_:()=> 'learning-folder',
+    requireMember_:()=>{throw Error('MEMBER_AUTH_REQUIRED');},
+    requireAdmin_:()=>{throw Error('ADMIN_AUTH_REQUIRED');},
+    consumeRateLimit_:()=>{rateCalls++;},
+    sha256_:()=> 'a'.repeat(64)
+  };
+  runInNewContext(bodies,context,{timeout:1000});
+  assert.throws(()=>context.apiGetMarketPulse('missing-session'),/MEMBER_AUTH_REQUIRED/);
+  assert.throws(()=>context.apiAdminGetMarketPulse('missing-session'),/ADMIN_AUTH_REQUIRED/);
+  assert.equal(folderLookups,0,'unauthenticated direct API calls must not reach Drive');
+  assert.equal(rateCalls,0,'authorization must run before the per-principal throttle');
 });
