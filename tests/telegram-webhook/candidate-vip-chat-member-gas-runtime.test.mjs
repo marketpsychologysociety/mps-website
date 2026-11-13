@@ -345,6 +345,8 @@ test('VIP invite delivery is durably queued, validated against current member st
  assert.equal(queue.length,2);assert.equal(queue[1][2],'VIP_INVITE_DM');assert.equal(queue[1][5],link);
  assert.equal(h.runQueue().completed,1);
  assert.equal(queue[1][7],'DONE');
+ assert.equal(h.sheets.get('VIP Access')[1][6],'Undangan dikirim');
+ assert.equal(h.sheets.get('Database Member')[1][29],'Undangan Dikirim');
  assert.equal(h.stats().sendCalls,1,'worker performs exactly one Telegram send');
  assert.equal(h.stats().held,false);
 });
@@ -384,4 +386,20 @@ test('candidate sendVipInvite_ persists a durable invite task instead of sending
  assert.match(candidate,/function deliverMpsVipInviteTask_\(task\)/);
  assert.match(candidate,/task\.action==='VIP_INVITE_DM'/);
  assert.match(candidate,/DELIVERY_OUTCOME_UNKNOWN_AFTER_WORKER_LEASE/);
+});
+
+
+test('VIP invite worker does not send a link after the member has already joined',()=>{
+ const h=runtime(),link='https://t.me/+already-joined';
+ h.setInvite(link);
+ h.sheets.get('VIP Access')[1][6]='Aktif';
+ h.sheets.get('Database Member')[1][29]='Aktif';
+ h.enqueueInviteTask(link,'');
+ const result=h.runQueue();
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(result.completed,1);
+ assert.equal(queue[1][7],'DONE');
+ assert.equal(h.stats().sendCalls,0,'already joined member must not receive another invite');
+ assert.equal(h.sheets.get('VIP Access')[1][6],'Aktif');
+ assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
 });
