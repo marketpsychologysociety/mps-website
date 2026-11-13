@@ -2475,7 +2475,15 @@ function apiGetPublicCenter() {
   consumeRateLimit_('mps_public_center_global',1200,60,'Terlalu banyak permintaan konten publik. Coba lagi sebentar.');
   const cache = CacheService.getScriptCache();
   const cached = cache.get('mps_public_center_v480');
-  if (cached) return safeParseJson_(cached, { ok: true, news: [], calendar: [], announcements: [], ads: [], activity: [], updatedAt: '' });
+  if (cached) {
+    const cachedPayload=safeParseJson_(cached,null);
+    // A deployment may inherit a pre-privacy cache entry containing real names.
+    // Reuse cache only when every public ticker identity is already a valid Member ID.
+    const cachedTickerSafe=!!cachedPayload&&Array.isArray(cachedPayload.activity)&&cachedPayload.activity.every(function(item){
+      return item&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(item.PublicAlias||''))&&isSafePublicIdentity_(item.PublicText);
+    });
+    if(cachedTickerSafe)return cachedPayload;
+  }
   const news = [] // Premium News & Review is available only through the authenticated member endpoint.
     .sort(function(a,b) { return (Number(!!b.Pinned)-Number(!!a.Pinned)) || (dateMs_(b['Published At']) - dateMs_(a['Published At'])); }).slice(0,30);
   const calendar = []; // Economic calendar details are member-only.
