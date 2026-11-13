@@ -62,6 +62,10 @@ const MPS_MEMBER_LINKS = Object.freeze({
   sheet: 'MPS Member Telegram Links',
   headers: ['Token Hash','Created At','Expires At','Status','Member ID','Application Ref','Telegram User ID','Chat ID','Username','First Name','Consumed At']
 });
+const MPS_REQUEST_LEDGER = Object.freeze({
+  sheet: 'MPS Request Ledger',
+  headers: ['Request ID','Fingerprint','Status','Started At','Completed At','Action','Application Ref','Member ID','Result Status']
+});
 
 /** Web app entry point. */
 function doGet(e) {
@@ -79,11 +83,10 @@ function doGet(e) {
   if (p.action === 'status') {
     const requestId = cleanRequestId_(p.requestId);
     if (!requestId) return json_({ ok: false, error: 'requestId tidak valid.' });
-    const cached = CacheService.getScriptCache().get('mps_req_' + requestId);
-    // Endpoint status publik tidak mengembalikan payload hasil pendaftaran/deposit.
-    return json_(cached ? { ok: true, pending: false, status: 'Selesai diproses' } : {
-      ok: false, pending: true, status: 'Masih diproses'
-    });
+    const ledger=getMpsRequestLedgerSheet_(),ledgerRow=findMpsRequestLedgerRow_(ledger,requestId);
+    const state=ledgerRow?String(ledger.getRange(ledgerRow,3).getDisplayValue()||''):'PENDING';
+    // Endpoint status publik hanya mengembalikan status generik, tidak ada data formulir.
+    return json_(state==='COMPLETED'?{ok:true,pending:false,status:'Selesai diproses'}:{ok:false,pending:true,status:'Masih diproses'});
   }
   // Parameter page hanya memilih tab awal; seluruh konten privat tetap dilindungi sesi.
   const requestedPage = String(p.page || 'home').toLowerCase();
@@ -270,24 +273,30 @@ function submitCore_(data) {
   const requestId = cleanRequestId_(data.requestId);
   const cache = CacheService.getScriptCache();
   const replayPayload=Object.assign({},data);delete replayPayload.requestId;const requestFingerprint=sha256_(JSON.stringify(replayPayload));
+  let ledgerRow=0,ledger=null,ledgerReserved=false;
   try {
     if (data.website) return { ok: true, ignored: true };
-    if (requestId) {
-      const prior = cache.get('mps_req_' + requestId);
-      if (prior) { const saved=safeParseJson_(prior,null);if(!saved||saved.fingerprint!==requestFingerprint)throw new Error('Request ID sudah digunakan untuk data yang berbeda. Muat ulang formulir sebelum mencoba lagi.');const replay=saved.result||{};return {ok:!!replay.ok,replayed:true,status:replay.status||'Permintaan sebelumnya sudah diproses.',applicationRef:replay.applicationRef||'',memberId:replay.memberId||''}; }
-    }
+    if(data.requestId&&!requestId)throw new Error('Request ID tidak valid. Muat ulang formulir sebelum mencoba lagi.');
     action = String(data.action || '').toLowerCase();
     if (action !== 'register' && action !== 'deposit') throw new Error('Jenis permintaan tidak dikenal.');
-    consumeRateLimit_('mps_submit_global_' + action, 600, MPS.submitWindowSeconds, 'Terlalu banyak pengiriman ke MPS. Coba lagi beberapa menit.');
+    consumePersistentBucketRateLimit_('public_submit_' + action, 600, MPS.submitWindowSeconds, 'Terlalu banyak pengiriman ke MPS. Coba lagi beberapa menit.');
     const throttleIdentity = action === 'register' ? String(data.telegram || (String(data.nickname||'')+'|'+String(data.country||'')) || 'registration') : String(data.applicationRef || 'deposit');
     const submitRateKey = 'submit_' + action + '_' + sha256_(throttleIdentity || 'unknown').slice(0, 20);
     consumeRateLimit_(submitRateKey, MPS.submitMaxAttempts, MPS.submitWindowSeconds, 'Terlalu banyak pengiriman untuk referensi ini. Coba lagi beberapa menit.');
 
     lock = LockService.getScriptLock();
     lock.waitLock(20000);
-    if (requestId) {
-      const afterLock = cache.get('mps_req_' + requestId);
-      if (afterLock) { const saved=safeParseJson_(afterLock,null);if(!saved||saved.fingerprint!==requestFingerprint)throw new Error('Request ID sudah digunakan untuk data yang berbeda.');const replay=saved.result||{};return {ok:!!replay.ok,replayed:true,status:replay.status||'Permintaan sebelumnya sudah diproses.',applicationRef:replay.applicationRef||'',memberId:replay.memberId||''}; }
+    if(requestId){
+      ledger=getMpsRequestLedgerSheet_();ledgerRow=findMpsRequestLedgerRow_(ledger,requestId);
+      if(ledgerRow){
+        const saved=ledger.getRange(ledgerRow,1,MPS_REQUEST_LEDGER.headers.length).getValues()[0];
+        if(String(saved[1]||'')!==requestFingerprint)throw new Error('Request ID sudah digunakan untuk data yang berbeda.');
+        if(String(saved[2]||'')==='COMPLETED')return {ok:true,replayed:true,status:String(saved[8]||'Permintaan sebelumnya sudah diproses.'),applicationRef:String(saved[6]||''),memberId:String(saved[7]||'')};
+        // PENDING is fail-closed: an interrupted request is never blindly replayed.
+        throw new Error('Permintaan dengan ID ini masih tercatat dalam proses atau perlu rekonsiliasi admin. Jangan kirim ulang dengan ID baru; hubungi admin MPS.');
+      }
+      ledger.appendRow([requestId,requestFingerprint,'PENDING',new Date(),'','', '', '', '']);
+      ledgerRow=ledger.getLastRow();ledgerReserved=true;
     }
     if (action === 'register') {
       const registration = registerMember_(null, data);
@@ -301,21 +310,20 @@ function submitCore_(data) {
       result = deposit.result;
       telegramMessage = deposit.telegramMessage;
     }
+    if(requestId&&result&&result.ok){
+      ledger.getRange(ledgerRow,3,1,7).setValues([['COMPLETED',ledger.getRange(ledgerRow,4).getValue(),new Date(),action,result.applicationRef||'',result.memberId||'',result.status||'Selesai diproses']]);
+      ledgerReserved=false;
+    }
     // Persistent business writes have completed at this point. CacheService is
     // an optimization/idempotency hint, not part of the business commit boundary.
     // Cache failures must never turn a committed registration/deposit into ok:false.
     if (result && result.ok) {
       try { cache.remove('mps_public_dashboard_v480'); } catch (cacheErr) { console.warn('MPS post-commit dashboard cache invalidation failed.'); }
     }
-    if (requestId) {
-      result.requestId = requestId;
-      if (result.ok) {
-        try {
-          cache.put('mps_req_' + requestId, JSON.stringify({fingerprint:requestFingerprint,result:{ok:true,status:result.status||'',applicationRef:result.applicationRef||'',memberId:result.memberId||''}}), MPS.requestCacheSeconds);
-        } catch (cacheErr) { console.warn('MPS post-commit request cache write failed. Durable idempotency is not provided by CacheService.'); }
-      }
-    }
+    if (requestId) result.requestId = requestId;
   } catch (err) {
+    // Keep a reserved ledger row PENDING after an uncertain failure. This prevents
+    // duplicate business writes if Apps Script stopped after a partial commit.
     let cleanupWarning='';
     if (uploadedFile && !proofLinkedToSheet && err.preserveProofFile!==true) {
       try { uploadedFile.setTrashed(true); } catch (cleanupErr) { cleanupWarning='File bukti privat mungkin masih tersimpan karena pembersihan otomatis gagal. Super Admin perlu memeriksa folder bukti.'; }
@@ -330,9 +338,7 @@ function submitCore_(data) {
     const tg = sendTelegram_(telegramMessage);
     result.telegramNotified = !!tg.ok;
     if (!tg.ok) result.telegramWarning = 'Data tersimpan, tetapi notifikasi Telegram gagal dikirim.';
-    if (requestId) {
-      try { cache.put('mps_req_' + requestId, JSON.stringify({fingerprint:requestFingerprint,result:{ok:true,status:result.status||'',applicationRef:result.applicationRef||'',memberId:result.memberId||''}}), MPS.requestCacheSeconds); } catch (ignored) {}
-    }
+
   }
   if(result&&result.ok){
     if(action==='register')recordMpsAudit_('PUBLIC','APPLICATION','REGISTRATION_SUBMITTED',result.applicationRef,'SUCCESS','Pendaftaran awal disimpan; belum ada Member ID dan tidak ada notifikasi Telegram admin.');
@@ -1018,7 +1024,7 @@ function apiMemberLogin(memberId, pin) {
   const pinText = String(pin || '').trim();
   if (!id || !/^\d{6}$/.test(pinText)) throw new Error('ID Member atau PIN tidak valid.');
   // Also throttle unknown IDs; per-member counters alone can be bypassed by random IDs.
-  consumeRateLimit_('mps_member_login_global',600,60,'Terlalu banyak percobaan login member. Coba lagi sebentar.');
+  consumePersistentBucketRateLimit_('member_login_global',600,60,'Terlalu banyak percobaan login member. Coba lagi sebentar.');
   const sheet = getMemberSheet_();
   const row = findMemberById_(sheet, id);
   if (!row) throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
@@ -2517,6 +2523,22 @@ function clearPersistentLoginRateLimit_(key) {
 }
 
 /** General non-login throttles remain cache-backed to avoid persistent property churn. */
+function consumePersistentBucketRateLimit_(bucket, maxAttempts, windowSeconds, message) {
+  // Fixed allow-list prevents attacker-controlled Script Properties growth.
+  const allowed=['member_login_global','public_submit_register','public_submit_deposit','ad_request_global'];
+  if(allowed.indexOf(String(bucket))<0)throw new Error('Rate-limit bucket tidak dikenal.');
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
+  try{
+    const props=PropertiesService.getScriptProperties(),propertyKey='MPS_RATE_BUCKET_'+bucket;
+    const now=Date.now(),windowMs=Math.max(1000,Math.min(21600000,(Number(windowSeconds)||60)*1000));
+    const raw=props.getProperty(propertyKey);let state=raw?safeParseJson_(raw,null):null;
+    if(state&&(!Number.isFinite(Number(state.startedAt))||!Number.isFinite(Number(state.count))||Number(state.count)<0))throw new Error('Status rate limit tidak valid. Permintaan ditahan demi keamanan; hubungi Super Admin.');
+    if(!state||now<Number(state.startedAt)||now-Number(state.startedAt)>=windowMs)state={startedAt:now,count:0};
+    if(Number(state.count)>=maxAttempts)throw new Error(message);
+    state.count=Number(state.count)+1;props.setProperty(propertyKey,JSON.stringify(state));
+  }finally{lock.releaseLock();}
+}
+
 function consumeRateLimit_(key, maxAttempts, windowSeconds, message) {
   const lock = LockService.getScriptLock();
   lock.waitLock(5000);
@@ -2733,7 +2755,7 @@ function apiAdminInitializeContent(session) {
   Object.keys(MPS_CONTENT).forEach(function(k) {
     if (!/Headers$/.test(k)) definitions.push({name:MPS_CONTENT[k],headers:MPS_CONTENT[k.replace('Sheet','Headers')]});
   });
-  [MPS_APPLICATIONS,MPS_DEPOSITS,MPS_MEMBER_LINKS,MPS_NEWS_ANALYSIS,MPS_ANNOUNCEMENTS,MPS_SITE_SETTINGS,MPS_LEARNING_CATALOG,MPS_LEARNING_PROGRESS,MPS_AUDIT_LOGS,MPS_VIP_TICKER_EVENTS,MPS_AD_PACKAGES,MPS_AD_REQUESTS,MPS_APPROVED_ADS].forEach(function(def){definitions.push({name:def.sheet,headers:def.headers});});
+  [MPS_APPLICATIONS,MPS_DEPOSITS,MPS_MEMBER_LINKS,MPS_REQUEST_LEDGER,MPS_NEWS_ANALYSIS,MPS_ANNOUNCEMENTS,MPS_SITE_SETTINGS,MPS_LEARNING_CATALOG,MPS_LEARNING_PROGRESS,MPS_AUDIT_LOGS,MPS_VIP_TICKER_EVENTS,MPS_AD_PACKAGES,MPS_AD_REQUESTS,MPS_APPROVED_ADS].forEach(function(def){definitions.push({name:def.sheet,headers:def.headers});});
   definitions.push({name:'VIP Access',headers:['ID Member','Telegram User ID','Chat ID','Username','Nama Depan','Terhubung','Status VIP','Invite Link','Invite Expiry','Joined At','Error Terakhir']});
   definitions.push({name:'Telegram Links',headers:['Token Hash','Dibuat','Kedaluwarsa','Status','Telegram User ID','Chat ID','Username','Nama Depan','Dikonsumsi']});
   provisionMpsSheets_(definitions);
@@ -3122,7 +3144,7 @@ function apiAdminSaveNewsAnalysis(session,payload) {
 function apiSubmitAdvertisingRequest(payload) {
   payload=payload||{};
   if(payload.website)return {ok:true,ignored:true};
-  consumeRateLimit_('mps_ad_request_global',30,3600,'Terlalu banyak pengajuan iklan. Coba lagi nanti.');
+  consumePersistentBucketRateLimit_('ad_request_global',30,3600,'Terlalu banyak pengajuan iklan. Coba lagi nanti.');
   const brand=clean_(payload.brand,100),contact=clean_(payload.contactName,80),email=clean_(payload.email,120).toLowerCase();
   const handle=clean_(payload.contactHandle,80),proposal=cleanNewsText_(payload.proposal,1500);
   const material=String(payload.materialUrl||'').trim(),target=String(payload.targetUrl||'').trim();
