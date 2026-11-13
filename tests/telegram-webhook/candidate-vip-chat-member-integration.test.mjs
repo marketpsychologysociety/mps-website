@@ -123,6 +123,13 @@ test('declined join-request replay queues the same rejection notice after Telegr
  assert.match(h.queuedTasks[0].alertText,/belum dapat disetujui/);
 });
 
+test('declined join-request replay propagates durable notice queue failure for webhook retry',()=>{
+ let n=0;const h=joinHarness(()=>++n===1?{ok:false,description:'request not found'}:tgResponse('left'));
+ h.context.enqueueMpsVipFollowup_=()=>{throw new Error('VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED');};
+ assert.throws(()=>h.context.processVipJoinRequest_(request(),{update_id:88002}),/VIP_JOIN_NOTICE_QUEUE_FAILED:VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED/);
+ assert.equal(n,2);
+});
+
 test('duplicate Telegram identity rows fail closed before any Telegram approval call',()=>{
   const h=joinHarness(()=>({ok:true,result:true}));
   h.context.findUniqueMpsTransitionRow_=()=>{throw new Error('VIP_TRANSITION_DUPLICATE_IDENTITY_ROW');};
