@@ -140,7 +140,7 @@ function legacyRejectHarness({failAt=''}={}) {
     getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByMemberId_:()=>2,
     getMpsApplicationsSheet_:()=>appSheet,findMpsApplicationRowByMember_:()=>2,
     formatMemberRow_:()=>{},CacheService:{getScriptCache:()=>({remove:()=>{}})},
-    sendTelegram_:()=>({ok:true}),recordMpsAudit_:()=>{},adminRole_:()=>'ADMIN',adminActorRef_:()=>'ADMIN',
+    sendTelegram_:()=>({ok:true}),enqueueMpsAdminDecisionIntent_:()=>({ok:true}),runMpsVipFollowupQueue_:()=>({ok:true}),recordMpsAudit_:()=>{},adminRole_:()=>'ADMIN',adminActorRef_:()=>'ADMIN',
     safeErrorMessage_:e=>String(e&&e.message||e),sheetText_:v=>String(v??''),console
   };
   vm.createContext(context);vm.runInContext(cacheHelperSource,context,{timeout:1000});vm.runInContext(legacyVerifySource,context,{timeout:1000});
