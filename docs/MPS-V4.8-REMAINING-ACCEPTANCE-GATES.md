@@ -219,3 +219,9 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - GitHub Actions PR run **#1801** on code/test commit `5f952bc91d5f4a872dab4ed4c45e3fa01d6fa72d` completed **SUCCESS, 68/68 workflow steps, 0 failures**.
 - The run includes a positive-path regression proving a queued group `/start` message reaches `DONE` exactly once, plus the ambiguous-delivery test proving an uncertain send is quarantined as `REVIEW` and not resent automatically.
 - Candidate Telegram handler integration, edited-message suppression, VIP runtime mocks, static isolated-GAS safety, and Chromium browser checks all passed. No live GAS or Telegram test-bot execution is implied.
+
+### Group-start successful delivery regression — 2026-11-13
+
+- GitHub Actions PR run **#1801** on commit `5f952bc91d5f4a872dab4ed4c45e3fa01d6fa72d` completed **SUCCESS, 68/68 workflow steps, 0 failures**.
+- Added an explicit candidate GAS-runtime regression proving a valid `SEND_MESSAGE` task is delivered once, transitions to `DONE`, and performs exactly one Telegram-send mock call. The adjacent ambiguous-delivery regression continues to require `REVIEW` and no automatic retry.
+- This is mocked CI only. It does not prove live Telegram delivery or live Google Apps Script queue/trigger behavior.
