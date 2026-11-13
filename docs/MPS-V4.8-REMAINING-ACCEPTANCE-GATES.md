@@ -48,9 +48,9 @@
 ### D. Backend privacy and API authorization
 
 - [x] Replace stale legacy ticker test assertions with `tests/apps-script/public-ticker-privacy.test.mjs`, which exercises the exact candidate `Code.gs` identity guard and public projection.
-- [x] Static candidate regression verifies public ticker projection exposes only the approved real member display name (not masked) and minimal approved event; full member IDs, phone/email, Telegram IDs/handles, MT5 logins, deposits/payment details, proof documents, PINs, and credentials are excluded. Live isolated-runtime authorization remains open.
-- [ ] Prove direct URL and API authorization using authenticated and unauthenticated tests in an isolated Apps Script runtime. UI hiding is not an authorization control.
-- [ ] Confirm Market Pulse and other member-only data remain inaccessible through direct endpoint/API calls without the required verified member authorization.
+- [x] Regression tests verify that public and Admin ticker projections expose Member ID only, never member names/aliases, and that the website renderer consumes the explicit MemberId field. Phone/email, Telegram IDs/handles, MT5 logins, deposits/payment details, proof documents, PINs, and credentials are excluded. Live isolated-runtime authorization remains open.
+- [x] Harden VIP join-request approval to require the exact unexpired invite link stored for one unique Telegram identity and one unique Member ID; forged/missing/expired invites and duplicate identity rows fail closed in mocked tests.\n- [ ] Prove direct URL and API authorization using authenticated and unauthenticated tests in an isolated Apps Script runtime. UI hiding is not an authorization control.
+- [x] Add candidate checks that Market Pulse data access fails closed when the parent Learning folder is not PRIVATE, while retaining the file-level PRIVATE check. Live isolated-runtime and Drive ACL verification remain open.\n- [ ] Confirm Market Pulse and other member-only data remain inaccessible through direct endpoint/API calls without the required verified member authorization.
 
 ### E. Database, Android, and Winner Draw
 
