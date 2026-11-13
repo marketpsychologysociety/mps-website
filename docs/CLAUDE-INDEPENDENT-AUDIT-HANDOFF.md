@@ -7,14 +7,14 @@
 - Repository: `marketpsychologysociety/mps-website`
 - Pull request: [#12 — Draft](https://github.com/marketpsychologysociety/mps-website/pull/12)
 - Branch: `mps-v4.8-workbench`
-- Reviewed source head before this handoff document: `30308213a96e9f5378926e9f871493ac935353e2`
-- Base / production main SHA: `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`
-- PR snapshot: 170 changed files; 28,988 additions; 64 deletions.
+- Exact audit target: **the current PR head SHA shown by GitHub when the audit begins**. At the time of this update, the head is `5906419b264b20e226fbd42b930d485a47fbca42`; re-read the PR head and audit that exact commit. The handoff document itself may advance the branch head without changing candidate source.
+- Base / production main SHA: `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`.
+- Current PR snapshot at this update: 171 changed files; 29,074 additions; 64 deletions. Recheck live metadata before reporting.
 - PR remains Draft and unmerged. No production deployment or live database operation is authorized.
 
 ## Latest verified CI evidence
 
-Commit-associated GitHub Actions run [#43345853418](https://github.com/marketpsychologysociety/mps-website/actions/runs/43345853418) completed successfully. Its single validation job completed all 64 substantive steps, including:
+Commit-associated GitHub Actions run [#43347203275](https://github.com/marketpsychologysociety/mps-website/actions/runs/43347203275) on the current audit target completed successfully. Its single validation job completed all 64 substantive steps, including:
 - PWA/privacy and schema compatibility checks;
 - synthetic SQLite persistence, contention, crash-recovery, restore, and security-contract suites;
 - Telegram journal/outbox/reconciliation and VIP transition suites;
@@ -36,7 +36,7 @@ Commit-associated GitHub Actions run [#43345853418](https://github.com/marketpsy
 
 ## Source-review leads already identified — independently verify, do not assume
 
-- `getMpsApplicationsSheet_()` and `getMpsMemberLinksSheet_()` in candidate `Code.gs` create missing tabs and initialize headers on first use. Assess whether implicit schema mutation in the configured database is acceptable, safely permission-gated, concurrency-safe, and consistent with the explicit-migration / no-unapproved-live-change policy. Candidate source is not deployed.
+- `getMpsApplicationsSheet_()` and `getMpsMemberLinksSheet_()` in candidate `Code.gs` create missing tabs and initialize headers on first use. The same pattern also exists in `getMpsDepositsSheet_()` and `getOrCreateTelegramSheet_()` (used by `getTelegramAccessSheet_()`). These getters are reached from public and ordinary business flows, not only the explicit Super Admin initializer. In particular, `submitCore_()` → `registerMember_()` / `saveDeposit_()` can reach sheet-creating getters, and public `apiCheckTelegramLink()` reaches `getMpsMemberLinksSheet_()`. Assess whether an untrusted public request can mutate the configured spreadsheet schema when a tab is missing, whether this masks accidental deletion/misconfiguration, and whether initialization should be isolated behind the explicit Super Admin setup path. Verify every call site before recommending a change. Candidate source is not deployed.
 - `processTelegramUpdate_()` uses CacheService PROCESSING/DONE state. The source comment acknowledges CacheService is best-effort and can evict early; do not treat this as durable exactly-once processing. Review crash windows and duplicate side effects.
 - Telegram handler source review documents a VIP activation ordering gap: member/access status may be committed before ticker/audit effects, and replay can then skip those effects. Verify current exact call paths and whether the proposed durable effect ledger is actually wired into all handlers; do not confuse helper/contract tests with integration.
 - `requireMember_()` validates session via CacheService plus a Script Properties PIN-record comparison and checks member approval state. Independently examine session entropy, revocation, role separation, cache eviction, expiry, replay, and every sensitive API path.
@@ -83,4 +83,4 @@ These are not to be marked passed based on mocks or synthetic CI.
 
 ## Evidence caveat
 
-The PR description contains older verification snapshots and commit references. Use the exact target SHA and live Actions run above, not historical numbers embedded in the PR body. Recheck head SHA after this handoff document is committed; audit the resulting new head, not the prior SHA alone.
+The PR description contains older verification snapshots and commit references. Use the exact target SHA and live Actions run above, not historical numbers embedded in the PR body. Recheck PR head SHA after this handoff document is committed; audit the resulting new head, not the prior SHA alone. The latest CI run above validates the candidate source at the pre-document head; the document-only commit should not be described as a new code test.
