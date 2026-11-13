@@ -1878,7 +1878,9 @@ function resolveMpsVipChatMemberTransition_(tx,input) {
     }
   }
   const targetState=left?'LEFT':(allowed?'ACTIVE':'DENIED');
-  const inviteToRevoke=targetState==='ACTIVE'&&accessData?String(accessData[7]||''):'';
+  // Keep the old invite available for idempotent cleanup even if eligibility
+  // changes before Telegram redelivers the exact same update.
+  const inviteToRevoke=accessData?String(accessData[7]||''):'';
   return {
     memberId:memberId,memberName:memberName,telegramUserId:userId,targetState:targetState,
     tickerAllowed:targetState==='ACTIVE'&&input.wasMember===false&&isSafePublicIdentity_(memberName),
@@ -1937,6 +1939,12 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
           // Keep the webhook retryable: the durable transition is complete, but this
           // external security follow-up must be attempted again on Telegram redelivery.
           throw new Error('VIP_INVITE_REVOKE_PENDING');
+        }
+        // Same immutable activation event can be redelivered after eligibility is
+        // revoked. Revoke its old invite and actively remove the now-ineligible user.
+        if(r.currentTargetState==='DENIED'&&r.kickNeeded&&!kickMpsUnauthorizedUser_(groupId,r.telegramUserId)){
+          sendTelegram_('⚠️ PERINGATAN KEAMANAN MPS: kelayakan member berubah setelah aktivasi. Bot gagal menghapus akun dari VIP Community; admin harus segera memeriksa akses.');
+          throw new Error('VIP_UNAUTHORIZED_MEMBER_REMOVAL_PENDING');
         }
       }else if(context.targetState==='DENIED'){
         if(r.kickNeeded&&!kickMpsUnauthorizedUser_(groupId,r.telegramUserId)){
@@ -3503,10 +3511,17 @@ function createMpsGasVipTransitionOrchestrator_(config) {
       memberId=effectiveMemberId;target=effectiveTarget;
       var existing=store.readIntent(tx,intentKey);
       if(existing){
+        // The immutable Telegram update identifies the original transition. Eligibility
+        // may change before a webhook redelivery; do not reinterpret that same event.
         if(String(existing['Payload SHA-256'])!==payloadHash||String(existing['Member ID'])!==memberId||
-          String(existing['Target State'])!==target||Number(existing['Source Date'])!==sourceDate||String(existing['Telegram User ID'])!==telegramUserId){
+          Number(existing['Source Date'])!==sourceDate||String(existing['Telegram User ID'])!==telegramUserId){
           throw new Error('VIP_TRANSITION_INTENT_COLLISION');
         }
+        if(resolved._originalSnapshot){
+          resolved._originalSnapshot.currentTargetState=target;
+          resolved._originalSnapshot.targetState=String(existing['Target State']);
+        }
+        target=String(existing['Target State']);
         if(String(existing.State)==='COMPLETED')return 'DUPLICATE';
         if(String(existing.State)==='SUPERSEDED')return 'STALE';
         finish_(tx,existing,timestampIso);return target;
@@ -3594,6 +3609,7 @@ function createMpsGasVipChatMemberHandler_(config) {
       snapshot=resolveTransition(tx,raw);
       if(!snapshot||snapshot.ignored===true)return snapshot;
       var resolved=Object.assign({},snapshot);
+      resolved._originalSnapshot=snapshot;
       if(!resolved.targetState)resolved.targetState=active?'ACTIVE':'LEFT';
       if(!resolved.telegramUserId)resolved.telegramUserId=userId;
       return resolved;
