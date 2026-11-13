@@ -117,6 +117,8 @@ jobs:
         run: node --test tests/apps-script/proof-approval-validation.test.mjs
       - name: Run authenticated deposit proof proxy runtime tests (mocked Drive only)
         run: node --test tests/apps-script/deposit-proof-access-runtime.test.mjs
+      - name: Run sheet provisioning boundary regression tests (mocked Apps Script services only)
+        run: node --test tests/apps-script/sheet-provisioning-boundaries.test.mjs
       - name: Run public VIP ticker privacy regression tests
         run: node --test tests/apps-script/public-ticker-privacy.test.mjs
       - name: Run Apps Script advertising publication rollback tests (mocked services only)
