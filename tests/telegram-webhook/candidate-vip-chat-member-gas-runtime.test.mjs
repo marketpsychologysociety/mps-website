@@ -41,7 +41,7 @@ const auditHeaders=['Timestamp','Actor Role','Actor Ref','Action','Target Ref','
 const tickerHeaders=['Event ID','Created At','Member ID','Member Name','Event Text','Status'];
 const followupHeaders=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At'];
 
-function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}={}){
+function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,failAdminAlert=false}={}){
  const member=Array(memberHeaders.length).fill('');
  member[0]='MPS-ABCDEF12';member[2]='Trader MPS';member[7]=eligible?'Berhasil':'Menunggu Verifikasi';
  member[8]='Budi Santoso';member[14]=eligible?'Disetujui':'Menunggu Verifikasi';
@@ -91,7 +91,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false}
   sha256_:value=>createHash('sha256').update(String(value)).digest('hex'),
   revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;return !failRevoke;},
   kickMpsUnauthorizedUser_:()=>{assert.equal(held,false,'Telegram follow-up must run after ScriptLock release');networkCalls++;return !failKick;},
-  sendTelegram_:()=>{assert.equal(held,false);networkCalls++;return {ok:true};},
+  sendTelegram_:()=>{assert.equal(held,false);networkCalls++;return failAdminAlert?{ok:false,error:'MOCK_AMBIGUOUS_SEND'}:{ok:true};},
   console
  };
  vm.createContext(context);
@@ -267,6 +267,17 @@ test('same update ID with a changed Telegram payload still fails closed as an in
  assert.equal(h.sheets.get('MPS VIP Ticker Events').length,2);
  assert.equal(h.stats().held,false);
 });
+test('ambiguous admin-alert delivery is quarantined for review and never auto-retried',()=>{
+ const h=runtime({failAdminAlert:true});
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ queue.push(['alert-task-1','intent-1','ADMIN_ALERT','-1001234567890','987654321','','security alert','PENDING',0,new Date(0),'','','',new Date()]);
+ const first=h.runQueue();
+ assert.equal(first.processed,1);assert.equal(first.completed,0);assert.equal(first.retried,0);assert.equal(first.reviewed,1);
+ assert.equal(queue[1][7],'REVIEW');assert.equal(queue[1][11],'ADMIN_ALERT_DELIVERY_UNCONFIRMED');
+ const second=h.runQueue();
+ assert.equal(second.processed,0);assert.equal(queue[1][7],'REVIEW');assert.equal(h.stats().networkCalls,1);
+});
+
 test('candidate ignores member-to-admin role changes because membership remains active',()=>{
  const h=runtime();
  assert.equal(h.process(event(7200,1760000200,'member','administrator')),'IGNORED');
