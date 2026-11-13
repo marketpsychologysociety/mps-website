@@ -116,18 +116,20 @@ test('join request created after the stored invite expiry is declined',()=>{
 });
 
 test('declined join-request replay queues the same rejection notice after Telegram confirms the request is closed',()=>{
- let n=0;const h=joinHarness(()=>++n===1?tgResponse('left'):n===2?{ok:false,description:'request not found'}:tgResponse('left'));
- h.context.processVipJoinRequest_(request(),{update_id:88001});
- assert.equal(n,3);
+ let n=0;const h=joinHarness(()=>++n===1?{ok:false,description:'request not found'}:tgResponse('left'));
+ const req=request();delete req.invite_link;
+ h.context.processVipJoinRequest_(req,{update_id:88001});
+ assert.equal(n,2);
  assert.equal(h.queuedTasks.length,1);
  assert.match(h.queuedTasks[0].alertText,/belum dapat disetujui/);
 });
 
 test('declined join-request replay propagates durable notice queue failure for webhook retry',()=>{
- let n=0;const h=joinHarness(()=>++n===1?tgResponse('left'):n===2?{ok:false,description:'request not found'}:tgResponse('left'));
+ let n=0;const h=joinHarness(()=>++n===1?{ok:false,description:'request not found'}:tgResponse('left'));
+ const req=request();delete req.invite_link;
  h.context.enqueueMpsVipFollowup_=()=>{throw new Error('VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED');};
- assert.throws(()=>h.context.processVipJoinRequest_(request(),{update_id:88002}),/VIP_JOIN_NOTICE_QUEUE_FAILED:VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED/);
- assert.equal(n,3);
+ assert.throws(()=>h.context.processVipJoinRequest_(req,{update_id:88002}),/VIP_JOIN_NOTICE_QUEUE_FAILED:VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED/);
+ assert.equal(n,2);
 });
 
 test('duplicate Telegram identity rows fail closed before any Telegram approval call',()=>{
