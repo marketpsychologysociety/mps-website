@@ -2047,15 +2047,15 @@ function enqueueMpsAdminDecisionIntent_(subjectId,memberId,action,chatId) {
   const decision=String(action||'').toLowerCase(),subject=String(subjectId||''),member=String(memberId||'');
   if(!['approve','reject'].includes(decision)||!subject)throw new Error('ADMIN_DECISION_INTENT_INVALID');
   const digest=sha256_('mps-admin-decision-v2|'+subject+'|'+(member||'UNISSUED')+'|'+decision).slice(0,40);
-  const payload=JSON.stringify({subject:subject,member:member,decision:decision,chatId:/^[0-9]{1,20}$/.test(String(chatId||''))?String(chatId):''});
+  const payload=JSON.stringify({subject:subject,member:member,decision:decision});
   const result=enqueueMpsVipFollowup_({taskKey:'admin-decision-intent:'+digest,intentKey:'admin-decision:'+digest,
-    action:'DECISION_INTENT',groupId:decision,telegramUserId:'',alertText:payload},true);
+    action:'DECISION_INTENT',groupId:decision,telegramUserId:/^[0-9]{1,20}$/.test(String(chatId||''))?String(chatId):'',alertText:payload},true);
   if(!result||!result.ok)throw new Error('ADMIN_DECISION_INTENT_NOT_DURABLE');
   return {ok:true,taskKey:'admin-decision-intent:'+digest};
 }
 function materializeMpsAdminDecisionIntent_(task) {
   const payload=JSON.parse(String(task.alertText||'{}')),subject=String(payload.subject||''),member=String(payload.member||'');
-  const decision=String(payload.decision||''),chatId=String(payload.chatId||'');
+  const decision=String(payload.decision||''),chatId=String(task.telegramUserId||'');
   if(!subject||!['approve','reject'].includes(decision))throw new Error('ADMIN_DECISION_INTENT_PAYLOAD_INVALID');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try {
