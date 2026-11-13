@@ -190,3 +190,11 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - Replaying the same update reuses the same task key; the existing worker quarantines an unconfirmed admin-alert delivery as `REVIEW` rather than automatically resending it.
 - Added a candidate integration regression asserting the warning uses the update-scoped outbox and does not call the direct admin-alert sender. Existing queue runtime regression covers ambiguous alert quarantine.
 - Candidate/mock-only verification. Actual Telegram test-bot delivery and isolated real GAS queue persistence/trigger behavior remain NOT RUN. Other admin notices and non-VIP notification paths remain open.
+
+### Latest candidate Telegram outbox regression verification — 2026-11-13
+
+- GitHub Actions PR run **#1783** on code/test commit `3d9ad292a821e417be7519d0cde76b4c0ab8f2d9` completed **SUCCESS, 68/68 workflow steps, 0 failures**.
+- Candidate Telegram handler integration suite: **39/39 passed**; candidate VIP transition GAS-like runtime suite: **17/17 passed**; public ticker/privacy suite: **20/20 passed**; isolated GAS acceptance harness static validation: success; Chromium browser checks: success.
+- New coverage includes stable task-key deduplication for approved and rejected VIP join-request notices, replay after Telegram confirms a rejected request is closed, propagation of queue persistence failures for webhook retry, bot-permission warning routing through the update-scoped admin-alert outbox, and quarantine of ambiguous admin-alert/member-DM delivery as `REVIEW`.
+- The run used repository CI with mocked Apps Script/Telegram services and local Chromium. It is not live Google Apps Script, live Sheets/ScriptLock/trigger, Telegram test-bot, public deployment, or physical Android acceptance.
+- The latest tested code/test commit remains candidate-only. The follow-up documentation commit is separate. PR #12 remains Draft/unmerged and release remains NO-GO; production resources remain untouched.
