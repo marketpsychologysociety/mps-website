@@ -66,7 +66,7 @@
     if (!data.tickerSettings || data.tickerSettings.enabled !== true) { ticker.hidden = true; return; }
     const items = [];
     data.activity.slice(0, 12).forEach(item => {
-      const memberId = /^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(item.PublicAlias || "")) ? String(item.PublicAlias) : "";
+      const memberId = /^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(item.MemberId || "")) ? String(item.PublicAlias) : "";
       const eventText = safeText(item.PublicText, 120).trim();
       if (memberId) items.push("Member ID " + memberId + (eventText ? " — " + eventText : ""));
     });
