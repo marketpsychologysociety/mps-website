@@ -855,10 +855,11 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
       auditResult='PARTIAL';
     }
   }
-  if(telegramMessage){
-    let tg={ok:false};try{tg=sendTelegram_(telegramMessage);}catch(tgErr){console.error('Admin archive notification: '+safeErrorMessage_(tgErr));}
-    if(!tg.ok){result.telegramWarning='Perubahan tersimpan, tetapi notifikasi arsip admin gagal dikirim.';auditResult='PARTIAL';auditDetails+=' Notifikasi arsip admin gagal dikirim.';}
-  }
+  let noticeQueue={ok:false};
+  try{noticeQueue=enqueueMpsAdminDecisionNotices_(memberKey,memberKey,action,memberChatId);}
+  catch(noticeErr){console.error('Legacy admin decision notice enqueue: '+safeErrorMessage_(noticeErr));}
+  if(!noticeQueue.ok){result.memberNoticeWarning='Keputusan tersimpan, tetapi sebagian notifikasi belum masuk antrean.';result.telegramWarning='Notifikasi arsip admin belum masuk antrean.';auditResult='PARTIAL';auditDetails+=' Notifikasi keputusan belum seluruhnya masuk antrean.';}
+  else{try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Legacy admin decision notice drain deferred: '+safeErrorMessage_(queueErr));}}
   if(!recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'MEMBER_APPROVED':'MEMBER_REJECTED',memberKey,auditResult,auditDetails))result.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
   return result;
 }
@@ -929,8 +930,15 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     result={ok:true,status:'Pengajuan deposit ditolak. Member ID tidak diterbitkan.',applicationRef:applicationRef};
     telegramMessage='❌ PENGAJUAN DEPOSIT MPS DITOLAK\nApplication Ref: '+applicationRef+'\nNama: '+nickname+(note?'\nCatatan: '+note:'');
   }
-  if(chatId){try{const dm=telegramSendToChat_(chatId,action==='approve'?'Keputusan admin MPS sudah diproses. Periksa pesan PIN terpisah dari bot MPS.':'Pengajuan MPS belum dapat disetujui.'+(note?' Catatan admin: '+note:''));if(!dm.ok)result.memberNoticeWarning='Pesan pemberitahuan ke pendaftar gagal dikirim.';}catch(e){result.memberNoticeWarning='Pesan pemberitahuan ke pendaftar gagal dikirim.';}}
-  try{const tg=sendTelegram_(telegramMessage);if(!tg.ok)result.telegramWarning='Notifikasi arsip admin gagal dikirim.';}catch(e){result.telegramWarning='Notifikasi arsip admin gagal dikirim.';}
+  let noticeQueue={ok:false};
+  try{noticeQueue=enqueueMpsAdminDecisionNotices_(applicationRef,memberId,action,chatId);}
+  catch(noticeErr){console.error('Admin decision notice enqueue: '+safeErrorMessage_(noticeErr));}
+  if(!noticeQueue.ok){
+    result.memberNoticeWarning='Keputusan tersimpan, tetapi sebagian notifikasi belum masuk antrean. Periksa antrean Telegram.';
+    result.telegramWarning='Notifikasi arsip admin belum masuk antrean.';
+  }else{
+    try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Admin decision notice drain deferred: '+safeErrorMessage_(queueErr));}
+  }
   const auditStatus=action==='reject'?'SUCCESS':(result.ok&&result.inviteSent!==false?'SUCCESS':'PARTIAL');
   const auditDetails=action==='approve'?'Member ID '+memberId+' diterbitkan setelah approval; aktivasi PIN '+(result.ok?'selesai':'tertunda')+'; undangan VIP '+(result.inviteSent?'berhasil':'belum berhasil atau belum dikonfirmasi')+'.':'Pengajuan ditolak tanpa menerbitkan Member ID.';
   if(!recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'APPLICATION_APPROVED':'APPLICATION_REJECTED',applicationRef,auditStatus,auditDetails))result.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
@@ -2035,6 +2043,28 @@ function enqueueMpsVipFollowup_(task, lockAlreadyHeld) {
     sh.getRange(last+1,1,1,width).setValues([values]);SpreadsheetApp.flush();
     return {ok:true,duplicate:false};
   } finally {if(lock)lock.releaseLock();}
+}
+
+function enqueueMpsAdminDecisionNotices_(subjectId,memberId,action,chatId) {
+  const decision=String(action||'').toLowerCase();
+  if(!['approve','reject'].includes(decision))throw new Error('ADMIN_DECISION_NOTICE_ACTION_INVALID');
+  const subject=String(subjectId||''),member=String(memberId||'');
+  if(!subject||!member)throw new Error('ADMIN_DECISION_NOTICE_IDENTITY_REQUIRED');
+  const suffix=decision==='approve'?'disetujui':'belum dapat disetujui';
+  const memberMessage=decision==='approve'
+    ?'Keputusan verifikasi MPS sudah diproses. Periksa portal MPS untuk status akun. PIN akses dikirim terpisah melalui chat pribadi bot.'
+    :'Pengajuan MPS belum dapat disetujui. Silakan periksa portal MPS atau hubungi admin melalui kanal resmi.';
+  const digest=sha256_('mps-admin-decision-v1|'+subject+'|'+member+'|'+decision).slice(0,40);
+  const tasks=[];
+  if(/^[0-9]{1,20}$/.test(String(chatId||''))){
+    tasks.push({taskKey:'admin-decision-member:'+digest,intentKey:'admin-decision:'+digest,
+      action:'SEND_DM',groupId:String(chatId),telegramUserId:String(chatId),alertText:memberMessage});
+  }
+  tasks.push({taskKey:'admin-decision-admin:'+digest,intentKey:'admin-decision:'+digest,
+    action:'ADMIN_ALERT',alertText:'MPS: keputusan verifikasi '+suffix+'. Referensi: '+subject+'. Member ID: '+member+'.'});
+  const results=[];
+  tasks.forEach(function(task){try{results.push(enqueueMpsVipFollowup_(task));}catch(err){results.push({ok:false,error:safeErrorMessage_(err)});}});
+  return {ok:results.every(function(r){return r&&r.ok;}),results:results};
 }
 
 function runMpsVipFollowupQueue_(maxTasks) {
