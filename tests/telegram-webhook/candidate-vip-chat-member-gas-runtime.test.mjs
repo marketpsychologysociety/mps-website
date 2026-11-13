@@ -92,7 +92,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;return !failRevoke;},
   kickMpsUnauthorizedUser_:()=>{assert.equal(held,false,'Telegram follow-up must run after ScriptLock release');networkCalls++;return !failKick;},
   sendTelegram_:()=>{assert.equal(held,false);networkCalls++;return failAdminAlert?{ok:false,error:'MOCK_AMBIGUOUS_SEND'}:{ok:true};},
-  telegramSendToChat_:(id,message)=>{assert.equal(held,false);assert.match(String(id),/^[0-9]{1,20}$/);assert.ok(String(message));networkCalls++;return failMemberDm?{ok:false,error:'MOCK_AMBIGUOUS_DM'}:{ok:true};},
+  telegramSendToChat_:(id,message)=>{assert.equal(held,false);assert.match(String(id),/^-?[0-9]{1,20}$/);assert.ok(String(message));networkCalls++;return failMemberDm?{ok:false,error:'MOCK_AMBIGUOUS_DM'}:{ok:true};},
   console
  };
  vm.createContext(context);
@@ -298,6 +298,17 @@ test('VIP join welcome DM is durably keyed and ambiguous delivery is quarantined
  failed.enqueueJoinNotice(request,{update_id:7502},true);
  assert.equal(failedQueue[1][7],'REVIEW');
  assert.equal(failed.stats().networkCalls,1,'ambiguous DM outcome must never be automatically resent');
+});
+
+test('ambiguous group start message is quarantined and never auto-retried',()=>{
+ const h=runtime({failMemberDm:true});
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ queue.push(['group-start-task','intent-group-start','SEND_MESSAGE','-1001234567890','','','group notice','PENDING',0,new Date(0),'','','',new Date()]);
+ const first=h.runQueue();
+ assert.equal(first.processed,1);assert.equal(first.reviewed,1);assert.equal(queue[1][7],'REVIEW');
+ assert.equal(queue[1][11],'TELEGRAM_MESSAGE_DELIVERY_UNCONFIRMED');
+ const second=h.runQueue();
+ assert.equal(second.processed,0);assert.equal(h.stats().networkCalls,1);
 });
 
 test('candidate ignores member-to-admin role changes because membership remains active',()=>{
