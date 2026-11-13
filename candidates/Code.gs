@@ -1602,7 +1602,7 @@ function processVipJoinRequest_(request,update) {
         enqueueMpsVipJoinRequestNotice_(request,update,true);
         return true;
       }
-    }catch(checkErr){console.error('VIP join idempotency check: '+safeErrorMessage_(checkErr));}
+    }catch(checkErr){if(String(checkErr&&checkErr.message||checkErr).indexOf('VIP_JOIN_NOTICE_QUEUE_FAILED:')===0)throw checkErr;console.error('VIP join idempotency check: '+safeErrorMessage_(checkErr));}
   }
   const method=allowed?'approveChatJoinRequest':'declineChatJoinRequest';
   const resp=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/'+method,{method:'post',payload:{chat_id:chatId,user_id:userId},muteHttpExceptions:true});
@@ -1638,13 +1638,15 @@ function enqueueMpsVipJoinRequestNotice_(request,update,approved) {
   const message=approved
     ?'✅ Permintaan bergabung Anda sudah disetujui. Selamat datang di MPS VIP Community.'
     :'Permintaan bergabung belum dapat disetujui. Pastikan Telegram sudah terhubung dan status member MPS sudah Berhasil.';
-  const queued=enqueueMpsVipFollowup_({
-    taskKey:intentKey+':member-notice',intentKey:intentKey,action:'SEND_DM',
-    groupId:chatId,telegramUserId:telegramUserId,alertText:message
-  });
-  // Ambiguous DM delivery is quarantined by the worker; it is never blindly resent.
-  runMpsVipFollowupQueue_(5);
-  return queued;
+  try{
+    const queued=enqueueMpsVipFollowup_({
+      taskKey:intentKey+':member-notice',intentKey:intentKey,action:'SEND_DM',
+      groupId:chatId,telegramUserId:telegramUserId,alertText:message
+    });
+    // Ambiguous DM delivery is quarantined by the worker; it is never blindly resent.
+    runMpsVipFollowupQueue_(5);
+    return queued;
+  }catch(err){throw new Error('VIP_JOIN_NOTICE_QUEUE_FAILED:'+safeErrorMessage_(err));}
 }
 
 function verifyTelegramLinkFromUpdate_(token,msg) {
