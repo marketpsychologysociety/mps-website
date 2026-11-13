@@ -1520,7 +1520,14 @@ function processTelegramUpdateCore_(update) {
     const chat=msg.chat;
     if((chat.type==='group'||chat.type==='supergroup')&&/\/start(?:@[A-Za-z0-9_]+)?(?:\s|$)/i.test(String(msg.text||''))){
       if(String(chat.title||'').trim().toLowerCase()==='mps vip community'){
-        const props=PropertiesService.getScriptProperties(),candidateLock=LockService.getScriptLock();candidateLock.waitLock(5000);
+        // Only a current group creator/admin may nominate the VIP chat.
+        const props=PropertiesService.getScriptProperties(),botToken=props.getProperty('MPS_TELEGRAM_BOT_TOKEN');
+        const senderId=msg.from&&msg.from.id;
+        if(!botToken||!senderId||!Number.isSafeInteger(Number(senderId)))return;
+        const senderResp=UrlFetchApp.fetch('https://api.telegram.org/bot'+botToken+'/getChatMember',{method:'post',payload:{chat_id:String(chat.id),user_id:String(senderId)},muteHttpExceptions:true});
+        const senderData=parseTelegramResponse_(senderResp),senderStatus=senderData.ok&&senderData.result?String(senderData.result.status||''):'';
+        if(!['creator','administrator'].includes(senderStatus))return;
+        const candidateLock=LockService.getScriptLock();candidateLock.waitLock(5000);
         try{props.setProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_ID',String(chat.id));props.setProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_TITLE',clean_(chat.title,120));}finally{candidateLock.releaseLock();}
         const notice=telegramSendToChat_(String(chat.id),'Permintaan koneksi grup diterima. Admin MPS harus memeriksa dan mengonfirmasi ID grup sebelum undangan VIP diaktifkan.');
         if(!notice.ok)throw new Error('Pemberitahuan kandidat grup Telegram gagal dikirim.');
