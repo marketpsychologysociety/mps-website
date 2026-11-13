@@ -797,6 +797,7 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     appCurrent=appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
     const amount=Number(current[MPS_COL.amount-1]||0);
     if(action==='approve'&&(!Number.isSafeInteger(amount)||amount<MPS.minDeposit))throw new Error('Deposit tidak memenuhi minimum Rp1.000.000.');
+    enqueueMpsAdminDecisionIntent_(memberKey,memberKey,action,memberChatId);
     const now=new Date(),block=current.slice(MPS_COL.registrationStatus-1,MPS_COL.updatedAt);
     block[0]=action==='approve'?'Menunggu Aktivasi':'Ditolak';block[7]=action==='approve'?'Disetujui':'Ditolak';block[8]=sheetText_(note);block[9]=now;block[10]=now;
     dbWritten=true;sheet.getRange(row,MPS_COL.registrationStatus,1,block.length).setValues([block]);
@@ -855,11 +856,7 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
       auditResult='PARTIAL';
     }
   }
-  let noticeQueue={ok:false};
-  try{noticeQueue=enqueueMpsAdminDecisionNotices_(memberKey,memberKey,action,memberChatId);}
-  catch(noticeErr){console.error('Legacy admin decision notice enqueue: '+safeErrorMessage_(noticeErr));}
-  if(!noticeQueue.ok){result.memberNoticeWarning='Keputusan tersimpan, tetapi sebagian notifikasi belum masuk antrean.';result.telegramWarning='Notifikasi arsip admin belum masuk antrean.';auditResult='PARTIAL';auditDetails+=' Notifikasi keputusan belum seluruhnya masuk antrean.';}
-  else{try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Legacy admin decision notice drain deferred: '+safeErrorMessage_(queueErr));}}
+  try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Legacy admin decision intent drain deferred: '+safeErrorMessage_(queueErr));}
   if(!recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'MEMBER_APPROVED':'MEMBER_REJECTED',memberKey,auditResult,auditDetails))result.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
   return result;
 }
@@ -889,6 +886,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       const amount=Number(dep[5]||0);if(!Number.isSafeInteger(amount)||amount<MPS.minDeposit)throw new Error('Deposit tidak memenuhi minimum Rp1.000.000.');
       db=getMemberSheet_();ensureUniqueMt5_(db,String(dep[3]||''),0);
       memberId='MPS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();if(findMemberById_(db,memberId))throw new Error('Terjadi benturan ID Member. Ulangi persetujuan.');
+      enqueueMpsAdminDecisionIntent_(applicationRef,memberId,action,chatId);
       access=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(access,applicationRef);if(!accessRow)throw new Error('Relasi Telegram pendaftar tidak ditemukan.');accessSnapshot=access.getRange(accessRow,1,1,11).getValues()[0];
       const now=new Date(),row=new Array(MPS.headers.length).fill('');
       row[0]=memberId;row[1]=app[1];row[2]=sheetText_(app[2]);row[3]=sheetText_(app[3]||'');row[4]=sheetText_(app[4]);row[5]=sheetText_(app[5]);row[6]=sheetText_(app[6]);row[7]='Menunggu Aktivasi';
@@ -900,6 +898,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       ds.getRange(depositRow,10).setValue('Menunggu Aktivasi');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
       nickname=String(app[2]||'');chatId=String(dep[11]||'');
     }else{
+      enqueueMpsAdminDecisionIntent_(applicationRef,'',action,chatId);
       const now=new Date();apps.getRange(appRow,8).setValue('Deposit Ditolak');apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(now);
       ds.getRange(depositRow,10).setValue('Ditolak');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
       rejectedLinks=getMpsMemberLinksSheet_();if(rejectedLinks.getLastRow()>1){const vals=rejectedLinks.getRange(2,1,rejectedLinks.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();vals.forEach((v,i)=>{if(String(v[5]||'')===applicationRef&&String(v[3])==='Menunggu'){const row=i+2;rejectedLinkSnapshots.push({row:row,values:v.slice()});rejectedLinks.getRange(row,4).setValue('Ditolak');}});}
@@ -930,15 +929,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     result={ok:true,status:'Pengajuan deposit ditolak. Member ID tidak diterbitkan.',applicationRef:applicationRef};
     telegramMessage='❌ PENGAJUAN DEPOSIT MPS DITOLAK\nApplication Ref: '+applicationRef+'\nNama: '+nickname+(note?'\nCatatan: '+note:'');
   }
-  let noticeQueue={ok:false};
-  try{noticeQueue=enqueueMpsAdminDecisionNotices_(applicationRef,memberId,action,chatId);}
-  catch(noticeErr){console.error('Admin decision notice enqueue: '+safeErrorMessage_(noticeErr));}
-  if(!noticeQueue.ok){
-    result.memberNoticeWarning='Keputusan tersimpan, tetapi sebagian notifikasi belum masuk antrean. Periksa antrean Telegram.';
-    result.telegramWarning='Notifikasi arsip admin belum masuk antrean.';
-  }else{
-    try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Admin decision notice drain deferred: '+safeErrorMessage_(queueErr));}
-  }
+  try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Admin decision intent drain deferred: '+safeErrorMessage_(queueErr));}
   const auditStatus=action==='reject'?'SUCCESS':(result.ok&&result.inviteSent!==false?'SUCCESS':'PARTIAL');
   const auditDetails=action==='approve'?'Member ID '+memberId+' diterbitkan setelah approval; aktivasi PIN '+(result.ok?'selesai':'tertunda')+'; undangan VIP '+(result.inviteSent?'berhasil':'belum berhasil atau belum dikonfirmasi')+'.':'Pengajuan ditolak tanpa menerbitkan Member ID.';
   if(!recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'APPLICATION_APPROVED':'APPLICATION_REJECTED',applicationRef,auditStatus,auditDetails))result.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
@@ -2040,30 +2031,89 @@ function enqueueMpsVipFollowup_(task, lockAlreadyHeld) {
     if(values[2]==='REMOVE_MEMBER'&&!/^[0-9]{1,20}$/.test(values[4]))throw new Error('VIP_FOLLOWUP_USER_REQUIRED');
     if(values[2]==='SEND_DM'&&(!/^[0-9]{1,20}$/.test(values[4])||!values[6]))throw new Error('VIP_FOLLOWUP_DM_TARGET_OR_MESSAGE_REQUIRED');
     if(values[2]==='SEND_MESSAGE'&&(!/^-?[0-9]{1,20}$/.test(values[3])||!values[6]))throw new Error('VIP_FOLLOWUP_MESSAGE_TARGET_OR_MESSAGE_REQUIRED');
+    if(values[2]==='DECISION_INTENT'&&(!['approve','reject'].includes(values[3])||!values[6]))throw new Error('VIP_FOLLOWUP_DECISION_INTENT_REQUIRED');
     sh.getRange(last+1,1,1,width).setValues([values]);SpreadsheetApp.flush();
     return {ok:true,duplicate:false};
   } finally {if(lock)lock.releaseLock();}
 }
 
-function enqueueMpsAdminDecisionNotices_(subjectId,memberId,action,chatId) {
+/**
+ * Record the decision notification intent while the caller still owns the
+ * business-transaction ScriptLock. The worker validates committed sheet state
+ * before materializing member/admin messages. This is a recoverable journal,
+ * not a native multi-sheet transaction.
+ */
+function enqueueMpsAdminDecisionIntent_(subjectId,memberId,action,chatId) {
+  const decision=String(action||'').toLowerCase(),subject=String(subjectId||''),member=String(memberId||'');
+  if(!['approve','reject'].includes(decision)||!subject)throw new Error('ADMIN_DECISION_INTENT_INVALID');
+  const digest=sha256_('mps-admin-decision-v2|'+subject+'|'+(member||'UNISSUED')+'|'+decision).slice(0,40);
+  const payload=JSON.stringify({subject:subject,member:member,decision:decision,chatId:/^[0-9]{1,20}$/.test(String(chatId||''))?String(chatId):''});
+  const result=enqueueMpsVipFollowup_({taskKey:'admin-decision-intent:'+digest,intentKey:'admin-decision:'+digest,
+    action:'DECISION_INTENT',groupId:decision,telegramUserId:'',alertText:payload},true);
+  if(!result||!result.ok)throw new Error('ADMIN_DECISION_INTENT_NOT_DURABLE');
+  return {ok:true,taskKey:'admin-decision-intent:'+digest};
+}
+function materializeMpsAdminDecisionIntent_(task) {
+  const payload=JSON.parse(String(task.alertText||'{}')),subject=String(payload.subject||''),member=String(payload.member||'');
+  const decision=String(payload.decision||''),chatId=String(payload.chatId||'');
+  if(!subject||!['approve','reject'].includes(decision))throw new Error('ADMIN_DECISION_INTENT_PAYLOAD_INVALID');
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
+  try {
+    let committed=false;
+    if(/^MPS-APP-[A-F0-9]{20}$/.test(subject)) {
+      const apps=getMpsApplicationsSheet_(),appRow=findMpsApplicationRow_(apps,subject);
+      const deposits=getMpsDepositsSheet_(),depositRow=findMpsDepositRow_(deposits,subject);
+      if(appRow&&depositRow) {
+        const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
+        const dep=deposits.getRange(depositRow,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
+        const expected=decision==='approve'?'Menunggu Aktivasi':'Deposit Ditolak';
+        const expectedDeposit=decision==='approve'?'Menunggu Aktivasi':'Ditolak';
+        committed=String(app[7]||'')===expected&&String(dep[9]||'')===expectedDeposit;
+        if(committed&&decision==='approve') {
+          const storedMember=String(app[8]||'');
+          const db=getMemberSheet_(),memberRow=storedMember?findMemberById_(db,storedMember):0;
+          committed=!!memberRow&&storedMember===member;
+        }
+      }
+    } else if(/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(subject)) {
+      const db=getMemberSheet_(),memberRow=findMemberById_(db,subject);
+      const apps=getMpsApplicationsSheet_(),appRow=findMpsApplicationRowByMember_(apps,subject);
+      if(memberRow&&appRow) {
+        const row=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
+        const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
+        const expectedReg=decision==='approve'?'Menunggu Aktivasi':'Ditolak';
+        const expectedDeposit=decision==='approve'?'Disetujui':'Ditolak';
+        const expectedApp=decision==='approve'?'Menunggu Aktivasi':'Deposit Ditolak';
+        committed=String(row[MPS_COL.registrationStatus-1]||'')===expectedReg&&
+          String(row[MPS_COL.depositStatus-1]||'')===expectedDeposit&&String(app[7]||'')===expectedApp;
+      }
+    }
+    if(!committed)throw new Error('ADMIN_DECISION_INTENT_NOT_COMMITTED');
+    const notice=enqueueMpsAdminDecisionNotices_(subject,member,decision,chatId,true);
+    if(!notice.ok)throw new Error('ADMIN_DECISION_NOTICE_MATERIALIZATION_INCOMPLETE');
+    return true;
+  } finally {lock.releaseLock();}
+}
+function enqueueMpsAdminDecisionNotices_(subjectId,memberId,action,chatId,lockAlreadyHeld) {
   const decision=String(action||'').toLowerCase();
   if(!['approve','reject'].includes(decision))throw new Error('ADMIN_DECISION_NOTICE_ACTION_INVALID');
   const subject=String(subjectId||''),member=String(memberId||'');
-  if(!subject||!member)throw new Error('ADMIN_DECISION_NOTICE_IDENTITY_REQUIRED');
+  if(!subject)throw new Error('ADMIN_DECISION_NOTICE_IDENTITY_REQUIRED');
+  const memberLabel=member||'Belum diterbitkan';
   const suffix=decision==='approve'?'disetujui':'belum dapat disetujui';
   const memberMessage=decision==='approve'
     ?'Keputusan verifikasi MPS sudah diproses. Periksa portal MPS untuk status akun. PIN akses dikirim terpisah melalui chat pribadi bot.'
     :'Pengajuan MPS belum dapat disetujui. Silakan periksa portal MPS atau hubungi admin melalui kanal resmi.';
-  const digest=sha256_('mps-admin-decision-v1|'+subject+'|'+member+'|'+decision).slice(0,40);
+  const digest=sha256_('mps-admin-decision-v2|'+subject+'|'+(member||'UNISSUED')+'|'+decision).slice(0,40);
   const tasks=[];
   if(/^[0-9]{1,20}$/.test(String(chatId||''))){
     tasks.push({taskKey:'admin-decision-member:'+digest,intentKey:'admin-decision:'+digest,
       action:'SEND_DM',groupId:String(chatId),telegramUserId:String(chatId),alertText:memberMessage});
   }
   tasks.push({taskKey:'admin-decision-admin:'+digest,intentKey:'admin-decision:'+digest,
-    action:'ADMIN_ALERT',alertText:'MPS: keputusan verifikasi '+suffix+'. Referensi: '+subject+'. Member ID: '+member+'.'});
+    action:'ADMIN_ALERT',alertText:'MPS: keputusan verifikasi '+suffix+'. Referensi: '+subject+'. Member ID: '+memberLabel+'.'});
   const results=[];
-  tasks.forEach(function(task){try{results.push(enqueueMpsVipFollowup_(task));}catch(err){results.push({ok:false,error:safeErrorMessage_(err)});}});
+  tasks.forEach(function(task){try{results.push(enqueueMpsVipFollowup_(task,!!lockAlreadyHeld));}catch(err){results.push({ok:false,error:safeErrorMessage_(err)});}});
   return {ok:results.every(function(r){return r&&r.ok;}),results:results};
 }
 
@@ -2107,6 +2157,7 @@ function runMpsVipFollowupQueue_(maxTasks) {
       else if(task.action==='ADMIN_ALERT'){const result=sendTelegram_(task.alertText);ok=!!result&&result.ok===true;if(!ok)error='ADMIN_ALERT_DELIVERY_UNCONFIRMED';}
       else if(task.action==='SEND_DM'){const result=telegramSendToChat_(task.telegramUserId,task.alertText);ok=!!result&&result.ok===true;if(!ok)error='MEMBER_DM_DELIVERY_UNCONFIRMED';}
       else if(task.action==='SEND_MESSAGE'){const result=telegramSendToChat_(task.groupId,task.alertText);ok=!!result&&result.ok===true;if(!ok)error='TELEGRAM_MESSAGE_DELIVERY_UNCONFIRMED';}
+      else if(task.action==='DECISION_INTENT'){ok=materializeMpsAdminDecisionIntent_(task);if(!ok)error='ADMIN_DECISION_INTENT_NOT_MATERIALIZED';}
       else error='FOLLOWUP_ACTION_INVALID';
     }catch(err){error=String(err&&err.message||err).slice(0,120);}
     const finishLock=LockService.getScriptLock();finishLock.waitLock(10000);
@@ -2122,7 +2173,9 @@ function runMpsVipFollowupQueue_(maxTasks) {
         row[7]='REVIEW';row[9]='';row[10]='';row[11]=error||(task.action==='SEND_DM'?'MEMBER_DM_DELIVERY_UNCONFIRMED':task.action==='SEND_MESSAGE'?'TELEGRAM_MESSAGE_DELIVERY_UNCONFIRMED':'ADMIN_ALERT_DELIVERY_UNCONFIRMED');reviewed++;
       }else{
         const attempts=Number(row[8])||1,delay=Math.min(6*60*60*1000,Math.pow(2,Math.min(10,attempts-1))*60*1000);
-        row[7]='RETRY';row[9]=new Date(stamp.getTime()+delay);row[10]='';row[11]=error;retried++;
+        row[7]=task.action==='DECISION_INTENT'&&attempts>=5?'REVIEW':'RETRY';
+        row[9]=row[7]==='RETRY'?new Date(stamp.getTime()+delay):'';row[10]='';row[11]=error;
+        if(row[7]==='RETRY')retried++;else reviewed++;
       }
       row[13]=stamp;sh.getRange(rowNumber,1,1,row.length).setValues([row]);SpreadsheetApp.flush();
     } finally {finishLock.releaseLock();}
