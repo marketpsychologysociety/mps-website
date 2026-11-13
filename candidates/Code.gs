@@ -1563,7 +1563,11 @@ function processTelegramUpdateCore_(update) {
     if(chatId===configured){
       const canInvite=botUpdate.new_chat_member.can_invite_users===true,healthy=status==='administrator'&&canInvite;
       recordMpsAudit_('TELEGRAM','BOT','BOT_GROUP_PERMISSION_CHANGED',chatId,healthy?'SUCCESS':'WARNING','Status bot pada grup berubah menjadi '+clean_(status,30)+'; izin undang anggota: '+(canInvite?'aktif':'tidak aktif atau tidak diketahui')+'.');
-      if(!healthy)sendTelegram_('⚠️ PERINGATAN MPS: status/izin bot pada VIP Community berubah. Status: '+clean_(status,30)+'. Izin mengundang anggota: '+(canInvite?'aktif':'tidak aktif/tidak diketahui')+'. Periksa pengaturan admin bot.');
+      if(!healthy){
+        const alertKey='telegram:bot-permission:'+sha256_(String(updateId)+':'+chatId);
+        enqueueMpsVipFollowup_({taskKey:alertKey,intentKey:alertKey,action:'ADMIN_ALERT',groupId:chatId,alertText:'⚠️ PERINGATAN MPS: status/izin bot pada VIP Community berubah. Status: '+clean_(status,30)+'. Izin mengundang anggota: '+(canInvite?'aktif':'tidak aktif/tidak diketahui')+'. Periksa pengaturan admin bot.'});
+        runMpsVipFollowupQueue_(5);
+      }
     }
   }
   if(updateKey)cache.put(updateKey,'1',21600);
