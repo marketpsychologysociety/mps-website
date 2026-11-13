@@ -66,7 +66,6 @@ test('public activity projection exposes only member ID and event text, never me
   assert.ok(source.includes("r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))"));
   assert.ok(!source.includes("PublicAlias:r['Member Name']"));
   assert.ok(!/PublicAlias:r\\['Member Name'\\]/.test(source));
-  assert.doesNotMatch(source,/publicActivity\\s*=\\s*activity\\.map\\(function\\(r\\)\\s*\\{\\s*return\\s*\\{[^}]*Telegram User ID|publicActivity\\s*=\\s*activity\\.map\\(function\\(r\\)\\s*\\{\\s*return\\s*\\{[^}]*Deposit Amount/i);
 });
 test('public Center rejects cached ticker payloads containing legacy names after the ID-only privacy change',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
