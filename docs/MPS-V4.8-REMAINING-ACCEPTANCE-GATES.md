@@ -206,3 +206,10 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - Ambiguous send outcomes for both task types are quarantined as `REVIEW`; no blind automatic resend is performed. Queue write/worker failures propagate so Telegram can redeliver the update and the stable task key prevents a second task.
 - Added candidate integration coverage for private welcome replay, group-chat target validation, and worker quarantine for ambiguous group-message delivery.
 - Live Telegram and real GAS queue acceptance remain NOT RUN. One-time-link verification responses and other direct notification paths remain open.
+
+### Latest Telegram message-outbox verification — 2026-11-13
+
+- GitHub Actions PR run **#1797** on code/test commit `10cc67f27dc8399c3b30ac48e5aa867428f33068` completed **SUCCESS, 68/68 workflow steps, 0 failures**.
+- Candidate Telegram handler integration and outbox suites, the `/start` command suppression/regression suite, candidate VIP runtime mocks, isolated-harness static checks, and Chromium browser checks all passed.
+- The run validates the candidate changes that route private `/start` welcomes and verified group `/start` notices through update-scoped durable message tasks, with ambiguous delivery quarantined rather than blindly retried.
+- This remains CI evidence using mocked Apps Script/Telegram services and local Chromium. It does not establish live GAS persistence, live Telegram delivery, trigger behavior, production authorization, or Android-device acceptance.
