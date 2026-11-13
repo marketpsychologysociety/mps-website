@@ -129,3 +129,23 @@ See docs/MPS-TELEGRAM-EFFECT-LEDGER-INTEGRATION-PLAN.md. These are static source
 - [x] Direct member/Admin endpoint guard tests confirm missing sessions are rejected before Drive access and before rate-limit consumption.
 - [x] GitHub Actions runs #1726 and #1727 on candidate head `b49682351b57a1a7c4fbf1f0c97179cec5a3f3ac` completed successfully, each with **68/68 steps** and zero failed steps.
 - [ ] Actual isolated Apps Script deployment, Google Drive ACL/inheritance behavior, and direct URL/API authorization with real Apps Script session/cache services remain unverified. No production resources were touched.
+
+### Telegram VIP effect-ledger integration status reconciliation — 2026-11-13
+
+The earlier checklist entries describing the Code.gs lock-ownership design and update-ID propagation as not yet implemented are superseded by the current candidate source and test suites. Current workbench evidence:
+
+- [x] Candidate chat-member handler passes the original Telegram update and derives state from old/new membership events.
+- [x] Candidate transition orchestrator persists update-scoped intent/cursor state and uses distinct deterministic ticker/audit effect keys.
+- [x] Candidate effect-ledger adapter exposes a scoped `runExclusive` API. The orchestrator performs its scoped writes without recursively acquiring ScriptLock; nested lock acquisition is rejected.
+- [x] Candidate tests cover replay, stale ordering, payload collision, transition status writes, keyed ticker/audit effects, lock ownership, and follow-up queue behavior using mocked Apps Script services.
+- [x] Documentation now distinguishes the current integrated candidate from the earlier source-review plan.
+
+Still open and not promoted to PASS:
+
+- [ ] Execute the candidate in a separate real Google Apps Script project and test actual Sheets persistence/flush, ScriptLock contention, execution interruption, quotas, latency, and permissions.
+- [ ] Verify recovery after real runtime interruption at each status/intent/cursor/effect write boundary.
+- [ ] Test the explicit effect-key schema migration and backup/restore against a separate test spreadsheet.
+- [ ] Complete handler-specific reconciliation for non-`chat_member` update types and ambiguous Telegram sends; the VIP transition ledger does not provide exactly-once delivery for all webhook effects.
+- [ ] Keep production webhook, production spreadsheet, member data, Script Properties, Telegram configuration, and triggers untouched until separately authorized.
+
+The candidate still has a generic webhook cache update key left unset. VIP `chat_member` replay safety is handled by the transition intent/cursor/effect ledger; this must not be generalized into a claim of global Telegram webhook exactly-once processing. The real GAS runtime gate remains open.
