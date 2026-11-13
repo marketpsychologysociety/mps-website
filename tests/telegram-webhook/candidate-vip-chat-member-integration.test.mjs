@@ -13,7 +13,7 @@ function extract(name,next){
  assert.ok(start>=0&&end>start,'missing source function '+name);
  return candidate.slice(start,end);
 }
-const coreSource=extract('processTelegramUpdateCore_','processVipJoinRequest_');
+const coreSource=extract('enqueueMpsTelegramMessage_','processVipJoinRequest_');
 const joinSource=extract('processVipJoinRequest_','verifyTelegramLinkFromUpdate_');
 const resolverSource=extract('resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_');
 const writerSource=extract('createMpsVipTransitionStatusWriter_','processMpsVipChatMemberEvent_');
