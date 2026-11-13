@@ -55,7 +55,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   ['MPS Telegram VIP Member Cursor',[cursorHeaders.slice()]],
   ['MPS Telegram VIP Follow-up Queue',[followupHeaders.slice()]]
  ]);
- let held=false,acquired=0,released=0,followups=0,networkCalls=0,cacheRemovals=0;
+ let held=false,acquired=0,released=0,followups=0,networkCalls=0,sendCalls=0,revokeCalls=0,cacheRemovals=0;
  const sheets=new Map();
  function sheet(name){
   const rows=data.get(name);if(!rows)return null;
@@ -92,10 +92,10 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   clean_:(v,n)=>String(v??'').replace(/\\s+/g,' ').trim().slice(0,n),
   isSafePublicIdentity_:v=>!/[0-9@]/.test(String(v||'')),
   sha256_:value=>createHash('sha256').update(String(value)).digest('hex'),
-  revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;return !failRevoke;},
+  revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;revokeCalls++;return !failRevoke;},
   kickMpsUnauthorizedUser_:()=>{assert.equal(held,false,'Telegram follow-up must run after ScriptLock release');networkCalls++;return !failKick;},
   sendTelegram_:()=>{assert.equal(held,false);networkCalls++;return failAdminAlert?{ok:false,error:'MOCK_AMBIGUOUS_SEND'}:{ok:true};},
-  telegramSendToChat_:(id,message)=>{assert.equal(held,false);assert.match(String(id),/^-?[0-9]{1,20}$/);assert.ok(String(message));networkCalls++;return failMemberDm?{ok:false,error:'MOCK_AMBIGUOUS_DM'}:{ok:true};},
+  telegramSendToChat_:(id,message)=>{assert.equal(held,false);assert.match(String(id),/^-?[0-9]{1,20}$/);assert.ok(String(message));networkCalls++;sendCalls++;return failMemberDm?{ok:false,error:'MOCK_AMBIGUOUS_DM'}:{ok:true};},
   console
  };
  vm.createContext(context);
@@ -108,7 +108,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   process:update=>context.runCandidateVipEvent(update,update.chat_member),
   runQueue:()=>context.runFollowups(20),
   enqueueJoinNotice:(request,update,approved)=>context.enqueueJoinNotice(request,update,approved),
-  sheets:data,stats:()=>({held,acquired,released,followups,networkCalls,cacheRemovals}),
+  sheets:data,stats:()=>({held,acquired,released,followups,networkCalls,sendCalls,revokeCalls,cacheRemovals}),
   addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);},
   duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},
   duplicateMember(){data.get('Database Member').push(data.get('Database Member')[1].slice());},
@@ -345,7 +345,7 @@ test('VIP invite delivery is durably queued, validated against current member st
  assert.equal(queue.length,2);assert.equal(queue[1][2],'VIP_INVITE_DM');assert.equal(queue[1][5],link);
  assert.equal(h.runQueue().completed,1);
  assert.equal(queue[1][7],'DONE');
- assert.equal(h.stats().networkCalls,1,'worker performs exactly one Telegram send');
+ assert.equal(h.stats().sendCalls,1,'worker performs exactly one Telegram send');
  assert.equal(h.stats().held,false);
 });
 
