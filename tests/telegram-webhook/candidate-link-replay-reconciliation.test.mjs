@@ -366,5 +366,7 @@ test('one-time-link verification notices use the durable update-scoped message o
   assert.match(application,/enqueueMpsTelegramMessage_\(update,chatId,'link-private-chat-required','SEND_DM'/);
   assert.match(application,/enqueueMpsTelegramMessage_\(update,chatId,'link-verification-result','SEND_DM'/);
   assert.match(legacy,/enqueueMpsTelegramMessage_\(update,chatId,'link-verification-result','SEND_DM'/);
+  assert.match(legacy,/rollback incomplete; reconciliation required/);
+  assert.doesNotMatch(legacy,/failureMessage=.*rollbackErrors\.join/);
   for(const [name,fn] of [['dispatch',dispatch],['application',application],['legacy',legacy]])assert.doesNotMatch(fn,/telegramSendToChat_\(/,name+' must not send verification notices directly');
 });
