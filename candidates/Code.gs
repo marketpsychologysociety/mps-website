@@ -1679,6 +1679,16 @@ function verifyTelegramLinkFromUpdate_(token,msg) {
   if(!String(v[4]||'')&&String(v[5]||''))return verifyTelegramApplication_(row,v,msg);
   return verifyTelegramLinkLegacy_(token,msg);
 }
+function enqueueMpsTelegramLinkConfirmation_(tokenHash,chatId,message) {
+  const digest=sha256_(String(tokenHash||''));
+  if(!/^[a-f0-9]{64}$/i.test(digest))throw new Error('TELEGRAM_LINK_NOTICE_KEY_INVALID');
+  const taskKey='telegram-link-confirmation:'+digest.slice(0,40);
+  // Called only while verification already owns ScriptLock. Queue text is generic:
+  // no raw token, PIN, invite URL, or unrestricted admin note is persisted.
+  return enqueueMpsVipFollowup_({taskKey:taskKey,intentKey:taskKey,action:'SEND_DM',
+    groupId:String(chatId||''),telegramUserId:String(chatId||''),alertText:String(message||'')},true);
+}
+
 function verifyTelegramApplication_(linkRow,link,msg) {
   const chatId=String(msg.chat&&msg.chat.id||''),userId=String(msg.from&&msg.from.id||''),appRef=String(link[5]||'');
   if(!userId||userId!==chatId){telegramSendToChat_(chatId,'Verifikasi harus dilakukan melalui chat pribadi bot MPS.');return false;}
@@ -1699,6 +1709,7 @@ function verifyTelegramApplication_(linkRow,link,msg) {
       if(!replayAppRow)throw new Error('Rekonsiliasi tautan gagal: Application Ref tidak ditemukan.');
       const replayApp=replayApps.getRange(replayAppRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
       if(String(replayApp[0]||'')!==appRef||String(replayApp[10]||'')!=='Terverifikasi'||String(replayApp[11]||'')!==userId||String(replayApp[12]||'')!==chatId)throw new Error('Rekonsiliasi tautan gagal: pengajuan tidak terikat pada identitas Telegram yang sama.');
+      enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti deposit. Member ID baru diterbitkan setelah persetujuan admin.');
       return true;
     }
     if(String(fresh[3])!=='Menunggu'||!(fresh[2] instanceof Date)||fresh[2].getTime()<=Date.now())throw new Error('Tautan verifikasi kedaluwarsa atau sudah digunakan.');
@@ -1718,6 +1729,7 @@ function verifyTelegramApplication_(linkRow,link,msg) {
     linkSheet.getRange(actualLinkRow,4).setValue('Terverifikasi');linkSheet.getRange(actualLinkRow,7,1,5).setValues([[userId,chatId,sheetText_(username),sheetText_(first),now]]);
     appSheet.getRange(appRow,11,1,3).setValues([['Terverifikasi',userId,chatId]]);appSheet.getRange(appRow,8).setValue('Menunggu Validasi Admin');appSheet.getRange(appRow,15).setValue(now);
     depSheet.getRange(depRow,10,1,4).setValues([['Menunggu Validasi Admin',userId,chatId,now]]);
+    enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti deposit. Member ID baru diterbitkan setelah persetujuan admin.');
     committed=true;
   }catch(err){
     const rollbackErrors=[];
@@ -1729,7 +1741,7 @@ function verifyTelegramApplication_(linkRow,link,msg) {
     if(rollbackErrors.length)throw new Error('Verifikasi Telegram gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
     throw err;
   }finally{lock.releaseLock();}
-  if(committed){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{const notice=telegramSendToChat_(chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti deposit. Member ID baru diterbitkan setelah persetujuan admin.');if(!notice.ok)recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINK_NOTICE_FAILED',appRef,'WARNING','Verifikasi tersimpan, tetapi pesan konfirmasi gagal dikirim.');}catch(e){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINK_NOTICE_FAILED',appRef,'WARNING','Verifikasi tersimpan, tetapi pengiriman pesan konfirmasi mengalami error.');}}
+  if(committed){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}}
   return committed;
 }
 
@@ -1758,6 +1770,7 @@ function verifyTelegramLinkLegacy_(token,msg) {
         const replayApp=appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
         if(String(replayApp[0]||'')!==String(v[5])||String(replayApp[10]||'')!=='Terverifikasi'||String(replayApp[11]||'')!==userId||String(replayApp[12]||'')!==chatId){failureMessage='Rekonsiliasi tautan gagal: pengajuan tidak terikat pada identitas Telegram yang sama.';throw new Error('MPS_TELEGRAM_LINK_APPLICATION_MISMATCH');}
       }
+      enqueueMpsTelegramLinkConfirmation_(String(v[0]||''),chatId,'✅ Telegram berhasil terhubung ke pendaftaran MPS. Admin akan memeriksa identitas dan bukti deposit. Jangan bagikan tautan verifikasi kepada siapa pun.');
       return true;
     }
     if(!(v[2] instanceof Date)||v[2].getTime()<=Date.now()||v[3]!=='Menunggu'){
@@ -1784,6 +1797,7 @@ function verifyTelegramLinkLegacy_(token,msg) {
     sh.getRange(row,4).setValue('Terverifikasi');sh.getRange(row,7,1,5).setValues([[userId,chatId,sheetText_(username),sheetText_(firstName),new Date()]]);
     appSheet.getRange(appRow,11,1,3).setValues([['Terverifikasi',userId,chatId]]);appSheet.getRange(appRow,15).setValue(new Date());appSheet.getRange(appRow,8).setValue('Menunggu Validasi Admin');
     if(String(memberSnapshot[MPS_COL.registrationStatus-1]||'')!=='Ditolak')memberSheet.getRange(memberRow,MPS_COL.registrationStatus).setValue('Menunggu Validasi Admin');
+    enqueueMpsTelegramLinkConfirmation_(String(v[0]||''),chatId,'✅ Telegram berhasil terhubung ke pendaftaran MPS. Admin akan memeriksa identitas dan bukti deposit. Jangan bagikan tautan verifikasi kepada siapa pun.');
     committed=true;
   }catch(err){
     const rollbackErrors=[];
@@ -1798,7 +1812,7 @@ function verifyTelegramLinkLegacy_(token,msg) {
   if(failureMessage){try{telegramSendToChat_(chatId,failureMessage);}catch(noticeErr){console.error('Telegram legacy verification notice failed: '+safeErrorMessage_(noticeErr));}return false;}
   if(committed){
     recordMpsAudit_('TELEGRAM',verifiedMemberId,'TELEGRAM_LINKED',verifiedMemberId,'SUCCESS','Akun Telegram terverifikasi menggunakan token sekali pakai.');
-    try{const notice=telegramSendToChat_(chatId,'✅ Telegram berhasil terhubung ke pendaftaran MPS. Admin akan memeriksa identitas dan bukti deposit. Jangan bagikan tautan verifikasi kepada siapa pun.');if(!notice.ok)recordMpsAudit_('TELEGRAM',verifiedMemberId,'TELEGRAM_LINK_NOTICE_FAILED',verifiedMemberId,'WARNING','Verifikasi tersimpan, tetapi pesan konfirmasi gagal dikirim.');}catch(noticeErr){recordMpsAudit_('TELEGRAM',verifiedMemberId,'TELEGRAM_LINK_NOTICE_FAILED',verifiedMemberId,'WARNING','Verifikasi tersimpan, tetapi pengiriman pesan konfirmasi gagal.');}
+    try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}
   }
   return committed;
 }
@@ -1990,8 +2004,9 @@ const MPS_VIP_FOLLOWUP_QUEUE = Object.freeze({
  * Durable Telegram follow-up outbox. Queue writes and claims are serialized by
  * ScriptLock; Telegram calls happen only after the lock has been released.
  */
-function enqueueMpsVipFollowup_(task) {
-  const lock=LockService.getScriptLock();lock.waitLock(10000);
+function enqueueMpsVipFollowup_(task, lockAlreadyHeld) {
+  const lock=lockAlreadyHeld?null:LockService.getScriptLock();
+  if(lock)lock.waitLock(10000);
   try {
     const ss=SpreadsheetApp.openById(String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||''));
     const sh=ss&&ss.getSheetByName(MPS_VIP_FOLLOWUP_QUEUE.sheet);
@@ -2018,7 +2033,7 @@ function enqueueMpsVipFollowup_(task) {
     if(values[2]==='SEND_MESSAGE'&&(!/^-?[0-9]{1,20}$/.test(values[3])||!values[6]))throw new Error('VIP_FOLLOWUP_MESSAGE_TARGET_OR_MESSAGE_REQUIRED');
     sh.getRange(last+1,1,1,width).setValues([values]);SpreadsheetApp.flush();
     return {ok:true,duplicate:false};
-  } finally {lock.releaseLock();}
+  } finally {if(lock)lock.releaseLock();}
 }
 
 function runMpsVipFollowupQueue_(maxTasks) {
