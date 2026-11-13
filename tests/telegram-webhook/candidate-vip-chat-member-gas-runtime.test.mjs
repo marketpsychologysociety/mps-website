@@ -40,7 +40,7 @@ function runtime({eligible=true,failCache=false}={}){
  const member=Array(memberHeaders.length).fill('');
  member[0]='MPS-ABCDEF12';member[2]='Trader MPS';member[7]=eligible?'Berhasil':'Menunggu Verifikasi';
  member[8]='Budi Santoso';member[14]=eligible?'Disetujui':'Menunggu Verifikasi';
- const access=['MPS-ABCDEF12','987654321','987654321','budi_mps','Budi',true,'Menunggu Aktivasi','','','', ''];
+ const access=['MPS-ABCDEF12','987654321','987654321','budi_mps','Budi',true,'Menunggu Aktivasi','old-invite-link','','', ''];
  const data=new Map([
   ['Database Member',[memberHeaders.slice(),member]],
   ['VIP Access',[accessHeaders.slice(),access]],
@@ -82,8 +82,8 @@ function runtime({eligible=true,failCache=false}={}){
   clean_:(v,n)=>String(v??'').replace(/\\s+/g,' ').trim().slice(0,n),
   isSafePublicIdentity_:v=>!/[0-9@]/.test(String(v||'')),
   sha256_:()=> 'a'.repeat(64),
-  revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;return true;},
-  kickMpsUnauthorizedUser_:()=>{assert.equal(held,false,'Telegram follow-up must run after ScriptLock release');networkCalls++;return true;},
+  revokeVipInviteLink_:()=>{assert.equal(held,false);networkCalls++;return !failRevoke;},
+  kickMpsUnauthorizedUser_:()=>{assert.equal(held,false,'Telegram follow-up must run after ScriptLock release');networkCalls++;return !failKick;},
   sendTelegram_:()=>{assert.equal(held,false);networkCalls++;},
   console
  };
@@ -164,6 +164,23 @@ test('candidate denies an unlinked Telegram member and performs removal follow-u
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'DENIED');
  assert.equal(h.sheets.get('MPS VIP Ticker Events').length,1);
  assert.equal(h.sheets.get('MPS Audit Logs').length,2);
+});
+test('failed invite revocation keeps the webhook update retryable after the durable activation commits',()=>{
+ const h=runtime({failRevoke:true});
+ assert.throws(()=>h.process(event(7301,1760000300,'left','member')),/VIP_INVITE_REVOKE_PENDING/);
+ assert.equal(h.sheets.get('VIP Access')[1][6],'Aktif');
+ assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
+ assert.equal(h.stats().held,false);
+ assert.equal(h.stats().networkCalls,1);
+});
+test('failed unauthorized-member removal keeps the webhook update retryable after denial commits',()=>{
+ const h=runtime({failKick:true});
+ assert.throws(()=>h.process(event(7302,1760000301,'left','member','555000111')),/VIP_UNAUTHORIZED_MEMBER_REMOVAL_PENDING/);
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
+ assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'DENIED');
+ assert.equal(h.stats().held,false);
+ assert.equal(h.stats().networkCalls,1);
 });
 test('candidate ignores member-to-admin role changes because membership remains active',()=>{
  const h=runtime();
