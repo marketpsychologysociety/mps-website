@@ -532,7 +532,7 @@ function activateMemberAfterPin_(memberId) {
     memberNext[MPS_COL.registrationStatus-1]='Berhasil';memberNext[17]=now;
     memberNext[21]=PropertiesService.getScriptProperties().getProperty(pinPropertyKey_(memberId))||'';
     memberNext[22]=now;
-    if(!['Aktif','Undangan Dikirim'].includes(String(memberNext[29]||'')))memberNext[29]='Menunggu Undangan';
+    if(!['Aktif','Undangan Dikirim','Undangan Antre'].includes(String(memberNext[29]||'')))memberNext[29]='Menunggu Undangan';
     try{
       memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberNext]);
       if(appRow){apps.getRange(appRow,8).setValue('Berhasil');apps.getRange(appRow,15).setValue(now);}
@@ -841,8 +841,9 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     if(pinCurrent)removeMpsCacheBestEffort_('mps_pin_pending_'+sha256_(memberKey).slice(0,24),'legacy PIN activation');
     if(pinCurrent){result.status='Member aktif. PIN berhasil dikirim dan disimpan.';auditDetails='Persetujuan deposit tersimpan dan PIN berhasil dikirim; status member Berhasil.';
       let invite;try{invite=sendVipInvite_(memberKey);}catch(inviteErr){invite={ok:false,error:safeErrorMessage_(inviteErr)};}
-      result.vipInviteSent=!!invite.ok;
-      if(!invite.ok){result.vipInviteWarning=invite.error||'Undangan VIP belum dapat dikirim.';auditResult='PARTIAL';auditDetails+=' PIN tersimpan dan terkirim; undangan VIP belum berhasil dikirim.';}
+      result.vipInviteSent=!!invite.ok&&!invite.queued;result.vipInviteQueued=!!invite.queued;
+      if(!invite.ok){result.vipInviteWarning=invite.error||'Undangan VIP belum dapat dimasukkan ke antrean.';auditResult='PARTIAL';auditDetails+=' PIN tersimpan dan terkirim; undangan VIP belum berhasil dimasukkan ke antrean.';}
+      else if(invite.queued){auditResult='PARTIAL';auditDetails+=' PIN tersimpan dan terkirim; undangan VIP masuk antrean dan menunggu konfirmasi Telegram.';}
     }else{
       result.status='Persetujuan tersimpan; status member Menunggu Aktivasi sampai PIN berhasil dikirim dan dikonfirmasi.';
       result.vipInviteSent=false;
@@ -921,7 +922,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
   let result;
   if(action==='approve'){
     try{result=apiAdminIssuePin(session,memberId);}catch(pinErr){result={ok:false,delivered:false,message:'Persetujuan dan penerbitan Member ID tersimpan, tetapi proses pengiriman PIN belum berhasil dijalankan: '+safeErrorMessage_(pinErr)};}
-    if(result.ok){result.status='Pendaftaran disetujui. Member ID diterbitkan: '+memberId+'. PIN terkirim dan akun aktif.';if(result.inviteSent===false)result.vipInviteWarning=result.message||'PIN terkirim, tetapi undangan VIP belum berhasil dikirim.';}
+    if(result.ok){result.status='Pendaftaran disetujui. Member ID diterbitkan: '+memberId+'. PIN terkirim dan akun aktif.';if(result.inviteQueued)result.vipInviteStatus='Undangan VIP masuk antrean; pengiriman menunggu konfirmasi Telegram.';else if(result.inviteSent===false)result.vipInviteWarning=result.message||'PIN terkirim, tetapi undangan VIP belum berhasil dikirim.';}
     else {result.status='Persetujuan admin tersimpan dan Member ID diterbitkan: '+memberId+'. Aktivasi masih tertunda; gunakan Kirim Ulang PIN setelah memeriksa Telegram.';result.pinWarning=result.message||'Pengiriman PIN belum terkonfirmasi.';}
     result.memberId=memberId;
     telegramMessage='✅ PENGAJUAN MPS DISETUJUI\nApplication Ref: '+applicationRef+'\nMember ID: '+memberId+'\nNama: '+nickname+'\nStatus aktivasi: '+(result.ok?'Berhasil':'Menunggu Aktivasi');
@@ -930,8 +931,8 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     telegramMessage='❌ PENGAJUAN DEPOSIT MPS DITOLAK\nApplication Ref: '+applicationRef+'\nNama: '+nickname+(note?'\nCatatan: '+note:'');
   }
   try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Admin decision intent drain deferred: '+safeErrorMessage_(queueErr));}
-  const auditStatus=action==='reject'?'SUCCESS':(result.ok&&result.inviteSent!==false?'SUCCESS':'PARTIAL');
-  const auditDetails=action==='approve'?'Member ID '+memberId+' diterbitkan setelah approval; aktivasi PIN '+(result.ok?'selesai':'tertunda')+'; undangan VIP '+(result.inviteSent?'berhasil':'belum berhasil atau belum dikonfirmasi')+'.':'Pengajuan ditolak tanpa menerbitkan Member ID.';
+  const auditStatus=action==='reject'?'SUCCESS':(result.ok&&result.inviteSent!==false&&!result.inviteQueued?'SUCCESS':'PARTIAL');
+  const auditDetails=action==='approve'?'Member ID '+memberId+' diterbitkan setelah approval; aktivasi PIN '+(result.ok?'selesai':'tertunda')+'; undangan VIP '+(result.inviteQueued?'masuk antrean dan menunggu konfirmasi':result.inviteSent?'berhasil dikirim':'belum berhasil atau belum dikonfirmasi')+'.':'Pengajuan ditolak tanpa menerbitkan Member ID.';
   if(!recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'APPLICATION_APPROVED':'APPLICATION_REJECTED',applicationRef,auditStatus,auditDetails))result.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
   return result;
 }
@@ -947,7 +948,7 @@ function apiAdminRetryVipInvite(session, memberId) {
   if (String(r[MPS_COL.registrationStatus-1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus-1]) !== 'Disetujui') throw new Error('Undangan VIP hanya dapat dikirim untuk member yang sudah Berhasil.');
   let result;try{result=sendVipInvite_(memberKey);}catch(err){result={ok:false,error:safeErrorMessage_(err)};}
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_INVITE_RETRY',memberKey,result.ok?'SUCCESS':'DELIVERY_FAILED','Pengiriman undangan VIP dicoba ulang.');
-  return { ok: !!result.ok, message: result.ok ? 'Undangan VIP berhasil dikirim.' : (result.error || 'Undangan VIP gagal dikirim.'), auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.' };
+  return { ok: !!result.ok, queued:!!result.queued, message: result.ok ? (result.queued?'Undangan VIP tersimpan dalam antrean pengiriman. Status pengiriman akan diperbarui setelah bot mengonfirmasi.':'Member sudah bergabung di grup VIP.') : (result.error || 'Undangan VIP gagal dikirim.'), auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.' };
 }
 
 function apiAdminIssuePin(session, memberId) {
@@ -1004,10 +1005,10 @@ function apiAdminIssuePin(session, memberId) {
   }
   let inviteResult=null;
   if(activationCompleted){try{inviteResult=sendVipInvite_(memberKey);}catch(inviteErr){inviteResult={ok:false,error:safeErrorMessage_(inviteErr)};}}
-  const pinAuditResult=!pinCurrent?'DELIVERY_UNCONFIRMED':(activationCompleted&&inviteResult&&inviteResult.ok?'SUCCESS':'PARTIAL');
-  const pinAuditDetails='PIN baru dikirim dan penyimpanannya '+(pinCurrent?'terkonfirmasi':'belum terkonfirmasi')+'; aktivasi '+(activationCompleted?'selesai':'belum dapat dipastikan')+'; '+(inviteResult&&inviteResult.ok?'undangan VIP berhasil dikirim.':'undangan VIP belum berhasil dikirim atau belum dapat dipastikan.')+' Isi PIN tidak dicatat dalam audit.';
+  const pinAuditResult=!pinCurrent?'DELIVERY_UNCONFIRMED':(activationCompleted&&inviteResult&&inviteResult.ok&&inviteResult.queued?'PARTIAL':(activationCompleted&&inviteResult&&inviteResult.ok?'SUCCESS':'PARTIAL'));
+  const pinAuditDetails='PIN baru dikirim dan penyimpanannya '+(pinCurrent?'terkonfirmasi':'belum terkonfirmasi')+'; aktivasi '+(activationCompleted?'selesai':'belum dapat dipastikan')+'; '+(inviteResult&&inviteResult.ok&&inviteResult.queued?'undangan VIP masuk antrean dan menunggu konfirmasi Telegram.':inviteResult&&inviteResult.ok?'undangan VIP berhasil dikirim.':'undangan VIP belum berhasil dimasukkan ke antrean atau belum dapat dipastikan.')+' Isi PIN tidak dicatat dalam audit.';
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,pinAuditResult,pinAuditDetails);
-  const response={ok:!!pinCurrent,delivered:!!pinCurrent,activationCompleted:activationCompleted,inviteSent:!!(inviteResult&&inviteResult.ok),reconciliationRequired:!!pinCurrent&&!activationCompleted,message:!pinCurrent?'PIN terkirim, tetapi verifikasi penyimpanan PIN belum berhasil. Hubungi admin untuk pemeriksaan.':!activationCompleted?'PIN berhasil dikirim dan tersimpan, tetapi aktivasi member belum dapat dipastikan. Jangan kirim PIN ulang; minta Super Admin memeriksa status aktivasi.':'PIN baru berhasil dikirim secara privat ke Telegram member.'+(inviteResult&&inviteResult.ok?' Undangan VIP juga dikirim.':inviteResult?' PIN terkirim, tetapi undangan belum berhasil: '+inviteResult.error:'')};
+  const response={ok:!!pinCurrent,delivered:!!pinCurrent,activationCompleted:activationCompleted,inviteSent:!!(inviteResult&&inviteResult.ok&&!inviteResult.queued),inviteQueued:!!(inviteResult&&inviteResult.queued),reconciliationRequired:!!pinCurrent&&!activationCompleted,message:!pinCurrent?'PIN terkirim, tetapi verifikasi penyimpanan PIN belum berhasil. Hubungi admin untuk pemeriksaan.':!activationCompleted?'PIN berhasil dikirim dan tersimpan, tetapi aktivasi member belum dapat dipastikan. Jangan kirim PIN ulang; minta Super Admin memeriksa status aktivasi.':'PIN baru berhasil dikirim secara privat ke Telegram member.'+(inviteResult&&inviteResult.queued?' Undangan VIP masuk antrean dan menunggu konfirmasi pengiriman.':inviteResult&&inviteResult.ok?' Undangan VIP juga dikirim.':inviteResult?' PIN terkirim, tetapi antrean undangan belum berhasil: '+inviteResult.error:'')};
   if(!auditWritten)response.auditWarning='Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.';
   return response;
 }
@@ -1902,13 +1903,23 @@ function sendVipInvite_(memberId) {
       const freshSheet=getTelegramAccessSheet_(),freshRow=findTelegramAccessByMemberId_(freshSheet,memberId),freshDb=getMemberSheet_(),freshMember=findMemberById_(freshDb,memberId);
       if(!freshRow||!freshMember)throw new Error('Data member berubah saat undangan dibuat.');
       const freshData=freshDb.getRange(freshMember,1,1,MPS.headers.length).getValues()[0];if(String(freshData[MPS_COL.registrationStatus-1])!=='Berhasil'||String(freshData[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('Status member berubah; undangan dibatalkan.');
-      freshSheet.getRange(freshRow,7,1,5).setValues([['Undangan dikirim',link,expiryDate,v[9],'']]);freshDb.getRange(freshMember,26,1,5).setValues([[link,expiryDate,freshData[27]||'',String(v[1]),'Undangan Dikirim']]);
+      freshSheet.getRange(freshRow,7,1,5).setValues([['Undangan antre',link,expiryDate,v[9],'']]);freshDb.getRange(freshMember,26,1,5).setValues([[link,expiryDate,freshData[27]||'',String(v[1]),'Undangan Antre']]);
     }catch(e){storeError=e;}finally{lk.releaseLock();}
     if(storeError){const revoked=revokeVipInviteLink_(group,link),restoreLock=LockService.getScriptLock();restoreLock.waitLock(10000);try{const restoreSheet=getTelegramAccessSheet_(),restoreRow=findTelegramAccessByMemberId_(restoreSheet,memberId);if(restoreRow&&String(restoreSheet.getRange(restoreRow,8).getDisplayValue()||'')===link)restoreSheet.getRange(restoreRow,7,1,5).setValues([previous]);const restoreDb=getMemberSheet_(),restoreMember=findMemberById_(restoreDb,memberId);if(restoreMember)restoreDb.getRange(restoreMember,26,1,5).setValues([previousDbInvite]);}finally{restoreLock.releaseLock();}if(!revoked)recordMpsAudit_('TELEGRAM',memberId,'VIP_INVITE_REVOKE_FAILED',memberId,'WARNING','Pembuatan undangan gagal dan pencabutan link Telegram juga gagal; admin perlu memeriksa.');throw storeError;}
-    let dm={ok:false,error:'Telegram tidak dapat dihubungi.'};try{dm=telegramSendToChat_(String(v[2]),'🎉 Selamat! Keanggotaan MPS Anda telah disetujui.\nGunakan tautan berikut untuk meminta bergabung ke MPS VIP Community. Admin bot akan memverifikasi akun Telegram Anda.\nTautan berlaku sampai '+expiryDate.toLocaleString()+':\n'+link+'\nJangan bagikan tautan ini.');}catch(e){dm={ok:false,error:safeErrorMessage_(e)};}
-    if(!dm.ok){const revoked=revokeVipInviteLink_(group,link),lk2=LockService.getScriptLock();lk2.waitLock(10000);try{const freshSheet=getTelegramAccessSheet_(),freshRow=findTelegramAccessByMemberId_(freshSheet,memberId);if(freshRow&&String(freshSheet.getRange(freshRow,8).getDisplayValue()||'')===link)freshSheet.getRange(freshRow,7,1,5).setValues([previous]);const freshDb=getMemberSheet_(),freshMember=findMemberById_(freshDb,memberId);if(freshMember)freshDb.getRange(freshMember,26,1,5).setValues([previousDbInvite]);}finally{lk2.releaseLock();}if(!revoked)recordMpsAudit_('TELEGRAM',memberId,'VIP_INVITE_REVOKE_FAILED',memberId,'WARNING','Pengiriman DM gagal dan tautan baru tidak berhasil dicabut.');return {ok:false,error:revoked?'Telegram gagal mengirim undangan. Tautan baru dicabut; undangan lama dipertahankan.':'Telegram gagal mengirim undangan dan pencabutan tautan baru gagal. Admin harus memeriksa grup.'};}
-    if(previousLink&&previousLink!==link&&!revokeVipInviteLink_(group,previousLink))recordMpsAudit_('TELEGRAM',memberId,'OLD_VIP_INVITE_REVOKE_FAILED',memberId,'WARNING','Undangan baru berhasil dikirim, tetapi tautan lama gagal dicabut.');
-    return {ok:true};
+    const inviteDigest=sha256_(memberId+'|'+link).slice(0,40);
+    let queued;
+    try{
+      queued=enqueueMpsVipFollowup_({taskKey:'vip-invite-dm:'+inviteDigest,intentKey:'vip-invite:'+memberId+':'+inviteDigest,
+        action:'VIP_INVITE_DM',groupId:group,telegramUserId:String(v[2]),inviteLink:link,alertText:previousLink&&previousLink!==link?previousLink:''});
+      if(!queued||!queued.ok)throw new Error('VIP_INVITE_OUTBOX_NOT_DURABLE');
+    }catch(queueErr){
+      const revoked=revokeVipInviteLink_(group,link),restoreLock=LockService.getScriptLock();restoreLock.waitLock(10000);
+      try{const restoreSheet=getTelegramAccessSheet_(),restoreRow=findTelegramAccessByMemberId_(restoreSheet,memberId);if(restoreRow&&String(restoreSheet.getRange(restoreRow,8).getDisplayValue()||'')===link)restoreSheet.getRange(restoreRow,7,1,5).setValues([previous]);const restoreDb=getMemberSheet_(),restoreMember=findMemberById_(restoreDb,memberId);if(restoreMember)restoreDb.getRange(restoreMember,26,1,5).setValues([previousDbInvite]);}
+      finally{restoreLock.releaseLock();}
+      if(!revoked)recordMpsAudit_('TELEGRAM',memberId,'VIP_INVITE_REVOKE_FAILED',memberId,'WARNING','Antrean undangan gagal disimpan dan tautan baru tidak berhasil dicabut; admin harus memeriksa.');
+      return {ok:false,error:revoked?'Antrean pengiriman undangan gagal disimpan. Tautan baru dicabut; undangan lama dipertahankan.':'Antrean gagal disimpan dan pencabutan tautan baru gagal. Admin harus memeriksa grup.'};
+    }
+    return {ok:true,queued:true,duplicate:!!queued.duplicate};
   }catch(err){return {ok:false,error:safeErrorMessage_(err)};}
   finally{cache.remove(busyKey);}
 }
@@ -2036,10 +2047,11 @@ function enqueueMpsVipFollowup_(task, lockAlreadyHeld) {
       String(task.telegramUserId||''),String(task.inviteLink||''),String(task.alertText||''),
       'PENDING',0,now,'', '',now,now
     ];
-    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT','SEND_DM','SEND_MESSAGE','DECISION_INTENT'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
+    if(!['REVOKE_INVITE','REMOVE_MEMBER','ADMIN_ALERT','SEND_DM','SEND_MESSAGE','DECISION_INTENT','VIP_INVITE_DM'].includes(values[2]))throw new Error('VIP_FOLLOWUP_ACTION_INVALID');
     if(values[2]==='REVOKE_INVITE'&&!values[5])throw new Error('VIP_FOLLOWUP_INVITE_REQUIRED');
     if(values[2]==='REMOVE_MEMBER'&&!/^[0-9]{1,20}$/.test(values[4]))throw new Error('VIP_FOLLOWUP_USER_REQUIRED');
     if(values[2]==='SEND_DM'&&(!/^[0-9]{1,20}$/.test(values[4])||!values[6]))throw new Error('VIP_FOLLOWUP_DM_TARGET_OR_MESSAGE_REQUIRED');
+    if(values[2]==='VIP_INVITE_DM'&&(!/^-?[0-9]{1,20}$/.test(values[3])||!/^[0-9]{1,20}$/.test(values[4])||!values[5]||!/^vip-invite:[A-Z0-9-]+:[a-f0-9]{40}$/.test(values[1])))throw new Error('VIP_INVITE_FOLLOWUP_PAYLOAD_INVALID');
     if(values[2]==='SEND_MESSAGE'&&(!/^-?[0-9]{1,20}$/.test(values[3])||!values[6]))throw new Error('VIP_FOLLOWUP_MESSAGE_TARGET_OR_MESSAGE_REQUIRED');
     if(values[2]==='DECISION_INTENT'&&(!['approve','reject'].includes(values[3])||!values[6]))throw new Error('VIP_FOLLOWUP_DECISION_INTENT_REQUIRED');
     sh.getRange(last+1,1,1,width).setValues([values]);SpreadsheetApp.flush();
@@ -2128,6 +2140,29 @@ function enqueueMpsAdminDecisionNotices_(subjectId,memberId,action,chatId,lockAl
   return {ok:results.every(function(r){return r&&r.ok;}),results:results};
 }
 
+function deliverMpsVipInviteTask_(task) {
+  const intent=String(task.intentKey||''),match=intent.match(/^vip-invite:(MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})):([a-f0-9]{40})$/);
+  if(!match)throw new Error('VIP_INVITE_TASK_IDENTITY_INVALID');
+  const memberId=match[1],groupId=String(task.groupId||''),chatId=String(task.telegramUserId||''),link=String(task.inviteLink||'');
+  if(!link||!groupId||!chatId)throw new Error('VIP_INVITE_TASK_FIELDS_INVALID');
+  if(PropertiesService.getScriptProperties().getProperty('MPS_PIN_DELIVERED_'+memberId)!=='1')throw new Error('VIP_INVITE_PIN_NOT_CONFIRMED');
+  const access=getTelegramAccessSheet_(),accessRow=findTelegramAccessByMemberId_(access,memberId);
+  const db=getMemberSheet_(),memberRow=findMemberById_(db,memberId);
+  if(!accessRow||!memberRow)throw new Error('VIP_INVITE_MEMBER_NOT_FOUND');
+  const a=access.getRange(accessRow,1,1,11).getValues()[0],m=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
+  if(String(a[1])!==chatId||String(a[2])!==chatId||String(a[7])!==link)throw new Error('VIP_INVITE_TASK_NO_LONGER_CURRENT');
+  if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||String(m[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('VIP_INVITE_MEMBER_NOT_ELIGIBLE');
+  const expiry=a[8] instanceof Date?a[8]:new Date(a[8]);
+  if(!Number.isFinite(expiry.getTime())||expiry.getTime()<=Date.now())throw new Error('VIP_INVITE_LINK_EXPIRED');
+  const message='🎉 Selamat! Keanggotaan MPS Anda telah disetujui.\\nGunakan tautan berikut untuk meminta bergabung ke MPS VIP Community. Admin bot akan memverifikasi akun Telegram Anda.\\nTautan berlaku sampai '+expiry.toLocaleString()+':\\n'+link+'\\nJangan bagikan tautan ini.';
+  const sent=telegramSendToChat_(chatId,message);
+  if(!sent||sent.ok!==true)throw new Error('VIP_INVITE_DM_DELIVERY_UNCONFIRMED');
+  const previousLink=String(task.alertText||'');
+  if(previousLink&&previousLink!==link&&!revokeVipInviteLink_(groupId,previousLink))
+    recordMpsAudit_('TELEGRAM',memberId,'OLD_VIP_INVITE_REVOKE_FAILED',memberId,'WARNING','Undangan baru telah masuk antrean dan dikirim; tautan undangan sebelumnya gagal dicabut.');
+  return {ok:true};
+}
+
 function runMpsVipFollowupQueue_(maxTasks) {
   const limit=Math.max(1,Math.min(25,Number(maxTasks)||10)),now=Date.now();
   const ssId=String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||'');
@@ -2147,8 +2182,13 @@ function runMpsVipFollowupQueue_(maxTasks) {
       for(let i=0;i<rows.length;i++){
         const r=rows[i],state=String(r[7]||''),due=r[9] instanceof Date?r[9].getTime():new Date(r[9]).getTime();
         const lease=r[10] instanceof Date?r[10].getTime():new Date(r[10]).getTime();
+        const expiredProcessing=state==='PROCESSING'&&Number.isFinite(lease)&&lease<=now;
+        if(expiredProcessing&&['ADMIN_ALERT','SEND_DM','SEND_MESSAGE','VIP_INVITE_DM'].includes(String(r[2]||''))){
+          r[7]='REVIEW';r[9]='';r[10]='';r[11]='DELIVERY_OUTCOME_UNKNOWN_AFTER_WORKER_LEASE';r[13]=new Date(now);
+          sh.getRange(i+2,1,1,headers.length).setValues([r]);SpreadsheetApp.flush();reviewed++;continue;
+        }
         if((state==='PENDING'||state==='RETRY')&&(!Number.isFinite(due)||due<=now)||
-           state==='PROCESSING'&&Number.isFinite(lease)&&lease<=now){
+           expiredProcessing){
           task={key:String(r[0]),intentKey:String(r[1]),action:String(r[2]),groupId:String(r[3]),
             telegramUserId:String(r[4]),inviteLink:String(r[5]),alertText:String(r[6]),attempts:Number(r[8])||0};
           rowNumber=i+2;break;
@@ -2168,6 +2208,7 @@ function runMpsVipFollowupQueue_(maxTasks) {
       else if(task.action==='ADMIN_ALERT'){const result=sendTelegram_(task.alertText);ok=!!result&&result.ok===true;if(!ok)error='ADMIN_ALERT_DELIVERY_UNCONFIRMED';}
       else if(task.action==='SEND_DM'){const result=telegramSendToChat_(task.telegramUserId,task.alertText);ok=!!result&&result.ok===true;if(!ok)error='MEMBER_DM_DELIVERY_UNCONFIRMED';}
       else if(task.action==='SEND_MESSAGE'){const result=telegramSendToChat_(task.groupId,task.alertText);ok=!!result&&result.ok===true;if(!ok)error='TELEGRAM_MESSAGE_DELIVERY_UNCONFIRMED';}
+      else if(task.action==='VIP_INVITE_DM'){const result=deliverMpsVipInviteTask_(task);ok=!!result&&result.ok===true;if(!ok)error='VIP_INVITE_DM_DELIVERY_UNCONFIRMED';}
       else if(task.action==='DECISION_INTENT'){ok=materializeMpsAdminDecisionIntent_(task);if(!ok)error='ADMIN_DECISION_INTENT_NOT_MATERIALIZED';}
       else error='FOLLOWUP_ACTION_INVALID';
     }catch(err){error=String(err&&err.message||err).slice(0,120);}
@@ -2178,7 +2219,7 @@ function runMpsVipFollowupQueue_(maxTasks) {
       if(String(row[0])!==task.key||String(row[7])!=='PROCESSING')throw new Error('VIP_FOLLOWUP_CLAIM_LOST');
       const stamp=new Date();
       if(ok){row[7]='DONE';row[9]='';row[10]='';row[11]='';completed++;}
-      else if(task.action==='ADMIN_ALERT'||task.action==='SEND_DM'||task.action==='SEND_MESSAGE'){
+      else if(task.action==='ADMIN_ALERT'||task.action==='SEND_DM'||task.action==='SEND_MESSAGE'||task.action==='VIP_INVITE_DM'){
         // Telegram may have accepted sendMessage even if its response was lost.
         // Quarantine ambiguous alerts/DMs; blind retry could duplicate a notification.
         row[7]='REVIEW';row[9]='';row[10]='';row[11]=error||(task.action==='SEND_DM'?'MEMBER_DM_DELIVERY_UNCONFIRMED':task.action==='SEND_MESSAGE'?'TELEGRAM_MESSAGE_DELIVERY_UNCONFIRMED':'ADMIN_ALERT_DELIVERY_UNCONFIRMED');reviewed++;
