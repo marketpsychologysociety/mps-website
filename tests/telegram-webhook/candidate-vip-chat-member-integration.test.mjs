@@ -402,8 +402,7 @@ test('VIP storage provisioning validates every target schema before creating or 
  const auditMigration=source.indexOf("tx.migrate('audit')");
  assert.ok(memberCheck>=0&&preflight>memberCheck);
  assert.ok(accessCreation>preflight&&auditMigration>preflight);
- assert.ok(source.indexOf("getMpsContentSheet_(MPS_AUDIT_LOGS.sheet")>preflight);
- assert.ok(source.indexOf("getMpsContentSheet_(MPS_VIP_TICKER_EVENTS.sheet")>preflight);
+ assert.ok(source.indexOf('provisionMpsSheets_(')>preflight,'audit and ticker sheets must use the explicit provisioning boundary');
 });
 function vipProvisionHarness({badVipHeader=false,badMemberHeader=false}={}) {
  let inserts=0,flushes=0,telegramAccessCalls=0,contentCalls=0,migrations=0,memberSheetCalls=0;
@@ -436,7 +435,7 @@ function vipProvisionHarness({badVipHeader=false,badMemberHeader=false}={}) {
   SpreadsheetApp:{openById:id=>{assert.equal(id,'isolated-db');return ss;},flush:()=>{flushes++;}},
   getMemberSheet_:()=>{memberSheetCalls++;return dbSheet;},
   getTelegramAccessSheet_:()=>{telegramAccessCalls++;return makeSheet();},
-  getMpsContentSheet_:()=>{contentCalls++;return makeSheet();},
+  provisionMpsSheets_:definitions=>{contentCalls+=definitions.length;return definitions.map(()=>makeSheet());},
   console
  };
  vm.createContext(context);vm.runInContext(schemaStorageInspectorSource,context,{timeout:1000});vm.runInContext(extract('apiAdminPrepareTelegramVipTransitionStorage','kickMpsUnauthorizedUser_'),context,{timeout:1000});
