@@ -188,7 +188,7 @@ test('failed invite revocation is durably queued and retried without Telegram we
  assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
  h.setFollowupFailures(false);
- h.makeQueueDue(1);assert.deepEqual(h.runQueue(),{ok:true,processed:1,completed:1,retried:0});
+ h.makeQueueDue(1);const retry=h.runQueue();assert.equal(retry.ok,true);assert.equal(retry.processed,1);assert.equal(retry.completed,1);assert.equal(retry.retried,0);
  assert.equal(queue[1][7],'DONE');assert.equal(queue[1][8],2);
  assert.equal(h.stats().held,false);
 });
@@ -200,7 +200,7 @@ test('failed unauthorized-member removal is durably queued and retried by the sc
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][11],'COMPLETED');
  assert.equal(h.sheets.get('MPS Telegram VIP Transition Intents')[1][6],'DENIED');
  h.setKickFailure(false);h.makeQueueDue(1);
- assert.deepEqual(h.runQueue(),{ok:true,processed:1,completed:1,retried:0});
+ const retry=h.runQueue();assert.equal(retry.ok,true);assert.equal(retry.processed,1);assert.equal(retry.completed,1);assert.equal(retry.retried,0);
  assert.equal(queue[1][7],'DONE');
  assert.equal(h.stats().held,false);
 });
