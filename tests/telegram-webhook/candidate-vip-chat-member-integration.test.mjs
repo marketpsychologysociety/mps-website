@@ -505,17 +505,17 @@ function contentReadHarness({exists=true,lastRow=1,headers=['ID','Status'],actua
 }
 test('content read path treats a missing optional tab as empty without provisioning or writes',()=>{
  const h=contentReadHarness({exists:false});
- assert.deepEqual(h.run(),[]);
+ assert.equal(h.run().length,0);
  assert.deepEqual(h.stats(),{reads:0,writes:0,formatting:0,inserts:0,locks:0});
 });
 test('content read path treats an existing empty tab as empty without writing headers or formatting',()=>{
  const h=contentReadHarness({lastRow:0});
- assert.deepEqual(h.run(),[]);
+ assert.equal(h.run().length,0);
  assert.deepEqual(h.stats(),{reads:0,writes:0,formatting:0,inserts:0,locks:0});
 });
 test('content read path accepts an exact header-only tab as an empty dataset and stays read-only',()=>{
  const h=contentReadHarness({lastRow:1});
- assert.deepEqual(h.run(),[]);
+ assert.equal(h.run().length,0);
  assert.deepEqual(h.stats(),{reads:1,writes:0,formatting:0,inserts:0,locks:0});
 });
 test('content read path fails closed on a mismatched existing schema without attempting repair',()=>{
