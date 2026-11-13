@@ -886,7 +886,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       const amount=Number(dep[5]||0);if(!Number.isSafeInteger(amount)||amount<MPS.minDeposit)throw new Error('Deposit tidak memenuhi minimum Rp1.000.000.');
       db=getMemberSheet_();ensureUniqueMt5_(db,String(dep[3]||''),0);
       memberId='MPS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();if(findMemberById_(db,memberId))throw new Error('Terjadi benturan ID Member. Ulangi persetujuan.');
-      enqueueMpsAdminDecisionIntent_(applicationRef,memberId,action,chatId);
+      enqueueMpsAdminDecisionIntent_(applicationRef,memberId,action,String(dep[11]||''));
       access=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(access,applicationRef);if(!accessRow)throw new Error('Relasi Telegram pendaftar tidak ditemukan.');accessSnapshot=access.getRange(accessRow,1,1,11).getValues()[0];
       const now=new Date(),row=new Array(MPS.headers.length).fill('');
       row[0]=memberId;row[1]=app[1];row[2]=sheetText_(app[2]);row[3]=sheetText_(app[3]||'');row[4]=sheetText_(app[4]);row[5]=sheetText_(app[5]);row[6]=sheetText_(app[6]);row[7]='Menunggu Aktivasi';
@@ -898,7 +898,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       ds.getRange(depositRow,10).setValue('Menunggu Aktivasi');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
       nickname=String(app[2]||'');chatId=String(dep[11]||'');
     }else{
-      enqueueMpsAdminDecisionIntent_(applicationRef,'',action,chatId);
+      enqueueMpsAdminDecisionIntent_(applicationRef,'',action,String(dep[11]||''));
       const now=new Date();apps.getRange(appRow,8).setValue('Deposit Ditolak');apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(now);
       ds.getRange(depositRow,10).setValue('Ditolak');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
       rejectedLinks=getMpsMemberLinksSheet_();if(rejectedLinks.getLastRow()>1){const vals=rejectedLinks.getRange(2,1,rejectedLinks.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();vals.forEach((v,i)=>{if(String(v[5]||'')===applicationRef&&String(v[3])==='Menunggu'){const row=i+2;rejectedLinkSnapshots.push({row:row,values:v.slice()});rejectedLinks.getRange(row,4).setValue('Ditolak');}});}
