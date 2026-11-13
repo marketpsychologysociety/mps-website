@@ -13,6 +13,8 @@ function extract(name,next){
 }
 const applicationSource=extract('verifyTelegramApplication_','verifyTelegramLinkLegacy_');
 const legacySource=extract('verifyTelegramLinkLegacy_','getTelegramLinksSheet_');
+const queueSource=extract('enqueueMpsVipFollowup_','runMpsVipFollowupQueue_');
+const noticeSource=extract('enqueueMpsTelegramLinkConfirmation_','verifyTelegramApplication_');
 const headers=['Token Hash','Created At','Expires At','Status','Member ID','Application Ref','Telegram User ID','Chat ID','Username','First Name','Consumed At'];
 const userId='987654321';
 const chatId=userId;
@@ -151,4 +153,43 @@ test('replayed link confirmation reuses one stable notification task key',()=>{
   assert.equal(h.queueTasks.length,1);
   assert.equal(h.stats().lockAcquires,2);
   assert.equal(h.stats().lockReleases,2);
+});
+
+test('actual link-notice helper appends to the existing queue under the caller-held lock without nested acquisition',()=>{
+  const headers=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At'];
+  const rows=[headers.slice()];
+  let lockHeld=true,lockAcquires=0,lockReleases=0;
+  const sheet={
+    getLastColumn:()=>headers.length,
+    getLastRow:()=>rows.length,
+    getRange:(row,col,nr=1,nc=1)=>({
+      getDisplayValues:()=>Array.from({length:nr},(_,ri)=>Array.from({length:nc},(_,ci)=>String(rows[row-1+ri]?.[col-1+ci]??''))),
+      setValues:values=>values.forEach((line,ri)=>{rows[row-1+ri]=line.slice();})
+    })
+  };
+  const context={
+    MPS_VIP_FOLLOWUP_QUEUE:{sheet:'MPS Telegram VIP Follow-up Queue',headers},
+    LockService:{getScriptLock:()=>({
+      waitLock:()=>{assert.equal(lockHeld,false);lockHeld=true;lockAcquires++;},
+      releaseLock:()=>{assert.equal(lockHeld,true);lockHeld=false;lockReleases++;}
+    })},
+    PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'synthetic-spreadsheet'})},
+    SpreadsheetApp:{openById:()=>({getSheetByName:name=>name==='MPS Telegram VIP Follow-up Queue'?sheet:null}),flush:()=>{}},
+    sha256_:()=> 'a'.repeat(64)
+  };
+  vm.createContext(context);
+  vm.runInContext(queueSource+'\n'+noticeSource,context,{timeout:1000});
+  const message='Telegram berhasil terhubung. Admin akan memeriksa pengajuan.';
+  const first=context.enqueueMpsTelegramLinkConfirmation_('stored-token-hash','987654321',message);
+  const replay=context.enqueueMpsTelegramLinkConfirmation_('stored-token-hash','987654321',message);
+  assert.equal(first.duplicate,false);
+  assert.equal(replay.duplicate,true);
+  assert.equal(rows.length,2);
+  assert.equal(rows[1][2],'SEND_DM');
+  assert.equal(rows[1][4],'987654321');
+  assert.equal(rows[1][6],message);
+  assert.equal(lockHeld,true);
+  assert.equal(lockAcquires,0,'already-held mode must not acquire a nested ScriptLock');
+  assert.equal(lockReleases,0,'already-held mode must not release the caller-owned ScriptLock');
+  assert.equal(rows[1][5],'','no invite URL may be stored for a link-confirmation notice');
 });
