@@ -2832,7 +2832,7 @@ function apiAdminGetContent(session) {
     websiteSettings:readMpsWebsiteSettings_(),
     learningCatalog:readMpsContentRows_(MPS_LEARNING_CATALOG.sheet,MPS_LEARNING_CATALOG.headers).slice(0,300),
     auditLogs:isSuperAdmin?readMpsContentRows_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers).slice(-150).reverse():[],
-    vipTickerEvents:readMpsContentRows_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers).slice(-100).reverse(),
+    vipTickerEvents:readMpsContentRows_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers).slice(-100).reverse().map(function(r){return {'Event ID':r['Event ID'],'Created At':r['Created At'],'Member ID':r['Member ID'],'Event Text':r['Event Text'],Status:r.Status};}),
     lastBackupId:isSuperAdmin?PropertiesService.getScriptProperties().getProperty('MPS_LAST_BACKUP_ID')||'':'',
     lastBackupAt:isSuperAdmin?PropertiesService.getScriptProperties().getProperty('MPS_LAST_BACKUP_AT')||'':'',
     webAppUrl:ScriptApp.getService().getUrl()||'',
