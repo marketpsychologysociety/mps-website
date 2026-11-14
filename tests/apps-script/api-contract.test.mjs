@@ -79,7 +79,9 @@ test('public submission idempotency is durable and dashboard cache is best effor
   assert.ok(start>=0&&end>start,'submitCore_ boundaries must exist');
   const body=code.slice(start,end);
   assert.match(body,/Persistent business writes and the durable request ledger have completed/);
-  assert.match(body,/ledger\.getRange\(ledgerRow,3,1,9\)\.setValues/);
+  assert.match(body,/ledger\.getRange\(ledgerRow,3,1,7\)\.setValues/);
+  assert.doesNotMatch(body,/telegramUrl:String\(saved\[/);
+  assert.doesNotMatch(body,/telegramExpiresAt:String\(saved\[/);
   assert.match(body,/ledger\.appendRow\(\[requestId,requestFingerprint,'PENDING'/);
   assert.match(body,/PENDING is fail-closed/);
   assert.doesNotMatch(body,/cache\.put\('mps_req_/);
