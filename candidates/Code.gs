@@ -2685,7 +2685,7 @@ function totpCodeAt_(secret,timestampSeconds) {
 
 function verifyTotpCode_(secret,code,timestampSeconds) {
   const supplied=String(code||'').trim();
-  if(!/^\\d{6}$/.test(supplied)||!isValidTotpSecret_(secret))return false;
+  if(!/^\d{6}$/.test(supplied)||!isValidTotpSecret_(secret))return false;
   const now=timestampSeconds===undefined?Date.now()/1000:Number(timestampSeconds);
   if(!Number.isFinite(now)||now<0)return false;
   let valid=false;
