@@ -3059,6 +3059,11 @@ function apiAdminCheckSystemConfiguration(session) {
     adminMfaReady&&superMfaReady&&!constantTimeEquals_(adminTotpSecret,superTotpSecret)
       ?'TOTP aktif untuk Admin dan Super Admin; nilai secret tidak ditampilkan.'
       :'Atur MPS_ADMIN_TOTP_SECRET dan MPS_SUPER_ADMIN_TOTP_SECRET sebagai secret Base32 acak yang berbeda (minimal 160 bit) pada Script Properties.');
+  const adminMfaLastStep=props.getProperty('MPS_ADMIN_TOTP_LAST_STEP'),superMfaLastStep=props.getProperty('MPS_SUPER_ADMIN_TOTP_LAST_STEP');
+  const validMfaReplayState=function(value){return value===null||/^\\d+$/.test(String(value));};
+  add('Admin MFA replay protection state',validMfaReplayState(adminMfaLastStep)&&validMfaReplayState(superMfaLastStep),
+    'Status replay protection diperiksa tanpa menampilkan counter atau secret.');
+
   add('Telegram webhook secret transport',true,'Secret webhook divalidasi melalui pathInfo Apps Script, bukan query string. Tetap lindungi URL lengkap dan rotasi secret jika pernah terekspos.');
   add('Pemisahan kredensial Admin',!!(adminSecret&&superSecret&&adminSecret!==superSecret),'Token Admin dan Super Admin harus berbeda.');
   const botToken=String(props.getProperty('MPS_TELEGRAM_BOT_TOKEN')||'');
