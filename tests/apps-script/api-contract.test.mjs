@@ -159,7 +159,7 @@ test('Learning PDF upload requires a private parent folder and verifies file pri
 });
 
 test('deposit proof upload requires a private folder and verifies the uploaded file privacy',()=>{
-  const start=code.indexOf('function saveDeposit_(sheet, data, onFileCreated, onProofLinked) {');
+  const start=code.indexOf('function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted) {');
   const end=code.indexOf('\nfunction ',start+1);
   assert.ok(start>=0&&end>start,'deposit proof upload function boundaries must exist');
   const body=code.slice(start,end);
