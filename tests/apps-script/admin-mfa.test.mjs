@@ -84,7 +84,10 @@ test('Admin login requires the role-specific TOTP secret and validates it before
   assert.ok(login.includes('consumeTotpCode_(role,totpSecret,otp)'));
   assert.ok(login.indexOf('consumeTotpCode_')<login.indexOf('const session ='));
   assert.ok(login.indexOf('consumeTotpCode_')<login.indexOf('CacheService.getScriptCache().put'));
-  assert.ok(login.includes('MFA belum dikonfigurasi'));
+  assert.ok(login.includes('MFA wajib dikonfigurasi untuk Admin dan Super Admin'));
+  assert.ok(login.includes('!isValidTotpSecret_(adminTotpSecret)'));
+  assert.ok(login.includes('!isValidTotpSecret_(superTotpSecret)'));
+  assert.ok(login.includes('constantTimeEquals_(adminTotpSecret,superTotpSecret)'));
   assert.ok(html.includes('name="otp"'));
   assert.ok(html.includes('autocomplete="one-time-code"'));
   assert.ok(html.includes("api('apiAdminLogin',role,password,otp)"));
