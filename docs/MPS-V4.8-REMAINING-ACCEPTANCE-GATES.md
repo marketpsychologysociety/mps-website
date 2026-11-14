@@ -251,3 +251,12 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - GitHub Actions commit run #1893 completed SUCCESS: 68/68 workflow steps, zero failures; candidate VIP transition GAS-runtime suite 24/24 passed; Chromium browser checks passed. The run validates commit f17727123fab5fa9ab34a1ae4b0c6d775dbf1c6c and includes the preceding admin retry-drain adjustment and documentation update. It uses mocked Apps Script/Sheets/Telegram services.
 - These checks do not establish live Google Apps Script, real spreadsheet ACL/trigger behavior, or Telegram test-bot delivery. Live isolated GAS and Telegram test-bot acceptance remain open. Direct PIN delivery remains a separate credential-delivery path and has not been moved into the generic notification queue.
 - PR #12 remains Draft/unmerged; production resources remain untouched.
+
+
+### Admin registration archive notification outbox — candidate update 2026-11-14
+
+- `apiAdminResendRegistrationNotice` no longer calls Telegram directly. It validates the admin session and eligible deposit state, then reserves an `ADMIN_ALERT` task in the existing spreadsheet-backed durable follow-up queue while holding ScriptLock across the member snapshot and enqueue.
+- A five-minute idempotency bucket derives a stable task key from the member ID and time bucket. Repeated taps/transport retries in the same bucket reuse the existing task; a later intentional resend can enqueue a new task. The existing per-member admin rate limit remains in force.
+- The archive text retains the existing admin-facing fields (nickname, Telegram username, country, join goal, member ID, and registration status) and is stored in the same private spreadsheet-backed queue used by existing Telegram follow-ups. No proof image, PIN, or MT5 login is added to this task.
+- The API reports `queued`, not delivered. The existing worker performs the Telegram send; successful acknowledgement transitions the task to `DONE`, while ambiguous outcomes are quarantined as `REVIEW` and never blindly retried.
+- Candidate runtime regressions cover successful worker delivery, repeated request deduplication, eligible-state validation, and absence of direct Telegram sending from the admin endpoint. CI uses mocked Apps Script/Sheets/Telegram services; live GAS, spreadsheet ACL, trigger, and Telegram test-bot acceptance remain separate gates.
