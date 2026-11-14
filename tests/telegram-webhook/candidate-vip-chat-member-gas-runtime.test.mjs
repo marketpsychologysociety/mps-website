@@ -433,8 +433,8 @@ test('admin registration archive rejects ineligible deposit states before enqueu
 
 test('admin registration archive endpoint contains no direct Telegram send path',()=>{
  const body=extractFunction(candidate,'apiAdminResendRegistrationNotice');
- assert.doesNotMatch(body,/sendTelegram_\\s*\\(/);
- assert.match(body,/enqueueMpsVipFollowup_\\(/);
- assert.match(body,/action:\\s*'ADMIN_ALERT'/);
- assert.match(body,/Math\\.floor\\(Date\\.now\\(\\) \\/ \\(5 \\* 60 \\* 1000\\)\\)/);
+ assert.doesNotMatch(body,/sendTelegram_\s*\(/);
+ assert.ok(body.includes("enqueueMpsVipFollowup_("));
+ assert.ok(body.includes("action: 'ADMIN_ALERT'"));
+ assert.ok(body.includes("Math.floor(Date.now() / (5 * 60 * 1000))"));
 });
