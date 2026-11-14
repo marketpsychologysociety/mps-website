@@ -263,3 +263,13 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - Repository tests cover persistence across execution contexts, fixed-bucket isolation, attacker-controlled bucket rejection, expired/corrupt state, Super Admin-only ledger provisioning, generic public status, idempotency reservation, and fail-closed post-commit recovery. These are static/isolated CI tests, not live Apps Script quota, persistence, or spreadsheet ACL acceptance.
 - The read-only Super Admin system-configuration diagnostic now explicitly reports whether `MPS Request Ledger` exists and has the exact expected headers; it never creates or repairs the sheet while checking.
 - Remaining live gate: in a new isolated Apps Script project, run the Super Admin initialization path, verify the ledger headers and spreadsheet PRIVATE ACL, then exercise duplicate/replay and cache-loss scenarios with synthetic data. No production migration, ledger provisioning, or database write has been performed.
+
+
+### Mandatory Admin TOTP MFA — candidate update 2026-11-14
+
+- Admin and Super Admin login now require a role-specific six-digit TOTP code in addition to the existing password/token. The implementation follows RFC 6238 with HMAC-SHA1, a 30-second step, and a one-step clock-skew window; login attempts remain subject to the persistent rate limiter.
+- Configure two **different** Base32 secrets in Apps Script Script Properties: \`MPS_ADMIN_TOTP_SECRET\` and \`MPS_SUPER_ADMIN_TOTP_SECRET\`. Each secret must be 32–64 Base32 characters, with length divisible by 8 (at least 160 bits). Enroll each secret manually in an authenticator app. Never place either secret in GitHub, frontend code, chat, or logs.
+- If either secret is missing, malformed, or identical to the other role's secret, the read-only Super Admin configuration diagnostic reports MFA as not ready and login fails closed. The diagnostic never displays secret values.
+- There is no in-app MFA bypass or recovery token. If an authenticator is lost, the system owner must reset the affected Script Property directly through the Apps Script project owner account, then re-enroll the authenticator and verify access before restoring normal operations.
+- Added RFC 6238 reference-vector tests, Base32 decoding checks, time-window boundary tests, login-gating assertions, and UI contract checks. These repository tests do not replace a real authenticator login in an isolated Apps Script deployment.
+- Remaining live gate: configure separate Admin and Super Admin secrets in an isolated project, enroll the authenticator devices, test both roles and clock-skew handling, and confirm recovery procedures. No Script Properties or production credentials were changed by this candidate update.
