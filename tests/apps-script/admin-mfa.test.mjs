@@ -1,0 +1,77 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import crypto from 'node:crypto';
+
+const source=fs.readFileSync('candidates/Code.gs','utf8');
+const html=fs.readFileSync('candidates/Index.html','utf8');
+function extract(name){
+  const start=source.indexOf('function '+name+'(');
+  assert.ok(start>=0,'missing '+name);
+  const end=source.indexOf('\\nfunction ',start+10);
+  return source.slice(start,end<0?source.length:end);
+}
+const names=['constantTimeEquals_','decodeTotpSecret_','isValidTotpSecret_','totpCodeAt_','verifyTotpCode_'];
+const sandbox={
+  Utilities:{
+    MacAlgorithm:{HMAC_SHA_1:'HMAC_SHA_1'},
+    computeHmacSignature:(algorithm,value,key)=>{
+      assert.equal(algorithm,'HMAC_SHA_1');
+      const raw=crypto.createHmac('sha1',Buffer.from(key.map(v=>v&255))).update(Buffer.from(value.map(v=>v&255))).digest();
+      return Array.from(raw,v=>v>127?v-256:v);
+    }
+  }
+};
+vm.createContext(sandbox);
+vm.runInContext(names.map(extract).join('\\n'),sandbox);
+
+const RFC_SECRET='GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+test('Base32 TOTP secret decodes to the expected 160-bit RFC key',()=>{
+  const bytes=sandbox.decodeTotpSecret_(RFC_SECRET).map(v=>v&255);
+  assert.equal(Buffer.from(bytes).toString('ascii'),'12345678901234567890');
+  assert.equal(sandbox.isValidTotpSecret_(RFC_SECRET),true);
+  assert.equal(sandbox.isValidTotpSecret_('NOT-A-SECRET'),false);
+});
+
+test('TOTP SHA-1 matches RFC 6238 six-digit test vectors',()=>{
+  const vectors=[
+    [59,'287082'],
+    [1111111109,'081804'],
+    [1111111111,'050471'],
+    [1234567890,'005924'],
+    [2000000000,'279037'],
+    [20000000000,'353130']
+  ];
+  for(const [time,expected] of vectors)assert.equal(sandbox.totpCodeAt_(RFC_SECRET,time),expected);
+});
+
+test('TOTP verifier accepts only the current or adjacent 30-second window',()=>{
+  const code=sandbox.totpCodeAt_(RFC_SECRET,59);
+  assert.equal(sandbox.verifyTotpCode_(RFC_SECRET,code,59),true);
+  assert.equal(sandbox.verifyTotpCode_(RFC_SECRET,code,89),true);
+  assert.equal(sandbox.verifyTotpCode_(RFC_SECRET,code,119),false);
+  assert.equal(sandbox.verifyTotpCode_(RFC_SECRET,'12345',59),false);
+  assert.equal(sandbox.verifyTotpCode_(RFC_SECRET,'abcdef',59),false);
+});
+
+test('Admin login requires the role-specific TOTP secret and validates it before issuing a session',()=>{
+  const login=extract('apiAdminLogin');
+  assert.match(login,/MPS_ADMIN_TOTP_SECRET/);
+  assert.match(login,/MPS_SUPER_ADMIN_TOTP_SECRET/);
+  assert.match(login,/verifyTotpCode_\\(totpSecret,otp\\)/);
+  assert.ok(login.indexOf('verifyTotpCode_')<login.indexOf('const session ='));
+  assert.ok(login.indexOf('verifyTotpCode_')<login.indexOf('CacheService.getScriptCache().put'));
+  assert.match(login,/MFA belum dikonfigurasi/);
+  assert.match(html,/name="otp"/);
+  assert.match(html,/autocomplete="one-time-code"/);
+  assert.match(html,/api\\('apiAdminLogin',role,password,otp\\)/);
+});
+
+test('read-only configuration diagnostic reports both distinct TOTP secrets without revealing them',()=>{
+  const diagnostic=extract('apiAdminCheckSystemConfiguration');
+  assert.match(diagnostic,/MPS_ADMIN_TOTP_SECRET/);
+  assert.match(diagnostic,/MPS_SUPER_ADMIN_TOTP_SECRET/);
+  assert.match(diagnostic,/adminMfaReady&&superMfaReady&&!constantTimeEquals_/);
+  assert.doesNotMatch(diagnostic,/add\\('Admin MFA',[^,]+,[^)]*adminTotpSecret/);
+});
