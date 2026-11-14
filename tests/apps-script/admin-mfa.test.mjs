@@ -9,7 +9,7 @@ const html=fs.readFileSync('candidates/Index.html','utf8');
 function extract(name){
   const start=source.indexOf('function '+name+'(');
   assert.ok(start>=0,'missing '+name);
-  const end=source.indexOf('\\nfunction ',start+10);
+  const end=source.indexOf('\nfunction ',start+10);
   return source.slice(start,end<0?source.length:end);
 }
 const names=['constantTimeEquals_','decodeTotpSecret_','isValidTotpSecret_','totpCodeAt_','verifyTotpCode_'];
@@ -24,7 +24,7 @@ const sandbox={
   }
 };
 vm.createContext(sandbox);
-vm.runInContext(names.map(extract).join('\\n'),sandbox);
+vm.runInContext(names.map(extract).join('\n'),sandbox);
 
 const RFC_SECRET='GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
 test('Base32 TOTP secret decodes to the expected 160-bit RFC key',()=>{
@@ -57,21 +57,21 @@ test('TOTP verifier accepts only the current or adjacent 30-second window',()=>{
 
 test('Admin login requires the role-specific TOTP secret and validates it before issuing a session',()=>{
   const login=extract('apiAdminLogin');
-  assert.match(login,/MPS_ADMIN_TOTP_SECRET/);
-  assert.match(login,/MPS_SUPER_ADMIN_TOTP_SECRET/);
-  assert.match(login,/verifyTotpCode_\\(totpSecret,otp\\)/);
+  assert.ok(login.includes('MPS_ADMIN_TOTP_SECRET'));
+  assert.ok(login.includes('MPS_SUPER_ADMIN_TOTP_SECRET'));
+  assert.ok(login.includes('verifyTotpCode_(totpSecret,otp)'));
   assert.ok(login.indexOf('verifyTotpCode_')<login.indexOf('const session ='));
   assert.ok(login.indexOf('verifyTotpCode_')<login.indexOf('CacheService.getScriptCache().put'));
-  assert.match(login,/MFA belum dikonfigurasi/);
-  assert.match(html,/name="otp"/);
-  assert.match(html,/autocomplete="one-time-code"/);
-  assert.match(html,/api\\('apiAdminLogin',role,password,otp\\)/);
+  assert.ok(login.includes('MFA belum dikonfigurasi'));
+  assert.ok(html.includes('name="otp"'));
+  assert.ok(html.includes('autocomplete="one-time-code"'));
+  assert.ok(html.includes("api('apiAdminLogin',role,password,otp)"));
 });
 
 test('read-only configuration diagnostic reports both distinct TOTP secrets without revealing them',()=>{
   const diagnostic=extract('apiAdminCheckSystemConfiguration');
-  assert.match(diagnostic,/MPS_ADMIN_TOTP_SECRET/);
-  assert.match(diagnostic,/MPS_SUPER_ADMIN_TOTP_SECRET/);
-  assert.match(diagnostic,/adminMfaReady&&superMfaReady&&!constantTimeEquals_/);
-  assert.doesNotMatch(diagnostic,/add\\('Admin MFA',[^,]+,[^)]*adminTotpSecret/);
+  assert.ok(diagnostic.includes('MPS_ADMIN_TOTP_SECRET'));
+  assert.ok(diagnostic.includes('MPS_SUPER_ADMIN_TOTP_SECRET'));
+  assert.ok(diagnostic.includes('adminMfaReady&&superMfaReady&&!constantTimeEquals_'));
+  assert.ok(!/add\('Admin MFA',[^,]+,[^)]*adminTotpSecret/.test(diagnostic));
 });
