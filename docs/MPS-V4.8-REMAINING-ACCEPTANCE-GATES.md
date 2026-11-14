@@ -284,3 +284,10 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - The archive text retains the existing admin-facing fields (nickname, Telegram username, country, join goal, member ID, and registration status) and is stored in the existing spreadsheet-backed queue used by Telegram follow-ups. Its confidentiality depends on the spreadsheet retaining PRIVATE access; actual live ACL verification remains an open release gate. No proof image, PIN, or MT5 login is added to this task.
 - The API reports `queued`, not delivered. The existing worker performs the Telegram send; successful acknowledgement transitions the task to `DONE`, while ambiguous outcomes are quarantined as `REVIEW` and never blindly retried.
 - Candidate runtime regressions cover successful worker delivery, repeated request deduplication, eligible-state validation, and absence of direct Telegram sending from the admin endpoint. CI uses mocked Apps Script/Sheets/Telegram services; live GAS, spreadsheet ACL, trigger, and Telegram test-bot acceptance remain separate gates.
+
+
+### Candidate consolidation — 2026-11-14
+
+- The Admin archive-notification outbox implementation and its runtime regression tests have been fast-forwarded into the main v4.8 workbench candidate. PR #12 now contains this code; the separate archive-outbox branch is identical to the workbench and is no longer an independent change.
+- This consolidation changes only the development branch. It does not merge PR #12 into \`main\`, deploy Apps Script, alter production Script Properties, provision Sheets, modify Drive permissions, or send Telegram messages.
+- Re-run the complete candidate CI against the consolidated workbench head before considering source integration complete.
