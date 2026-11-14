@@ -3060,7 +3060,7 @@ function apiAdminCheckSystemConfiguration(session) {
       ?'TOTP aktif untuk Admin dan Super Admin; nilai secret tidak ditampilkan.'
       :'Atur MPS_ADMIN_TOTP_SECRET dan MPS_SUPER_ADMIN_TOTP_SECRET sebagai secret Base32 acak yang berbeda (minimal 160 bit) pada Script Properties.');
   const adminMfaLastStep=props.getProperty('MPS_ADMIN_TOTP_LAST_STEP'),superMfaLastStep=props.getProperty('MPS_SUPER_ADMIN_TOTP_LAST_STEP');
-  const validMfaReplayState=function(value){return value===null||/^\\d+$/.test(String(value));};
+  const validMfaReplayState=function(value){return value===null||/^\d+$/.test(String(value));};
   add('Admin MFA replay protection state',validMfaReplayState(adminMfaLastStep)&&validMfaReplayState(superMfaLastStep),
     'Status replay protection diperiksa tanpa menampilkan counter atau secret.');
 
