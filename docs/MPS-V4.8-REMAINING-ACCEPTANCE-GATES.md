@@ -253,6 +253,17 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - PR #12 remains Draft/unmerged; production resources remain untouched.
 
 
+### Durable public request ledger and persistent aggregate rate limits — candidate update 2026-11-14
+
+- Public registration/deposit requests now reserve an idempotency record under ScriptLock before business writes. Completed requests replay only the safe result fields; interrupted PENDING requests fail closed for admin reconciliation rather than blindly repeating a business write.
+- The request ledger stores the request ID, payload fingerprint, processing state/timestamps, action, application/member references, and generic result status. It does **not** store or replay Telegram one-time invite URLs, PINs, MT5 logins, proof images, or other credential material.
+- Public request status returns only a generic pending/completed status. It does not expose application payloads or private member fields.
+- The new \`MPS Request Ledger\` sheet is provisioned only through the explicit Super Admin \`apiAdminInitializeContent\` path. It is not created automatically on page load or by public request handlers. Before enabling public registration/deposit in a target Apps Script project, the ledger must be provisioned and its containing spreadsheet's PRIVATE access verified.
+- Aggregate throttles for public registration, public deposit, member login, and advertising requests now use four fixed allow-listed Script Properties buckets under ScriptLock. Cache loss cannot reset these aggregate counters; malformed stored limiter state fails closed. Per-identity throttles remain in place.
+- Repository tests cover persistence across execution contexts, fixed-bucket isolation, attacker-controlled bucket rejection, expired/corrupt state, Super Admin-only ledger provisioning, generic public status, idempotency reservation, and fail-closed post-commit recovery. These are static/isolated CI tests, not live Apps Script quota, persistence, or spreadsheet ACL acceptance.
+- Remaining live gate: in a new isolated Apps Script project, run the Super Admin initialization path, verify the ledger headers and spreadsheet PRIVATE ACL, then exercise duplicate/replay and cache-loss scenarios with synthetic data. No production migration, ledger provisioning, or database write has been performed.
+
+
 ### Admin registration archive notification outbox — candidate update 2026-11-14
 
 - `apiAdminResendRegistrationNotice` no longer calls Telegram directly. It validates the admin session and eligible deposit state, then reserves an `ADMIN_ALERT` task in the existing spreadsheet-backed durable follow-up queue while holding ScriptLock across the member snapshot and enqueue.
