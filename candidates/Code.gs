@@ -577,7 +577,6 @@ function apiAdminLogin(roleOrPassword, maybePassword, maybeOtp) {
   const otp=String(maybeOtp||'').trim();
   if (!['ADMIN','SUPER_ADMIN'].includes(role)) throw new Error('Jenis akun administrator tidak valid.');
   const propertyKey = role === 'SUPER_ADMIN' ? 'MPS_SUPER_ADMIN_TOKEN' : 'MPS_ADMIN_TOKEN';
-  const totpPropertyKey=role==='SUPER_ADMIN'?'MPS_SUPER_ADMIN_TOTP_SECRET':'MPS_ADMIN_TOTP_SECRET';
   const key = 'admin:' + role;
   consumePersistentLoginRateLimit_(key, MPS.adminMaxAttempts, MPS.adminWindowSeconds, 'Terlalu banyak percobaan login. Coba lagi 15 menit.');
   const allProps=PropertiesService.getScriptProperties(),expected=allProps.getProperty(propertyKey)||'',adminToken=allProps.getProperty('MPS_ADMIN_TOKEN')||'',superToken=allProps.getProperty('MPS_SUPER_ADMIN_TOKEN')||'';
