@@ -116,6 +116,14 @@ test('pre-commit validation failures are retryable while uncertain post-commit f
   assert.match(source,/function saveDeposit_\(sheet, data, onFileCreated, onProofLinked, onCommitStarted\)/);
 });
 
+test('Super Admin read-only configuration diagnostic reports request ledger schema readiness',()=>{
+  const body=extract('apiAdminCheckSystemConfiguration');
+  assert.match(body,/MPS_REQUEST_LEDGER/);
+  assert.match(body,/MPS Request Ledger schema/);
+  assert.match(body,/Sheet belum diprovisikan/);
+  assert.match(body,/readOnly:true/);
+});
+
 test('all aggregate public/login throttles use a fixed persistent allow-listed bucket',()=>{
   assert.match(source,/const allowed=\['member_login_global','public_submit_register','public_submit_deposit','ad_request_global'\]/);
   assert.match(source,/consumePersistentBucketRateLimit_\('member_login_global',600,60/);
