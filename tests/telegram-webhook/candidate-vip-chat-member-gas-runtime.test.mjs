@@ -102,7 +102,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
  };
  vm.createContext(context);
  vm.runInContext(queueConstant+'\n'+candidateFunctions+'\n'+
-  'this.makeLedger=createMpsGasEffectLedger_;this.runCandidateVipEvent=processMpsVipChatMemberEvent_;this.runFollowups=runMpsVipFollowupQueue_;this.enqueueJoinNotice=enqueueMpsVipJoinRequestNotice_;this.adminArchive=(session,id)=>context.apiAdminResendRegistrationNotice(session,id);',context,{timeout:2000});
+  'this.makeLedger=createMpsGasEffectLedger_;this.runCandidateVipEvent=processMpsVipChatMemberEvent_;this.runFollowups=runMpsVipFollowupQueue_;this.enqueueJoinNotice=enqueueMpsVipJoinRequestNotice_;',context,{timeout:2000});
  const ledger=context.makeLedger({spreadsheetId:'isolated-vip-runtime'});
  // Explicit isolated setup: append Effect Key headers before any webhook event.
  ledger.runExclusive(tx=>{tx.migrate('audit');tx.migrate('ticker');});
@@ -110,6 +110,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   process:update=>context.runCandidateVipEvent(update,update.chat_member),
   runQueue:()=>context.runFollowups(20),
   enqueueJoinNotice:(request,update,approved)=>context.enqueueJoinNotice(request,update,approved),
+  adminArchive:(session,id)=>context.apiAdminResendRegistrationNotice(session,id),
   sheets:data,stats:()=>({held,acquired,released,followups,networkCalls,sendCalls,revokeCalls,cacheRemovals}),
   addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);},
   duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},
