@@ -2606,6 +2606,24 @@ function clearPersistentLoginRateLimit_(key) {
 }
 
 /** General non-login throttles remain cache-backed to avoid persistent property churn. */
+
+function consumePersistentBucketRateLimit_(bucket, maxAttempts, windowSeconds, message) {
+  // Fixed allow-list prevents attacker-controlled Script Properties growth.
+  const allowed=['member_login_global','public_submit_register','public_submit_deposit','ad_request_global'];
+  if(allowed.indexOf(String(bucket))<0)throw new Error('Rate-limit bucket tidak dikenal.');
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
+  try{
+    const props=PropertiesService.getScriptProperties(),propertyKey='MPS_RATE_BUCKET_'+bucket;
+    const now=Date.now(),windowMs=Math.max(1000,Math.min(21600000,(Number(windowSeconds)||60)*1000));
+    const raw=props.getProperty(propertyKey);let state=raw?safeParseJson_(raw,null):null;
+    if(raw&&!state)throw new Error('Status rate limit tidak valid. Permintaan ditahan demi keamanan; hubungi Super Admin.');
+    if(state&&(!Number.isFinite(Number(state.startedAt))||!Number.isFinite(Number(state.count))||Number(state.count)<0))throw new Error('Status rate limit tidak valid. Permintaan ditahan demi keamanan; hubungi Super Admin.');
+    if(!state||now<Number(state.startedAt)||now-Number(state.startedAt)>=windowMs)state={startedAt:now,count:0};
+    if(Number(state.count)>=maxAttempts)throw new Error(message);
+    state.count=Number(state.count)+1;props.setProperty(propertyKey,JSON.stringify(state));
+  }finally{lock.releaseLock();}
+}
+
 function consumeRateLimit_(key, maxAttempts, windowSeconds, message) {
   const lock = LockService.getScriptLock();
   lock.waitLock(5000);
