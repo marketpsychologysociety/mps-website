@@ -739,21 +739,48 @@ function apiAdminResendRegistrationNotice(session, memberId) {
   const memberKey = clean_(memberId, 40).toUpperCase();
   if (!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(memberKey)) throw new Error('ID Member tidak valid.');
   consumeRateLimit_('mps_reg_notice_' + sha256_(memberKey).slice(0, 24), 3, MPS.adminWindowSeconds, 'Notifikasi untuk member ini terlalu sering dikirim. Coba lagi 15 menit.');
-  const sheet = getMemberSheet_();
-  const row = findMemberById_(sheet, memberKey);
-  if (!row) throw new Error('Data member tidak ditemukan.');
-  const r = sheet.getRange(row, 1, 1, MPS.headers.length).getValues()[0];
-  if (String(r[MPS_COL.depositStatus - 1] || '') !== 'Menunggu verifikasi' && String(r[MPS_COL.depositStatus - 1] || '') !== 'Disetujui') {
-    throw new Error('Arsip Telegram hanya dikirim setelah konfirmasi deposit diterima.');
-  }
-  const message = '💳 ARSIP KONFIRMASI DEPOSIT MPS\nNama: ' + r[MPS_COL.nickname - 1] +
-    '\nTelegram: ' + r[MPS_COL.telegram - 1] + '\nNegara: ' + r[MPS_COL.country - 1] +
-    '\nTujuan: ' + r[MPS_COL.goal - 1] + '\nID Member: ' + memberKey +
-    '\nStatus: ' + r[MPS_COL.registrationStatus - 1];
-  const result = sendTelegram_(message);
-  return { ok: !!result.ok, message: result.ok ? 'Notifikasi pendaftaran berhasil dikirim ulang.' : (result.error || 'Notifikasi gagal dikirim.') };
-}
 
+  // Snapshot and durable task reservation are serialized so a concurrent admin
+  // action cannot change the member record between validation and enqueue.
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = getMemberSheet_();
+    const row = findMemberById_(sheet, memberKey);
+    if (!row) throw new Error('Data member tidak ditemukan.');
+    const r = sheet.getRange(row, 1, 1, MPS.headers.length).getValues()[0];
+    if (String(r[MPS_COL.depositStatus - 1] || '') !== 'Menunggu verifikasi' && String(r[MPS_COL.depositStatus - 1] || '') !== 'Disetujui') {
+      throw new Error('Arsip Telegram hanya dikirim setelah konfirmasi deposit diterima.');
+    }
+    const message = '💳 ARSIP KONFIRMASI DEPOSIT MPS\nNama: ' + r[MPS_COL.nickname - 1] +
+      '\nTelegram: ' + r[MPS_COL.telegram - 1] + '\nNegara: ' + r[MPS_COL.country - 1] +
+      '\nTujuan: ' + r[MPS_COL.goal - 1] + '\nID Member: ' + memberKey +
+      '\nStatus: ' + r[MPS_COL.registrationStatus - 1];
+    // Five-minute idempotency window: transport retries/repeated taps reuse one
+    // durable task; a later deliberate resend can create a new task.
+    const windowKey = Math.floor(Date.now() / (5 * 60 * 1000));
+    const digest = sha256_('mps-admin-registration-archive-v1|' + memberKey + '|' + windowKey).slice(0, 40);
+    const taskKey = 'admin-registration-archive:' + digest;
+    const queued = enqueueMpsVipFollowup_({
+      taskKey: taskKey,
+      intentKey: taskKey,
+      action: 'ADMIN_ALERT',
+      alertText: message
+    }, true);
+    if (!queued || queued.ok !== true) throw new Error('ADMIN_REGISTRATION_ARCHIVE_QUEUE_FAILED');
+    return {
+      ok: true,
+      queued: true,
+      duplicate: queued.duplicate === true,
+      taskKey: taskKey,
+      message: queued.duplicate
+        ? 'Permintaan arsip untuk periode ini sudah tercatat. Tidak dibuat pengiriman kedua.'
+        : 'Arsip konfirmasi deposit masuk antrean Telegram admin dan akan diproses worker.'
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
 function validateProofFileForApproval_(proofUrl) {
   const url=String(proofUrl||'').trim(),match=url.match(/^https:\/\/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]{15,})/i);
   if(!match)throw new Error('Bukti deposit tidak memiliki tautan Google Drive yang valid. Admin tidak dapat menyetujui deposit tanpa bukti.');
