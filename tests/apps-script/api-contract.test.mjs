@@ -69,19 +69,20 @@ test('public Telegram token checks and unknown member IDs are covered by aggrega
   assert.match(telegram,/consumeRateLimit_\('mps_tg_link_check_global',600,60/);
   assert.ok(telegram.indexOf('consumeRateLimit_')<telegram.indexOf('getMpsMemberLinksSheet_'),'throttle must run before Telegram link sheet access');
   const member=body('apiMemberLogin');
-  assert.match(member,/consumeRateLimit_\('mps_member_login_global',600,60/);
-  assert.ok(member.indexOf('mps_member_login_global')<member.indexOf('getMemberSheet_'),'aggregate throttle must run before member lookup');
+  assert.match(member,/consumePersistentBucketRateLimit_\('member_login_global',600,60/);
+  assert.ok(member.indexOf('consumePersistentBucketRateLimit_')<member.indexOf('getMemberSheet_'),'persistent aggregate throttle must run before member lookup');
 });
 
-test('post-commit cache failures cannot turn a persisted public submission into a failure response',()=>{
+test('public submission idempotency is durable and dashboard cache is best effort',()=>{
   const start=code.indexOf('function submitCore_(data) {');
   const end=code.indexOf('function registerMember_(',start+1);
   assert.ok(start>=0&&end>start,'submitCore_ boundaries must exist');
   const body=code.slice(start,end);
-  assert.match(body,/Persistent business writes have completed at this point/);
-  assert.match(body,/try\s*\{\s*cache\.remove\('mps_public_dashboard_v480'\);\s*\}\s*catch\s*\(cacheErr\)/);
-  assert.match(body,/try\s*\{\s*cache\.put\('mps_req_'/);
-  assert.match(body,/catch\s*\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit request cache write failed/);
+  assert.match(body,/Persistent business writes and the durable request ledger have completed/);
+  assert.match(body,/ledger\.getRange\(ledgerRow,3,1,9\)\.setValues/);
+  assert.match(body,/ledger\.appendRow\(\[requestId,requestFingerprint,'PENDING'/);
+  assert.match(body,/PENDING is fail-closed/);
+  assert.doesNotMatch(body,/cache\.put\('mps_req_/);
 });
 test('Telegram webhook secret is read from pathInfo and never placed in query parameters',()=>{
   const start=code.indexOf('function doPost(e)');
