@@ -571,9 +571,10 @@ function activateMemberAfterPin_(memberId) {
   }finally{lock.releaseLock();}
 }
 
-function apiAdminLogin(roleOrPassword, maybePassword) {
+function apiAdminLogin(roleOrPassword, maybePassword, maybeOtp) {
   const role = maybePassword === undefined ? 'ADMIN' : String(roleOrPassword || '').toUpperCase();
   const supplied = String(maybePassword === undefined ? roleOrPassword : maybePassword || '');
+  const otp=String(maybeOtp||'').trim();
   if (!['ADMIN','SUPER_ADMIN'].includes(role)) throw new Error('Jenis akun administrator tidak valid.');
   const propertyKey = role === 'SUPER_ADMIN' ? 'MPS_SUPER_ADMIN_TOKEN' : 'MPS_ADMIN_TOKEN';
   const key = 'admin:' + role;
@@ -583,11 +584,17 @@ function apiAdminLogin(roleOrPassword, maybePassword) {
   if (!expected || !constantTimeEquals_(expected, supplied)) {
     throw new Error(role === 'SUPER_ADMIN' && !expected ? 'Akun Super Admin belum diaktifkan. Atur MPS_SUPER_ADMIN_TOKEN pada Script Properties terlebih dahulu.' : 'Login administrator gagal. Periksa jenis akun dan kata sandi.');
   }
+  const adminTotpSecret=String(allProps.getProperty('MPS_ADMIN_TOTP_SECRET')||'').trim();
+  const superTotpSecret=String(allProps.getProperty('MPS_SUPER_ADMIN_TOTP_SECRET')||'').trim();
+  if(!isValidTotpSecret_(adminTotpSecret)||!isValidTotpSecret_(superTotpSecret)||constantTimeEquals_(adminTotpSecret,superTotpSecret))
+    throw new Error('MFA wajib dikonfigurasi untuk Admin dan Super Admin dengan dua secret Base32 berbeda sebelum login diizinkan.');
+  const totpSecret=role==='SUPER_ADMIN'?superTotpSecret:adminTotpSecret;
+  if(!consumeTotpCode_(role,totpSecret,otp))throw new Error('Kode MFA salah, kedaluwarsa, atau sudah pernah digunakan. Masukkan kode 6 digit terbaru dari aplikasi Authenticator.');
   clearPersistentLoginRateLimit_(key);
   const session = Utilities.getUuid() + Utilities.getUuid();
   const sessionData = {role:role,actorId:role,credentialHash:sha256_(expected).slice(0,32),createdAt:new Date().toISOString()};
   CacheService.getScriptCache().put('mps_admin_' + sha256_(session), JSON.stringify(sessionData), MPS.adminSessionSeconds);
-  const auditWritten=recordMpsAudit_(role,role,'ADMIN_LOGIN','CONTROL_ROOM','SUCCESS',role+' berhasil membuka sesi.');
+  const auditWritten=recordMpsAudit_(role,role,'ADMIN_LOGIN','CONTROL_ROOM','SUCCESS',role+' berhasil membuka sesi dengan MFA.');
   return {ok:true,session:session,role:role,actorId:role,expiresIn:MPS.adminSessionSeconds,auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
@@ -2672,6 +2679,79 @@ function constantTimeEquals_(a, b) {
   return diff === 0;
 }
 
+function decodeTotpSecret_(secret) {
+  const clean=String(secret||'').toUpperCase();
+  if(!/^[A-Z2-7]{32,64}$/.test(clean)||clean.length%8!==0)throw new Error('TOTP secret format is invalid.');
+  const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let buffer=0,bits=0,out=[];
+  for(let i=0;i<clean.length;i++){
+    const value=alphabet.indexOf(clean.charAt(i));
+    if(value<0)throw new Error('TOTP secret format is invalid.');
+    buffer=(buffer<<5)|value;bits+=5;
+    if(bits>=8){bits-=8;out.push((buffer>>bits)&255);}
+  }
+  if(out.length<20||out.length>40)throw new Error('TOTP secret length is invalid.');
+  return out.map(function(v){return v>127?v-256:v;});
+}
+
+function isValidTotpSecret_(secret) {
+  try { decodeTotpSecret_(secret); return true; } catch(e) { return false; }
+}
+
+function totpCodeAt_(secret,timestampSeconds) {
+  const seconds=Number(timestampSeconds);
+  if(!isValidTotpSecret_(secret)||!Number.isFinite(seconds)||seconds<0)return '';
+  let counter=Math.floor(seconds/30);
+  const bytes=new Array(8);
+  for(let i=7;i>=0;i--){bytes[i]=counter%256;counter=Math.floor(counter/256);}
+  const messageBytes=bytes.map(function(v){return v>127?v-256:v;});
+  const digest=Utilities.computeHmacSignature(Utilities.MacAlgorithm.HMAC_SHA_1,messageBytes,decodeTotpSecret_(secret));
+  if(!digest||digest.length<20)return '';
+  const offset=digest[digest.length-1]&15;
+  const binary=((digest[offset]&127)<<24)|((digest[offset+1]&255)<<16)|((digest[offset+2]&255)<<8)|(digest[offset+3]&255);
+  return String((binary>>>0)%1000000).padStart(6,'0');
+}
+
+function findTotpMatchingStep_(secret,code,timestampSeconds) {
+  const supplied=String(code||'').trim();
+  if(!/^\d{6}$/.test(supplied)||!isValidTotpSecret_(secret))return -1;
+  const now=timestampSeconds===undefined?Date.now()/1000:Number(timestampSeconds);
+  if(!Number.isFinite(now)||now<0)return -1;
+  let matched=-1;
+  for(let offset=-1;offset<=1;offset++){
+    const step=Math.floor((now+offset*30)/30);
+    const expected=totpCodeAt_(secret,step*30);
+    if(expected&&constantTimeEquals_(expected,supplied))matched=Math.max(matched,step);
+  }
+  return matched;
+}
+
+function verifyTotpCode_(secret,code,timestampSeconds) {
+  return findTotpMatchingStep_(secret,code,timestampSeconds)>=0;
+}
+
+function consumeTotpCode_(role,secret,code,timestampSeconds) {
+  const roleText=String(role||'').toUpperCase();
+  if(!['ADMIN','SUPER_ADMIN'].includes(roleText))return false;
+  const matchedStep=findTotpMatchingStep_(secret,code,timestampSeconds);
+  if(matchedStep<0)return false;
+  const propertyKey=roleText==='SUPER_ADMIN'?'MPS_SUPER_ADMIN_TOTP_LAST_STEP':'MPS_ADMIN_TOTP_LAST_STEP';
+  const lock=LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const props=PropertiesService.getScriptProperties(),stored=props.getProperty(propertyKey);
+    let previous=-1;
+    if(stored!==null){
+      if(!/^\d+$/.test(String(stored)))return false;
+      previous=Number(stored);
+      if(!Number.isInteger(previous)||previous<0)return false;
+    }
+    if(matchedStep<=previous)return false;
+    props.setProperty(propertyKey,String(matchedStep));
+    return true;
+  } finally { lock.releaseLock(); }
+}
+
 function markPinDeliveredIfCurrent_(memberId,pin) {
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
@@ -3006,7 +3086,17 @@ function apiAdminCheckSystemConfiguration(session) {
   add('Admin password strength',credentialStrength(adminSecret),'Gunakan minimal 32 karakter dan sedikitnya 3 kelompok karakter (huruf kecil, huruf besar, angka, simbol). Nilai rahasia tidak ditampilkan.');
   add('Super Admin password',!!superSecret,'Keberadaan kredensial diperiksa; nilainya tidak ditampilkan.');
   add('Super Admin password strength',credentialStrength(superSecret),'Gunakan minimal 32 karakter dan sedikitnya 3 kelompok karakter (huruf kecil, huruf besar, angka, simbol). Nilai rahasia tidak ditampilkan.');
-  add('Admin MFA',false,'MFA belum diimplementasikan pada kandidat ini; akun admin masih bergantung pada token rahasia dan sesi. Jangan anggap pemeriksaan keamanan lulus untuk rilis produksi.');
+  const adminTotpSecret=String(props.getProperty('MPS_ADMIN_TOTP_SECRET')||'').trim(),superTotpSecret=String(props.getProperty('MPS_SUPER_ADMIN_TOTP_SECRET')||'').trim();
+  const adminMfaReady=isValidTotpSecret_(adminTotpSecret),superMfaReady=isValidTotpSecret_(superTotpSecret);
+  add('Admin MFA',adminMfaReady&&superMfaReady&&!constantTimeEquals_(adminTotpSecret,superTotpSecret),
+    adminMfaReady&&superMfaReady&&!constantTimeEquals_(adminTotpSecret,superTotpSecret)
+      ?'TOTP aktif untuk Admin dan Super Admin; nilai secret tidak ditampilkan.'
+      :'Atur MPS_ADMIN_TOTP_SECRET dan MPS_SUPER_ADMIN_TOTP_SECRET sebagai secret Base32 acak yang berbeda (minimal 160 bit) pada Script Properties.');
+  const adminMfaLastStep=props.getProperty('MPS_ADMIN_TOTP_LAST_STEP'),superMfaLastStep=props.getProperty('MPS_SUPER_ADMIN_TOTP_LAST_STEP');
+  const validMfaReplayState=function(value){return value===null||/^\d+$/.test(String(value));};
+  add('Admin MFA replay protection state',validMfaReplayState(adminMfaLastStep)&&validMfaReplayState(superMfaLastStep),
+    'Status replay protection diperiksa tanpa menampilkan counter atau secret.');
+
   add('Telegram webhook secret transport',true,'Secret webhook divalidasi melalui pathInfo Apps Script, bukan query string. Tetap lindungi URL lengkap dan rotasi secret jika pernah terekspos.');
   add('Pemisahan kredensial Admin',!!(adminSecret&&superSecret&&adminSecret!==superSecret),'Token Admin dan Super Admin harus berbeda.');
   const botToken=String(props.getProperty('MPS_TELEGRAM_BOT_TOKEN')||'');

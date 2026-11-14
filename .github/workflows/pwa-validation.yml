@@ -133,6 +133,8 @@ jobs:
         run: node --test tests/apps-script/api-contract.test.mjs
       - name: Run persistent rate-limit and durable request-idempotency security tests
         run: node --test tests/apps-script/request-security-hardening.test.mjs
+      - name: Run Admin TOTP MFA security tests
+        run: node --test tests/apps-script/admin-mfa.test.mjs
       - name: Run Apps Script calculator template security tests
         run: node --test tests/apps-script/calculator-template-security.test.mjs
       - name: Run candidate VIP transition end-to-end GAS runtime acceptance (isolated mocks)
