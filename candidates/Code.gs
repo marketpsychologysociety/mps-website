@@ -2971,6 +2971,12 @@ function apiAdminCheckSystemConfiguration(session) {
         try { assertSheetHeaders_(depositSheet,MPS_DEPOSITS.headers,MPS_DEPOSITS.sheet); add('Deposit Applications sheet',true,'Header cocok; tidak ada perubahan dilakukan.'); }
         catch(e){ add('Deposit Applications sheet',false,safeErrorMessage_(e)); }
       }
+      const requestLedger=ss.getSheetByName(MPS_REQUEST_LEDGER.sheet);
+      if(!requestLedger)add('MPS Request Ledger schema',false,'Sheet belum diprovisikan. Jalankan inisialisasi konten melalui Super Admin sebelum menerima pendaftaran/deposit.');
+      else {
+        try { assertSheetHeaders_(requestLedger,MPS_REQUEST_LEDGER.headers,MPS_REQUEST_LEDGER.sheet); add('MPS Request Ledger schema',true,'Header cocok; ledger tidak diubah oleh pemeriksaan.'); }
+        catch(e){ add('MPS Request Ledger schema',false,safeErrorMessage_(e)); }
+      }
     } catch(e) {
       add('Akses database',false,safeErrorMessage_(e));
     }
