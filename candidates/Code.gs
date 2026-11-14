@@ -64,7 +64,7 @@ const MPS_MEMBER_LINKS = Object.freeze({
 });
 const MPS_REQUEST_LEDGER = Object.freeze({
   sheet: 'MPS Request Ledger',
-  headers: ['Request ID','Fingerprint','Status','Started At','Completed At','Action','Application Ref','Member ID','Result Status','Telegram URL','Telegram Expires At']
+  headers: ['Request ID','Fingerprint','Status','Started At','Completed At','Action','Application Ref','Member ID','Result Status']
 });
 
 /** Web app entry point. */
@@ -299,16 +299,16 @@ function submitCore_(data) {
       if(ledgerRow){
         const saved=ledger.getRange(ledgerRow,1,MPS_REQUEST_LEDGER.headers.length).getValues()[0];
         if(String(saved[1]||'')!==requestFingerprint)throw new Error('Request ID sudah digunakan untuk data yang berbeda.');
-        if(String(saved[2]||'')==='COMPLETED')return {ok:true,replayed:true,status:String(saved[8]||'Permintaan sebelumnya sudah diproses.'),applicationRef:String(saved[6]||''),memberId:String(saved[7]||''),telegramUrl:String(saved[9]||''),telegramExpiresAt:String(saved[10]||'')};
+        if(String(saved[2]||'')==='COMPLETED')return {ok:true,replayed:true,status:String(saved[8]||'Permintaan sebelumnya sudah diproses.'),applicationRef:String(saved[6]||''),memberId:String(saved[7]||'')};
         if(String(saved[2]||'')==='FAILED'){
-          ledger.getRange(ledgerRow,3,1,9).setValues([['PENDING',new Date(),' ',action,'','','','','']]);
+          ledger.getRange(ledgerRow,3,1,7).setValues([['PENDING',new Date(),' ',action,'','','']]);
           ledgerReserved=true;
         }else{
           // PENDING is fail-closed: an interrupted request is never blindly replayed.
           throw new Error('Permintaan dengan ID ini masih tercatat dalam proses atau perlu rekonsiliasi admin. Jangan kirim ulang dengan ID baru; hubungi admin MPS.');
         }
       }
-      if(!ledgerRow){ledger.appendRow([requestId,requestFingerprint,'PENDING',new Date(),' ',action,'','','','','']);ledgerRow=ledger.getLastRow();}
+      if(!ledgerRow){ledger.appendRow([requestId,requestFingerprint,'PENDING',new Date(),' ',action,'','','']);ledgerRow=ledger.getLastRow();}
       ledgerReserved=true;
     }
     if (action === 'register') {
@@ -324,7 +324,7 @@ function submitCore_(data) {
       telegramMessage = deposit.telegramMessage;
     }
     if(requestId&&result&&result.ok){
-      ledger.getRange(ledgerRow,3,1,9).setValues([['COMPLETED',ledger.getRange(ledgerRow,4).getValue(),new Date(),action,result.applicationRef||'',result.memberId||'',result.status||'Selesai diproses',result.telegramUrl||'',result.telegramExpiresAt||'']]);
+      ledger.getRange(ledgerRow,3,1,7).setValues([['COMPLETED',ledger.getRange(ledgerRow,4).getValue(),new Date(),action,result.applicationRef||'',result.memberId||'',result.status||'Selesai diproses']]);
       ledgerReserved=false;
     }
     // Persistent business writes and the durable request ledger have completed.
