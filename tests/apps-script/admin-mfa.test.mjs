@@ -72,7 +72,9 @@ test('accepted TOTP codes cannot be replayed and Admin/Super Admin counters are 
   assert.equal(sandbox.consumeTotpCode_('ADMIN',RFC_SECRET,adminCode,89),false);
   propertyStore.MPS_ADMIN_TOTP_LAST_STEP='corrupt';
   assert.equal(sandbox.consumeTotpCode_('ADMIN',RFC_SECRET,sandbox.totpCodeAt_(RFC_SECRET,119),119),false);
-  assert.ok(lockReleases>=6,'ScriptLock must be released for every consume attempt');
+  propertyStore.MPS_ADMIN_TOTP_LAST_STEP='';
+  assert.equal(sandbox.consumeTotpCode_('ADMIN',RFC_SECRET,sandbox.totpCodeAt_(RFC_SECRET,149),149),false);
+  assert.ok(lockReleases>=7,'ScriptLock must be released for every consume attempt');
 });
 
 test('Admin login requires the role-specific TOTP secret and validates it before issuing a session',()=>{
