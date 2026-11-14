@@ -2713,9 +2713,12 @@ function consumeTotpCode_(role,secret,code,timestampSeconds) {
   lock.waitLock(10000);
   try {
     const props=PropertiesService.getScriptProperties(),stored=props.getProperty(propertyKey);
-    if(stored!==null&&!/^\d+$/.test(String(stored)))return false;
-    const previous=stored===null?-1:Number(stored);
-    if(!Number.isInteger(previous)||previous<0)return false;
+    let previous=-1;
+    if(stored!==null){
+      if(!/^\d+$/.test(String(stored)))return false;
+      previous=Number(stored);
+      if(!Number.isInteger(previous)||previous<0)return false;
+    }
     if(matchedStep<=previous)return false;
     props.setProperty(propertyKey,String(matchedStep));
     return true;
