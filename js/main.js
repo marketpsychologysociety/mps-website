@@ -49,7 +49,7 @@
     el.textContent = (cfg.brand && cfg.brand.name) || "Market Psychology Society";
   });
   document.querySelectorAll("[data-brand='tagline']").forEach(el => {
-    el.textContent = (cfg.brand && cfg.brand.tagline) || "TRADE WITH DISCIPLINE.";
+    el.textContent = (cfg.brand && cfg.brand.tagline) || "DISCIPLINE OVER IMPULSE";
   });
   const year = document.getElementById("year");
   if (year) year.textContent = `© ${new Date().getFullYear()} ${(cfg.brand && cfg.brand.name) || "Market Psychology Society"}. All Rights Reserved.`;

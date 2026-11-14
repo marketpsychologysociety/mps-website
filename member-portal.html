@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
 <title>Member Portal | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-v470-security">
+  <link rel="stylesheet" href="css/style.css?v=mps-neon-live-20261111">
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
@@ -24,6 +24,16 @@
     <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
   </ul>
 </nav>
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> DEMO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>DEMO: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
+    <span>DEMO: Informasi maintenance resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>DEMO: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
 <header class="page-head">
   <div class="eyebrow">OFFICIAL MPS ACCESS · v4.7.0</div>
   <h1>Member Portal MPS</h1>
@@ -45,5 +55,7 @@
 <footer class="footer"><div class="footer-brand" data-brand="name">Market Psychology Society</div><div class="footer-tag" data-brand="tagline">TRADE WITH DISCIPLINE.</div><div class="footer-quote">“Discipline First. Survival Always.”</div><div class="footer-links"><a href="index.html">Beranda</a><a href="about.html">Tentang</a><a href="system.html">Sistem MPS</a><a href="education.html">Learning</a><a href="membership.html">Benefit</a><a href="contact.html">Kontak</a><a href="privacy.html">Privasi</a></div><p class="footer-disclaimer">MPS merupakan komunitas edukasi dan diskusi trading independen. Materi bukan rekomendasi investasi. Trading Forex dan Gold berisiko tinggi dan tidak ada jaminan keuntungan.</p><div class="footer-copy" id="year">© 2026 Market Psychology Society. All Rights Reserved.</div></footer>
 <script src="config.js"></script><script src="js/main.js"></script>
 <script>(()=>{const b=document.getElementById('installMpsApp');const st=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));if(!b||st())return;let p=null;const u=navigator.userAgent||'',a=/iPhone|iPad|iPod/i.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);if(a){b.hidden=false;b.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan Share/Bagikan.\n3. Pilih Add to Home Screen/Tambahkan ke Layar Utama.\n4. Tekan Add/Tambahkan.'));}addEventListener('beforeinstallprompt',e=>{e.preventDefault();p=e;b.hidden=false;});b.addEventListener('click',async()=>{if(a)return;if(!p){alert('Buka menu browser lalu pilih Install app atau Tambahkan ke layar utama jika opsi tersedia.');return;}p.prompt();try{const c=await p.userChoice;if(c&&c.outcome==='accepted')b.hidden=true;}catch(_){}p=null;});addEventListener('appinstalled',()=>{b.hidden=true;p=null;});})();</script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 </body>
 </html>

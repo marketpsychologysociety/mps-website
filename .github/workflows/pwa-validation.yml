@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, 'integration/**']
+    branches: [main, 'integration/**', 'mps-v4.8-workbench']
 
 permissions:
   contents: read
@@ -22,9 +22,141 @@ jobs:
           node-version: 22
       - name: Validate PWA files and privacy rules
         run: node scripts/validate-pwa.mjs
+      - name: Run synthetic database schema compatibility tests
+        run: node scripts/test-schema-compatibility.mjs
+      - name: Run P1.23 isolated technical acceptance harness (synthetic only)
+        run: node --test tests/official-draw/isolated-acceptance-harness.test.mjs
+      - name: Run P1.24 SQLite transactional persistence tests (synthetic only)
+        run: node --test tests/official-draw/sqlite-transactional-store.test.mjs
+      - name: Run P1.25 SQLite cross-process contention and crash-recovery tests (synthetic only)
+        run: node --test tests/official-draw/sqlite-process-contention.test.mjs
+      - name: Run P1.26 SQLite operational boundary tests (synthetic only)
+        run: node --test tests/official-draw/sqlite-operational-boundaries.test.mjs
+      - name: Run P1.27 SQLite failure-containment tests (synthetic only)
+        run: node --test tests/official-draw/sqlite-failure-containment.test.mjs
+      - name: Run P1.28 verified SQLite restore tests (synthetic only)
+        run: node --test tests/official-draw/sqlite-verified-restore.test.mjs
+      - name: Run P1.29 end-to-end SQLite recovery drill tests (synthetic only)
+        run: node --test tests/official-draw/sqlite-recovery-drill.test.mjs
+      - name: Run P1.30 signed recovery-checkpoint attestation tests (synthetic only)
+        run: node --test tests/official-draw/recovery-checkpoint-attestation.test.mjs
+      - name: Run P1.31 durable recovery-checkpoint nonce integration tests (synthetic only)
+        run: node --test tests/official-draw/recovery-checkpoint-nonce-integration.test.mjs
+      - name: Run P1.32 recovery-checkpoint nonce crash-recovery tests (synthetic only)
+        run: node --test tests/official-draw/recovery-checkpoint-nonce-crash.test.mjs
+      - name: Run official draw synthetic security contract
+        env:
+          MPS_DRAW_TEST_ALLOW_LOCAL: "1"
+          MPS_DRAW_TEST_ADAPTER: "./tests/official-draw/local-sandbox-adapter.mjs"
+        run: node --test tests/official-draw/security-contract.test.mjs
+      - name: Run durable synthetic audit journal fault-injection tests
+        run: node --test tests/official-draw/durable-audit-journal.test.mjs
+      - name: Run synthetic external journal-anchor contract tests
+        run: node --test tests/official-draw/synthetic-external-anchor.test.mjs
+      - name: Run offline GCS PoC evidence-bundle verifier tests
+        run: node --test tests/official-draw/gcs-poc-evidence-verifier.test.mjs
+      - name: Run offline raw GCS audit normalization tests
+        run: node --test tests/official-draw/gcs-raw-audit-normalizer.test.mjs
+      - name: Run offline GCS evidence provenance attestation tests
+        run: node --test tests/official-draw/gcs-evidence-provenance-verifier.test.mjs
+      - name: Run durable reviewer trust registry and single-use nonce tests
+        run: node --test tests/official-draw/durable-reviewer-trust-registry.test.mjs
+      - name: Run P1.33 reviewer trust journal integrity-preservation tests (synthetic only)
+        run: node --test tests/official-draw/reviewer-trust-integrity-preservation.test.mjs
+      - name: Run synthetic independent backup and restore verification tests
+        run: node --test tests/official-draw/synthetic-backup-recovery.test.mjs
+      - name: Run off-site recovery drill evidence contract tests
+        run: node --test tests/official-draw/offsite-recovery-drill-contract.test.mjs
+      - name: Run synthetic backup readiness monitoring and notification outbox tests
+        run: node --test tests/official-draw/backup-readiness-monitor.test.mjs
+      - name: Run persistent Draw API process-restart and reconciliation tests
+        run: node --test tests/official-draw/persistent-api-integration.test.mjs
+      - name: Run synthetic incident tabletop decision evaluator tests
+        run: node --test tests/official-draw/tabletop-exercise.test.mjs
+      - name: Run Telegram webhook durable idempotency and crash-recovery contract tests (synthetic only)
+        run: node --test tests/telegram-webhook/durable-update-journal.test.mjs
+      - name: Run isolated Apps Script spreadsheet journal adapter tests (mocked services only)
+        run: node --test tests/telegram-webhook/gas-spreadsheet-journal-adapter.test.mjs
+      - name: Run Telegram effect outbox recovery contract tests (synthetic only)
+        run: node --test tests/telegram-webhook/durable-effect-outbox.test.mjs
+      - name: Run Telegram handler reconciliation contract tests (synthetic only)
+        run: node --test tests/telegram-webhook/handler-reconciliation.test.mjs
+      - name: Characterize actual candidate Code.gs Telegram handler call sites (pinned snapshot)
+        run: node --test tests/telegram-webhook/candidate-handler-callsite-characterization.test.mjs
+      - name: Run Telegram ingress epoch allocation contract tests
+        run: node --test tests/telegram-webhook/update-epoch.test.mjs
+      - name: Run append-only Telegram effect-key migration contract tests (synthetic only)
+        run: node --test tests/telegram-webhook/effect-ledger-migration.test.mjs
+      - name: Run isolated Apps Script effect ledger adapter tests (mocked services only)
+        run: node --test tests/telegram-webhook/gas-effect-ledger-adapter.test.mjs
+      - name: Run synthetic VIP activation orchestration and crash-recovery tests
+        run: node --test tests/telegram-webhook/vip-activation-orchestration.test.mjs
+      - name: Run durable VIP activation and leave transition recovery contract
+        run: node --test tests/telegram-webhook/vip-transition-recovery.test.mjs
+      - name: Run scoped durable VIP transition sheet-store tests (mocked Apps Script services only)
+        run: node --test tests/telegram-webhook/gas-vip-transition-store.test.mjs
+      - name: Run scoped VIP transition orchestrator crash-recovery tests (mocked Apps Script services only)
+        run: node --test tests/telegram-webhook/gas-vip-transition-orchestrator.test.mjs
+      - name: Run Telegram chat_member source-metadata adapter tests
+        run: node --test tests/telegram-webhook/gas-vip-chat-member-handler.test.mjs
+      - name: Run candidate Code.gs VIP transition integration tests
+        run: node --test tests/telegram-webhook/candidate-vip-chat-member-integration.test.mjs
+      - name: Run candidate Telegram one-time link replay reconciliation tests
+        run: node --test tests/telegram-webhook/candidate-link-replay-reconciliation.test.mjs
+      - name: Run candidate Telegram edited-message command suppression tests
+        run: node --test tests/telegram-webhook/candidate-edited-message-command.test.mjs
+      - name: Run Telegram webhook ingress update-ID validation tests
+        run: node --test tests/telegram-webhook/candidate-update-ingress-validation.test.mjs
+      - name: Run Apps Script member activation transaction regression tests (mocked services only)
+        run: node --test tests/apps-script/member-activation-transaction.test.mjs
+      - name: Run Apps Script deposit rollback regression tests (mocked services only)
+        run: node --test tests/apps-script/deposit-rollback.test.mjs
+      - name: Run runtime Learning file authorization and direct-ID bypass tests (mocked Drive only)
+        run: node --test tests/apps-script/learning-file-access-runtime.test.mjs
+      - name: Run deposit proof approval file validation tests (mocked Drive only)
+        run: node --test tests/apps-script/proof-approval-validation.test.mjs
+      - name: Run authenticated deposit proof proxy runtime tests (mocked Drive only)
+        run: node --test tests/apps-script/deposit-proof-access-runtime.test.mjs
+      - name: Run sheet provisioning boundary regression tests (mocked Apps Script services only)
+        run: node --test tests/apps-script/sheet-provisioning-boundaries.test.mjs
+      - name: Run public VIP ticker privacy regression tests
+        run: node --test tests/apps-script/public-ticker-privacy.test.mjs
+      - name: Run Apps Script advertising publication rollback tests (mocked services only)
+        run: node --test tests/apps-script/advertising-publish-rollback.test.mjs
+      - name: Run Apps Script news review rollback tests (mocked services only)
+        run: node --test tests/apps-script/news-review-rollback.test.mjs
+      - name: Run Apps Script database backup privacy and rollback tests (mocked services only)
+        run: node --test tests/apps-script/database-backup-rollback.test.mjs
+      - name: Run runtime session and role-escalation security tests (mocked services only)
+        run: node --test tests/apps-script/session-authorization-runtime.test.mjs
+      - name: Run Apps Script frontend/backend API contract tests
+        run: node --test tests/apps-script/api-contract.test.mjs
+      - name: Run persistent rate-limit and durable request-idempotency security tests
+        run: node --test tests/apps-script/request-security-hardening.test.mjs
+      - name: Run Admin TOTP MFA security tests
+        run: node --test tests/apps-script/admin-mfa.test.mjs
+      - name: Run Apps Script calculator template security tests
+        run: node --test tests/apps-script/calculator-template-security.test.mjs
+      - name: Run candidate VIP transition end-to-end GAS runtime acceptance (isolated mocks)
+        run: node --test tests/telegram-webhook/candidate-vip-chat-member-gas-runtime.test.mjs
+      - name: Validate isolated Apps Script runtime harness safety (static only)
+        run: node --test tests/telegram-webhook/isolated-gas-acceptance.test.mjs
+      - name: Run VIP activation contract against isolated GAS adapter (mocked services only)
+        run: node --test tests/telegram-webhook/vip-activation-gas-adapter-integration.test.mjs
+      - name: Run read-only schema inspector tests
+        run: node scripts/test-readonly-schema-inspector.mjs
       - name: Install Playwright and Chromium
         run: |
           npm install --no-save --no-package-lock playwright
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Run Chromium browser checks
         run: node scripts/test-pwa-browser.mjs
+      - name: Upload Apps Script handoff files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mps-v4.8-apps-script-files
+          path: |
+            candidates/Code.gs
+            candidates/Index.html
+          if-no-files-found: error
+          retention-days: 7

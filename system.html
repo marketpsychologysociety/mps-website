@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <title>Core System | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
+  <link rel="stylesheet" href="css/style.css?v=mps-neon-live-20261111">
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
@@ -23,6 +23,16 @@
     <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
   </ul>
 </nav>
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> DEMO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>DEMO: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
+    <span>DEMO: Informasi maintenance resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>DEMO: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
 <header class="page-head"><div class="eyebrow">The Foundation</div><h1>Core System MPS</h1><p>Tiga pilar untuk membangun proses trading yang lebih terukur.</p></header>
 <section><div class="container grid grid-3"><article class="card"><div class="card-num">01</div><h3>Money Management</h3><p>Memahami risiko per posisi, ukuran lot, alokasi modal, batas kerugian, dan perlindungan profit.</p></article><article class="card"><div class="card-num">02</div><h3>Trading Psychology</h3><p>Mengenali pemicu emosional, menerima kerugian terencana, dan menghindari keputusan impulsif.</p></article><article class="card"><div class="card-num">03</div><h3>Trading Discipline</h3><p>Membuat rencana, mematuhi checklist, mencatat transaksi, dan mengevaluasi proses secara rutin.</p></article></div><div class="container content mt-4"><div class="notice"><strong>Catatan:</strong> Counter Risk &amp; Money Management masih merupakan konsep pengembangan yang perlu diuji dan dievaluasi, bukan sistem yang telah terbukti atau jaminan hasil.</div></div></section>
 <footer class="footer">
@@ -60,4 +70,6 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 </body></html>

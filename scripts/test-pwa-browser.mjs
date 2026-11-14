@@ -32,7 +32,7 @@ const server = http.createServer((req, res) => {
 });
 
 const pages = [
-  'index.html','about.html','contact.html','education.html','heatmap.html',
+  'index.html','about.html','announcements.html','contact.html','education.html','heatmap.html',
   'join.html','deposit-confirmation.html','member-portal.html','membership.html',
   'privacy.html','rebate.html','rewards.html','system.html','terms.html'
 ];
@@ -86,13 +86,13 @@ try {
   const versionedCssStatus = await page.evaluate(async () => (await fetch('/css/style.css?v=mps-test-version')).status);
   if (versionedCssStatus !== 200) failures.push('Versioned CSS request failed online');
   const versionedCssCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     return (await cache.keys()).some(request => request.url.includes('/css/style.css?v=mps-test-version'));
   });
   if (!versionedCssCached) failures.push('Realistic versioned CSS URL was not cached');
 
   const cachedCss = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/css/style.css'));
   });
@@ -102,21 +102,21 @@ try {
   const jsOnline = await page.evaluate(async () => (await fetch('/js/main.js')).status);
   if (jsOnline !== 200) failures.push('JavaScript network-first request failed online');
   const cachedJs = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/js/main.js'));
   });
   if (!cachedJs) failures.push('JavaScript was not cached after successful network-first request');
   const arbitraryScriptStatus = await page.evaluate(async () => (await fetch('/admin.js')).status);
   const arbitraryScriptCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     return (await cache.keys()).some(request => new URL(request.url).pathname === '/admin.js');
   });
   if (arbitraryScriptCached) failures.push('Non-allowlisted same-origin JavaScript was cached');
 
   const parameterizedAssetStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?cache-bust=1')).status);
   const parameterizedAssetCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     return (await cache.keys()).some(request => request.url.includes('cache-bust=1'));
   });
   if (parameterizedAssetStatus !== 200) failures.push('Parameterized asset request failed');
@@ -131,13 +131,13 @@ try {
   const otherQueryStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?other=not-allowed')).status);
   if (otherQueryStatus !== 200) failures.push('Other-query asset test request failed');
   const otherQueryCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     return (await cache.keys()).some(request => request.url.includes('other=not-allowed'));
   });
   if (otherQueryCached) failures.push('Non-version query URL was incorrectly cached');
 
   const tokenWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('session=browser-test-secret'));
   });
@@ -163,13 +163,13 @@ try {
 
   const apiStatus = await page.evaluate(async () => (await fetch('/api/member?token=browser-test-secret')).status);
   const apiWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/api/member') || request.url.includes('token=browser-test-secret'));
   });
   if (apiWasCached) failures.push('API/member URL was incorrectly cached');
   const htmlPagesCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v6');
     const keys = await cache.keys();
     return keys.some(request => {
       const pathname = new URL(request.url).pathname;
@@ -284,6 +284,101 @@ try {
     }
   }
 
+  // Public Market Pulse must remain a static preview; no actual dataset or API payload is public.
+  const heatmapResponse = await page.goto(base + '/heatmap.html', { waitUntil: 'domcontentloaded' });
+  if (!heatmapResponse || heatmapResponse.status() !== 200) failures.push('Public Market Pulse preview did not return HTTP 200');
+  const publicPulseState = await page.evaluate(() => ({
+    memberOnly: document.body.innerText.includes('MEMBER ONLY · DATA PRIVAT'),
+    previewDisclosure: document.body.innerText.includes('bukan data Market Pulse yang sebenarnya'),
+    demoTicker: !!document.querySelector('[data-mps-demo-ticker]'),
+    actualDatasetInline: [...document.scripts].some(script => /const\s+D\s*=/.test(script.textContent || '')),
+    datasetScript: [...document.scripts].some(script => /market.?pulse.?data|pulse.?dataset/i.test(script.src || ''))
+  }));
+  if (!publicPulseState.memberOnly || !publicPulseState.previewDisclosure || !publicPulseState.demoTicker) {
+    failures.push('Public Market Pulse page must show Member Only, static-preview disclosure, and demo ticker');
+  }
+  if (publicPulseState.actualDatasetInline || publicPulseState.datasetScript) {
+    failures.push('Public Market Pulse page contains an actual dataset or dataset script');
+  }
+
+  // Exercise the Announcement Center prototype: ticker controls, category filter,
+  // and the presentation-only roulette. No real member or draw data is loaded.
+  const announcementResponse = await page.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
+  if (!announcementResponse || announcementResponse.status() !== 200) failures.push('Announcement Center did not return HTTP 200');
+  const announcementTitle = await page.title();
+  const publicCenterSafety = await page.evaluate(() => ({
+    enabled: window.MPS_CONFIG?.publicCenter?.enabled,
+    remoteScripts: [...document.scripts].filter(script => {
+      if (!script.src) return false;
+      try { return new URL(script.src).hostname === 'script.google.com'; } catch { return false; }
+    }).length
+  }));
+  if (publicCenterSafety.enabled !== false) failures.push('Public Center feature flag must remain disabled in the static prototype');
+  if (publicCenterSafety.remoteScripts !== 0) failures.push('Public Center injected a remote Apps Script executable into the page');
+  if (!announcementTitle.includes('Announcement Center')) failures.push('Announcement Center title is missing');
+  const tickerButton = page.locator('.ticker-toggle');
+  await tickerButton.click();
+  const tickerPaused = await page.locator('.ticker-track').evaluate(el => el.classList.contains('is-paused'));
+  if (!tickerPaused || await tickerButton.getAttribute('aria-pressed') !== 'true') failures.push('Announcement ticker pause control failed');
+  await page.locator('[data-filter="community"]').click();
+  const visibleCategories = await page.locator('.announce-card:not([hidden])').evaluateAll(nodes => nodes.map(el => el.dataset.category));
+  if (visibleCategories.length !== 1 || visibleCategories[0] !== 'community') failures.push('Announcement category filter did not isolate community cards');
+  await page.locator('[data-filter="all"]').click();
+  await page.locator('#demoSpin').click();
+  await page.waitForFunction(() => document.getElementById('rouletteResult')?.textContent.includes('Simulasi selesai'), null, { timeout: 7000 });
+  const rouletteText = await page.locator('#rouletteResult').innerText();
+  if (!rouletteText.includes('Tidak ada pemenang')) failures.push('Demo roulette implied a winner or failed to disclose simulation-only behavior');
+
+  // Exercise the data-only public-center transport with a mocked CORS endpoint.
+  // The response is text that resembles JavaScript assignment syntax, but must only
+  // be parsed as JSON; appended executable code must never run in the page origin.
+  const feedContext = await browser.newContext({ serviceWorkers: 'block' });
+  const testEndpoint = 'https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec';
+  const originalConfig = fs.readFileSync(path.join(root, 'config.js'), 'utf8');
+  const testConfig = originalConfig
+    .replace('enabled: false', 'enabled: true')
+    .replace(/endpoint: "https:\/\/script\.google\.com\/macros\/s\/[^"]+\/exec"/, 'endpoint: "' + testEndpoint + '"');
+  await feedContext.route('https://**/*', route => route.abort());
+  await feedContext.route('**/config.js', route => route.fulfill({
+    status: 200, contentType: 'text/javascript; charset=utf-8', body: testConfig
+  }));
+  let feedMode = 'valid';
+  await feedContext.route('https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec**', route => {
+    const validEnvelope = 'window.MPS_PUBLIC_CENTER_DATA={"ok":true,"announcements":[{"ID":"ANN-TEST","Title":"<img src=x onerror=window.__mpsXssExecuted=true>","Category":"important","Body":"<svg onload=window.__mpsXssExecuted=true>Data-only feed test"}],"activity":[],"tickerSettings":{"enabled":false,"speed":34,"theme":"Neon"}};';
+    const body = feedMode === 'valid'
+      ? validEnvelope
+      : validEnvelope + 'window.__mpsRemoteCodeExecuted=true;';
+    return route.fulfill({
+      status: 200,
+      headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' },
+      contentType: 'application/javascript; charset=utf-8',
+      body
+    });
+  });
+  const feedPage = await feedContext.newPage();
+  await feedPage.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
+  await feedPage.waitForFunction(() => document.documentElement.dataset.mpsPublicCenter === 'connected', null, { timeout: 5000 })
+    .catch(() => failures.push('Data-only public-center JSON feed did not connect in mocked CORS test'));
+  const safeFeedRendered = await feedPage.locator('[data-public-announcements]').innerText();
+  if (!safeFeedRendered.includes('<img src=x')) failures.push('Data-only public-center JSON feed did not preserve HTML-like title as inert text');
+  const feedXssSafety = await feedPage.evaluate(() => ({
+    titleText: document.querySelector('[data-public-announcements] h3')?.textContent || '',
+    injectedImage: !!document.querySelector('[data-public-announcements] img'),
+    executed: window.__mpsXssExecuted === true
+  }));
+  if (!feedXssSafety.titleText.includes('<img')) failures.push('Public-center announcement text was not preserved as inert text');
+  if (feedXssSafety.injectedImage || feedXssSafety.executed) failures.push('Public-center announcement content executed HTML instead of rendering as text');
+  const feedRemoteScripts = await feedPage.locator('script[src*="script.google.com"]').count();
+  if (feedRemoteScripts !== 0) failures.push('Data-only public-center feed injected a remote executable script');
+
+  feedMode = 'malicious';
+  await feedPage.goto(base + '/announcements.html?malicious-envelope-test=1', { waitUntil: 'domcontentloaded' });
+  await feedPage.waitForFunction(() => document.documentElement.dataset.mpsPublicCenter === 'demo-fallback', null, { timeout: 5000 })
+    .catch(() => failures.push('Malformed executable feed envelope did not fail closed to demo fallback'));
+  const remoteCodeExecuted = await feedPage.evaluate(() => window.__mpsRemoteCodeExecuted === true);
+  if (remoteCodeExecuted) failures.push('Public-center loader executed appended remote JavaScript instead of rejecting the response');
+  await feedContext.close();
+
   if (mobileErrors.length) failures.push('Mobile browser page errors: ' + mobileErrors.join(' | '));
   await mobileContext.close();
 
@@ -324,4 +419,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('MPS PWA browser test PASSED');
-console.log('Chromium passed 14 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, and iOS Add to Home Screen guidance.');
+console.log('Chromium passed 15 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, iOS Add to Home Screen guidance, public Market Pulse static-preview isolation, and data-only public-center CORS, malformed-payload, and inert-HTML/XSS checks.');

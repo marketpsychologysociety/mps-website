@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 const root = process.cwd();
 const pages = [
-  'about.html','contact.html','deposit-confirmation.html','education.html',
+  'about.html','announcements.html','contact.html','deposit-confirmation.html','education.html',
   'heatmap.html','index.html','join.html','member-portal.html','membership.html',
   'privacy.html','rebate.html','rewards.html','system.html','terms.html'
 ];
@@ -12,6 +12,24 @@ const errors = [];
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const exists = file => fs.existsSync(path.join(root, file));
 const check = (condition, message) => { if (!condition) errors.push(message); };
+
+const publicConfigText = read('config.js');
+check(!/(?:bot\d+:[A-Za-z0-9_-]{20,}|(?:BOT_TOKEN|WEBHOOK_SECRET|ADMIN_TOKEN|SUPER_ADMIN_TOKEN|PASSWORD|API_KEY)\s*[:=]\s*["'][^"']+["'])/i.test(publicConfigText),
+  'Public config.js must not contain bot tokens, webhook secrets, admin credentials, passwords, or API keys');
+const configSandbox = { window: {} };
+try { new vm.Script(read('config.js'), { filename: 'config.js' }).runInNewContext(configSandbox); }
+catch (error) { errors.push('config.js syntax error: ' + error.message); }
+check(configSandbox.window.MPS_CONFIG?.publicCenter?.enabled === false,
+  'Public Center feature flag must remain disabled until the data-only CORS transport is verified against an isolated Apps Script deployment');
+const publicCenterLoader = read('js/public-center.js');
+const publicCenterGuard = publicCenterLoader.indexOf('config.publicCenter.enabled !== true');
+const publicCenterFetch = publicCenterLoader.indexOf('window.fetch(url.href');
+const publicCenterJsonParse = publicCenterLoader.indexOf('JSON.parse(body.slice(prefix.length, -1))');
+const publicCenterScriptInjection = publicCenterLoader.includes('document.createElement("script")') ||
+  publicCenterLoader.includes('appendChild(script)');
+check(publicCenterGuard >= 0 && publicCenterFetch > publicCenterGuard &&
+  publicCenterJsonParse > publicCenterFetch && !publicCenterScriptInjection,
+  'Public Center loader must fail closed and parse data-only JSON without executing cross-origin scripts');
 
 let manifest;
 try { manifest = JSON.parse(read('manifest.webmanifest')); }

@@ -5,7 +5,7 @@ window.MPS_CONFIG = {
   brand: {
     name: "Market Psychology Society",
     short: "MPS",
-    tagline: "TRADE WITH DISCIPLINE.",
+    tagline: "DISCIPLINE OVER IMPULSE",
     quote: "Discipline First. Survival Always.",
     year: 2026
   },
@@ -16,6 +16,10 @@ window.MPS_CONFIG = {
   },
   webApp: {
     endpoint: "https://script.google.com/macros/s/AKfycbxhIqXGOr9iUy_oqbwu1iCNW0OKbFQ1nkYNR3mwa2O7tjSSuYYlmPvXAm6dyMFO1lUvGQ/exec"
+  },
+  publicCenter: {
+    // Keep disabled until the isolated Apps Script candidate is deployed and runtime-tested.
+    enabled: false
   },
   form: {
     endpoint: "https://script.google.com/macros/s/AKfycbxhIqXGOr9iUy_oqbwu1iCNW0OKbFQ1nkYNR3mwa2O7tjSSuYYlmPvXAm6dyMFO1lUvGQ/exec",

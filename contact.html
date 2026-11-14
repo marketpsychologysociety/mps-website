@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <title>Contact | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
+  <link rel="stylesheet" href="css/style.css?v=mps-neon-live-20261111">
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
@@ -24,6 +24,16 @@
     <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
   </ul>
 </nav>
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> DEMO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>DEMO: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
+    <span>DEMO: Informasi maintenance resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>DEMO: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
 <header class="page-head"><div class="eyebrow">Get in Touch</div><h1>Contact MPS</h1><p>Gunakan kanal resmi untuk bertanya mengenai komunitas dan program MPS.</p></header>
 <section>
   <div class="container content">
@@ -33,7 +43,7 @@
 </section>
 <footer class="footer">
   <div class="footer-brand" data-brand="name">Market Psychology Society</div>
-  <div class="footer-tag" data-brand="tagline">TRADE WITH DISCIPLINE.</div>
+  <div class="footer-tag" data-brand="tagline">DISCIPLINE OVER IMPULSE</div>
   <div class="footer-quote">“Discipline First. Survival Always.”</div>
   <div class="footer-links"><a href="index.html">Home</a><a href="about.html">About</a><a href="system.html">Core System</a><a href="education.html">Education</a><a href="membership.html">Membership</a><a href="rewards.html">Rewards</a><a href="rebate.html">Rebate</a><a href="join.html">Join</a><a href="contact.html">Contact</a></div>
   <p class="footer-disclaimer">MPS merupakan komunitas edukasi dan diskusi trading independen. Materi ditujukan untuk edukasi, bukan rekomendasi investasi atau ajakan transaksi. Trading Forex dan Gold memiliki risiko tinggi dan dapat menyebabkan kehilangan sebagian atau seluruh modal. MPS tidak menjamin keuntungan atau hasil trading tertentu. MPS bukan broker dan bukan penasihat keuangan.</p>
@@ -65,5 +75,7 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 </body>
 </html>

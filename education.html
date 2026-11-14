@@ -13,12 +13,12 @@
   <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <title>Learning Room | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
+  <link rel="stylesheet" href="css/style.css?v=mps-neon-live-20261111">
   <style>
-    .learning-hero{width:min(100% - 32px,1040px);margin:34px auto 0;overflow:hidden;border:1px solid rgba(212,175,55,.34);border-radius:16px;background:linear-gradient(145deg,#14243a,#0b1422);box-shadow:0 18px 50px rgba(0,0,0,.3)}
+    .learning-hero{width:min(100% - 32px,1040px);margin:34px auto 0;overflow:hidden;border:1px solid rgba(212,175,55,.34);border-radius:16px;background:linear-gradient(145deg,#171b24,#0b0e14);box-shadow:0 18px 50px rgba(0,0,0,.3)}
     .learning-hero img{display:block;width:100%;max-height:360px;object-fit:cover}
     .learning-hero-copy{padding:clamp(20px,4vw,34px);text-align:center}
-    .learning-tag{display:inline-flex;border:1px solid rgba(231,201,139,.4);border-radius:30px;padding:7px 13px;color:#f0d58a;font-size:10px;font-weight:800;letter-spacing:1.5px}
+    .learning-tag{display:inline-flex;border:1px solid rgba(231,201,139,.4);border-radius:30px;padding:7px 13px;color:var(--gold2);font-size:10px;font-weight:800;letter-spacing:1.5px}
     .learning-hero-copy h2{font:700 clamp(24px,4vw,36px)/1.2 var(--head);color:var(--gold2);margin:15px 0 10px}
     .learning-hero-copy p{max-width:720px;margin:0 auto;color:var(--muted)}
     .learning-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px}
@@ -33,7 +33,7 @@
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
-  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt=""><span><strong>Market Psychology Society</strong><small>MPS · TRADE WITH DISCIPLINE</small></span></a>
+  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt=""><span><strong>Market Psychology Society</strong><small>MPS · DISCIPLINE OVER IMPULSE</small></span></a>
   <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">☰</button>
   <ul class="nav-links" id="navLinks">
     <li><a href="index.html">Beranda</a></li>
@@ -48,6 +48,16 @@
     <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
   </ul>
 </nav>
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> DEMO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>DEMO: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
+    <span>DEMO: Informasi maintenance resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>DEMO: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
 <header class="page-head">
   <div class="eyebrow">LEARN · APPLY · GROW</div>
   <h1>MPS Learning Room</h1>
@@ -117,5 +127,7 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 </body>
 </html>

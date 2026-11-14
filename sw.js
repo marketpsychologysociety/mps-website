@@ -1,10 +1,11 @@
-const CACHE_NAME='mps-public-shell-v5';
+const CACHE_NAME='mps-public-shell-v6';
 const CACHE_PREFIX='mps-public-shell-';
 const BASE=self.registration.scope;
 const CORE_ASSETS=[
   'offline.html',
   'css/style.css',
   'js/main.js',
+  'js/public-center.js',
   'config.js',
   'assets/logo.svg',
   'assets/favicon.svg',
@@ -16,6 +17,7 @@ const CORE_ASSETS=[
 const PUBLIC_ASSET_PATHS=new Set([
   '/css/style.css',
   '/js/main.js',
+  '/js/public-center.js',
   '/config.js',
   '/assets/logo.svg',
   '/assets/favicon.svg',

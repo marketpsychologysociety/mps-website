@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <title>About MPS | Market Psychology Society</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-cta-shine-fix-20261106">
+  <link rel="stylesheet" href="css/style.css?v=mps-neon-live-20261111">
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
@@ -23,13 +23,23 @@
     <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
   </ul>
 </nav>
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> DEMO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>DEMO: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
+    <span>DEMO: Informasi maintenance resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>DEMO: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
 <header class="page-head"><div class="eyebrow">Who We Are</div><h1>Tentang MPS</h1><p>Komunitas yang ingin membantu trader membangun proses, bukan mengejar janji hasil.</p></header>
 <section><div class="container content"><h2>Identitas Kami</h2><p>Market Psychology Society (MPS) adalah komunitas edukasi dan diskusi trading independen. Fokus utama kami adalah money management, trading psychology, dan trading discipline.</p>
 <div class="notice"><strong>Pendiri &amp; Pengelola:</strong> Ndhi Solasi.</div>
 <h2>Model Kemitraan dan Transparansi</h2><p>Broker partner MPS saat ini adalah Exness. MPS menjalankan kemitraan Introducing Broker (IB) dan dapat menerima komisi dari aktivitas transaksi akun yang terdaftar di bawah IB MPS sesuai ketentuan broker. MPS dapat menambahkan broker partner lain di kemudian hari dan akan mengumumkannya secara terbuka. MPS mengungkapkan hubungan komersial ini agar calon anggota memahami bagaimana komunitas memperoleh pendanaan.</p><p>Komisi IB aktual yang diterima MPS dapat dialokasikan untuk program rebate anggota hingga maksimal 70% dari komisi aktual yang diterima MPS, serta mendukung operasional dan kegiatan komunitas. Pendaftaran MPS tidak dipungut biaya masuk atau iuran, tetapi persyaratan keanggotaan mencakup akun Exness di bawah IB MPS dan deposit minimal Rp1.500.000 ke akun trading anggota. Deposit bukan pembayaran kepada MPS. Rebate bukan persentase dari profit atau kerugian anggota dan bukan alasan untuk meningkatkan frekuensi transaksi.</p><h2>Visi</h2><p>Mendorong budaya trading yang lebih sadar risiko, disiplin, terbuka untuk evaluasi, dan berorientasi pada keberlanjutan.</p><h2>Misi</h2><ul><li>Menyediakan ruang komunitas yang suportif dan saling menghargai.</li><li>Mendorong penggunaan jurnal, checklist, dan evaluasi.</li><li>Membagikan materi edukasi sebagai bahan belajar mandiri.</li><li>Mengutamakan transparansi dalam setiap program komunitas.</li></ul><div class="notice">MPS bukan penyedia sinyal, bukan broker, pengelola dana, atau penasihat keuangan. Materi MPS bukan rekomendasi investasi. MPS tidak menjanjikan profit atau hasil trading tertentu.</div></div></section>
 <footer class="footer">
   <div class="footer-brand" data-brand="name">Market Psychology Society</div>
-  <div class="footer-tag" data-brand="tagline">TRADE WITH DISCIPLINE.</div>
+  <div class="footer-tag" data-brand="tagline">DISCIPLINE OVER IMPULSE</div>
   <div class="footer-quote">“Discipline First. Survival Always.”</div>
   <div class="footer-copy">Pendiri &amp; Pengelola: Ndhi Solasi</div>
   <div class="footer-links"><a href="index.html">Home</a><a href="about.html">About</a><a href="system.html">Core System</a><a href="education.html">Education</a><a href="membership.html">Membership</a><a href="rewards.html">Rewards</a><a href="rebate.html">Rebate</a><a href="join.html">Join</a><a href="contact.html">Contact</a></div>
@@ -63,4 +73,6 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 </body></html>
