@@ -585,8 +585,11 @@ function apiAdminLogin(roleOrPassword, maybePassword, maybeOtp) {
   if (!expected || !constantTimeEquals_(expected, supplied)) {
     throw new Error(role === 'SUPER_ADMIN' && !expected ? 'Akun Super Admin belum diaktifkan. Atur MPS_SUPER_ADMIN_TOKEN pada Script Properties terlebih dahulu.' : 'Login administrator gagal. Periksa jenis akun dan kata sandi.');
   }
-  const totpSecret=String(allProps.getProperty(totpPropertyKey)||'').trim();
-  if(!isValidTotpSecret_(totpSecret))throw new Error('MFA belum dikonfigurasi untuk akun ini. Super Admin harus mengatur '+totpPropertyKey+' pada Script Properties.');
+  const adminTotpSecret=String(allProps.getProperty('MPS_ADMIN_TOTP_SECRET')||'').trim();
+  const superTotpSecret=String(allProps.getProperty('MPS_SUPER_ADMIN_TOTP_SECRET')||'').trim();
+  if(!isValidTotpSecret_(adminTotpSecret)||!isValidTotpSecret_(superTotpSecret)||constantTimeEquals_(adminTotpSecret,superTotpSecret))
+    throw new Error('MFA wajib dikonfigurasi untuk Admin dan Super Admin dengan dua secret Base32 berbeda sebelum login diizinkan.');
+  const totpSecret=role==='SUPER_ADMIN'?superTotpSecret:adminTotpSecret;
   if(!consumeTotpCode_(role,totpSecret,otp))throw new Error('Kode MFA salah, kedaluwarsa, atau sudah pernah digunakan. Masukkan kode 6 digit terbaru dari aplikasi Authenticator.');
   clearPersistentLoginRateLimit_(key);
   const session = Utilities.getUuid() + Utilities.getUuid();
