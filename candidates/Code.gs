@@ -587,7 +587,7 @@ function apiAdminLogin(roleOrPassword, maybePassword, maybeOtp) {
   }
   const totpSecret=String(allProps.getProperty(totpPropertyKey)||'').trim();
   if(!isValidTotpSecret_(totpSecret))throw new Error('MFA belum dikonfigurasi untuk akun ini. Super Admin harus mengatur '+totpPropertyKey+' pada Script Properties.');
-  if(!verifyTotpCode_(totpSecret,otp))throw new Error('Kode MFA salah atau kedaluwarsa. Masukkan kode 6 digit terbaru dari aplikasi Authenticator.');
+  if(!consumeTotpCode_(role,totpSecret,otp))throw new Error('Kode MFA salah, kedaluwarsa, atau sudah pernah digunakan. Masukkan kode 6 digit terbaru dari aplikasi Authenticator.');
   clearPersistentLoginRateLimit_(key);
   const session = Utilities.getUuid() + Utilities.getUuid();
   const sessionData = {role:role,actorId:role,credentialHash:sha256_(expected).slice(0,32),createdAt:new Date().toISOString()};
@@ -2683,17 +2683,40 @@ function totpCodeAt_(secret,timestampSeconds) {
   return String((binary>>>0)%1000000).padStart(6,'0');
 }
 
-function verifyTotpCode_(secret,code,timestampSeconds) {
+function findTotpMatchingStep_(secret,code,timestampSeconds) {
   const supplied=String(code||'').trim();
-  if(!/^\d{6}$/.test(supplied)||!isValidTotpSecret_(secret))return false;
+  if(!/^\d{6}$/.test(supplied)||!isValidTotpSecret_(secret))return -1;
   const now=timestampSeconds===undefined?Date.now()/1000:Number(timestampSeconds);
-  if(!Number.isFinite(now)||now<0)return false;
-  let valid=false;
+  if(!Number.isFinite(now)||now<0)return -1;
+  let matched=-1;
   for(let offset=-1;offset<=1;offset++){
-    const expected=totpCodeAt_(secret,now+offset*30);
-    if(expected&&constantTimeEquals_(expected,supplied))valid=true;
+    const step=Math.floor((now+offset*30)/30);
+    const expected=totpCodeAt_(secret,step*30);
+    if(expected&&constantTimeEquals_(expected,supplied))matched=Math.max(matched,step);
   }
-  return valid;
+  return matched;
+}
+
+function verifyTotpCode_(secret,code,timestampSeconds) {
+  return findTotpMatchingStep_(secret,code,timestampSeconds)>=0;
+}
+
+function consumeTotpCode_(role,secret,code,timestampSeconds) {
+  const roleText=String(role||'').toUpperCase();
+  if(!['ADMIN','SUPER_ADMIN'].includes(roleText))return false;
+  const matchedStep=findTotpMatchingStep_(secret,code,timestampSeconds);
+  if(matchedStep<0)return false;
+  const propertyKey=roleText==='SUPER_ADMIN'?'MPS_SUPER_ADMIN_TOTP_LAST_STEP':'MPS_ADMIN_TOTP_LAST_STEP';
+  const lock=LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const props=PropertiesService.getScriptProperties(),stored=props.getProperty(propertyKey);
+    const previous=stored===null?-1:Number(stored);
+    if(stored!==null&&(!Number.isInteger(previous)||previous<0))return false;
+    if(matchedStep<=previous)return false;
+    props.setProperty(propertyKey,String(matchedStep));
+    return true;
+  } finally { lock.releaseLock(); }
 }
 
 function markPinDeliveredIfCurrent_(memberId,pin) {
