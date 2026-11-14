@@ -26,7 +26,7 @@ const candidateFunctions=[
  'enqueueMpsVipFollowup_','deliverMpsVipInviteTask_','runMpsVipFollowupQueue_','enqueueMpsVipJoinRequestNotice_',
  'getMpsExistingVipAccessSheetForTransition_','findUniqueMpsTransitionRow_',
  'resolveMpsVipChatMemberTransition_','createMpsVipTransitionStatusWriter_','removeMpsCacheBestEffort_',
- 'processMpsVipChatMemberEvent_'
+ 'processMpsVipChatMemberEvent_','apiAdminResendRegistrationNotice'
 ].map(name=>extractFunction(candidate,name)).join('\n');
 const memberHeaders=[
  'ID Member','Waktu Daftar','Nama Panggilan','Username Telegram','Negara','Tujuan Bergabung','Catatan Member','Status Pendaftaran',
@@ -75,8 +75,8 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
  }
  const ss={getSheetByName:sheet};
  const context={
-  MPS:{headers:memberHeaders.slice()},
-  MPS_COL:{id:1,nickname:3,registrationStatus:8,accountName:9,depositStatus:15},
+  MPS:{headers:memberHeaders.slice(),adminWindowSeconds:900},
+  MPS_COL:{id:1,nickname:3,telegram:4,country:5,goal:6,registrationStatus:8,accountName:9,depositStatus:15},
   MPS_AUDIT_LOGS:{sheet:'MPS Audit Logs',headers:auditHeaders.slice()},
   MPS_VIP_TICKER_EVENTS:{sheet:'MPS VIP Ticker Events',headers:tickerHeaders.slice()},
   MPS_VIP_FOLLOWUP_QUEUE:{sheet:'MPS Telegram VIP Follow-up Queue',headers:followupHeaders.slice()},
@@ -89,6 +89,8 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   getTelegramAccessSheet_:()=>sheet('VIP Access'),
   findMemberById_:(sh,id)=>{const rows=data.get('Database Member');const i=rows.findIndex((r,n)=>n>0&&String(r[0])===String(id));return i<0?0:i+1;},
   findTelegramAccessByMemberId_:(sh,id)=>{const rows=data.get('VIP Access');const i=rows.findIndex((r,n)=>n>0&&String(r[0])===String(id));return i<0?0:i+1;},
+  requireAdmin_:session=>({actorId:'mock-admin',role:'ADMIN'}),
+  consumeRateLimit_:()=>true,
   clean_:(v,n)=>String(v??'').replace(/\\s+/g,' ').trim().slice(0,n),
   isSafePublicIdentity_:v=>!/[0-9@]/.test(String(v||'')),
   sha256_:value=>createHash('sha256').update(String(value)).digest('hex'),
@@ -108,6 +110,7 @@ function runtime({eligible=true,failCache=false,failRevoke=false,failKick=false,
   process:update=>context.runCandidateVipEvent(update,update.chat_member),
   runQueue:()=>context.runFollowups(20),
   enqueueJoinNotice:(request,update,approved)=>context.enqueueJoinNotice(request,update,approved),
+  adminArchive:(session,id)=>context.apiAdminResendRegistrationNotice(session,id),
   sheets:data,stats:()=>({held,acquired,released,followups,networkCalls,sendCalls,revokeCalls,cacheRemovals}),
   addUnauthorizedAccess(){data.get('VIP Access').push(['','','','','',false,'','','','','']);},
   duplicateAccess(){data.get('VIP Access').push(data.get('VIP Access')[1].slice());},
@@ -402,4 +405,39 @@ test('VIP invite worker does not send a link after the member has already joined
  assert.equal(h.stats().sendCalls,0,'already joined member must not receive another invite');
  assert.equal(h.sheets.get('VIP Access')[1][6],'Aktif');
  assert.equal(h.sheets.get('Database Member')[1][29],'Aktif');
+});
+
+test('admin registration archive is durably queued, idempotent within five minutes, and sent by the worker only once',()=>{
+ const h=runtime(),member=h.sheets.get('Database Member')[1];
+ member[2]='Trader MPS';member[3]='@trader_mps';member[4]='Indonesia';member[5]='Belajar psikologi pasar';
+ member[7]='Menunggu Verifikasi';member[14]='Menunggu verifikasi';
+ const first=h.adminArchive('admin-session','MPS-ABCDEF12');
+ assert.equal(first.ok,true);assert.equal(first.queued,true);assert.equal(first.duplicate,false);
+ const queue=h.sheets.get('MPS Telegram VIP Follow-up Queue');
+ assert.equal(queue.length,2);assert.equal(queue[1][2],'ADMIN_ALERT');assert.match(queue[1][6],/ARSIP KONFIRMASI DEPOSIT MPS/);
+ assert.match(queue[1][6],/@trader_mps/);assert.match(queue[1][6],/Indonesia/);
+ const replay=h.adminArchive('admin-session','MPS-ABCDEF12');
+ assert.equal(replay.ok,true);assert.equal(replay.duplicate,true);
+ assert.equal(queue.length,2,'repeated request in the same five-minute window must reuse the task');
+ assert.equal(h.stats().networkCalls,0,'admin endpoint must not call Telegram directly');
+ const delivered=h.runQueue();
+ assert.equal(delivered.completed,1);assert.equal(queue[1][7],'DONE');
+ assert.equal(h.stats().networkCalls,1,'worker sends the durable archive task exactly once');
+ assert.equal(h.stats().held,false);
+});
+
+test('admin registration archive rejects ineligible deposit states before enqueue',()=>{
+ const h=runtime(),member=h.sheets.get('Database Member')[1];
+ member[14]='Ditolak';
+ assert.throws(()=>h.adminArchive('admin-session','MPS-ABCDEF12'),/Arsip Telegram hanya dikirim/);
+ assert.equal(h.sheets.get('MPS Telegram VIP Follow-up Queue').length,1);
+ assert.equal(h.stats().held,false);
+});
+
+test('admin registration archive endpoint contains no direct Telegram send path',()=>{
+ const body=extractFunction(candidate,'apiAdminResendRegistrationNotice');
+ assert.doesNotMatch(body,/sendTelegram_\s*\(/);
+ assert.ok(body.includes("enqueueMpsVipFollowup_("));
+ assert.ok(body.includes("action: 'ADMIN_ALERT'"));
+ assert.ok(body.includes("Math.floor(Date.now() / (5 * 60 * 1000))"));
 });
