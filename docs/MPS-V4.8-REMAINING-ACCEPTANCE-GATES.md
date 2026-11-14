@@ -275,3 +275,12 @@ The candidate still has a generic webhook cache update key left unset. VIP `chat
 - There is no in-app MFA bypass or recovery token. If an authenticator is lost, the system owner must reset the affected Script Property directly through the Apps Script project owner account, then re-enroll the authenticator and verify access before restoring normal operations.
 - Added RFC 6238 reference-vector tests, Base32 decoding checks, time-window boundary tests, login-gating assertions, and UI contract checks. These repository tests do not replace a real authenticator login in an isolated Apps Script deployment.
 - Remaining live gate: configure separate Admin and Super Admin secrets in an isolated project, enroll the authenticator devices, test both roles and clock-skew handling, and confirm recovery procedures. No Script Properties or production credentials were changed by this candidate update.
+
+
+### Admin registration archive notification outbox — candidate update 2026-11-14
+
+- `apiAdminResendRegistrationNotice` no longer calls Telegram directly. It validates the admin session and eligible deposit state, then reserves an `ADMIN_ALERT` task in the existing spreadsheet-backed durable follow-up queue while holding ScriptLock across the member snapshot and enqueue.
+- A five-minute idempotency bucket derives a stable task key from the member ID and time bucket. Repeated taps/transport retries in the same bucket reuse the existing task; a later intentional resend can enqueue a new task. The existing per-member admin rate limit remains in force.
+- The archive text retains the existing admin-facing fields (nickname, Telegram username, country, join goal, member ID, and registration status) and is stored in the existing spreadsheet-backed queue used by Telegram follow-ups. Its confidentiality depends on the spreadsheet retaining PRIVATE access; actual live ACL verification remains an open release gate. No proof image, PIN, or MT5 login is added to this task.
+- The API reports `queued`, not delivered. The existing worker performs the Telegram send; successful acknowledgement transitions the task to `DONE`, while ambiguous outcomes are quarantined as `REVIEW` and never blindly retried.
+- Candidate runtime regressions cover successful worker delivery, repeated request deduplication, eligible-state validation, and absence of direct Telegram sending from the admin endpoint. CI uses mocked Apps Script/Sheets/Telegram services; live GAS, spreadsheet ACL, trigger, and Telegram test-bot acceptance remain separate gates.
