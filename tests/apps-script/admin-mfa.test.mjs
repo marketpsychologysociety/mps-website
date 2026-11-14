@@ -92,6 +92,9 @@ test('read-only configuration diagnostic reports both distinct TOTP secrets with
   const diagnostic=extract('apiAdminCheckSystemConfiguration');
   assert.ok(diagnostic.includes('MPS_ADMIN_TOTP_SECRET'));
   assert.ok(diagnostic.includes('MPS_SUPER_ADMIN_TOTP_SECRET'));
+  assert.ok(diagnostic.includes('MPS_ADMIN_TOTP_LAST_STEP'));
+  assert.ok(diagnostic.includes('MPS_SUPER_ADMIN_TOTP_LAST_STEP'));
+  assert.ok(diagnostic.includes('Admin MFA replay protection state'));
   assert.ok(diagnostic.includes('adminMfaReady&&superMfaReady&&!constantTimeEquals_'));
   assert.ok(!/add\('Admin MFA',[^,]+,[^)]*adminTotpSecret/.test(diagnostic));
 });
