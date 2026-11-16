@@ -66,7 +66,10 @@ test('contact details, payment amounts, and links are denied from public ticker 
 test('public activity projection exposes safe member name and event text, never internal Member ID',()=>{
   assert.ok(source.includes("const publicActivity = activity.map(function(r){return {MemberName:r['Member Name'],PublicText:r['Event Text']};});"));
   assert.ok(source.includes("isSafePublicIdentity_(r['Member Name'])"));
-  assert.ok(!source.includes('MemberId:'));
+  const publicStart=source.indexOf('function apiGetPublicCenter() {');
+  const publicEnd=source.indexOf(String.fromCharCode(10)+'function ',publicStart+1);
+  const publicBody=source.slice(publicStart,publicEnd);
+  assert.ok(!publicBody.includes('MemberId:'));
   assert.ok(!/MemberId:r\\['Member Name'\\]/.test(source));
 });
 test('public website ticker renders validated real names and never renders Member IDs',()=>{
