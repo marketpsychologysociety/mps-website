@@ -4302,6 +4302,21 @@ function assertTradingSignalsDriveResourcePrivate_(resource,label) {
   return true;
 }
 
+function assertTradingSignalsDriveResourceTreePrivate_(file,label) {
+  if(!file||typeof file.getParents!=='function'||typeof file.getId!=='function')throw new Error('Struktur folder '+String(label||'database')+' tidak dapat diverifikasi. Akses Trading Signals dihentikan.');
+  const seen={},stack=[file];
+  while(stack.length) {
+    const resource=stack.pop(),id=String(resource.getId()||'');
+    if(!id)throw new Error('ID resource Drive tidak dapat diverifikasi. Akses Trading Signals dihentikan.');
+    if(seen[id])continue;
+    seen[id]=true;
+    assertTradingSignalsDriveResourcePrivate_(resource,String(label||'Database Trading Signals')+(resource===file?'':' / folder induk'));
+    const parents=resource.getParents();
+    while(parents.hasNext())stack.push(parents.next());
+  }
+  return true;
+}
+
 function setupTradingSignalsDatabase_() {
   const props=PropertiesService.getScriptProperties();
   if(props.getProperty(MPS_TRADING_SIGNALS.spreadsheetProperty))throw new Error('Database Trading Signals sudah dikonfigurasi. Setup dibatalkan agar tidak membuat database duplikat.');
@@ -4310,8 +4325,7 @@ function setupTradingSignalsDatabase_() {
   const file=DriveApp.getFileById(ss.getId());
   file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
   try {
-    assertTradingSignalsDriveResourcePrivate_(file,'Database Trading Signals');
-    const parents=file.getParents();while(parents.hasNext())assertTradingSignalsDriveResourcePrivate_(parents.next(),'Folder induk database Trading Signals');
+    assertTradingSignalsDriveResourceTreePrivate_(file,'Database Trading Signals');
   } catch(privacyErr) {
     let cleanup='';try{file.setTrashed(true);}catch(cleanupErr){cleanup=' File database sementara gagal dipindahkan ke Trash; Super Admin wajib memeriksa Drive.';}
     throw new Error('Database Trading Signals tidak lolos pemeriksaan ACL: '+safeErrorMessage_(privacyErr)+cleanup);
@@ -4337,8 +4351,7 @@ function getTradingSignalsSheets_() {
   if(!id)throw new Error('Database Trading Signals belum dikonfigurasi.');
   if(id===mainId)throw new Error('Database Trading Signals wajib terpisah dari database member.');
   const file=DriveApp.getFileById(id);
-  assertTradingSignalsDriveResourcePrivate_(file,'Database Trading Signals');
-  const parents=file.getParents();while(parents.hasNext())assertTradingSignalsDriveResourcePrivate_(parents.next(),'Folder induk database Trading Signals');
+  assertTradingSignalsDriveResourceTreePrivate_(file,'Database Trading Signals');
   const ss=SpreadsheetApp.openById(id);
   const out={};
   Object.keys(MPS_TRADING_SIGNALS.sheets).forEach(function(key){
