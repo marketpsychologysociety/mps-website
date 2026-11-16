@@ -52,3 +52,51 @@ test('incomplete compensation quarantines the decision intent for operator revie
  assert.match(settle,/\['DONE','CANCELLED','REVIEW'\]/);
  assert.match(catchSettlement,/catch\(intentErr\)\s*\{\s*rollbackErrors\.push/);
 });
+
+function settlementHarness(initialState='PENDING') {
+ const headers=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','Status','Attempts','Next Attempt','Lease Until','Last Error','Created At','Updated At'];
+ const key='admin-decision-intent:'+'a'.repeat(40);
+ const row=[key,'admin-decision:'+'a'.repeat(40),'DECISION_INTENT','approve','','','{}',initialState,0,new Date(),'','',new Date(),new Date()];
+ const rows=[headers,row];
+ const sheet={
+  getLastColumn:()=>headers.length,getLastRow:()=>rows.length,
+  getRange(r,c,nr=1,nc=1){return{
+   getDisplayValues:()=>Array.from({length:nr},(_,i)=>rows[r-1+i].slice(c-1,c-1+nc).map(String)),
+   getValues:()=>Array.from({length:nr},(_,i)=>rows[r-1+i].slice(c-1,c-1+nc)),
+   setValues(values){values.forEach((line,i)=>rows[r-1+i].splice(c-1,nc,...line));}
+  };}
+ };
+ const context={
+  MPS_VIP_FOLLOWUP_QUEUE:{sheet:'MPS VIP Followup Queue',headers},
+  PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'synthetic-spreadsheet'})},
+  SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet})},
+  sha256_:()=> 'a'.repeat(64),Utilities:{},Date
+ };
+ vm.createContext(context);vm.runInContext(settle,context,{timeout:1000});
+ return {run:incomplete=>context.settleMpsAdminDecisionIntentAfterRollback_('MPS-APP-0123456789ABCDEF0123','MPS-ABCDEF1234','approve',incomplete),row,rows,key};
+}
+
+test('decision-intent settlement cancels a cleanly rolled-back transaction in the queue',()=>{
+ const h=settlementHarness();
+ const result=h.run(false);
+ assert.equal(result.ok,true);assert.equal(h.row[7],'CANCELLED');
+ assert.equal(h.row[11],'BUSINESS_TRANSACTION_ROLLED_BACK');
+ assert.equal(h.row[9],'');assert.equal(h.row[10],'');
+});
+
+test('decision-intent settlement quarantines an incompletely rolled-back transaction',()=>{
+ const h=settlementHarness();
+ const result=h.run(true);
+ assert.equal(result.ok,true);assert.equal(h.row[7],'REVIEW');
+ assert.equal(h.row[11],'BUSINESS_ROLLBACK_INCOMPLETE_OPERATOR_RECONCILIATION_REQUIRED');
+ assert.equal(h.row[9],'');assert.equal(h.row[10],'');
+});
+
+test('decision-intent settlement is idempotent and does not overwrite terminal queue states',()=>{
+ for(const state of ['DONE','CANCELLED','REVIEW']){
+  const h=settlementHarness(state),before=h.row.slice();
+  const result=h.run(true);
+  assert.equal(result.alreadySettled,true);
+  assert.deepEqual(h.row,before);
+ }
+});
