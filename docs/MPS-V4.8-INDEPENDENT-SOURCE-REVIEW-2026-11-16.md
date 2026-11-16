@@ -46,9 +46,9 @@ The canonical checklist and isolated acceptance runbook continue to require:
 
 ## Required follow-up
 
-- Add deterministic failure-injection tests for the approval and rejection branches of `adminVerifyApplication_`, covering each business write and each compensation write.
-- Add a durable, non-sensitive reconciliation state for incomplete admin-verification rollback, or document and implement an equally reliable operator-visible reconciliation mechanism. Do not claim a clean rollback if any compensation fails.
-- Reconcile this finding with the canonical acceptance checklist and require the full candidate CI on the exact resulting head.
-- Keep production **NO-GO** until applicable operational gates have real, independently inspectable evidence and the owner separately authorizes release.
+- A durable, non-sensitive `ADMIN_ALERT` is now enqueued inside the still-held transaction lock whenever `adminVerifyApplication_` detects incomplete compensation. The alert contains only the Application Ref, decision type, and explicit instruction to stop retries and inspect the affected sheets; it does not include member contact, MT5, or proof details. If enqueueing fails, the thrown error explicitly reports that escalation is still required.
+- Added `tests/apps-script/admin-rollback-reconciliation.test.mjs` and wired it into `.github/workflows/pwa-validation.yml`. These are source-contract checks; they do not yet constitute failure-injection execution of every approval/rejection write boundary.
+- Candidate CI run #1996 was observed in progress on commit `838cd5714cdf111ccc6484f8aa44325a99383d8a`. The new regression-test step had not run at the time of this update. Confirm the completed run and inspect the exact step result before treating it as passed.
+- Next source-level task: add deterministic failure-injection tests for approval and rejection branches, covering each business write and compensation write. Keep production **NO-GO** until applicable operational gates have real, independently inspectable evidence and the owner separately authorizes release.
 
 **Conclusion:** several earlier source-level rollback concerns have since been addressed in the candidate source, so those code paths should not be reimplemented from scratch. The remaining material gap is durable handling and test coverage for incomplete admin-verification compensation, followed by real isolated Apps Script/Telegram/Drive acceptance.
