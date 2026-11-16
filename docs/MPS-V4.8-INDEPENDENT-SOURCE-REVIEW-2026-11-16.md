@@ -78,7 +78,7 @@ The previously agreed replacement was implemented in the candidate workbench: th
 - The supplied source HTML is approximately 18.56 MB and contains 315,360 XAUUSD M5 candles.
 - Candle chronology was checked: strict ascending timestamps, no duplicates, and 5-minute spacing throughout. Source range: `2023-11-17T03:25:00+07:00` to `2026-11-16T03:20:00+07:00`.
 - Added `scripts/build-market-pulse-dataset.mjs`. It parses only the source `rawData` JSON (does not execute the supplied HTML), computes the three rolling windows at a recorded snapshot time, and emits a data-only HTML file with 288 WIB slots per period.
-- Generated compact dataset: 7,507 bytes, 864 period-slot cells, zero empty cells. Snapshot: `2026-11-16T11:29:03+07:00`.
+- Generated compact dataset: 7,507 bytes, 864 period-slot cells, zero empty cells. Snapshot: `2026-11-16T11:48:37+07:00`.
 - Independent raw-vs-compact cross-check: **0 mismatches** in UP/DOWN candle counts across all 288 slots for all three windows. Direction classification also matches the source rule: UP/DOWN only when the winning direction exceeds the other by more than 5 percentage points; otherwise NETRAL. The source's ★ rule is preserved for the same non-neutral direction across all three periods.
 - The compact upload file is intentionally not committed to the public repository. It is prepared for upload through the Super Admin dataset manager into the private Learning Drive folder.
 
@@ -86,12 +86,14 @@ The previously agreed replacement was implemented in the candidate workbench: th
 A separate audit found ambiguous-response gaps in Drive publication: Drive could rename the old file or create a new file and then lose the response, leaving local flags/references stale. Publication rollback now reconciles by canonical filename and retained old-file ID, trashes partial new files, restores the old canonical filename, and verifies the final active-file count. Ambiguous trash/rename responses are checked by reading the final state rather than trusting the thrown response alone.
 
 ### Verification
-- GitHub Actions [run #2035](https://github.com/marketpsychologysociety/mps-website/actions/runs/43805256818): **SUCCESS, 72/72 steps, 0 failures** on tested head `9b7e2941e7ade0cf7169dc994740dcef31803ddd`.
+- GitHub Actions [run #2047](https://github.com/marketpsychologysociety/mps-website/actions/runs/43806197671): **SUCCESS, 74/74 steps, 0 failures** on tested head `9bf41d96f3b740052b3e103f859169e570602bf1`.
 - Admin decision rollback reconciliation: 40/40 tests passed.
-- Market Pulse converter/schema/access: 8/8 tests passed.
+- Market Pulse converter/schema/member-and-admin API: 9/9 tests passed.
 - Market Pulse Drive publication rollback (mocked Drive): 9/9 tests passed.
+- Controlled red-team boundary suite: 8/8 tests passed; see [security simulation report](MPS-CONTROLLED-SECURITY-SIMULATION-2026-11-16.md).
 - Chromium browser checks and PWA validation passed.
-- Earlier CI #2030 (72/72) verified the UI/schema conversion before adding the Drive publication fault-injection suite.
+- Compact upload file SHA-256: `f9cd300f27efe332f5f5fca893e9253752fe9b1200542ed6ceb736aecb8f55c2` (7,507 bytes; not committed to public repository).
+- Earlier CI #2035 (72/72) verified the Drive publication fault-injection suite before adding the final red-team/API-boundary checks.
 
 ### Remaining boundary / no production claim
 The compact dataset has **not** been uploaded to the production Learning Drive folder. No Apps Script deployment, production Drive file/ACL, Script Properties, triggers, member database, or Telegram configuration was changed. The Drive tests are mocked; actual folder/file ACL and upload acceptance still require the authorized Super Admin runtime. PR #12 remains Draft/open/unmerged; production main is unchanged.
