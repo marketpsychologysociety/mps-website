@@ -99,7 +99,7 @@ test('my_chat_member permission warnings use a durable update-scoped admin-alert
   sendTelegram_:()=>{throw new Error('DIRECT_ADMIN_ALERT_SEND_FORBIDDEN');}
  };
  vm.createContext(context);vm.runInContext(coreSource,context,{timeout:1000});
- const update={update_id:998877,my_chat_member:{chat:{id:'-1001234567890'},new_chat_member:{status:'member',can_invite_users:false}}};
+ const update={update_id:998877,my_chat_member:{date:1760000000,chat:{id:'-1001234567890'},new_chat_member:{status:'member',can_invite_users:false}}};
  context.processTelegramUpdateCore_(update);
  context.processTelegramUpdateCore_(update);
  assert.equal(tasks.length,1);
