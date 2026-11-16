@@ -380,7 +380,7 @@
       const upPct=up/total*100,downPct=down/total*100;
       if(upPct>downPct+5)return{type:'up',label:'UP',pct:upPct,total:total};
       if(downPct>upPct+5)return{type:'down',label:'DOWN',pct:downPct,total:total};
-      return{type:'neutral',label:'NETRAL',pct:50,total:total};
+      return{type:'neutral',label:'NETRAL',pct:upPct,total:total};
     }
     function pulseAlignment(slot){const values=[0,1,2].map(w=>pulseStat(w,slot));return !values.some(v=>!v)&&values[0].type!=='neutral'&&values.every(v=>v.type===values[0].type)}
     function drawPulse(){
