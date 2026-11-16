@@ -85,6 +85,19 @@ test('Market Pulse read APIs deny direct unauthenticated calls before reading th
   assert.equal(reads,2);
 });
 
+test('rolling windows end at the latest candle even when conversion happens much later', () => {
+  const staleCandles = [
+    { time: Date.parse('2025-12-01T00:00:00Z'), open: 100, close: 101 },
+    { time: Date.parse('2025-12-02T00:00:00Z'), open: 100, close: 101 },
+    { time: Date.parse('2026-01-01T00:00:00Z'), open: 100, close: 101 },
+  ];
+  const stale = buildDataset(staleCandles, '2026-03-01T00:00:00Z');
+  const total = stale.periods[0].slots.reduce((sum, pair) => sum + pair[0] + pair[1], 0);
+  assert.equal(total, 2, '30-day window should include Dec 2 and Jan 1 relative to the last candle, not relative to March conversion time');
+  assert.equal(stale.dataEnd, '2026-01-01T07:00:00+07:00');
+  assert.equal(stale.asOf, '2026-03-01T07:00:00+07:00');
+});
+
 test('backend validator accepts the converted compact dataset', () => {
   const result = validate(html);
   assert.equal(result.ok, true);
@@ -129,6 +142,7 @@ test('legacy Heatmap menu and old multi-market Pulse selectors are removed', () 
   assert.match(indexHtml, /MEMBER ONLY/);
   assert.match(indexHtml, /api\('apiGetMarketPulse',state\.memberSession\)/);
   assert.match(indexHtml, /api\('apiAdminGetMarketPulse',state\.adminSession\)/);
+  assert.match(indexHtml, /return\{type:'neutral',label:'NETRAL',pct:upPct,total:total\}/, 'neutral slots must show the actual UP share rather than a hard-coded 50%');
   assert.doesNotMatch(code.slice(code.indexOf('function doGet(e)'), code.indexOf('function doPost(e)')), /'heatmap'/);
 });
 
