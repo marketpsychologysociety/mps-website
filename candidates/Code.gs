@@ -971,10 +971,20 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     for(let i=rejectedLinkSnapshots.length-1;i>=0;i--){const snap=rejectedLinkSnapshots[i];try{rejectedLinks.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan member baris '+snap.row+': '+safeErrorMessage_(e));}}
     if(appRow&&appSnapshot&&apps)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
     if(depositRow&&depositSnapshot&&ds)try{ds.getRange(depositRow,1,1,depositSnapshot.length).setValues([depositSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
-    // The durable notification intent was created before the multi-sheet writes.
-    // Settle it on every failed transaction so the worker cannot retry a stale decision.
-    try { settleMpsAdminDecisionIntentAfterRollback_(applicationRef,memberId,action,rollbackErrors.length>0); }
-    catch(intentErr) { rollbackErrors.push('decision intent: '+safeErrorMessage_(intentErr)); }
+    // The decision intent is the first durable write in this transaction. A deterministic
+    // preflight rejection from enqueue means no queue row was written and no business
+    // mutation has started; do not turn a missing/misconfigured queue into a false
+    // incomplete-rollback alert. Unknown/ambiguous enqueue failures must still be
+    // reconciled because append+flush may have persisted the row before the error.
+    const intentPreflightFailure=[
+      'MPS_SPREADSHEET_ID_REQUIRED_FOR_DECISION_INTENT',
+      'VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED',
+      'VIP_FOLLOWUP_QUEUE_SCHEMA_MISMATCH'
+    ].includes(safeErrorMessage_(err));
+    if(!intentPreflightFailure) {
+      try { settleMpsAdminDecisionIntentAfterRollback_(applicationRef,memberId,action,rollbackErrors.length>0); }
+      catch(intentErr) { rollbackErrors.push('decision intent: '+safeErrorMessage_(intentErr)); }
+    }
     if(rollbackErrors.length){
       // Persist a non-sensitive operator alert before releasing the transaction lock.
       // The original decision intent remains a separate journal entry; this alert
@@ -2149,6 +2159,7 @@ function enqueueMpsVipFollowup_(task, lockAlreadyHeld) {
 function enqueueMpsAdminDecisionIntent_(subjectId,memberId,action,chatId) {
   const decision=String(action||'').toLowerCase(),subject=String(subjectId||''),member=String(memberId||'');
   if(!['approve','reject'].includes(decision)||!subject)throw new Error('ADMIN_DECISION_INTENT_INVALID');
+  if(!String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||''))throw new Error('MPS_SPREADSHEET_ID_REQUIRED_FOR_DECISION_INTENT');
   const digest=sha256_('mps-admin-decision-v2|'+subject+'|'+(member||'UNISSUED')+'|'+decision).slice(0,40);
   const payload=JSON.stringify({subject:subject,member:member,decision:decision});
   const result=enqueueMpsVipFollowup_({taskKey:'admin-decision-intent:'+digest,intentKey:'admin-decision:'+digest,
