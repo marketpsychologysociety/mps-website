@@ -113,6 +113,8 @@ jobs:
         run: node --test tests/apps-script/deposit-rollback.test.mjs
       - name: Run Admin verification incomplete-rollback reconciliation contract tests
         run: node --test tests/apps-script/admin-rollback-reconciliation.test.mjs
+      - name: Run MPS MARKET PULSE XAUUSD M5 dataset conversion and authorization tests
+        run: node --test tests/apps-script/market-pulse-dataset.test.mjs
       - name: Run runtime Learning file authorization and direct-ID bypass tests (mocked Drive only)
         run: node --test tests/apps-script/learning-file-access-runtime.test.mjs
       - name: Run deposit proof approval file validation tests (mocked Drive only)
