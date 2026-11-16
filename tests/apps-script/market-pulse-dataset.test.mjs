@@ -88,7 +88,7 @@ test('Market Pulse read APIs deny direct unauthenticated calls before reading th
 test('rolling windows end at the latest candle even when conversion happens much later', () => {
   const staleCandles = [
     { time: Date.parse('2025-12-01T00:00:00Z'), open: 100, close: 101 },
-    { time: Date.parse('2025-12-02T00:00:00Z'), open: 100, close: 101 },
+    { time: Date.parse('2025-12-03T00:00:00Z'), open: 100, close: 101 },
     { time: Date.parse('2026-01-01T00:00:00Z'), open: 100, close: 101 },
   ];
   const stale = buildDataset(staleCandles, '2026-03-01T00:00:00Z');
