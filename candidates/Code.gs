@@ -1686,7 +1686,7 @@ function processTelegramUpdate_(update) {
 
 function enqueueMpsTelegramMessage_(update,chatId,effectName,action,message) {
   const updateId=update&&update.update_id;
-  const validUpdateId=(typeof updateId==='number'&&Number.isSafeInteger(updateId)&&updateId>=0)||(typeof updateId==='string'&&/^(0|[1-9]\\d{0,19})$/.test(updateId));
+  const validUpdateId=(typeof updateId==='number'&&Number.isSafeInteger(updateId)&&updateId>=0)||(typeof updateId==='string'&&/^(0|[1-9]\d{0,19})$/.test(updateId));
   if(!validUpdateId)throw new Error('TELEGRAM_MESSAGE_UPDATE_ID_INVALID');
   const target=String(chatId||''),kind=String(action||''),effect=String(effectName||'');
   if(!/^[a-z0-9_-]{1,64}$/.test(effect)||!['SEND_DM','SEND_MESSAGE'].includes(kind)||!String(message||''))throw new Error('TELEGRAM_MESSAGE_TASK_INVALID');
