@@ -928,7 +928,7 @@ function apiAdminVerify(session, applicationRefOrMemberId, decision, adminNote) 
 }
 function adminVerifyApplication_(session,applicationRef,action,note) {
   const lock=LockService.getScriptLock();lock.waitLock(20000);
-  let memberId='',chatId='',nickname='',telegramMessage='',createdRow=0,memberAppendStarted=false,depositRow=0,appRow=0,db=null,apps=null,ds=null,appSnapshot=null,depositSnapshot=null,access=null,accessRow=0,accessSnapshot=null,rejectedLinks=null,rejectedLinkSnapshots=[],rejectedAccess=null,rejectedAccessRow=0,rejectedAccessSnapshot=null;
+  let memberId='',chatId='',nickname='',telegramMessage='',createdRow=0,memberAppendStarted=false,businessMutationStarted=false,decisionIntentAttempted=false,depositRow=0,appRow=0,db=null,apps=null,ds=null,appSnapshot=null,depositSnapshot=null,access=null,accessRow=0,accessSnapshot=null,rejectedLinks=null,rejectedLinkSnapshots=[],rejectedAccess=null,rejectedAccessRow=0,rejectedAccessSnapshot=null;
   try{
     apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRow_(apps,applicationRef);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
     const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];appSnapshot=app.slice();if(!['Deposit Dikirim','Menunggu Validasi Admin'].includes(String(app[7]||'')))throw new Error('Status aplikasi tidak mengizinkan approval deposit.');
@@ -942,35 +942,39 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       const amount=Number(dep[5]||0);if(!Number.isSafeInteger(amount)||amount<MPS.minDeposit)throw new Error('Deposit tidak memenuhi minimum Rp1.000.000.');
       db=getMemberSheet_();ensureUniqueMt5_(db,String(dep[3]||''),0);
       memberId='MPS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();if(findMemberById_(db,memberId))throw new Error('Terjadi benturan ID Member. Ulangi persetujuan.');
-      enqueueMpsAdminDecisionIntent_(applicationRef,memberId,action,String(dep[11]||''));
+      decisionIntentAttempted=true;enqueueMpsAdminDecisionIntent_(applicationRef,memberId,action,String(dep[11]||''));
       access=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(access,applicationRef);if(!accessRow)throw new Error('Relasi Telegram pendaftar tidak ditemukan.');accessSnapshot=access.getRange(accessRow,1,1,11).getValues()[0];
       const now=new Date(),row=new Array(MPS.headers.length).fill('');
       row[0]=memberId;row[1]=app[1];row[2]=sheetText_(app[2]);row[3]=sheetText_(app[3]||'');row[4]=sheetText_(app[4]);row[5]=sheetText_(app[5]);row[6]=sheetText_(app[6]);row[7]='Menunggu Aktivasi';
       row[8]=sheetText_(dep[2]);row[9]=sheetText_(dep[3]);row[10]=sheetText_(dep[4]);row[11]=Number(dep[5]);row[12]=dep[6];row[13]=dep[8];row[14]='Disetujui';row[15]=sheetText_(note);row[16]=now;row[17]=now;
       row[18]=String(dep[11]);row[20]=now;row[24]=applicationRef;row[29]='Menunggu Aktivasi';
-      memberAppendStarted=true;db.appendRow(row);createdRow=db.getLastRow();
+      businessMutationStarted=true;memberAppendStarted=true;db.appendRow(row);createdRow=db.getLastRow();
       access.getRange(accessRow,1).setValue(memberId);
       apps.getRange(appRow,8).setValue('Menunggu Aktivasi');apps.getRange(appRow,9).setValue(memberId);apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(now);
       ds.getRange(depositRow,10).setValue('Menunggu Aktivasi');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
       nickname=String(app[2]||'');chatId=String(dep[11]||'');
     }else{
-      enqueueMpsAdminDecisionIntent_(applicationRef,'',action,String(dep[11]||''));
-      const now=new Date();apps.getRange(appRow,8).setValue('Deposit Ditolak');apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(now);
+      decisionIntentAttempted=true;enqueueMpsAdminDecisionIntent_(applicationRef,'',action,String(dep[11]||''));
+      const now=new Date();businessMutationStarted=true;apps.getRange(appRow,8).setValue('Deposit Ditolak');apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(now);
       ds.getRange(depositRow,10).setValue('Ditolak');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
       rejectedLinks=getMpsMemberLinksSheet_();if(rejectedLinks.getLastRow()>1){const vals=rejectedLinks.getRange(2,1,rejectedLinks.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();vals.forEach((v,i)=>{if(String(v[5]||'')===applicationRef&&String(v[3])==='Menunggu'){const row=i+2;rejectedLinkSnapshots.push({row:row,values:v.slice()});rejectedLinks.getRange(row,4).setValue('Ditolak');}});}
       nickname=String(app[2]||'');chatId=String(dep[11]||'');rejectedAccess=getTelegramAccessSheet_();rejectedAccessRow=findTelegramAccessByMemberId_(rejectedAccess,applicationRef);if(rejectedAccessRow){rejectedAccessSnapshot=rejectedAccess.getRange(rejectedAccessRow,1,1,11).getValues()[0];rejectedAccess.getRange(rejectedAccessRow,7).setValue('Akses Ditolak');}
     }
   }catch(err){
     const rollbackErrors=[];
-    // appendRow/getLastRow can fail after the server has accepted the row write.
-    // Re-discover the just-issued ID under the same ScriptLock before compensation.
-    if(memberAppendStarted&&!createdRow&&db&&memberId)try{createdRow=findMemberById_(db,memberId);}catch(e){rollbackErrors.push('pemeriksaan baris member setelah append ambigu: '+safeErrorMessage_(e));}
-    if(createdRow&&db)try{db.deleteRow(createdRow);}catch(e){rollbackErrors.push('baris member: '+safeErrorMessage_(e));}
-    if(accessRow&&accessSnapshot&&access)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){rollbackErrors.push('relasi Telegram approval: '+safeErrorMessage_(e));}
-    if(rejectedAccessRow&&rejectedAccessSnapshot&&rejectedAccess)try{rejectedAccess.getRange(rejectedAccessRow,1,1,11).setValues([rejectedAccessSnapshot]);}catch(e){rollbackErrors.push('akses Telegram penolakan: '+safeErrorMessage_(e));}
-    for(let i=rejectedLinkSnapshots.length-1;i>=0;i--){const snap=rejectedLinkSnapshots[i];try{rejectedLinks.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan member baris '+snap.row+': '+safeErrorMessage_(e));}}
-    if(appRow&&appSnapshot&&apps)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
-    if(depositRow&&depositSnapshot&&ds)try{ds.getRange(depositRow,1,1,depositSnapshot.length).setValues([depositSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
+    // Do not write snapshots back when validation/intent preparation failed before
+    // the first business mutation. Compensation is needed only after a write began.
+    if(businessMutationStarted){
+      // appendRow/getLastRow can fail after the server has accepted the row write.
+      // Re-discover the just-issued ID under the same ScriptLock before compensation.
+      if(memberAppendStarted&&!createdRow&&db&&memberId)try{createdRow=findMemberById_(db,memberId);}catch(e){rollbackErrors.push('pemeriksaan baris member setelah append ambigu: '+safeErrorMessage_(e));}
+      if(createdRow&&db)try{db.deleteRow(createdRow);}catch(e){rollbackErrors.push('baris member: '+safeErrorMessage_(e));}
+      if(accessRow&&accessSnapshot&&access)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){rollbackErrors.push('relasi Telegram approval: '+safeErrorMessage_(e));}
+      if(rejectedAccessRow&&rejectedAccessSnapshot&&rejectedAccess)try{rejectedAccess.getRange(rejectedAccessRow,1,1,11).setValues([rejectedAccessSnapshot]);}catch(e){rollbackErrors.push('akses Telegram penolakan: '+safeErrorMessage_(e));}
+      for(let i=rejectedLinkSnapshots.length-1;i>=0;i--){const snap=rejectedLinkSnapshots[i];try{rejectedLinks.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan member baris '+snap.row+': '+safeErrorMessage_(e));}}
+      if(appRow&&appSnapshot&&apps)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
+      if(depositRow&&depositSnapshot&&ds)try{ds.getRange(depositRow,1,1,depositSnapshot.length).setValues([depositSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
+    }
     // The decision intent is the first durable write in this transaction. A deterministic
     // preflight rejection from enqueue means no queue row was written and no business
     // mutation has started; do not turn a missing/misconfigured queue into a false
@@ -981,7 +985,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       'VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED',
       'VIP_FOLLOWUP_QUEUE_SCHEMA_MISMATCH'
     ].includes(safeErrorMessage_(err));
-    if(!intentPreflightFailure) {
+    if(decisionIntentAttempted&&!intentPreflightFailure) {
       try { settleMpsAdminDecisionIntentAfterRollback_(applicationRef,memberId,action,rollbackErrors.length>0); }
       catch(intentErr) { rollbackErrors.push('decision intent: '+safeErrorMessage_(intentErr)); }
     }
