@@ -927,6 +927,8 @@ function apiAdminVerify(session, applicationRefOrMemberId, decision, adminNote) 
   return adminVerifyLegacy_(session,key,action,note);
 }
 function adminVerifyApplication_(session,applicationRef,action,note) {
+  action=String(action||'').toLowerCase();
+  if(!['approve','reject'].includes(action))throw new Error('ADMIN_DECISION_ACTION_INVALID');
   const lock=LockService.getScriptLock();lock.waitLock(20000);
   let memberId='',chatId='',nickname='',telegramMessage='',createdRow=0,memberAppendStarted=false,businessMutationStarted=false,decisionIntentAttempted=false,depositRow=0,appRow=0,db=null,apps=null,ds=null,appSnapshot=null,depositSnapshot=null,access=null,accessRow=0,accessSnapshot=null,rejectedLinks=null,rejectedLinkSnapshots=[],rejectedAccess=null,rejectedAccessRow=0,rejectedAccessSnapshot=null;
   try{
