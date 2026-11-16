@@ -69,3 +69,29 @@ A second pass found that the rollback handler attempted to rewrite application/d
 **Verification:** GitHub Actions run [#2018](https://github.com/marketpsychologysociety/mps-website/actions/runs/43804067318) completed **SUCCESS, 71/71 steps, 0 failures** on exact PR head `7f8974958f8dcee5d7059db36cc0b7b69e05b4d8`. The Admin verification rollback suite and candidate Telegram one-time-link replay suite completed successfully; Chromium browser checks also passed. The admin rollback suite now executes 40 test cases including loop-expanded failure-injection boundaries.
 
 **Scope:** PR #12 remains Draft/open/unmerged, with mergeability reported false. Production `main` remains `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`. No Apps Script deployment, production database/member rows, Drive ACL, Script Properties, Telegram configuration, or production trigger was changed. This CI evidence remains isolated/mocked; real Apps Script acceptance is still outstanding.
+
+## Follow-up audit — MPS MARKET PULSE replacement and Drive publication recovery (2026-11-16)
+
+The previously agreed replacement was implemented in the candidate workbench: the legacy member Heatmap page/menu is removed from the Apps Script portal; the existing Pulse page is replaced (not duplicated) by **MPS MARKET PULSE — XAUUSD M5**, using WIB (UTC+7) and rolling 30/60/120-day windows. The public GitHub Pages preview remains static and marked MEMBER ONLY; its access link points to the Apps Script Pulse page. The backend page whitelist no longer accepts the retired `heatmap` page.
+
+### Dataset conversion and calculation parity
+- The supplied source HTML is approximately 18.56 MB and contains 315,360 XAUUSD M5 candles.
+- Candle chronology was checked: strict ascending timestamps, no duplicates, and 5-minute spacing throughout. Source range: `2023-11-17T03:25:00+07:00` to `2026-11-16T03:20:00+07:00`.
+- Added `scripts/build-market-pulse-dataset.mjs`. It parses only the source `rawData` JSON (does not execute the supplied HTML), computes the three rolling windows at a recorded snapshot time, and emits a data-only HTML file with 288 WIB slots per period.
+- Generated compact dataset: 7,507 bytes, 864 period-slot cells, zero empty cells. Snapshot: `2026-11-16T11:29:03+07:00`.
+- Independent raw-vs-compact cross-check: **0 mismatches** in UP/DOWN candle counts across all 288 slots for all three windows. Direction classification also matches the source rule: UP/DOWN only when the winning direction exceeds the other by more than 5 percentage points; otherwise NETRAL. The source's ★ rule is preserved for the same non-neutral direction across all three periods.
+- The compact upload file is intentionally not committed to the public repository. It is prepared for upload through the Super Admin dataset manager into the private Learning Drive folder.
+
+### Publication rollback hardening
+A separate audit found ambiguous-response gaps in Drive publication: Drive could rename the old file or create a new file and then lose the response, leaving local flags/references stale. Publication rollback now reconciles by canonical filename and retained old-file ID, trashes partial new files, restores the old canonical filename, and verifies the final active-file count. Ambiguous trash/rename responses are checked by reading the final state rather than trusting the thrown response alone.
+
+### Verification
+- GitHub Actions [run #2035](https://github.com/marketpsychologysociety/mps-website/actions/runs/43805256818): **SUCCESS, 72/72 steps, 0 failures** on tested head `9b7e2941e7ade0cf7169dc994740dcef31803ddd`.
+- Admin decision rollback reconciliation: 40/40 tests passed.
+- Market Pulse converter/schema/access: 8/8 tests passed.
+- Market Pulse Drive publication rollback (mocked Drive): 9/9 tests passed.
+- Chromium browser checks and PWA validation passed.
+- Earlier CI #2030 (72/72) verified the UI/schema conversion before adding the Drive publication fault-injection suite.
+
+### Remaining boundary / no production claim
+The compact dataset has **not** been uploaded to the production Learning Drive folder. No Apps Script deployment, production Drive file/ACL, Script Properties, triggers, member database, or Telegram configuration was changed. The Drive tests are mocked; actual folder/file ACL and upload acceptance still require the authorized Super Admin runtime. PR #12 remains Draft/open/unmerged; production main is unchanged.
