@@ -1949,7 +1949,7 @@ function mpsTelegramUpdateErrorCode_(err) {
   return 'HANDLER_FAILED';
 }
 function enqueueMpsTelegramUpdateReview_(update,reason) {
-  const updateId=String(update&&update.update_id==null?'UNKNOWN':update.update_id);
+  const updateId=String(update&&update.update_id!=null?update.update_id:'UNKNOWN');
   const updateType=update&&update.chat_join_request?'CHAT_JOIN_REQUEST':update&&update.chat_member?'CHAT_MEMBER':update&&update.my_chat_member?'BOT_CHAT_MEMBER':update&&update.message?'MESSAGE':'OTHER';
   const code=String(reason||'MANUAL_REVIEW').replace(/[^A-Z0-9_]/gi,'_').toUpperCase().slice(0,40)||'MANUAL_REVIEW';
   const taskKey='telegram:update-review:'+sha256_(updateId+':'+updateType+':'+code).slice(0,40);
