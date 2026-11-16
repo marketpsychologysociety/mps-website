@@ -11,7 +11,11 @@ const headers = [
   'Lease Expires At', 'Claim Token', 'Completed At',
   'Effect Keys JSON', 'Last Error Code'
 ];
-const source = readFileSync(fileURLToPath(new URL('./gas-spreadsheet-journal-adapter.gs', import.meta.url)), 'utf8');
+const candidateSource = readFileSync(fileURLToPath(new URL('../../candidates/Code.gs', import.meta.url)), 'utf8');
+const adapterStart = candidateSource.indexOf('function createMpsTelegramGasJournal_(config) {');
+const adapterEnd = candidateSource.indexOf('function processTelegramUpdate_(update) {', adapterStart);
+assert.ok(adapterStart >= 0 && adapterEnd > adapterStart, 'production Code.gs must contain the tested durable journal adapter');
+const source = candidateSource.slice(adapterStart, adapterEnd);
 
 function makeHarness(options = {}) {
   const rows = [options.badHeaders ? ['wrong'] : headers.slice()];
