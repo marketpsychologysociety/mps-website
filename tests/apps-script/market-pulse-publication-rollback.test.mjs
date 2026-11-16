@@ -117,7 +117,7 @@ test('new-file size mismatch is compensated and old dataset restored',()=>{
 });
 
 test('trash response loss after successful trash is reconciled as a clean rollback',()=>{
-  const h=harness({new:{trashFailAfter:true}});
+  const h=harness({new:{sharingFailAfter:true,trashFailAfter:true}});
   assert.throws(()=>h.run(),/versi sebelumnya berhasil dipulihkan/);
   assert.equal(h.old.getName(),canonical);assert.equal(activeNamed(h).length,1);
   assert.equal(h.files.find(f=>f.getId()==='new-file-1').isTrashed(),true);
