@@ -41,16 +41,16 @@ vm.runInContext(source.slice(readSettingsStart,readSettingsEnd),context,{timeout
 
 
 
-test('public VIP ticker identity is member ID only; stored names are never projected',()=>{
+test('public VIP ticker identity is a validated real member name; internal Member ID is not projected',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
   const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
   assert.ok(start>=0&&end>start,'public Center endpoint boundaries must exist');
   const body=source.slice(start,end);
-  assert.ok(body.includes("MemberId:r['Member ID']"));
+  assert.ok(body.includes("MemberName:r['Member Name']"));
   assert.ok(body.includes("r['Member ID']"));
   assert.ok(!body.includes("MemberId:r['Member Name']"));
   assert.ok(!body.includes('PublicAlias'));
-  assert.ok(body.includes("r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))"));
+  assert.ok(body.includes("isSafePublicIdentity_(r['Member Name'])"));
 });
 test('empty, oversized, and identifier-like names are denied',()=>{
   for(const value of ['', '   ', 'A'.repeat(101), 'MPS-ABCDEF1234', 'MPS-APP-0123456789ABCDEF', '@trader_mps', 'MT5 Login: 12345678', 'LOGIN 12345678']) {
@@ -62,33 +62,33 @@ test('contact details, payment amounts, and links are denied from public ticker 
     assert.equal(context.isSafePublicIdentity_(value),false,value);
   }
 });
-test('public activity projection exposes only member ID and event text, never member name',()=>{
-  assert.ok(source.includes("const publicActivity = activity.map(function(r){return {MemberId:r['Member ID'],PublicText:r['Event Text']};});"));
-  assert.ok(source.includes("r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))"));
+test('public activity projection exposes safe member name and event text, never internal Member ID',()=>{
+  assert.ok(source.includes("const publicActivity = activity.map(function(r){return {MemberName:r['Member Name'],PublicText:r['Event Text']};});"));
+  assert.ok(source.includes("isSafePublicIdentity_(r['Member Name'])"));
   assert.ok(!source.includes("MemberId:r['Member Name']"));
   assert.ok(!/MemberId:r\\['Member Name'\\]/.test(source));
 });
-test('public website ticker renders validated Member IDs and never reads member names or masked IDs',()=>{
+test('public website ticker renders validated real names and never renders Member IDs',()=>{
   const renderer=readFileSync(fileURLToPath(new URL('../../js/public-center.js',import.meta.url)),'utf8');
-  assert.ok(renderer.includes('item.MemberId'));
+  assert.ok(renderer.includes('item.MemberName'));
   assert.ok(renderer.includes('item.PublicText'));
-  assert.ok(renderer.includes('"Member ID " + memberId'));
-  assert.doesNotMatch(renderer,/item\.Member\s*Name|item\[['"]Member Name['"]\]|MaskedMemberId|PublicAlias/);
+  assert.ok(renderer.includes('memberName +'));
+  assert.doesNotMatch(renderer,/item\.MemberId|Member ID |MaskedMemberId|PublicAlias/);
 });
 
-test('public Center rejects cached ticker payloads containing legacy names after the ID-only privacy change',()=>{
+test('public Center rejects stale ID-only cache payloads after the real-name ticker change',()=>{
   const start=source.indexOf('function apiGetPublicCenter() {');
   const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
   assert.ok(start>=0&&end>start);
   const body=source.slice(start,end);
-  assert.ok(body.includes("cache.get('mps_public_center_v480')"));
+  assert.ok(body.includes("cache.get('mps_public_center_v481')"));
   assert.ok(body.includes('cachedPayload.activity.every'));
-  assert.ok(body.includes("item.MemberId||''"));
-  assert.ok(body.includes("isSafePublicIdentity_(item.PublicText)"));
+  assert.ok(body.includes("item.MemberName"));
+  assert.ok(body.includes("isSafePublicIdentity_(item.MemberName)"));
   assert.ok(body.indexOf('cachedTickerSafe')<body.indexOf('if(cachedTickerSafe)return cachedPayload'));
 });
 
-test('Admin ticker API also omits stored member names and returns only approved event fields',()=>{
+test('Admin ticker API remains restricted to approved event fields and omits stored member names',()=>{
   const start=source.indexOf('function apiAdminGetContent(session) {');
   const end=source.indexOf(String.fromCharCode(10)+'function ',start+1);
   assert.ok(start>=0&&end>start,'admin content endpoint boundaries must exist');
