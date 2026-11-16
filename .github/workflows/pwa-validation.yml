@@ -117,6 +117,8 @@ jobs:
         run: node --test tests/apps-script/market-pulse-dataset.test.mjs
       - name: Run MPS MARKET PULSE Drive publication rollback tests (mocked Drive only)
         run: node --test tests/apps-script/market-pulse-publication-rollback.test.mjs
+      - name: Run isolated MPS Trading Signals bot API and idempotency tests
+        run: node --test tests/apps-script/trading-signals-api.test.mjs
       - name: Run runtime Learning file authorization and direct-ID bypass tests (mocked Drive only)
         run: node --test tests/apps-script/learning-file-access-runtime.test.mjs
       - name: Run controlled red-team authorization and malicious PDF upload tests (mocked services only)
