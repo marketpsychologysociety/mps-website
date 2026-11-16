@@ -185,6 +185,16 @@ for(const preflightError of ['VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED','VIP_FOLLOWUP_
  });
 }
 
+test('ambiguous decision-intent enqueue failure still attempts durable settlement',()=>{
+ const h=adminRejectHarness([],'INJECTED_FLUSH_RESPONSE_LOST');
+ assert.throws(()=>h.run(),/INJECTED_FLUSH_RESPONSE_LOST/);
+ const stats=h.stats();
+ assert.equal(stats.settlement,'CANCELLED');
+ assert.equal(stats.alertQueued,0);
+ assert.equal(stats.lockDepth,0);
+ assert.equal(stats.lockReleases,1);
+});
+
 for(const boundary of ['apps:1','apps:2','apps:3','deposits:1','deposits:2','deposits:3','links:1','access:1']){
  test('admin rejection restores all business snapshots after '+boundary+' write fails',()=>{
   const h=adminRejectHarness([boundary]);
