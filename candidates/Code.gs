@@ -1912,7 +1912,7 @@ function verifyTelegramApplication_(linkRow,link,msg,update) {
     if(/^[0-9]{1,20}$/.test(chatId))enqueueMpsTelegramMessage_(update,chatId,'link-verification-result','SEND_DM',failureMessage);
     return false;
   }
-  if(committed){recordMpsTelegramAuditOnce_('telegram-link:'+String(link[0]||''),'verified',link[1],'TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}}
+  if(committed){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}}
   return committed;
 }
 
@@ -1985,7 +1985,7 @@ function verifyTelegramLinkLegacy_(token,msg,update) {
     return false;
   }
   if(committed){
-    recordMpsTelegramAuditOnce_('telegram-link:'+tokenHash,'verified',linkSnapshot[1],'TELEGRAM',verifiedMemberId,'TELEGRAM_LINKED',verifiedMemberId,'SUCCESS','Akun Telegram terverifikasi menggunakan token sekali pakai.');
+    recordMpsAudit_('TELEGRAM',verifiedMemberId,'TELEGRAM_LINKED',verifiedMemberId,'SUCCESS','Akun Telegram terverifikasi menggunakan token sekali pakai.');
     try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}
   }
   return committed;
