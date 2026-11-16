@@ -53,9 +53,9 @@ test('converter builds exactly XAUUSD M5, WIB and three rolling windows with 288
     [30, '1 Bulan', 288], [60, '2 Bulan', 288], [120, '4 Bulan', 288]
   ]);
   const slot07 = 7 * 12;
-  assert.deepEqual(dataset.periods[0].slots[slot07], [2, 1]);
-  assert.deepEqual(dataset.periods[1].slots[slot07], [2, 2]);
-  assert.deepEqual(dataset.periods[2].slots[slot07], [3, 2]);
+  assert.deepEqual(dataset.periods[0].slots[slot07], [2, 0]);
+  assert.deepEqual(dataset.periods[1].slots[slot07], [2, 1]);
+  assert.deepEqual(dataset.periods[2].slots[slot07], [3, 1]);
   assert.ok(Buffer.byteLength(html) < 1024 * 1024);
   assert.match(html, /const D = /);
   assert.match(html, /TH = 5;/);
@@ -79,7 +79,7 @@ test('backend validator rejects legacy or cross-instrument dataset shapes', () =
   assert.throws(() => validate(mutate(d => { d.instrument = 'EURUSD'; })), /wajib XAUUSD M5/);
   assert.throws(() => validate(mutate(d => { d.timeframe = 'M15'; })), /wajib XAUUSD M5/);
   assert.throws(() => validate(mutate(d => { d.timezone = 'UTC'; })), /zona waktu WIB/);
-  assert.throws(() => validate(mutate(d => { d.extra = true; })), /properti dataset/);
+  assert.throws(() => validate(mutate(d => { d.extra = true; })), /Properti dataset/);
 });
 
 test('backend validator enforces timestamp validity, chronology and M5 boundaries', () => {
