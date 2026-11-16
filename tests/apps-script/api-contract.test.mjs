@@ -350,7 +350,7 @@ test('admin approval and website settings do not roll back committed business wr
   const invalidationAt=approval.indexOf('post-commit admin verification cache invalidation');
   assert.ok(catchAt>0&&invalidationAt>catchAt,'approval cache invalidation must occur after transactional catch');
   assert.match(approval,/catch\(cacheErr\)\s*\{\s*console\.warn\('MPS post-commit admin verification cache invalidation failed/);
-  assert.match(settings,/removeMpsCacheBestEffort_\('mps_public_center_v480','website settings update'\)/);
+  assert.match(settings,/removeMpsCacheBestEffort_\('mps_public_center_v481','website settings update'\)/);
   const legacy=body('adminVerifyLegacy_');
   const legacyCatch=legacy.indexOf('}catch(err){');
   const legacyInvalidation=legacy.indexOf('post-commit legacy verification cache invalidation');
@@ -384,10 +384,10 @@ test('post-commit cache invalidation and Telegram/PIN cache hints fail safely',(
   const put=body('putMpsCacheBestEffort_');
   assert.match(remove,/catch\(cacheErr\)[\s\S]*return false/);
   assert.match(put,/catch\(cacheErr\)[\s\S]*return false/);
-  assert.match(body('processMpsVipChatMemberEvent_'),/removeMpsCacheBestEffort_\('mps_public_center_v480'/);
+  assert.match(body('processMpsVipChatMemberEvent_'),/removeMpsCacheBestEffort_\('mps_public_center_v481'/);
   assert.match(body('markTelegramLinkConsumed_'),/putMpsCacheBestEffort_\('mps_tg_link_'/);
   assert.match(body('apiAdminIssuePin'),/removeMpsCacheBestEffort_\(pendingKey/);
-  assert.doesNotMatch(code,/CacheService\.getScriptCache\(\)\.remove\('mps_public_center_v480'\)/);
+  assert.doesNotMatch(code,/CacheService\.getScriptCache\(\)\.remove\('mps_public_center_v481'\)/);
 });
 
 test('public VIP ticker rejects short numeric identifiers, Telegram handles and embedded @usernames',()=>{
