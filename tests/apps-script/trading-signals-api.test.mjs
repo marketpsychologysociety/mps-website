@@ -64,8 +64,10 @@ function harness(options={}) {
     MPS_SIGNAL_BOT_03_SECRET:'bot-three-secret',
     MPS_SIGNAL_BOT_04_SECRET:'bot-four-secret'
   };
-  const parentFolder={getSharingAccess:()=>options.parentPrivate===false?'ANYONE':'PRIVATE',getEditors:()=>options.parentEditors||[],getViewers:()=>options.parentViewers||[]};
+  const grandParentFolder={getId:()=> 'grand-parent',getSharingAccess:()=>options.grandParentPrivate===false?'ANYONE':'PRIVATE',getEditors:()=>options.grandParentEditors||[],getViewers:()=>options.grandParentViewers||[],getParents:()=>({hasNext:()=>false,next:()=>null})};
+  const parentFolder={getId:()=> 'parent',getSharingAccess:()=>options.parentPrivate===false?'ANYONE':'PRIVATE',getEditors:()=>options.parentEditors||[],getViewers:()=>options.parentViewers||[],getParents(){let used=false;return{hasNext:()=>!used&&!!options.withGrandParent,next:()=>{used=true;return grandParentFolder;}};}};
   const file={
+    getId:()=> 'signal-file',
     getSharingAccess:()=>options.filePrivate===false?'ANYONE':'PRIVATE',
     getParents(){let used=false;return{hasNext:()=>!used&&!!options.withParent,next:()=>{used=true;return parentFolder;}};}
   };
@@ -216,6 +218,8 @@ test('named Drive collaborators and unverifiable ACLs block the Trading Signals 
   assert.throws(()=>editor.context.getTradingSignalsSheets_(),/kolaborator bernama/);
   const viewer=harness({withParent:true,parentViewers:[{email:'private-viewer@example.invalid'}]});
   assert.throws(()=>viewer.context.getTradingSignalsSheets_(),/kolaborator bernama/);
+  const sharedAncestor=harness({withParent:true,withGrandParent:true,grandParentPrivate:false});
+  assert.throws(()=>sharedAncestor.context.getTradingSignalsSheets_(),/tidak PRIVATE/);
   const noAcl=harness({aclUnavailable:true});
   assert.throws(()=>noAcl.context.getTradingSignalsSheets_(),/ACL kolaborator/);
 });
