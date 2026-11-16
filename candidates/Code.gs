@@ -2755,7 +2755,7 @@ function processMpsVipChatMemberEvent_(update,memberUpdate) {
     afterTransition:function(context){
       const r=context.resolved,intentKey='telegram:'+context.input.epoch+':'+context.input.updateId+':vip_transition';
       if(context.targetState==='ACTIVE'){
-        removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
+        removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');
         if(r.inviteToRevoke)enqueueMpsVipFollowup_({taskKey:intentKey+':revoke-invite',intentKey:intentKey,action:'REVOKE_INVITE',groupId:groupId,inviteLink:r.inviteToRevoke});
         if(r.currentTargetState==='DENIED'&&r.kickNeeded)enqueueMpsVipFollowup_({taskKey:intentKey+':remove-member',intentKey:intentKey,action:'REMOVE_MEMBER',groupId:groupId,telegramUserId:r.telegramUserId});
       }else if(context.targetState==='DENIED'){
@@ -3283,13 +3283,13 @@ function apiGetPublicCenter() {
   // Public content endpoint: throttle before even serving cached responses.
   consumeRateLimit_('mps_public_center_global',1200,60,'Terlalu banyak permintaan konten publik. Coba lagi sebentar.');
   const cache = CacheService.getScriptCache();
-  const cached = cache.get('mps_public_center_v480');
+  const cached = cache.get('mps_public_center_v481');
   if (cached) {
     const cachedPayload=safeParseJson_(cached,null);
-    // A deployment may inherit a pre-privacy cache entry containing real names.
-    // Reuse cache only when every public ticker identity is already a valid Member ID.
+    // v4.8.1 cache contract requires a validated display name; v4.8.0 ID-only
+    // payloads are isolated by the versioned key and never reused.
     const cachedTickerSafe=!!cachedPayload&&Array.isArray(cachedPayload.activity)&&cachedPayload.activity.every(function(item){
-      return item&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(item.MemberId||''))&&isSafePublicIdentity_(item.PublicText);
+      return item&&isSafePublicIdentity_(item.MemberName)&&isSafePublicIdentity_(item.PublicText);
     });
     if(cachedTickerSafe)return cachedPayload;
   }
@@ -3303,19 +3303,19 @@ function apiGetPublicCenter() {
     .filter(function(r){return r['Approval Status']==='Approved'&&r['Payment Status']==='Paid'&&['Public Home','Website publik'].includes(String(r.Placement||''))&&isWithinWindow_(r['Start At'],r['End At']);})
     .sort(function(a,b){return dateMs_(a['Created At'])-dateMs_(b['Created At']);}).slice(0,8);
   const activity = readMpsContentRows_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers)
-    .filter(function(r){return r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))&&isSafePublicIdentity_(r['Event Text']);})
+    .filter(function(r){return r.Status==='Visible'&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(String(r['Member ID']||''))&&isSafePublicIdentity_(r['Member Name'])&&isSafePublicIdentity_(r['Event Text']);})
     .sort(function(a,b){return dateMs_(b['Created At'])-dateMs_(a['Created At']);}).slice(0,30);
   const publicNews = news.map(function(r){return {ID:r.ID,PublishedAt:r['Published At'],Source:r.Source,Category:r.Category,Title:r.Title,Summary:r.Summary,SourceURL:r['Source URL'],Verification:r.Verification,Pinned:!!r.Pinned};});
   const publicCalendar = calendar.map(function(r){return {EventDate:r['Event Date'],EventTimeWIB:r['Event Time WIB'],Country:r.Country,EventName:r['Event Name'],Impact:r.Impact,Forecast:r.Forecast,Previous:r.Previous,Actual:r.Actual,SourceURL:r['Source URL']};});
   const publicAnnouncements = announcements.map(function(r){return {ID:r.ID,Title:r.Title,Category:r.Category,Body:r.Body,Audience:r.Audience,DisplayType:r['Display Type'],ImageURL:r['Image URL'],ButtonText:r['Button Text'],ButtonURL:r['Button URL'],Frequency:r.Frequency,ColorTheme:r['Color Theme'],Animation:r.Animation};});
   const publicAds = ads.map(function(r){return {ID:r['Ad ID'],Brand:r.Brand,Title:r.Title,Description:r.Description,ImageURL:r['Image URL'],TargetURL:r['Target URL'],Placement:r.Placement};});
   const adPackages=readMpsContentRows_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers).filter(function(r){return r.Status==='Active';}).map(function(r){return {id:r['Package ID'],name:r.Name,description:r.Description,price:Number(r['Price IDR']||0),durationDays:Number(r['Duration Days']||0),placement:r.Placement};});
-  const publicActivity = activity.map(function(r){return {MemberId:r['Member ID'],PublicText:r['Event Text']};});
+  const publicActivity = activity.map(function(r){return {MemberName:r['Member Name'],PublicText:r['Event Text']};});
   const tickerSettings=readMpsWebsiteSettings_();
   const out = { ok:true, news:publicNews, calendar:publicCalendar, announcements:publicAnnouncements, ads:publicAds, adPackages:adPackages, activity:publicActivity, tickerSettings:tickerSettings,
     updatedAt: PropertiesService.getScriptProperties().getProperty('MPS_CONTENT_LAST_SYNC') || '',
     syncStatus: PropertiesService.getScriptProperties().getProperty('MPS_CONTENT_LAST_SYNC_STATUS') || '' };
-  cache.put('mps_public_center_v480', JSON.stringify(out), 120);
+  cache.put('mps_public_center_v481', JSON.stringify(out), 120);
   return out;
 }
 
@@ -3409,7 +3409,7 @@ function apiAdminSaveWebsiteSettings(session,payload) {
       if(rollbackErrors.length)throw new Error('Penyimpanan pengaturan ticker gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa Website Settings sebelum mencoba ulang.');
       throw err;
     }
-     removeMpsCacheBestEffort_('mps_public_center_v480','website settings update');
+     removeMpsCacheBestEffort_('mps_public_center_v481','website settings update');
   }finally{lock.releaseLock();}
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_TICKER_SETTINGS_UPDATED','WEBSITE','SUCCESS','Pengaturan ticker VIP diperbarui.');
   return {ok:true,message:'Pengaturan ticker VIP diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
@@ -3711,7 +3711,7 @@ function apiAdminGetContent(session) {
 function apiAdminSyncNews(session) {
   requireSuperAdmin_(session);
   const result = syncMpsNews_();
-  removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
+  removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');
   return result;
 }
 
@@ -3791,7 +3791,7 @@ function syncMpsNewsCore_() {
     MPS_CONTENT_LAST_SYNC: Utilities.formatDate(now,'Asia/Jakarta','dd MMM yyyy HH:mm:ss')+' WIB',
     MPS_CONTENT_LAST_SYNC_STATUS: failed.length ? ('Sebagian sumber gagal: '+failed.join(' | ')) : 'Semua sumber yang dikonfigurasi berhasil diperiksa.'
   });
-  removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
+  removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');
   return {ok:true,officialImported:imported,globalNewsForReview:reviewed,failed:failed,lastSync:PropertiesService.getScriptProperties().getProperty('MPS_CONTENT_LAST_SYNC')};
 }
 
@@ -3810,7 +3810,7 @@ function apiAdminSaveNewsAnalysis(session,payload) {
   if(status==='Published'&&(!impact||!bull||!bear||!neutral||!risk))throw new Error('Analisis publikasi wajib memuat dampak, skenario bullish/bearish/netral, dan risiko volatilitas.');
   const sh=getMpsContentSheet_(MPS_NEWS_ANALYSIS.sheet,MPS_NEWS_ANALYSIS.headers);
   const row=[id,sheetText_(impact),usd,bias,sheetText_(bull),sheetText_(bear),sheetText_(neutral),sheetText_(risk),sheetText_(context),status,new Date()];upsertMpsContentRow_(sh,id,row);
-  removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_ANALYSIS_SAVED',id,'SUCCESS','Analisis berita disimpan dengan status '+status+'.');
+  removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_ANALYSIS_SAVED',id,'SUCCESS','Analisis berita disimpan dengan status '+status+'.');
   return {ok:true,message:status==='Published'?'Analisis MPS siap dipakai untuk publikasi berita.':'Draft analisis disimpan.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
@@ -3841,7 +3841,7 @@ function apiAdminSaveAdPackage(session,payload) {
   if(!['Public Home','Member Area','VIP Community'].includes(placement))throw new Error('Placement paket iklan tidak valid.');
   const sh=getMpsContentSheet_(MPS_AD_PACKAGES.sheet,MPS_AD_PACKAGES.headers),id=clean_(payload.packageId,60)||('PKG-'+Utilities.getUuid().replace(/-/g,'').slice(0,12).toUpperCase());
   upsertMpsContentRow_(sh,id,[id,sheetText_(name),sheetText_(description),price,days,sheetText_(placement),status,new Date()]);
-  removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_PACKAGE_SAVED',id,'SUCCESS','Paket iklan diperbarui.');return {ok:true,packageId:id,message:'Paket iklan disimpan.'};
+  removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_PACKAGE_SAVED',id,'SUCCESS','Paket iklan diperbarui.');return {ok:true,packageId:id,message:'Paket iklan disimpan.'};
 }
 
 function apiAdminGetAdvertisingRequests(session) {
@@ -3899,7 +3899,7 @@ function apiAdminPublishAdvertisingRequest(session,payload) {
       if(rollbackErrors.length)throw new Error('Publikasi iklan gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa proposal dan Approved Ads sebelum mencoba ulang.');
       throw new Error('Publikasi iklan gagal; perubahan proposal dan iklan sementara berhasil dibatalkan: '+safeErrorMessage_(writeErr));
     }
-    removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
+    removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');
     const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_PUBLISHED',adId,'SUCCESS','Iklan dipublikasikan setelah status Approved dan Paid.');
     return {ok:true,adId:adId,message:'Iklan diterbitkan setelah persetujuan dan pembayaran terverifikasi.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }finally{lock.releaseLock();}
@@ -3942,7 +3942,7 @@ function apiAdminSaveNewsReview(session, id, decision, category, summary) {
     catch(rollbackErr){throw new Error('Review berita gagal dan rollback tidak lengkap: '+safeErrorMessage_(rollbackErr)+'. Periksa baris berita sebelum mencoba ulang.');}
     throw new Error('Review berita gagal; snapshot berita berhasil dipulihkan: '+safeErrorMessage_(writeErr));
   }
-  removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
+  removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');
   const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'NEWS_REVIEW_'+choice.toUpperCase(),id,'SUCCESS','Status berita diubah oleh admin.');
   return {ok:true,message:choice==='publish'?'Berita dipublikasikan.':'Berita disembunyikan.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }finally{lock.releaseLock();}
@@ -3965,7 +3965,7 @@ function apiAdminSaveAnnouncement(session,payload) {
   const sh=getMpsContentSheet_(MPS_ANNOUNCEMENTS.sheet,MPS_ANNOUNCEMENTS.headers),id=clean_(payload.id,60)||('A-'+Utilities.getUuid().slice(0,12).toUpperCase());
   const existing=findMpsContentRow_(sh,id),created=existing?sh.getRange(existing,2).getValue():new Date();
   const row=[id,created,sheetText_(title),sheetText_(clean_(payload.category||'Pengumuman',50)),sheetText_(body),audience,Math.round(priority),startAt,endAt,status,display,sheetText_(image),sheetText_(clean_(payload.buttonText||'',50)),sheetText_(buttonUrl),frequency,theme,animation,new Date()];
-  upsertMpsContentRow_(sh,id,row);removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'ANNOUNCEMENT_SAVED',id,'SUCCESS','Pengumuman '+audience+' diperbarui.');
+  upsertMpsContentRow_(sh,id,row);removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'ANNOUNCEMENT_SAVED',id,'SUCCESS','Pengumuman '+audience+' diperbarui.');
   return {ok:true,id:id,message:'Pengumuman berhasil disimpan.'};
 }
 
@@ -3982,7 +3982,7 @@ function apiAdminSaveCalendarEvent(session, payload) {
   const id = clean_(payload.id,60) || ('E-'+Utilities.getUuid().slice(0,12).toUpperCase());
   const row = [id,date,time,sheetText_(clean_(payload.country||'United States',50)),sheetText_(name),impact,sheetText_(clean_(payload.forecast,80)),sheetText_(clean_(payload.previous,80)),sheetText_(clean_(payload.actual,80)),sheetText_(source),status,new Date()];
   upsertMpsContentRow_(sh,id,row);
-  removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'CALENDAR_EVENT_SAVED',id,'SUCCESS','Jadwal ekonomi diperbarui.');
+  removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');recordMpsAudit_(adminRole_(session),adminActorRef_(session),'CALENDAR_EVENT_SAVED',id,'SUCCESS','Jadwal ekonomi diperbarui.');
   return {ok:true,id:id,message:'Event kalender berhasil disimpan.'};
 }
 
@@ -3999,7 +3999,7 @@ function apiAdminSavePartnerAd(session, payload) {
   const existing = findMpsContentRow_(sh,id), created = existing ? sh.getRange(existing,2).getValue() : new Date();
   const row = [id,created,sheetText_(brand),sheetText_(title),sheetText_(clean_(payload.description,500)),sheetText_(image),sheetText_(target),sheetText_(clean_(payload.placement||'Main',30)),startAt,endAt,String(payload.status||'Active')==='Hidden'?'Hidden':'Active',existing?Number(sh.getRange(existing,12).getValue()||0):0,new Date()];
   upsertMpsContentRow_(sh,id,row);
-  removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
+  removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');
   return {ok:true,id:id,message:'Partner ad berhasil disimpan.'};
 }
 
@@ -4030,7 +4030,7 @@ function apiAdminUpdateApprovedAd(session,payload) {
     const sh=getMpsContentSheet_(MPS_APPROVED_ADS.sheet,MPS_APPROVED_ADS.headers),row=sh?findMpsContentRow_(sh,id):0;if(!row)throw new Error('Iklan tidak ditemukan.');
     const v=sh.getRange(row,1,1,MPS_APPROVED_ADS.headers.length).getValues()[0];if(String(v[12])!=='Paid')throw new Error('Iklan yang belum lunas tidak dapat diperbarui atau ditayangkan.');
     const values=[sheetText_(title),sheetText_(description),sheetText_(image),sheetText_(target),placement,start,end,v[11],v[12],v[13],new Date()];
-    sh.getRange(row,5,1,11).setValues([values]);removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_UPDATED',id,'SUCCESS','Materi, placement, atau jadwal iklan diperbarui.');return {ok:true,message:'Materi, placement, atau jadwal iklan diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
+    sh.getRange(row,5,1,11).setValues([values]);removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'AD_UPDATED',id,'SUCCESS','Materi, placement, atau jadwal iklan diperbarui.');return {ok:true,message:'Materi, placement, atau jadwal iklan diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }finally{lock.releaseLock();}
 }
 
@@ -4064,7 +4064,7 @@ function apiAdminSetContentStatus(session,type,id,status) {
       if(!validHttpsUrl_(values[7]))throw new Error('Iklan harus memiliki URL tujuan HTTPS yang valid.');
       if(!['Public Home','Website publik','Member Area','VIP Community'].includes(String(values[8]||'')))throw new Error('Placement iklan tidak valid.');
     }
-    sh.getRange(row, cfg[2]).setValue(status);removeMpsCacheBestEffort_('mps_public_center_v480','public center content update');
+    sh.getRange(row, cfg[2]).setValue(status);removeMpsCacheBestEffort_('mps_public_center_v481','public center content update');
     recordMpsAudit_(adminRole_(session),adminActorRef_(session),'CONTENT_STATUS_CHANGED',String(type)+':'+String(id),'SUCCESS','Status konten diubah menjadi '+status+'.');
     return {ok:true,message:'Status konten diperbarui.'};
   }finally{lock.releaseLock();}
