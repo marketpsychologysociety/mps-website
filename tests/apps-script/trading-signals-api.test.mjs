@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 
 const code=fs.readFileSync(new URL('../../candidates/Code.gs',import.meta.url),'utf8');
 const start=code.indexOf('/* MPS Trading Signals — isolated bot-to-backend pipeline.');
@@ -45,7 +46,7 @@ function harness(options={}) {
     ['BOT_03','Scalp Bot',true,'XAUUSD','M5','','',''],
     ['BOT_04','Pending Bot',false,'','','','',''],
   ]);
-  if(options.signalsAppendBeforeThrow)signals.appendRow=values=>{if(!options.signalsAppendTriggered){options.signalsAppendTriggered=true;throw new Error('INJECTED_BEFORE_SIGNAL_ROW');}signals.snapshotOriginal(values);};
+  if(options.signalsAppendBeforeThrow){const original=signals.appendRow.bind(signals);signals.appendRow=values=>{if(!options.signalsAppendTriggered){options.signalsAppendTriggered=true;throw new Error('INJECTED_BEFORE_SIGNAL_ROW');}original(values);};}
   if(options.signalsAppendAfterThrow){
     const original=signals.appendRow.bind(signals);
     signals.appendRow=values=>{original(values);if(!options.signalsAppendTriggered){options.signalsAppendTriggered=true;throw new Error('INJECTED_AFTER_SIGNAL_ROW');}};
@@ -73,7 +74,7 @@ function harness(options={}) {
     LockService:{getScriptLock:()=>({waitLock:()=>{},releaseLock:()=>{}})},
     consumeRateLimit_:()=>{},
     constantTimeEquals_:(a,b)=>String(a)===String(b),
-    sha256_:value=>'hash-'+String(value).length+'-'+String(value).slice(0,24),
+    sha256_:value=>createHash('sha256').update(String(value)).digest('hex'),
     formatDateForClient_:value=>value instanceof Date?value.toISOString():String(value||''),
     requireMember_:session=>{if(session!=='member-session')throw new Error('MEMBER_SESSION_REQUIRED');return{memberId:'MPS-AAAAAAAAAA'};},
     requireAdmin_:session=>{if(session!=='admin-session')throw new Error('ADMIN_SESSION_REQUIRED');return{actorId:'admin-1',role:'ADMIN'};},
