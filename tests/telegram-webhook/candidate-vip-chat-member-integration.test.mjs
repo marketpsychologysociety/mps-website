@@ -425,7 +425,8 @@ test('audit pruning may exceed soft cap rather than delete durable keyed rows',(
 
 
 const queueConstant=candidate.match(/const MPS_VIP_FOLLOWUP_QUEUE = Object\.freeze\([\s\S]*?\);/)[0];
-const schemaStorageInspectorSource=queueConstant+'\n'+extract('inspectMpsVipTransitionStorageSchemas_','apiAdminInspectMemberSchemaV480');
+const journalConstant=candidate.match(/const MPS_TELEGRAM_UPDATE_JOURNAL = Object\.freeze\([\s\S]*?\);/)[0];
+const schemaStorageInspectorSource=journalConstant+'\n'+queueConstant+'\n'+extract('inspectMpsVipTransitionStorageSchemas_','apiAdminInspectMemberSchemaV480');
 const ensureAutomationSource=extract('ensureMpsVipFollowupAutomation_','processMpsVipChatMemberEvent_');
 const schemaPreflightSource=extract('apiAdminInspectMemberSchemaV480','apiAdminMigrateMemberSheetToV480');
 const intentHeaders=['Intent Key','Update Epoch','Update ID','Member ID','Member Name','Telegram User ID','Target State','Source Type','Source Date','Payload SHA-256','Ticker Allowed','State','Ticker Effect Key','Audit Effect Key','Created At','Updated At','Last Error Code'];
@@ -469,7 +470,7 @@ test('read-only schema preflight recognizes exact 30-column v4.8 schema and all-
  const h=schemaPreflightHarness([...legacyMemberHeaders,...appendedMemberHeaders]);
  const result=h.run();
  assert.equal(result.ok,true);assert.equal(result.state,'READY_30');assert.equal(result.appendable,false);assert.equal(result.provisioningReady,true);
- assert.equal(result.provisioningChecks.length,6);
+ assert.equal(result.provisioningChecks.length,7);
  assert.deepEqual(h.stats(),{reads:1,writes:0,locks:0});
 });
 test('read-only schema preflight blocks provisioning when an existing storage sheet has a mismatched header',()=>{
@@ -494,7 +495,7 @@ test('read-only schema preflight enforces super-admin before reading database',(
 });
 test('storage schema inspector accepts missing tabs and exact legacy/effect-key schemas but rejects duplicate effect keys',()=>{
  const empty=storageInspectorHarness();
- assert.equal(empty.ok,true);assert.equal(empty.checks.length,6);
+ assert.equal(empty.ok,true);assert.equal(empty.checks.length,7);
  const keyedHeaders=['Timestamp','Actor Role','Actor Ref','Action','Target Ref','Result','Details','Effect Key'];
  const audit={getLastRow:()=>3,getLastColumn:()=>8,getRange:(row,col,nr,nc)=>({getDisplayValues:()=>row===1?[keyedHeaders]:[['same'],['same']]})};
  const bad=storageInspectorHarness({'MPS Audit Logs':audit});
@@ -553,11 +554,11 @@ test('VIP provisioning aborts before every write when an existing storage schema
  assert.throws(()=>h.run(),/VIP_TRANSITION_PREFLIGHT_FAILED/);
  assert.deepEqual(h.stats(),{inserts:0,flushes:0,telegramAccessCalls:0,contentCalls:0,migrations:0,memberSheetCalls:0,triggerCreates:0});
 });
-test('VIP provisioning verifies exact member schema, creates three durable transition tabs, and installs one scheduled worker',()=>{
+test('VIP provisioning verifies member schema, creates the webhook journal and durable transition tabs, and installs one scheduled worker',()=>{
  const h=vipProvisionHarness();
  const result=h.run();
  assert.equal(result.ok,true);
- assert.deepEqual(h.stats(),{inserts:3,flushes:3,telegramAccessCalls:1,contentCalls:2,migrations:2,memberSheetCalls:1,triggerCreates:1});
+ assert.deepEqual(h.stats(),{inserts:4,flushes:4,telegramAccessCalls:1,contentCalls:2,migrations:2,memberSheetCalls:1,triggerCreates:1});
 });
 test('candidate Index exposes guarded migration controls only for super-admin and requires explicit confirmations',()=>{
  assert.match(candidateIndex,/<section class="panel" id="memberSchemaMaintenance" data-super-admin-only/);
