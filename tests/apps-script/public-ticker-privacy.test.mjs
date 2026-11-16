@@ -77,6 +77,9 @@ test('public website ticker renders validated real names and never renders Membe
   assert.ok(renderer.includes('item.MemberName'));
   assert.ok(renderer.includes('item.PublicText'));
   assert.ok(renderer.includes('memberName +'));
+  assert.ok(renderer.includes('TELEGRAM'));
+  assert.ok(renderer.includes('MPS-(?:APP-)?'));
+  assert.ok(renderer.includes('https?:\\/\\/'));
   assert.doesNotMatch(renderer,/item\.MemberId|Member ID |MaskedMemberId|PublicAlias/);
 });
 
