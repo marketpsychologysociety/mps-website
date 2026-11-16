@@ -1,11 +1,20 @@
 # MPS v4.8 remaining acceptance gates
 
-**Snapshot:** 2026-11-13  
+**Snapshot:** 2026-11-16  
 **Scope:** workbench / Draft PR #12 only. This checklist separates verified repository checks from work that still requires isolated Google Apps Script, Telegram test infrastructure, Android-device testing, independent review, or explicit production authorization.
 
-## Current authoritative snapshot — 2026-11-13
+## Current authoritative snapshot — 2026-11-16
 
 This section supersedes older checkpoint bullets below wherever they conflict. Older sections are retained as historical implementation notes; their unchecked boxes are not a current statement that already-integrated candidate work is absent.
+
+- Latest completed candidate CI: [run #2035](https://github.com/marketpsychologysociety/mps-website/actions/runs/43805256818), **SUCCESS, 72/72 steps, 0 failures**, on candidate head `9b7e2941e7ade0cf7169dc994740dcef31803ddd`. The subsequent audit-document commit is documentation-only and triggers a fresh workflow run.
+- Admin verification rollback reconciliation now has 40/40 passing fault-injection tests. Deterministic decision-intent preflight errors no longer cause unnecessary snapshot rewrites or false rollback alerts; unknown/ambiguous queue append failures still reconcile.
+- The agreed Market Pulse replacement is integrated in the candidate: old Heatmap menu/page removed from the Apps Script portal; Market Pulse is XAUUSD M5, WIB (UTC+7), with 1/2/4 rolling-month windows. Public preview remains static and Member Only; actual data is returned only through session-guarded member/admin APIs. The old `heatmap.html` URL is retained solely as the public static Market Pulse preview route for compatibility.
+- The supplied 18.56 MB source contains 315,360 chronologically ordered 5-minute candles. New converter `scripts/build-market-pulse-dataset.mjs` emits a compact 7,507-byte HTML data payload; an independent raw-vs-compact comparison found zero mismatches across all 288 WIB slots in all three periods. Converter/schema/access tests: 8/8 passed.
+- Market Pulse Drive publication now reconciles ambiguous Drive rename/create/trash responses and verifies the final active file identity/count. Mocked Drive rollback tests: 9/9 passed. This is not live Drive acceptance.
+- The generated compact dataset is prepared but **not uploaded** to the production Learning Drive folder. Production data, Drive ACL, Script Properties, triggers, Telegram configuration, and Apps Script deployment remain untouched.
+- PR #12 remains OPEN / DRAFT / NOT MERGED and mergeability is still false. Production main remains unchanged. Do not merge or deploy until the live isolated GAS/Drive/Telegram gates and independent review below are completed.
+- Remaining work includes live isolated Google Apps Script/Sheets/ScriptLock/trigger acceptance; actual Drive folder/file ACL and Super Admin dataset upload; member-only direct URL/API verification; Android PWA/device acceptance; and the separate Trading Signals bot integration. No bot secrets or production credentials are present in the candidate.
 
 - PR #12 remains **OPEN / DRAFT / NOT MERGED**. The latest completed CI snapshot recorded below is for the immediately preceding candidate commit; each subsequent documentation-only reconciliation triggers a fresh CI run.
 - Latest PR CI for candidate commit `6a4fa8d7ad3a06ba57dee669338a725c8d35a6de` (run #1745) completed **SUCCESS** with zero failed steps. It includes the new ambiguous VIP admin-alert quarantine regression, candidate VIP integration/recovery tests, mocked Apps Script checks, isolated-harness static validation, and Chromium browser checks. This is repository/CI evidence, not live Google Apps Script acceptance.
