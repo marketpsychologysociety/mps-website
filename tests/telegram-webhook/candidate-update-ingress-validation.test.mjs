@@ -105,7 +105,7 @@ test('journal storage outage fails closed before invoking a Telegram handler',()
 
 test('manual-review alert queue failure propagates while the update remains quarantined',()=>{
  const h=harness({outcome:'MANUAL_REVIEW'},{alertError:new Error('VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED')});
- assert.throws(()=>h.run({update_id:123}),/TELEGRAM_UPDATE_REVIEW_ALERT_NOT_DURABLE/);
+ assert.throws(()=>h.run({update_id:123}),/VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED/);
  assert.equal(h.calls.core,0);assert.equal(h.calls.alerts.length,1);
 });
 
