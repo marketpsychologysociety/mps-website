@@ -4287,6 +4287,21 @@ const MPS_TRADING_SIGNALS = Object.freeze({
   terminal: ['TP2_HIT','SL_HIT','TIMEOUT']
 });
 
+function assertTradingSignalsDriveResourcePrivate_(resource,label) {
+  const name=String(label||'Drive resource');
+  if(!resource||typeof resource.getSharingAccess!=='function'||String(resource.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) {
+    throw new Error(name+' tidak PRIVATE. Akses Trading Signals dihentikan.');
+  }
+  if(typeof resource.getEditors!=='function'||typeof resource.getViewers!=='function') {
+    throw new Error('ACL kolaborator '+name+' tidak dapat diverifikasi. Akses Trading Signals dihentikan.');
+  }
+  const editors=resource.getEditors()||[],viewers=resource.getViewers()||[];
+  if(editors.length+viewers.length>0) {
+    throw new Error(name+' memiliki akses kolaborator bernama. Cabut atau audit akses Drive sebelum Trading Signals digunakan.');
+  }
+  return true;
+}
+
 function setupTradingSignalsDatabase_() {
   const props=PropertiesService.getScriptProperties();
   if(props.getProperty(MPS_TRADING_SIGNALS.spreadsheetProperty))throw new Error('Database Trading Signals sudah dikonfigurasi. Setup dibatalkan agar tidak membuat database duplikat.');
@@ -4294,7 +4309,13 @@ function setupTradingSignalsDatabase_() {
   const ss=SpreadsheetApp.create('MPS Trading Signals DB — PRIVATE');
   const file=DriveApp.getFileById(ss.getId());
   file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
-  if(String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Database Trading Signals gagal dipastikan PRIVATE. Property belum disimpan.');
+  try {
+    assertTradingSignalsDriveResourcePrivate_(file,'Database Trading Signals');
+    const parents=file.getParents();while(parents.hasNext())assertTradingSignalsDriveResourcePrivate_(parents.next(),'Folder induk database Trading Signals');
+  } catch(privacyErr) {
+    let cleanup='';try{file.setTrashed(true);}catch(cleanupErr){cleanup=' File database sementara gagal dipindahkan ke Trash; Super Admin wajib memeriksa Drive.';}
+    throw new Error('Database Trading Signals tidak lolos pemeriksaan ACL: '+safeErrorMessage_(privacyErr)+cleanup);
+  }
   if(ss.getId()===mainId)throw new Error('Database Trading Signals tidak boleh memakai spreadsheet member.');
   const first=ss.getSheets()[0];first.setName(MPS_TRADING_SIGNALS.sheets.signals);
   const events=ss.insertSheet(MPS_TRADING_SIGNALS.sheets.events);
@@ -4316,8 +4337,8 @@ function getTradingSignalsSheets_() {
   if(!id)throw new Error('Database Trading Signals belum dikonfigurasi.');
   if(id===mainId)throw new Error('Database Trading Signals wajib terpisah dari database member.');
   const file=DriveApp.getFileById(id);
-  if(String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Database Trading Signals tidak PRIVATE. Akses dihentikan.');
-  const parents=file.getParents();while(parents.hasNext()){const parent=parents.next();if(String(parent.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder induk database Trading Signals tidak PRIVATE. Akses dihentikan.');}
+  assertTradingSignalsDriveResourcePrivate_(file,'Database Trading Signals');
+  const parents=file.getParents();while(parents.hasNext())assertTradingSignalsDriveResourcePrivate_(parents.next(),'Folder induk database Trading Signals');
   const ss=SpreadsheetApp.openById(id);
   const out={};
   Object.keys(MPS_TRADING_SIGNALS.sheets).forEach(function(key){
