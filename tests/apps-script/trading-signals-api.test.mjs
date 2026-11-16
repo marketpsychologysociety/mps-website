@@ -147,7 +147,7 @@ test('signal updates enforce bot ownership, immutable trade parameters and legal
   assert.equal(ingest(tp2).status,'TP2_HIT');
   assert.throws(()=>ingest({...tp2,eventId:'event-update-000003',status:'TIMEOUT'}),/STATUS_TRANSITION_NOT_ALLOWED/);
   assert.throws(()=>ingest({...update,eventId:'event-other-bot-0001',botId:'BOT_03',botSecret:'bot-three-secret'}),/BOT_SIGNAL_OWNERSHIP_MISMATCH/);
-  assert.equal(h.events.snapshot().length,3);
+  assert.equal(h.events.snapshot().length,4,'header plus CREATE, TP1_HIT and TP2_HIT events only');
 });
 
 test('TP1 may progress to TP2, SL or timeout; terminal states cannot be reopened',()=>{
