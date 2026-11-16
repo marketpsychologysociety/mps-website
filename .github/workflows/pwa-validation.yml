@@ -107,6 +107,10 @@ jobs:
         run: node --test tests/telegram-webhook/candidate-edited-message-command.test.mjs
       - name: Run Telegram webhook ingress update-ID validation tests
         run: node --test tests/telegram-webhook/candidate-update-ingress-validation.test.mjs
+      - name: Run candidate Telegram message outbox validation tests
+        run: node --test tests/telegram-webhook/candidate-message-outbox-validation.test.mjs
+      - name: Run candidate Telegram durable audit idempotency tests
+        run: node --test tests/telegram-webhook/candidate-telegram-audit-idempotency.test.mjs
       - name: Run Apps Script member activation transaction regression tests (mocked services only)
         run: node --test tests/apps-script/member-activation-transaction.test.mjs
       - name: Run Apps Script deposit rollback regression tests (mocked services only)
