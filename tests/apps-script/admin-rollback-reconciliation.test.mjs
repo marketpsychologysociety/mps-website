@@ -218,3 +218,69 @@ test('admin approval re-discovers and deletes a member row when appendRow writes
  assert.equal(h.dbRows.length,1,'the ambiguous appended member row must not remain orphaned');
  assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
 });
+
+function adminApproveHarness(failAt=[]) {
+ const appRef='MPS-APP-0123456789ABCDEF0123',chatId='987654321';
+ const app=[appRef,new Date(),'Approval Test','@approval_test','ID','Trading','', 'Deposit Dikirim','','','Terverifikasi',chatId,chatId,'',''];
+ const deposit=[appRef,new Date(),'Approval Test','12345678','Standard',1000000,'2026-11-15','proof-file-id','https://drive.google.com/file/d/proof-file-id','Menunggu Telegram',chatId,chatId,'',''];
+ const access=[appRef,chatId,chatId,'@approval_test','Approval Test',true,'Menunggu','','','',''];
+ const original={app:app.slice(),deposit:deposit.slice(),access:access.slice()};
+ const counts={db:0,dbDelete:0,access:0,apps:0,deposits:0},remaining=failAt.slice();
+ let lockDepth=0,lockReleases=0,settlement='',alertQueued=0;
+ function fail(key){const i=remaining.indexOf(key);if(i<0)return false;remaining.splice(i,1);return true;}
+ function rowSheet(row,label) {
+  return {getRange(r,c,nr=1,nc=1){return{
+   getValues:()=>[row.slice(c-1,c-1+nc)],
+   setValue(v){counts[label]++;row[c-1]=v;if(fail(label+':'+counts[label]))throw new Error('INJECTED_'+label+':'+counts[label]+'_WRITE');},
+   setValues(values){counts[label]++;values[0].forEach((v,i)=>row[c-1+i]=v);if(fail(label+':'+counts[label]))throw new Error('INJECTED_'+label+':'+counts[label]+'_WRITE');}
+  };}};
+ }
+ const apps=rowSheet(app,'apps'),deposits=rowSheet(deposit,'deposits'),accessSheet=rowSheet(access,'access');
+ const dbRows=[new Array(30).fill('')];
+ const db={
+  getLastRow:()=>dbRows.length,
+  appendRow(values){counts.db++;dbRows.push(values.slice());if(fail('db:'+counts.db))throw new Error('INJECTED_db:'+counts.db+'_WRITE');},
+  deleteRow(row){counts.dbDelete++;if(fail('dbDelete:'+counts.dbDelete))throw new Error('INJECTED_dbDelete:'+counts.dbDelete+'_WRITE');dbRows.splice(row-1,1);}
+ };
+ const context={
+  MPS:{headers:new Array(30),minDeposit:1000000},MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},
+  LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;lockReleases++;}})},
+  Utilities:{getUuid:()=> '12345678-1234-1234-1234-123456789abc'},
+  getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
+  getMpsDepositsSheet_:()=>deposits,findMpsDepositRow_:()=>2,
+  getMemberSheet_:()=>db,findMemberById_:(sheet,id)=>{for(let i=1;i<dbRows.length;i++)if(String(dbRows[i][0])===String(id))return i+1;return 0;},
+  ensureUniqueMt5_:()=>true,validateProofFileForApproval_:()=>({fileId:'proof-file-id'}),
+  getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByMemberId_:()=>2,
+  enqueueMpsAdminDecisionIntent_:()=>({ok:true}),
+  settleMpsAdminDecisionIntentAfterRollback_:(subject,member,action,incomplete)=>{settlement=incomplete?'REVIEW':'CANCELLED';return{ok:true,state:settlement};},
+  enqueueMpsVipFollowup_:(task)=>{if(task.action==='ADMIN_ALERT')alertQueued++;return{ok:true};},
+  sha256_:()=> 'c'.repeat(64),sheetText_:v=>String(v??''),safeErrorMessage_:e=>String(e&&e.message||e),
+  console
+ };
+ vm.createContext(context);vm.runInContext(adminVerifySource,context,{timeout:1000});
+ return {run:()=>context.adminVerifyApplication_('session',appRef,'approve',''),app,deposit,access,original,dbRows,stats:()=>({counts,lockDepth,lockReleases,settlement,alertQueued})};
+}
+
+for(const boundary of ['db:1','access:1','apps:1','apps:2','apps:3','apps:4','deposits:1','deposits:2','deposits:3']){
+ test('admin approval restores all snapshots after '+boundary+' business write fails',()=>{
+  const h=adminApproveHarness([boundary]);
+  assert.throws(()=>h.run(),new RegExp('INJECTED_'+boundary+'_WRITE'));
+  assert.equal(h.dbRows.length,1,'no orphaned member row may remain');
+  assert.deepEqual(h.app,h.original.app);assert.deepEqual(h.deposit,h.original.deposit);assert.deepEqual(h.access,h.original.access);
+  assert.equal(h.stats().settlement,'CANCELLED');assert.equal(h.stats().alertQueued,0);
+  assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
+ });
+}
+
+for(const compensation of ['dbDelete:1','access:2','apps:5','deposits:4']){
+ test('admin approval quarantines decision and queues alert when '+compensation+' compensation fails',()=>{
+  const h=adminApproveHarness(['deposits:1',compensation]);
+  assert.throws(()=>h.run(),err=>{
+   assert.match(err.message,/Rollback tidak lengkap/);
+   assert.match(err.message,/Peringatan rekonsiliasi tersimpan di antrean Admin/);
+   return true;
+  });
+  assert.equal(h.stats().settlement,'REVIEW');assert.equal(h.stats().alertQueued,1);
+  assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
+ });
+}
