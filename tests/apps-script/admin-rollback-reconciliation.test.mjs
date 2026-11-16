@@ -69,7 +69,7 @@ function settlementHarness(initialState='PENDING') {
  const context={
   MPS_VIP_FOLLOWUP_QUEUE:{sheet:'MPS VIP Followup Queue',headers},
   PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'synthetic-spreadsheet'})},
-  SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet})},
+  SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet}),flush:()=>{}},
   sha256_:()=> 'a'.repeat(64),Utilities:{},Date
  };
  vm.createContext(context);vm.runInContext(settle,context,{timeout:1000});
