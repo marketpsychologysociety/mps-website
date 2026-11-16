@@ -61,6 +61,18 @@ test('deterministic queue preflight failures are not misreported as incomplete b
  assert.match(catchSettlement,/if\(!intentPreflightFailure\)/);
 });
 
+test('decision intent is settled only when enqueue was attempted; ambiguous failures remain reconciled',()=>{
+ assert.match(body,/decisionIntentAttempted=true;enqueueMpsAdminDecisionIntent_/);
+ assert.match(catchSettlement,/if\(decisionIntentAttempted&&!intentPreflightFailure\)/);
+});
+
+test('snapshot compensation is skipped until the first business mutation begins',()=>{
+ assert.match(body,/businessMutationStarted=false/);
+ assert.match(body,/if\(businessMutationStarted\)\s*\{/);
+ assert.match(body,/businessMutationStarted=true;memberAppendStarted=true;db\.appendRow/);
+ assert.match(body,/businessMutationStarted=true;apps\.getRange\(appRow,8\)\.setValue/);
+});
+
 function settlementHarness(initialState='PENDING') {
  const headers=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','Status','Attempts','Next Attempt','Lease Until','Last Error','Created At','Updated At'];
  const key='admin-decision-intent:'+'a'.repeat(40);
@@ -168,6 +180,7 @@ for(const preflightError of ['VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED','VIP_FOLLOWUP_
   assert.deepEqual(h.app,h.original.app);assert.deepEqual(h.deposit,h.original.deposit);
   assert.deepEqual(h.link,h.original.link);assert.deepEqual(h.access,h.original.access);
   assert.equal(stats.settlement,'');assert.equal(stats.alertQueued,0);
+  assert.equal(Object.values(stats.counts).reduce((sum,n)=>sum+n,0),0,'no business sheet compensation writes are needed before any mutation');
   assert.equal(stats.lockDepth,0);assert.equal(stats.lockReleases,1);
  });
 }
