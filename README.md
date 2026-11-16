@@ -12,7 +12,8 @@ Website publik MPS menggunakan HTML, CSS, dan JavaScript statis serta dipublikas
 - Beranda, About, Core System, Education
 - Membership, Rewards, Rebate
 - Join dan Konfirmasi Deposit (halaman informasi yang mengarahkan ke Portal Resmi)
-- Market Pulse (preview statis; bukan dataset aktual)\n- Announcement Center (prototipe publik; data demo, belum terhubung backend)
+- Market Pulse (preview statis; bukan dataset aktual)
+- Announcement Center (prototipe publik; data demo, belum terhubung backend)
 - Member Portal, Contact, Syarat & Ketentuan, dan Kebijakan Privasi
 
 ## Alur pendaftaran dan keanggotaan
@@ -40,7 +41,8 @@ Minimum deposit yang ditampilkan saat ini adalah Rp1.000.000. Nominal lebih besa
 - Dashboard, Learning, Market Pulse, dan fungsi Admin harus memvalidasi sesi serta role di backend pada setiap permintaan.
 - Bukti deposit dan materi Learning harus berada pada folder/file privat; jangan memakai tautan Drive publik.
 - Tautan eksternal dengan `target="_blank"` wajib memakai `rel="noopener noreferrer"`.
-- Ticker publik MPS boleh menampilkan nama asli/identitas member sesuai keputusan produk; jangan menyamarkan nama sebagai default dan jangan membuat aktivitas sosial palsu. Tampilkan hanya nama dan teks aktivitas yang aman. Jangan tampilkan nomor telepon, email, Telegram ID/username, MT5, nominal/tanggal deposit, bukti, PIN, token, atau referensi internal.\n- Announcement Center saat ini adalah prototipe UI dengan data demonstrasi; tidak ada feed pengumuman, status layanan, pemenang, atau undian resmi yang terhubung. Roulette hanya animasi presentasi dan tidak menentukan hasil.
+- Ticker publik MPS boleh menampilkan nama asli/identitas member sesuai keputusan produk; jangan menyamarkan nama sebagai default dan jangan membuat aktivitas sosial palsu. Tampilkan hanya nama dan teks aktivitas yang aman. Jangan tampilkan nomor telepon, email, Telegram ID/username, MT5, nominal/tanggal deposit, bukti, PIN, token, atau referensi internal.
+- Announcement Center saat ini adalah prototipe UI dengan data demonstrasi; tidak ada feed pengumuman, status layanan, pemenang, atau undian resmi yang terhubung. Roulette hanya animasi presentasi dan tidak menentukan hasil.
 - File `google-apps-script/Code.gs` dan `google-apps-script-v2/Code.gs` adalah sumber historis/legacy di repository, bukan bukti versi backend yang sedang terpasang. Jangan deploy keduanya untuk menggantikan backend aktif tanpa audit dan persetujuan.
 - Jangan menganggap file backend lokal atau isi repository sama dengan deployment Apps Script yang sedang berjalan. Verifikasi versi dari deployment dan pengujian runtime.
 
@@ -50,7 +52,7 @@ Pemeriksaan statis dapat memastikan struktur file, sintaks, rute, dan konsistens
 
 Sebelum rilis produksi, lakukan:
 1. Cocokkan URL dan versi deployment Apps Script.
-2. Uji akses langsung tanpa sesi untuk Dashboard, Heatmap, Learning, dan Market Pulse; pastikan API privat menolak akses.
+2. Uji akses langsung tanpa sesi untuk Dashboard, Learning, dan Market Pulse; pastikan API privat menolak akses.
 3. Uji pendaftaran → konfirmasi deposit → verifikasi Telegram → approval admin → penerbitan Member ID → pengiriman PIN → aktivasi.
 4. Periksa izin privat spreadsheet, folder bukti, file bukti, folder Learning, file Learning, dan dataset Market Pulse.
 5. Uji backup dan pemulihan, bukan hanya pembuatan salinan spreadsheet.
