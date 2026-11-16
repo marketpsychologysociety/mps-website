@@ -35,7 +35,7 @@ const settleStart=source.indexOf('function settleMpsAdminDecisionIntentAfterRoll
 const settleEnd=source.indexOf('\nfunction materializeMpsAdminDecisionIntent_',settleStart+1);
 assert.ok(settleStart>=0&&settleEnd>settleStart,'decision-intent rollback settlement helper must exist');
 const settle=source.slice(settleStart,settleEnd);
-const catchStart=body.indexOf('    // The durable notification intent was created before the multi-sheet writes.');
+const catchStart=body.indexOf('    // The decision intent is the first durable write in this transaction.');
 const catchEnd=body.indexOf('    if(rollbackErrors.length){',catchStart);
 assert.ok(catchStart>=0&&catchEnd>catchStart,'admin rollback must settle the decision intent before handling rollback outcome');
 const catchSettlement=body.slice(catchStart,catchEnd);
@@ -58,7 +58,7 @@ test('deterministic queue preflight failures are not misreported as incomplete b
  assert.match(catchSettlement,/intentPreflightFailure/);
  assert.match(catchSettlement,/VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED/);
  assert.match(catchSettlement,/VIP_FOLLOWUP_QUEUE_SCHEMA_MISMATCH/);
- assert.match(catchSettlement,/if\(!intentPreflightFailure\)/);
+ assert.match(catchSettlement,/if\(decisionIntentAttempted&&!intentPreflightFailure\)/);
 });
 
 test('decision intent is settled only when enqueue was attempted; ambiguous failures remain reconciled',()=>{
