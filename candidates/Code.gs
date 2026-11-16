@@ -2149,6 +2149,41 @@ function enqueueMpsAdminDecisionIntent_(subjectId,memberId,action,chatId) {
   if(!result||!result.ok)throw new Error('ADMIN_DECISION_INTENT_NOT_DURABLE');
   return {ok:true,taskKey:'admin-decision-intent:'+digest};
 }
+/**
+ * Close the durable decision-intent journal when the business transaction rolls back.
+ * Caller already holds the ScriptLock. A clean compensation cancels the intent;
+ * incomplete compensation quarantines it for operator review so it cannot be
+ * retried as if the business decision had committed.
+ */
+function settleMpsAdminDecisionIntentAfterRollback_(subjectId,memberId,action,incomplete) {
+  const decision=String(action||'').toLowerCase(),subject=String(subjectId||''),member=String(memberId||'');
+  if(!subject||!['approve','reject'].includes(decision))throw new Error('ADMIN_DECISION_ROLLBACK_IDENTITY_INVALID');
+  const digest=sha256_('mps-admin-decision-v2|'+subject+'|'+(member||'UNISSUED')+'|'+decision).slice(0,40);
+  const taskKey='admin-decision-intent:'+digest;
+  const ssId=String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||'');
+  if(!ssId)throw new Error('MPS_SPREADSHEET_ID_REQUIRED_FOR_DECISION_ROLLBACK');
+  const ss=SpreadsheetApp.openById(ssId),sh=ss&&ss.getSheetByName(MPS_VIP_FOLLOWUP_QUEUE.sheet);
+  if(!sh)throw new Error('VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED');
+  const headers=MPS_VIP_FOLLOWUP_QUEUE.headers;
+  const actual=sh.getLastColumn()?sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0].map(String):[];
+  if(actual.length!==headers.length||headers.some(function(h,i){return actual[i]!==h;}))throw new Error('VIP_FOLLOWUP_QUEUE_SCHEMA_MISMATCH');
+  const last=sh.getLastRow();
+  if(last<2)return {ok:true,missing:true};
+  const keys=sh.getRange(2,1,last-1,1).getDisplayValues();
+  for(let i=0;i<keys.length;i++)if(String(keys[i][0])===taskKey){
+    const rowNumber=i+2,row=sh.getRange(rowNumber,1,1,headers.length).getValues()[0];
+    if(String(row[2])!=='DECISION_INTENT')throw new Error('ADMIN_DECISION_ROLLBACK_TASK_TYPE_MISMATCH');
+    if(['DONE','CANCELLED','REVIEW'].includes(String(row[7]||'')))return {ok:true,alreadySettled:true};
+    if(!['PENDING','RETRY','PROCESSING'].includes(String(row[7]||'')))throw new Error('ADMIN_DECISION_ROLLBACK_TASK_STATE_UNEXPECTED');
+    row[7]=incomplete?'REVIEW':'CANCELLED';
+    row[9]='';row[10]='';
+    row[11]=incomplete?'BUSINESS_ROLLBACK_INCOMPLETE_OPERATOR_RECONCILIATION_REQUIRED':'BUSINESS_TRANSACTION_ROLLED_BACK';
+    row[13]=new Date();
+    sh.getRange(rowNumber,1,1,headers.length).setValues([row]);SpreadsheetApp.flush();
+    return {ok:true,state:row[7]};
+  }
+  return {ok:true,missing:true};
+}
 function materializeMpsAdminDecisionIntent_(task) {
   const payload=JSON.parse(String(task.alertText||'{}')),subject=String(payload.subject||''),member=String(payload.member||'');
   const decision=String(payload.decision||''),chatId=String(task.telegramUserId||'');
