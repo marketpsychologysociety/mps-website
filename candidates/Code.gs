@@ -1481,11 +1481,16 @@ function validateMarketPulseSource_(source) {
   const expectedKeys='asOf,dataEnd,dataStart,instrument,periods,timeframe,timezone';
   if(!data||Object.keys(data).sort().join(',')!==expectedKeys)throw new Error('Properti dataset MPS MARKET PULSE tidak sesuai skema.');
   if(data.instrument!=='XAUUSD'||data.timeframe!=='M5'||data.timezone!=='Asia/Jakarta')throw new Error('Dataset wajib XAUUSD M5 dengan zona waktu WIB (UTC+7).');
-  function validWibTimestamp(value){
-    if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+07:00$/.test(value))return false;
-    const d=new Date(value);return !isNaN(d.getTime())&&d.toISOString()===new Date(d.getTime()).toISOString();
+  function validWibTimestamp(value,candleBoundary){
+    const m=typeof value==='string'?value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+07:00$/):null;
+    if(!m)return false;
+    const y=Number(m[1]),month=Number(m[2]),day=Number(m[3]),hour=Number(m[4]),minute=Number(m[5]),second=Number(m[6]);
+    const wall= new Date(Date.UTC(y,month-1,day,hour,minute,second));
+    if(wall.getUTCFullYear()!==y||wall.getUTCMonth()!==month-1||wall.getUTCDate()!==day||wall.getUTCHours()!==hour||wall.getUTCMinutes()!==minute||wall.getUTCSeconds()!==second)return false;
+    if(candleBoundary&&(minute%5!==0||second!==0))return false;
+    return new Date(value).getTime()===wall.getTime()-7*60*60*1000;
   }
-  if(!validWibTimestamp(data.dataStart)||!validWibTimestamp(data.dataEnd)||!validWibTimestamp(data.asOf))throw new Error('Rentang waktu dataset tidak valid atau bukan WIB.');
+  if(!validWibTimestamp(data.dataStart,true)||!validWibTimestamp(data.dataEnd,true)||!validWibTimestamp(data.asOf,false))throw new Error('Rentang waktu dataset tidak valid atau bukan WIB.');
   const startMs=new Date(data.dataStart).getTime(),endMs=new Date(data.dataEnd).getTime(),asOfMs=new Date(data.asOf).getTime();
   if(startMs>endMs||endMs>asOfMs)throw new Error('Urutan waktu data awal, akhir, dan waktu pembuatan tidak valid.');
   if(!Array.isArray(data.periods)||data.periods.length!==3)throw new Error('Dataset harus memiliki tepat tiga periode: 1, 2, dan 4 bulan.');
