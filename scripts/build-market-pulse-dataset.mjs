@@ -59,7 +59,7 @@ function buildDataset(candles, asOf = Date.now()) {
     const wib = new Date(c.time + WIB_OFFSET_MS);
     const slot = wib.getUTCHours() * 12 + Math.floor(wib.getUTCMinutes() / 5);
     const direction = c.close > c.open ? 0 : 1;
-    for (let p = 0; p < PERIODS.length; p++) if (c.time >= cutoffs[p]) counts[p][slot][direction]++;
+    for (let p = 0; p < PERIODS.length; p++) if (c.time > cutoffs[p]) counts[p][slot][direction]++;
   }
   return {
     instrument: 'XAUUSD',
