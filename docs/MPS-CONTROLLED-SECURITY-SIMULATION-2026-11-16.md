@@ -37,10 +37,14 @@ GitHub Actions [run #2047](https://github.com/marketpsychologysociety/mps-websit
 The controlled red-team boundary suite passed **8/8 tests**, covering:
 - Member identity injection into Member Intelligence.
 - Session-token persistence in local/session browser storage.
+- Public Market Pulse preview contains placeholders only, never the private dataset.
+- Common hard-coded credential patterns absent from candidate source files.
 - Invalid and truncated PDF rejection.
 - Common PDF active-content and embedded-action markers.
 - Oversized upload rejection before Drive access.
 - A static PDF reaching (but not bypassing) the private Drive boundary.
+
+The Market Pulse converter/schema/member-and-admin API suite passed **9/9 tests**, including runtime denial of direct unauthenticated member and Admin read calls before the private dataset is touched. The mocked Drive publication rollback suite passed **9/9 tests**, including ambiguous rename/create/trash responses.
 
 Existing suites in the same CI cover Admin MFA, member/Admin session authorization, persistent login throttles, durable request replay/idempotency, Learning direct-ID bypass, deposit-proof access, API role contracts, public ticker privacy, and official-draw journal/recovery behavior.
 
