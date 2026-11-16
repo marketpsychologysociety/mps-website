@@ -30,3 +30,25 @@ test('incomplete admin-verification rollback persists a durable admin alert befo
 test('reconciliation alert does not include member personal or proof data',()=>{
  assert.doesNotMatch(branch,/dep\[|app\[|nickname|chatId|telegramUserId|proof|email|phone|MT5/i);
 });
+
+const settleStart=source.indexOf('function settleMpsAdminDecisionIntentAfterRollback_(');
+const settleEnd=source.indexOf('\nfunction materializeMpsAdminDecisionIntent_',settleStart+1);
+assert.ok(settleStart>=0&&settleEnd>settleStart,'decision-intent rollback settlement helper must exist');
+const settle=source.slice(settleStart,settleEnd);
+const catchStart=body.indexOf('    // The durable notification intent was created before the multi-sheet writes.');
+const catchEnd=body.indexOf('    if(rollbackErrors.length){',catchStart);
+assert.ok(catchStart>=0&&catchEnd>catchStart,'admin rollback must settle the decision intent before handling rollback outcome');
+const catchSettlement=body.slice(catchStart,catchEnd);
+
+test('clean compensation cancels the pre-committed decision intent',()=>{
+ assert.match(settle,/row\[7\]=incomplete\?'REVIEW':'CANCELLED'/);
+ assert.match(settle,/BUSINESS_TRANSACTION_ROLLED_BACK/);
+ assert.match(catchSettlement,/settleMpsAdminDecisionIntentAfterRollback_\(applicationRef,memberId,action,rollbackErrors.length>0\)/);
+});
+
+test('incomplete compensation quarantines the decision intent for operator review',()=>{
+ assert.match(settle,/BUSINESS_ROLLBACK_INCOMPLETE_OPERATOR_RECONCILIATION_REQUIRED/);
+ assert.match(settle,/row\[7\]=incomplete\?'REVIEW':'CANCELLED'/);
+ assert.match(settle,/\['DONE','CANCELLED','REVIEW'\]/);
+ assert.match(catchSettlement,/catch\(intentErr\)\s*\{\s*rollbackErrors\.push/);
+});
