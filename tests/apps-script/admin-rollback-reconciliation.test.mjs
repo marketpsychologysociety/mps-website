@@ -175,3 +175,46 @@ for(const rollbackBoundary of ['access:2','links:2','apps:4','deposits:4']){
   assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
  });
 }
+
+function ambiguousMemberAppendHarness() {
+ const appRef='MPS-APP-0123456789ABCDEF0123',chatId='987654321';
+ const app=[appRef,new Date(),'Approval Test','@approval_test','ID','Trading','', 'Deposit Dikirim','','','Terverifikasi',chatId,chatId,'',''];
+ const deposit=[appRef,new Date(),'Approval Test','12345678','Standard',1000000,'2026-11-15','proof-file-id','https://drive.google.com/file/d/proof-file-id','Menunggu Telegram',chatId,chatId,'',''];
+ const access=[appRef,chatId,chatId,'@approval_test','Approval Test',true,'Menunggu','','','',''];
+ const dbRows=[new Array(30).fill('')];
+ let lockDepth=0,lockReleases=0,appendCalls=0,deletedRows=0;
+ function rowSheet(row,label) {
+  return {getRange(r,c,nr=1,nc=1){return{
+   getValues:()=>[row.slice(c-1,c-1+nc)],
+   setValue(v){row[c-1]=v;},
+   setValues(values){values[0].forEach((v,i)=>row[c-1+i]=v);}
+  };}};
+ }
+ const apps=rowSheet(app,'apps'),deposits=rowSheet(deposit,'deposits'),accessSheet=rowSheet(access,'access');
+ const db={
+  getLastRow:()=>dbRows.length,
+  appendRow(values){dbRows.push(values.slice());appendCalls++;throw new Error('INJECTED_APPEND_RESPONSE_LOST_AFTER_WRITE');},
+  deleteRow(row){dbRows.splice(row-1,1);deletedRows++;}
+ };
+ const context={
+  MPS:{headers:new Array(30),minDeposit:1000000},MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},
+  LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;lockReleases++;}})},
+  Utilities:{getUuid:()=> '12345678-1234-1234-1234-123456789abc'},
+  getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
+  getMpsDepositsSheet_:()=>deposits,findMpsDepositRow_:()=>2,
+  getMemberSheet_:()=>db,findMemberById_:(sheet,id)=>{for(let i=1;i<dbRows.length;i++)if(String(dbRows[i][0])===String(id))return i+1;return 0;},
+  ensureUniqueMt5_:()=>true,validateProofFileForApproval_:()=>({fileId:'proof-file-id'}),
+  getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByMemberId_:()=>2,
+  enqueueMpsAdminDecisionIntent_:()=>({ok:true}),sheetText_:v=>String(v??''),safeErrorMessage_:e=>String(e&&e.message||e),console
+ };
+ vm.createContext(context);vm.runInContext(adminVerifySource,context,{timeout:1000});
+ return {run:()=>context.adminVerifyApplication_('session',appRef,'approve',''),dbRows,stats:()=>({lockDepth,lockReleases,appendCalls,deletedRows})};
+}
+
+test('admin approval re-discovers and deletes a member row when appendRow writes but response fails',()=>{
+ const h=ambiguousMemberAppendHarness();
+ assert.throws(()=>h.run(),/INJECTED_APPEND_RESPONSE_LOST_AFTER_WRITE/);
+ assert.equal(h.stats().appendCalls,1);assert.equal(h.stats().deletedRows,1);
+ assert.equal(h.dbRows.length,1,'the ambiguous appended member row must not remain orphaned');
+ assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
+});
