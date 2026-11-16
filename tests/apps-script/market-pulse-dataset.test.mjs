@@ -62,6 +62,29 @@ test('converter builds exactly XAUUSD M5, WIB and three rolling windows with 288
   assert.doesNotMatch(html, /rawData|<script\s+src=/i);
 });
 
+test('Market Pulse read APIs deny direct unauthenticated calls before reading the private dataset',()=>{
+  const memberStart=code.indexOf('function apiGetMarketPulse(session) {');
+  const adminStart=code.indexOf('function apiAdminGetMarketPulse(session) {');
+  const validatorDoc=code.indexOf('/** Membaca dan memvalidasi sumber data Pulse privat',adminStart);
+  const memberSource=code.slice(memberStart,adminStart);
+  const adminSource=code.slice(adminStart,validatorDoc);
+  let reads=0;
+  const context={
+    requireMember_:session=>{if(session!=='valid-member-session')throw new Error('MEMBER_SESSION_REQUIRED');return{memberId:'MPS-AAAAAAAAAA'};},
+    requireAdmin_:session=>{if(session!=='valid-admin-session')throw new Error('ADMIN_SESSION_REQUIRED');return{role:'ADMIN'};},
+    sha256_:value=>'member-hash-'+value,
+    consumeRateLimit_:()=>{},
+    getMarketPulseData_:()=>{reads++;return{ok:true,data:dataset};},
+  };
+  vm.createContext(context);vm.runInContext(memberSource+'\n'+adminSource,context,{timeout:1000});
+  assert.throws(()=>context.apiGetMarketPulse('forged-member-session'),/MEMBER_SESSION_REQUIRED/);
+  assert.throws(()=>context.apiAdminGetMarketPulse('forged-admin-session'),/ADMIN_SESSION_REQUIRED/);
+  assert.equal(reads,0,'unauthenticated calls must not touch the private dataset');
+  assert.equal(context.apiGetMarketPulse('valid-member-session').data.instrument,'XAUUSD');
+  assert.equal(context.apiAdminGetMarketPulse('valid-admin-session').data.instrument,'XAUUSD');
+  assert.equal(reads,2);
+});
+
 test('backend validator accepts the converted compact dataset', () => {
   const result = validate(html);
   assert.equal(result.ok, true);
