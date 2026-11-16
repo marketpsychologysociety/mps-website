@@ -98,6 +98,18 @@ test('rolling windows end at the latest candle even when conversion happens much
   assert.equal(stale.asOf, '2026-03-01T07:00:00+07:00');
 });
 
+test('rolling period start boundary is exclusive to prevent an extra 31st day', () => {
+  const last = Date.parse('2026-11-16T00:00:00Z');
+  const cutoff = last - 30 * 86400000;
+  const exactBoundary = buildDataset([
+    { time: cutoff, open: 100, close: 101 },
+    { time: last, open: 100, close: 101 },
+  ], last + 60000);
+  const slot = 7 * 12;
+  assert.deepEqual(exactBoundary.periods[0].slots[slot], [1, 0]);
+  assert.deepEqual(exactBoundary.periods[1].slots[slot], [2, 0]);
+});
+
 test('backend validator accepts the converted compact dataset', () => {
   const result = validate(html);
   assert.equal(result.ok, true);
