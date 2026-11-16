@@ -127,7 +127,7 @@ test('CREATE appends one current signal and one immutable event; same event ID i
   const retry=ingest(payload());
   assert.equal(retry.duplicate,true);
   assert.equal(h.signals.snapshot().length,2);assert.equal(h.events.snapshot().length,2);
-  assert.equal(h.bots.snapshot()[1][5] instanceof Date,true);
+  assert.equal(Number.isFinite(h.bots.snapshot()[1][5]&&h.bots.snapshot()[1][5].getTime&&h.bots.snapshot()[1][5].getTime()),true);
 });
 
 test('reused event ID with different payload is quarantined as a collision',()=>{
@@ -143,10 +143,10 @@ test('signal updates enforce bot ownership, immutable trade parameters and legal
   const update={...payload(),eventId:'event-update-000001',eventType:'UPDATE',status:'TP1_HIT'};
   assert.equal(ingest(update).status,'TP1_HIT');
   const tp2={...update,eventId:'event-update-000002',status:'TP2_HIT'};
+  assert.throws(()=>ingest({...tp2,eventId:'event-change-price-001',entry:2001}),/UPDATE_CANNOT_CHANGE_SIGNAL_PARAMETERS/);
   assert.equal(ingest(tp2).status,'TP2_HIT');
   assert.throws(()=>ingest({...tp2,eventId:'event-update-000003',status:'TIMEOUT'}),/STATUS_TRANSITION_NOT_ALLOWED/);
   assert.throws(()=>ingest({...update,eventId:'event-other-bot-0001',botId:'BOT_03',botSecret:'bot-three-secret'}),/BOT_SIGNAL_OWNERSHIP_MISMATCH/);
-  assert.throws(()=>ingest({...update,eventId:'event-change-price-001',entry:2001}),/UPDATE_CANNOT_CHANGE_SIGNAL_PARAMETERS/);
   assert.equal(h.events.snapshot().length,3);
 });
 
