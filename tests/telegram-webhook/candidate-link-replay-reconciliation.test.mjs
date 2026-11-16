@@ -339,6 +339,7 @@ test('admin decision intent stores only minimal references and keeps chat target
   let captured=null;
   const context={
     sha256_:()=> 'b'.repeat(64),
+    PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'synthetic-spreadsheet'})},
     enqueueMpsVipFollowup_:(task,lockAlreadyHeld)=>{assert.equal(lockAlreadyHeld,true);captured=task;return{ok:true};}
   };
   vm.createContext(context);vm.runInContext(fn,context,{timeout:1000});
