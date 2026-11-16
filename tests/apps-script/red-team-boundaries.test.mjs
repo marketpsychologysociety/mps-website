@@ -16,6 +16,7 @@ test('member intelligence ignores attacker-supplied identity and binds output to
   const context={
     requireMember_:session=>{if(session!=='valid-server-session')throw new Error('SESSION_INVALID');return{memberId:'MPS-AAAAAAAAAA',row:2};},
     consumeRateLimit_:()=>{},
+    sha256_:value=>'synthetic-hash-'+String(value),
     requireVipMember_:()=>{throw new Error('NOT_VIP');},
     buildMpsMemberIntelligence_:(member,vip)=>{captured={memberId:member.memberId,vip};return captured;},
   };
