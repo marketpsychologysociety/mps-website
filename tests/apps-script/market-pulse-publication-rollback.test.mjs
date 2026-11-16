@@ -124,7 +124,7 @@ test('trash response loss after successful trash is reconciled as a clean rollba
 });
 
 test('old-file restore response loss after successful rename is reconciled',()=>{
-  const h=harness({old:{restoreFailAfter:true}});
+  const h=harness({old:{restoreFailAfter:true},new:{sharingFailAfter:true}});
   assert.throws(()=>h.run(),/versi sebelumnya berhasil dipulihkan/);
   assert.equal(h.old.getName(),canonical);assert.equal(activeNamed(h).length,1);
   assert.equal(activeNamed(h)[0].getId(),'old-file');
@@ -138,7 +138,7 @@ test('ambiguous create response without an old version leaves no active partial 
 });
 
 test('rollback reports incomplete only when cleanup and old-file restoration both fail',()=>{
-  const h=harness({new:{trashFailBefore:true},old:{restoreFailBefore:true}});
+  const h=harness({new:{sharingFailAfter:true,trashFailBefore:true},old:{restoreFailBefore:true}});
   assert.throws(()=>h.run(),/rollback tidak lengkap/);
   assert.notEqual(h.old.getName(),canonical);
   assert.equal(activeNamed(h).length,1);
