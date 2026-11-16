@@ -53,6 +53,14 @@ test('incomplete compensation quarantines the decision intent for operator revie
  assert.match(catchSettlement,/catch\(intentErr\)\s*\{\s*rollbackErrors\.push/);
 });
 
+test('deterministic queue preflight failures are not misreported as incomplete business rollback',()=>{
+ assert.match(source,/MPS_SPREADSHEET_ID_REQUIRED_FOR_DECISION_INTENT/);
+ assert.match(catchSettlement,/intentPreflightFailure/);
+ assert.match(catchSettlement,/VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED/);
+ assert.match(catchSettlement,/VIP_FOLLOWUP_QUEUE_SCHEMA_MISMATCH/);
+ assert.match(catchSettlement,/if\(!intentPreflightFailure\)/);
+});
+
 function settlementHarness(initialState='PENDING') {
  const headers=['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','Status','Attempts','Next Attempt','Lease Until','Last Error','Created At','Updated At'];
  const key='admin-decision-intent:'+'a'.repeat(40);
@@ -106,7 +114,7 @@ const adminVerifyEnd=source.indexOf('\nfunction apiAdminRetryVipInvite',adminVer
 assert.ok(adminVerifyStart>=0&&adminVerifyEnd>adminVerifyStart,'adminVerifyApplication_ boundaries must exist');
 const adminVerifySource=source.slice(adminVerifyStart,adminVerifyEnd);
 
-function adminRejectHarness(failAt=[]) {
+function adminRejectHarness(failAt=[],intentError=null) {
  const appRef='MPS-APP-0123456789ABCDEF0123';
  const app=[appRef,new Date(),'Member Test','@member_test','ID','Trading','', 'Deposit Dikirim','','','', '', '', '',new Date()];
  const deposit=[appRef,new Date(),'Member Test','12345678','Standard',1000000,'2026-11-15','proof','https://drive.google.com/file/d/proof','Menunggu Telegram','','987654321','',''];
@@ -137,7 +145,7 @@ function adminRejectHarness(failAt=[]) {
   getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
   getMpsDepositsSheet_:()=>deposits,findMpsDepositRow_:()=>2,
   getMpsMemberLinksSheet_:()=>links,getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByMemberId_:()=>2,
-  enqueueMpsAdminDecisionIntent_:()=>{intentCreated++;return{ok:true};},
+  enqueueMpsAdminDecisionIntent_:()=>{intentCreated++;if(intentError)throw new Error(intentError);return{ok:true};},
   settleMpsAdminDecisionIntentAfterRollback_:(subject,member,action,incomplete)=>{settlement=incomplete?'REVIEW':'CANCELLED';return{ok:true,state:settlement};},
   enqueueMpsVipFollowup_:(task)=>{if(task.action==='ADMIN_ALERT')alertQueued++;return{ok:true};},
   sha256_:()=> 'b'.repeat(64),sheetText_:v=>String(v??''),safeErrorMessage_:e=>String(e&&e.message||e),
@@ -150,6 +158,18 @@ function adminRejectHarness(failAt=[]) {
   run:()=>context.adminVerifyApplication_('session',appRef,'reject','Bukti tidak valid'),
   app,deposit,link,access,original,stats:()=>({counts,lockDepth,lockReleases,settlement,alertQueued,intentCreated})
  };
+}
+
+for(const preflightError of ['VIP_FOLLOWUP_QUEUE_NOT_PROVISIONED','VIP_FOLLOWUP_QUEUE_SCHEMA_MISMATCH']){
+ test('admin rejection does not report incomplete rollback when decision-intent enqueue fails before any write: '+preflightError,()=>{
+  const h=adminRejectHarness([],preflightError);
+  assert.throws(()=>h.run(),new RegExp(preflightError));
+  const stats=h.stats();
+  assert.deepEqual(h.app,h.original.app);assert.deepEqual(h.deposit,h.original.deposit);
+  assert.deepEqual(h.link,h.original.link);assert.deepEqual(h.access,h.original.access);
+  assert.equal(stats.settlement,'');assert.equal(stats.alertQueued,0);
+  assert.equal(stats.lockDepth,0);assert.equal(stats.lockReleases,1);
+ });
 }
 
 for(const boundary of ['apps:1','apps:2','apps:3','deposits:1','deposits:2','deposits:3','links:1','access:1']){
