@@ -32,9 +32,9 @@ All tests in this report were run against candidate source and synthetic data. N
 
 ## Automated evidence
 
-GitHub Actions [run #2042](https://github.com/marketpsychologysociety/mps-website/actions/runs/43805836747) completed **SUCCESS, 74/74 steps, 0 failures** on candidate head `034cb42379beec96a3b0a911fa8aa94869176db9`.
+GitHub Actions [run #2047](https://github.com/marketpsychologysociety/mps-website/actions/runs/43806197671) completed **SUCCESS, 74/74 steps, 0 failures** on candidate head `9bf41d96f3b740052b3e103f859169e570602bf1`.
 
-The new controlled red-team boundary suite passed **6/6 tests**, covering:
+The controlled red-team boundary suite passed **8/8 tests**, covering:
 - Member identity injection into Member Intelligence.
 - Session-token persistence in local/session browser storage.
 - Invalid and truncated PDF rejection.
