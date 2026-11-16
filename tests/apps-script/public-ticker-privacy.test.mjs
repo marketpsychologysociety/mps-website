@@ -48,11 +48,12 @@ test('public VIP ticker identity is a validated real member name; internal Membe
   const body=source.slice(start,end);
   assert.ok(body.includes("MemberName:r['Member Name']"));
   assert.ok(body.includes("r['Member ID']"));
-  assert.ok(!body.includes("MemberId:r['Member Name']"));
+  assert.ok(!body.includes('MemberId:'));
   assert.ok(!body.includes('PublicAlias'));
   assert.ok(body.includes("isSafePublicIdentity_(r['Member Name'])"));
 });
-test('empty, oversized, and identifier-like names are denied',()=>{
+test('ordinary real member names are allowed while empty, oversized, and identifier-like values are denied',()=>{
+  for(const value of ['Budi Santoso','John Doe','Trader MPS']) assert.equal(context.isSafePublicIdentity_(value),true,value);
   for(const value of ['', '   ', 'A'.repeat(101), 'MPS-ABCDEF1234', 'MPS-APP-0123456789ABCDEF', '@trader_mps', 'MT5 Login: 12345678', 'LOGIN 12345678']) {
     assert.equal(context.isSafePublicIdentity_(value),false,String(value));
   }
@@ -65,7 +66,7 @@ test('contact details, payment amounts, and links are denied from public ticker 
 test('public activity projection exposes safe member name and event text, never internal Member ID',()=>{
   assert.ok(source.includes("const publicActivity = activity.map(function(r){return {MemberName:r['Member Name'],PublicText:r['Event Text']};});"));
   assert.ok(source.includes("isSafePublicIdentity_(r['Member Name'])"));
-  assert.ok(!source.includes("MemberId:r['Member Name']"));
+  assert.ok(!source.includes('MemberId:'));
   assert.ok(!/MemberId:r\\['Member Name'\\]/.test(source));
 });
 test('public website ticker renders validated real names and never renders Member IDs',()=>{
@@ -103,7 +104,7 @@ test('publicCenter GET bridge returns a text-only strict data envelope without e
   const start=source.indexOf('function doGet(e) {');
   const end=source.indexOf(String.fromCharCode(10)+'function doPost(e)',start+1);
   assert.ok(start>=0&&end>start,'doGet boundaries must exist');
-  const payload={ok:true,activity:[{MemberId:'MPS-ABCDEF12',PublicText:'telah bergabung ke MPS VIP Community'}],announcements:[]};
+  const payload={ok:true,activity:[{MemberName:'Budi Santoso',PublicText:'telah bergabung ke MPS VIP Community'}],announcements:[]};
   const isolated={
     apiGetPublicCenter:()=>payload,
     ContentService:{
@@ -117,7 +118,9 @@ test('publicCenter GET bridge returns a text-only strict data envelope without e
   assert.equal(response.mime,'text/plain');
   assert.equal(response.body,'window.MPS_PUBLIC_CENTER_DATA='+JSON.stringify(payload)+';');
   const parsed=JSON.parse(response.body.slice('window.MPS_PUBLIC_CENTER_DATA='.length,-1));
-  assert.equal(parsed.activity[0].MemberId,'MPS-ABCDEF12');
+  assert.equal(parsed.activity[0].MemberName,'Budi Santoso');
+  assert.ok(!Object.hasOwn(parsed.activity[0],'MemberId'));
+  assert.ok(!response.body.includes('MPS-ABCDEF12'));
   assert.ok(!response.body.includes('eval('));
   assert.ok(!response.body.includes('<script'));
   assert.ok(!response.body.toLowerCase().includes('javascript:'));
