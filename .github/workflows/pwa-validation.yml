@@ -119,6 +119,8 @@ jobs:
         run: node --test tests/apps-script/market-pulse-publication-rollback.test.mjs
       - name: Run runtime Learning file authorization and direct-ID bypass tests (mocked Drive only)
         run: node --test tests/apps-script/learning-file-access-runtime.test.mjs
+      - name: Run controlled red-team authorization and malicious PDF upload tests (mocked services only)
+        run: node --test tests/apps-script/red-team-boundaries.test.mjs
       - name: Run deposit proof approval file validation tests (mocked Drive only)
         run: node --test tests/apps-script/proof-approval-validation.test.mjs
       - name: Run authenticated deposit proof proxy runtime tests (mocked Drive only)
