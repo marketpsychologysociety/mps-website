@@ -2,6 +2,11 @@
 
 Website publik MPS menggunakan HTML, CSS, dan JavaScript statis serta dipublikasikan melalui GitHub Pages. Portal pendaftaran, layanan member, dan administrasi berjalan pada Google Apps Script Web App yang terpisah.
 
+## URL resmi aktif
+
+- Website MPS: https://marketpsychologysociety.github.io/mps-website/index.html
+- Member Portal: https://marketpsychologysociety.github.io/mps-website/member-portal.html
+
 ## Halaman publik
 
 - Beranda, About, Core System, Education
