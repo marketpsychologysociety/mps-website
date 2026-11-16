@@ -36,6 +36,15 @@ test('member and administrator session tokens are not persisted in browser stora
   assert.doesNotMatch(indexHtml,/sessionStorage\.[\s\S]{0,120}(?:memberSession|adminSession|memberPin|adminToken)/i);
 });
 
+test('candidate source files contain no common hard-coded API or bot credential patterns',()=>{
+  const paths=['../../candidates/Code.gs','../../candidates/Index.html','../../index.html','../../heatmap.html','../../scripts/build-market-pulse-dataset.mjs'];
+  const patterns=[/\b\d{8,10}:[A-Za-z0-9_-]{30,}\b/,/AIza[0-9A-Za-z_-]{30,}/,/gh[pousr]_[A-Za-z0-9]{30,}/,/AKIA[0-9A-Z]{16}/,/sk-[A-Za-z0-9]{20,}/];
+  for(const path of paths){
+    const content=fs.readFileSync(new URL(path,import.meta.url),'utf8');
+    for(const pattern of patterns)assert.doesNotMatch(content,pattern,path+' contains a credential-like literal');
+  }
+});
+
 function uploadContext(){
   const context={
     MPS:{maxLearningFileBytes:8*1024*1024},
