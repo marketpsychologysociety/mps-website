@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
 
-const source = process.env.MPS_CODE_GS || '';
+const source = readFileSync(new URL('../../candidates/Code.gs', import.meta.url), 'utf8');
 
 function load(folder, properties={MPS_LEARNING_FOLDER_ID:'learning-folder',MPS_PROOF_FOLDER_ID:'proof-folder'}) {
   const helperStart=source.indexOf('function assertMpsDriveFolderTreePrivate_(');
