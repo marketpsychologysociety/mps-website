@@ -61,6 +61,13 @@ test('deterministic queue preflight failures are not misreported as incomplete b
  assert.match(catchSettlement,/if\(decisionIntentAttempted&&!intentPreflightFailure\)/);
 });
 
+test('invalid admin decision is rejected before acquiring a lock or creating an intent',()=>{
+ const context={};
+ vm.createContext(context);
+ vm.runInContext(adminVerifySource,context,{timeout:1000});
+ assert.throws(()=>context.adminVerifyApplication_('session','MPS-APP-0123456789ABCDEF0123','unknown',''),/ADMIN_DECISION_ACTION_INVALID/);
+});
+
 test('decision intent is settled only when enqueue was attempted; ambiguous failures remain reconciled',()=>{
  assert.match(body,/decisionIntentAttempted=true;enqueueMpsAdminDecisionIntent_/);
  assert.match(catchSettlement,/if\(decisionIntentAttempted&&!intentPreflightFailure\)/);
