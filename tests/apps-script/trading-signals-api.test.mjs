@@ -67,9 +67,9 @@ function harness(options={}) {
   const parentFolder={getSharingAccess:()=>options.parentPrivate===false?'ANYONE':'PRIVATE',getEditors:()=>options.parentEditors||[],getViewers:()=>options.parentViewers||[]};
   const file={
     getSharingAccess:()=>options.filePrivate===false?'ANYONE':'PRIVATE',
-    getEditors:()=>options.fileEditors||[],getViewers:()=>options.fileViewers||[],
     getParents(){let used=false;return{hasNext:()=>!used&&!!options.withParent,next:()=>{used=true;return parentFolder;}};}
   };
+  if(!options.aclUnavailable){file.getEditors=()=>options.fileEditors||[];file.getViewers=()=>options.fileViewers||[];}
   const ss={getSheetByName:name=>sheetMap[name]||null};
   const context={
     MPS:{},
