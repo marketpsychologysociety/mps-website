@@ -1743,7 +1743,7 @@ function processTelegramUpdateCore_(update) {
     const chatId=String(botUpdate.chat.id),status=String(botUpdate.new_chat_member.status||''),configured=String(PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_VIP_CHAT_ID')||'');
     if(chatId===configured){
       const canInvite=botUpdate.new_chat_member.can_invite_users===true,healthy=status==='administrator'&&canInvite;
-      recordMpsAudit_('TELEGRAM','BOT','BOT_GROUP_PERMISSION_CHANGED',chatId,healthy?'SUCCESS':'WARNING','Status bot pada grup berubah menjadi '+clean_(status,30)+'; izin undang anggota: '+(canInvite?'aktif':'tidak aktif atau tidak diketahui')+'.');
+      recordMpsTelegramAuditOnce_('update:'+String(updateId),'bot-permission:'+chatId,new Date(Number(botUpdate.date)*1000),'TELEGRAM','BOT','BOT_GROUP_PERMISSION_CHANGED',chatId,healthy?'SUCCESS':'WARNING','Status bot pada grup berubah menjadi '+clean_(status,30)+'; izin undang anggota: '+(canInvite?'aktif':'tidak aktif atau tidak diketahui')+'.');
       if(!healthy){
         const alertKey='telegram:bot-permission:'+sha256_(String(updateId)+':'+chatId);
         enqueueMpsVipFollowup_({taskKey:alertKey,intentKey:alertKey,action:'ADMIN_ALERT',groupId:chatId,alertText:'⚠️ PERINGATAN MPS: status/izin bot pada VIP Community berubah. Status: '+clean_(status,30)+'. Izin mengundang anggota: '+(canInvite?'aktif':'tidak aktif/tidak diketahui')+'. Periksa pengaturan admin bot.'});
@@ -1797,8 +1797,8 @@ function processVipJoinRequest_(request,update) {
       const retryCheck=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChatMember',{method:'post',payload:{chat_id:chatId,user_id:userId},muteHttpExceptions:true});
       const state=parseTelegramResponse_(retryCheck),status=state.ok&&state.result?String(state.result.status||''):'';
       if(status==='member'||status==='administrator'||status==='creator'||(status==='restricted'&&state.result.is_member===true)){if(allowed)enqueueMpsVipJoinRequestNotice_(request,update,true);return true;}
-      if(!allowed&&(status==='left'||status==='kicked')){recordMpsAudit_('TELEGRAM',userId,'VIP_JOIN_ALREADY_DECLINED',userId,'SUCCESS','Permintaan join sudah tidak aktif saat webhook dicoba ulang.');enqueueMpsVipJoinRequestNotice_(request,update,false);return true;}
-      if(allowed&&(status==='left'||status==='kicked')&&/USER_ID_INVALID|request.*not found|no.*join request/i.test(String(result.description||''))){recordMpsAudit_('TELEGRAM',memberId,'VIP_JOIN_REQUEST_ALREADY_CLOSED',memberId,'SUCCESS','Telegram tidak lagi memiliki join request aktif; tidak ada akses grup yang diberikan.');return true;}
+      if(!allowed&&(status==='left'||status==='kicked')){recordMpsTelegramAuditOnce_('join-request:'+chatId+':'+userId+':'+String(request.date||''),'already-declined',new Date(Number(request.date)*1000),'TELEGRAM',userId,'VIP_JOIN_ALREADY_DECLINED',userId,'SUCCESS','Permintaan join sudah tidak aktif saat webhook dicoba ulang.');enqueueMpsVipJoinRequestNotice_(request,update,false);return true;}
+      if(allowed&&(status==='left'||status==='kicked')&&/USER_ID_INVALID|request.*not found|no.*join request/i.test(String(result.description||''))){recordMpsTelegramAuditOnce_('join-request:'+chatId+':'+userId+':'+String(request.date||''),'already-closed',new Date(Number(request.date)*1000),'TELEGRAM',memberId,'VIP_JOIN_REQUEST_ALREADY_CLOSED',memberId,'SUCCESS','Telegram tidak lagi memiliki join request aktif; tidak ada akses grup yang diberikan.');return true;}
     }catch(checkErr){if(String(checkErr&&checkErr.message||checkErr).indexOf('VIP_JOIN_NOTICE_QUEUE_FAILED:')===0)throw checkErr;if(!allowed&&/USER_ID_INVALID|user.*not found|chat.*not found/i.test(String(result.description||'')))return true;}
     if(!allowed&&/USER_ID_INVALID|request.*not found|no.*join request/i.test(String(result.description||'')))return true;
     throw new Error(result.description||'Telegram join request gagal diproses.');
@@ -1912,7 +1912,7 @@ function verifyTelegramApplication_(linkRow,link,msg,update) {
     if(/^[0-9]{1,20}$/.test(chatId))enqueueMpsTelegramMessage_(update,chatId,'link-verification-result','SEND_DM',failureMessage);
     return false;
   }
-  if(committed){recordMpsAudit_('TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}}
+  if(committed){recordMpsTelegramAuditOnce_('telegram-link:'+String(link[0]||''),'verified',link[1],'TELEGRAM',appRef,'TELEGRAM_LINKED',appRef,'SUCCESS','Akun Telegram diverifikasi untuk Application Ref; Member ID belum diterbitkan.');try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}}
   return committed;
 }
 
@@ -1985,7 +1985,7 @@ function verifyTelegramLinkLegacy_(token,msg,update) {
     return false;
   }
   if(committed){
-    recordMpsAudit_('TELEGRAM',verifiedMemberId,'TELEGRAM_LINKED',verifiedMemberId,'SUCCESS','Akun Telegram terverifikasi menggunakan token sekali pakai.');
+    recordMpsTelegramAuditOnce_('telegram-link:'+tokenHash,'verified',linkSnapshot[1],'TELEGRAM',verifiedMemberId,'TELEGRAM_LINKED',verifiedMemberId,'SUCCESS','Akun Telegram terverifikasi menggunakan token sekali pakai.');
     try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Telegram link confirmation queue drain deferred: '+safeErrorMessage_(queueErr));}
   }
   return committed;
@@ -3141,10 +3141,22 @@ function putMpsCacheBestEffort_(key,value,ttl,context) {
   catch(cacheErr) { console.warn('MPS cache write failed ('+clean_(context,80)+').'); return false; }
 }
 
-function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
+function recordMpsAudit_(role,actorRef,action,targetRef,result,details,effectKey,auditAt) {
   try{
+    const row=[
+      effectKey?(auditAt instanceof Date?auditAt:new Date(auditAt)):new Date(),
+      clean_(role,20),sheetText_(clean_(actorRef,60)),clean_(action,60),
+      sheetText_(clean_(targetRef,100)),clean_(result,30),sheetText_(cleanNewsText_(details,240))
+    ];
+    if(effectKey){
+      const spreadsheetId=String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||'');
+      if(!spreadsheetId)throw new Error('MPS_SPREADSHEET_ID_REQUIRED_FOR_KEYED_AUDIT');
+      const stored=createMpsGasEffectLedger_({spreadsheetId:spreadsheetId}).appendOnce('audit',String(effectKey),row);
+      if(!stored||!['APPENDED','ALREADY_APPENDED'].includes(String(stored.outcome)))throw new Error('MPS_AUDIT_EFFECT_KEY_COLLISION_OR_NOT_STORED');
+      return true;
+    }
     const sh=getMpsContentSheet_(MPS_AUDIT_LOGS.sheet,MPS_AUDIT_LOGS.headers);
-    sh.appendRow([new Date(),clean_(role,20),sheetText_(clean_(actorRef,60)),clean_(action,60),sheetText_(clean_(targetRef,100)),clean_(result,30),sheetText_(cleanNewsText_(details,240))]);
+    sh.appendRow(row);
     const last=sh.getLastRow();
     if(last>2001){
       const width=sh.getLastColumn(),hasEffectKey=width>=8&&String(sh.getRange(1,8).getDisplayValues()[0][0]||'')==='Effect Key';
@@ -3163,6 +3175,15 @@ function recordMpsAudit_(role,actorRef,action,targetRef,result,details) {
     return true;
   }catch(err){console.error('MPS audit log write failed: '+safeErrorMessage_(err));return false;}
 }
+function recordMpsTelegramAuditOnce_(sourceKey,effectName,eventAt,role,actorRef,action,targetRef,result,details) {
+  const source=String(sourceKey||''),effect=String(effectName||'');
+  const timestamp=eventAt instanceof Date?eventAt:new Date(eventAt);
+  if(!source||source.length>256||!effect||effect.length>96||!Number.isFinite(timestamp.getTime()))throw new Error('TELEGRAM_AUDIT_EFFECT_IDENTITY_INVALID');
+  const key='telegram:audit:'+sha256_(source+':'+effect);
+  if(!recordMpsAudit_(role,actorRef,action,targetRef,result,details,key,timestamp))throw new Error('TELEGRAM_AUDIT_EFFECT_NOT_DURABLE');
+  return true;
+}
+
 function apiAdminCheckSystemConfiguration(session) {
   const admin=requireSuperAdmin_(session);
   consumeRateLimit_('mps_admin_config_check_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),3,60,'Pemeriksaan konfigurasi terlalu sering. Coba lagi sebentar.');
