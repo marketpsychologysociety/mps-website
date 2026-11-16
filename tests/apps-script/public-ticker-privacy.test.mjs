@@ -88,7 +88,6 @@ test('public website ticker actually suppresses unsafe identities at render time
   const start=renderer.indexOf('const renderTicker = data => {');
   const end=renderer.indexOf('\n  const renderAnnouncements',start+1);
   assert.ok(start>=0&&end>start,'renderTicker function boundaries must exist');
-  const nodes=[];
   const track={children:[],style:{},replaceChildren(){this.children=[];},appendChild(node){this.children.push(node);}};
   const label={textContent:''};
   const ticker={hidden:false,classList:{remove(){}},querySelector(selector){return selector==='.ticker-track'?track:label;},setAttribute(){}};
@@ -97,7 +96,7 @@ test('public website ticker actually suppresses unsafe identities at render time
     document:{querySelector:()=>ticker,createElement:tag=>({tag,textContent:'',className:''})}
   };
   vm.createContext(isolated);
-  vm.runInContext(renderer.slice(start,end)+'\\nglobalThis.testRenderTicker=renderTicker;',isolated,{timeout:1000});
+  vm.runInContext(renderer.slice(start,end)+'\nglobalThis.testRenderTicker=renderTicker;',isolated,{timeout:1000});
   isolated.testRenderTicker({
     tickerSettings:{enabled:true,speed:34},
     announcements:[],
