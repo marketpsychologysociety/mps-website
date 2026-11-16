@@ -52,3 +52,20 @@ The canonical checklist and isolated acceptance runbook continue to require:
 - Remaining gaps are operational rather than the previously identified source/test gaps: live standalone Apps Script execution with synthetic Sheets, real ScriptLock/trigger behavior, Telegram test-bot delivery, actual Drive ACL inheritance, public-center bridge CORS/fetch behavior, physical Android testing, and independent release sign-off. Keep production **NO-GO** until those gates have independently inspectable evidence and the owner separately authorizes release.
 
 **Conclusion:** several earlier source-level rollback concerns have since been addressed in the candidate source, so those code paths should not be reimplemented from scratch. The remaining material gap is durable handling and test coverage for incomplete admin-verification compensation, followed by real isolated Apps Script/Telegram/Drive acceptance.
+
+## Follow-up audit — pre-mutation admin decision failures (2026-11-16)
+
+A second pass found that the rollback handler attempted to rewrite application/deposit/access snapshots even when validation or durable-intent preparation failed before the first business-sheet mutation. It also attempted to settle a decision-intent row when the enqueue operation had not created one. These unnecessary writes could turn a harmless preflight/configuration error into a false incomplete-rollback alert.
+
+**Correction in candidate source:**
+- Validate the admin decision as exactly `approve` or `reject` before acquiring ScriptLock.
+- Track whether decision-intent enqueue was attempted and whether the first business mutation began.
+- Skip snapshot compensation entirely when no business mutation started.
+- Skip intent settlement when enqueue fails with deterministic pre-write conditions: missing spreadsheet ID, missing queue sheet, or queue schema mismatch. These conditions are checked before the enqueue helper appends a row.
+- Preserve reconciliation for unknown/ambiguous enqueue failures (including append/flush response loss): those still attempt to locate and cancel/quarantine the durable intent.
+- Added regression cases for deterministic queue preflight failures, invalid decision actions, no-op compensation, and continued settlement for ambiguous enqueue errors.
+- Updated the existing one-time-link/decision-intent test harness with the required synthetic Script Properties mock.
+
+**Verification:** GitHub Actions run [#2018](https://github.com/marketpsychologysociety/mps-website/actions/runs/43804067318) completed **SUCCESS, 71/71 steps, 0 failures** on exact PR head `7f8974958f8dcee5d7059db36cc0b7b69e05b4d8`. The Admin verification rollback suite and candidate Telegram one-time-link replay suite completed successfully; Chromium browser checks also passed. The admin rollback suite now executes 40 test cases including loop-expanded failure-injection boundaries.
+
+**Scope:** PR #12 remains Draft/open/unmerged, with mergeability reported false. Production `main` remains `9f5d9128f7226b1a53cbcaa1615068e7a7fbc6ff`. No Apps Script deployment, production database/member rows, Drive ACL, Script Properties, Telegram configuration, or production trigger was changed. This CI evidence remains isolated/mocked; real Apps Script acceptance is still outstanding.
