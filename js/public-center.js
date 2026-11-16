@@ -67,7 +67,7 @@
     const items = [];
     data.activity.slice(0, 12).forEach(item => {
       const memberName = safeText(item.MemberName, 100).trim();
-      const unsafeIdentity = /(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}|\\b\\+?\\d[\\d ()-]{5,}\\b|\\b(?:MT5|LOGIN)\\s*[:#-]?\\s*\\d{4,}\\b|@[A-Z0-9_]{5,32}\\b|https?:\\/\\/|www\\.|\\b(?:RP|IDR)\\s*[\\d.,]+)/i;
+      const unsafeIdentity = /(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b\+?\d[\d ()-]{5,}\b|\b(?:MT5|LOGIN)\s*[:#-]?\s*\d{4,}\b|@[A-Z0-9_]{5,32}\b|https?:\/\/|www\.|\b(?:RP|IDR)\s*[\d.,]+)/i;
       const eventText = safeText(item.PublicText, 120).trim();
       if (memberName && memberName.length <= 100 && !unsafeIdentity.test(memberName)) {
         items.push(memberName + (eventText ? " — " + eventText : " bergabung ke MPS VIP Community"));
