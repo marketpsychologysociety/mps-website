@@ -100,3 +100,78 @@ test('decision-intent settlement is idempotent and does not overwrite terminal q
   assert.deepEqual(h.row,before);
  }
 });
+
+const adminVerifyStart=source.indexOf('function adminVerifyApplication_(session,applicationRef,action,note) {');
+const adminVerifyEnd=source.indexOf('\nfunction apiAdminRetryVipInvite',adminVerifyStart+1);
+assert.ok(adminVerifyStart>=0&&adminVerifyEnd>adminVerifyStart,'adminVerifyApplication_ boundaries must exist');
+const adminVerifySource=source.slice(adminVerifyStart,adminVerifyEnd);
+
+function adminRejectHarness(failAt=[]) {
+ const appRef='MPS-APP-0123456789ABCDEF0123';
+ const app=[appRef,new Date(),'Member Test','@member_test','ID','Trading','', 'Deposit Dikirim','','','', '', '', '',new Date()];
+ const deposit=[appRef,new Date(),'Member Test','12345678','Standard',1000000,'2026-11-15','proof','https://drive.google.com/file/d/proof','Menunggu Telegram','','987654321','',''];
+ const link=['hash',new Date(),new Date(Date.now()+600000),'Menunggu','',appRef,'','','','',''];
+ const access=[appRef,'987654321','987654321','@member_test','Member Test',true,'Menunggu','','','',''];
+ const counts={apps:0,deposits:0,links:0,access:0},remaining=failAt.slice();
+ let lockDepth=0,lockReleases=0,settlement='',alertQueued=0,intentCreated=0;
+ function sheet(row,label,allRows) {
+  return {
+   getLastRow:()=>allRows?allRows.length:2,
+   getRange(r,c,nr=1,nc=1){return{
+    getValues:()=>allRows?allRows.slice(r-1,r-1+nr).map(line=>line.slice(c-1,c-1+nc)):[row.slice(c-1,c-1+nc)],
+    getDisplayValues:()=>allRows?allRows.slice(r-1,r-1+nr).map(line=>line.slice(c-1,c-1+nc).map(v=>String(v??''))):[row.slice(c-1,c-1+nc).map(v=>String(v??''))],
+    setValue(value){counts[label]++;row[c-1]=value;const key=label+':'+counts[label],i=remaining.indexOf(key);if(i>=0){remaining.splice(i,1);throw new Error('INJECTED_'+key+'_WRITE');}},
+    setValues(values){counts[label]++;values.forEach((line,ri)=>line.forEach((v,ci)=>{if(!allRows||allRows[r-1+ri]) (allRows?allRows[r-1+ri]:row)[c-1+ci]=v;}));const key=label+':'+counts[label],i=remaining.indexOf(key);if(i>=0){remaining.splice(i,1);throw new Error('INJECTED_'+key+'_WRITE');}}
+   };},
+   appendRow(values){allRows.push(values.slice());},
+   deleteRow(r){allRows.splice(r-1,1);}
+  };
+ }
+ const appsRows=[new Array(15).fill(''),app],depositRows=[new Array(14).fill(''),deposit],linkRows=[new Array(11).fill(''),link];
+ const apps=sheet(app,'apps'),deposits=sheet(deposit,'deposits'),links=sheet(link,'links',linkRows),accessSheet=sheet(access,'access');
+ const original={app:app.slice(),deposit:deposit.slice(),link:link.slice(),access:access.slice()};
+ const context={
+  MPS:{headers:new Array(30),minDeposit:1000000},MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},MPS_MEMBER_LINKS:{headers:new Array(11)},
+  LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;lockReleases++;}})},
+  Utilities:{getUuid:()=> '12345678-1234-1234-1234-123456789abc'},
+  getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
+  getMpsDepositsSheet_:()=>deposits,findMpsDepositRow_:()=>2,
+  getMpsMemberLinksSheet_:()=>links,getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByMemberId_:()=>2,
+  enqueueMpsAdminDecisionIntent_:()=>{intentCreated++;return{ok:true};},
+  settleMpsAdminDecisionIntentAfterRollback_:(subject,member,action,incomplete)=>{settlement=incomplete?'REVIEW':'CANCELLED';return{ok:true,state:settlement};},
+  enqueueMpsVipFollowup_:(task)=>{if(task.action==='ADMIN_ALERT')alertQueued++;return{ok:true};},
+  sha256_:()=> 'b'.repeat(64),sheetText_:v=>String(v??''),safeErrorMessage_:e=>String(e&&e.message||e),
+  CacheService:{getScriptCache:()=>({remove:()=>{}})},runMpsVipFollowupQueue_:()=>({ok:true}),
+  recordMpsAudit_:()=>true,adminRole_:()=> 'ADMIN',adminActorRef_:()=> 'ADMIN',
+  console
+ };
+ vm.createContext(context);vm.runInContext(adminVerifySource,context,{timeout:1000});
+ return {
+  run:()=>context.adminVerifyApplication_('session',appRef,'reject','Bukti tidak valid'),
+  app,deposit,link,access,original,stats:()=>({counts,lockDepth,lockReleases,settlement,alertQueued,intentCreated})
+ };
+}
+
+for(const boundary of ['apps:1','apps:2','apps:3','deposits:1','deposits:2','deposits:3','links:1','access:1']){
+ test('admin rejection restores all business snapshots after '+boundary+' write fails',()=>{
+  const h=adminRejectHarness([boundary]);
+  assert.throws(()=>h.run(),new RegExp('INJECTED_'+boundary+'_WRITE'));
+  assert.deepEqual(h.app,h.original.app);assert.deepEqual(h.deposit,h.original.deposit);
+  assert.deepEqual(h.link,h.original.link);assert.deepEqual(h.access,h.original.access);
+  assert.equal(h.stats().settlement,'CANCELLED');assert.equal(h.stats().alertQueued,0);
+  assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
+ });
+}
+
+for(const rollbackBoundary of ['access:2','links:2','apps:4','deposits:4']){
+ test('admin rejection quarantines decision and queues alert when '+rollbackBoundary+' compensation fails',()=>{
+  const h=adminRejectHarness(['access:1',rollbackBoundary]);
+  assert.throws(()=>h.run(),err=>{
+   assert.match(err.message,/Rollback tidak lengkap/);
+   assert.match(err.message,/Peringatan rekonsiliasi tersimpan di antrean Admin/);
+   return true;
+  });
+  assert.equal(h.stats().settlement,'REVIEW');assert.equal(h.stats().alertQueued,1);
+  assert.equal(h.stats().lockDepth,0);assert.equal(h.stats().lockReleases,1);
+ });
+}
