@@ -1337,7 +1337,7 @@ function apiAdminValidateMarketPulseUpload(session,payload) {
   let bytes,source;try{bytes=Utilities.base64Decode(encoded);source=Utilities.newBlob(bytes,'text/html',name).getDataAsString('UTF-8');}catch(e){throw new Error('File HTML tidak dapat dibaca.');}
   if(!bytes||bytes.length>MPS.maxPulseDataBytes)throw new Error('Ukuran file Market Pulse maksimal 1 MB.');
   const checked=validateMarketPulseSource_(source);
-  return {ok:true,name:name,size:bytes.length,stats:checked.stats,groups:checked.groups,endDates:checked.endDates,threshold:checked.threshold,message:'Validasi berhasil. Dataset belum dipublikasikan.'};
+  return {ok:true,name:name,size:bytes.length,stats:checked.stats,groups:checked.groups,endDate:checked.endDate,asOf:checked.asOf,threshold:checked.threshold,message:'Validasi berhasil. Dataset belum dipublikasikan.'};
 }
 
 function apiAdminUploadMarketPulse(session,payload) {
@@ -1371,8 +1371,8 @@ function adminUploadMarketPulseCore_(session,payload) {
     if(rollbackErrors.length)throw new Error('Publikasi Market Pulse gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa folder Learning sebelum mencoba ulang.');
     throw new Error('Publikasi Market Pulse gagal; versi sebelumnya berhasil dipulihkan: '+safeErrorMessage_(err));
   }
-  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'MARKET_PULSE_DATA_PUBLISHED',newFile.getId(),'SUCCESS','Dataset tervalidasi dipublikasikan; akhir data '+validated.data.XAUUSD.end+'; versi sebelumnya '+(oldFile?backupName:'tidak ada')+'.');
-  return {ok:true,fileId:newFile.getId(),endDate:validated.data.XAUUSD.end,slots:validated.stats.totalSlots,emptySlots:validated.stats.emptySlots,backup:oldFile?backupName:'',message:'Dataset Market Pulse lolos validasi dan berhasil dipublikasikan. Versi sebelumnya disimpan sebagai backup privat.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'MARKET_PULSE_DATA_PUBLISHED',newFile.getId(),'SUCCESS','Dataset tervalidasi dipublikasikan; akhir data '+validated.data.dataEnd+'; versi sebelumnya '+(oldFile?backupName:'tidak ada')+'.');
+  return {ok:true,fileId:newFile.getId(),endDate:validated.data.dataEnd,asOf:validated.data.asOf,slots:validated.stats.totalSlots,emptySlots:validated.stats.emptySlots,backup:oldFile?backupName:'',message:'Dataset Market Pulse lolos validasi dan berhasil dipublikasikan. Versi sebelumnya disimpan sebagai backup privat.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 
@@ -1475,23 +1475,32 @@ function apiAdminGetMarketPulse(session) {
 function validateMarketPulseSource_(source) {
   const text=String(source||'');
   if(!text||text.length>MPS.maxPulseDataBytes)throw new Error('File data Market Pulse kosong atau melebihi batas 1 MB.');
-  const match=text.match(/const\s+D\s*=\s*(\{[\s\S]*?\})\s*,\s*TH\s*=\s*55\s*;/);
-  if(!match)throw new Error('Struktur data Market Pulse tidak dikenali. Gunakan file heatmap MPS yang asli.');
-  let data;try{data=JSON.parse(match[1]);}catch(err){throw new Error('Data Market Pulse tidak dapat dibaca sebagai JSON yang valid.');}
-  if(!data||!data.XAUUSD||!data.EURUSD||!data.XAUUSD.t||!data.EURUSD.t)throw new Error('Data Market Pulse tidak lengkap.');
-  if(Object.keys(data).sort().join(',')!=='EURUSD,XAUUSD')throw new Error('Dataset berisi properti tambahan yang tidak diizinkan.');
-  const expectedSlots={'1':1440,'5':288,'15':96},groups=[],stats={totalSlots:0,emptySlots:0,groups:0};
-  ['XAUUSD','EURUSD'].forEach(function(pair){
-    if(Object.keys(data[pair]).sort().join(',')!=='end,t'||Object.keys(data[pair].t).sort().join(',')!=='1,15,5')throw new Error('Struktur dataset '+pair+' tidak sesuai skema MPS.');
-    const endDate=String(data[pair].end||'');const parsedEnd=new Date(endDate+'T00:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(endDate)||isNaN(parsedEnd.getTime())||parsedEnd.toISOString().slice(0,10)!==endDate)throw new Error('Tanggal akhir dataset '+pair+' tidak valid.');
-    ['1','5','15'].forEach(function(tf){
-      const periods=data[pair].t[tf];if(!Array.isArray(periods)||periods.length!==3)throw new Error('Struktur periode data Pulse tidak valid.');
-      let groupSlots=0,groupEmpty=0;
-      periods.forEach(function(slots){if(!Array.isArray(slots)||slots.length!==expectedSlots[tf])throw new Error('Jumlah slot data Pulse tidak valid.');slots.forEach(function(candle){if(!Array.isArray(candle)||candle.length!==3||candle.some(function(v){return !Number.isSafeInteger(v)||v<0;}))throw new Error('Nilai statistik data Pulse tidak valid.');groupSlots++;if(candle[0]===0&&candle[1]===0&&candle[2]===0)groupEmpty++;});});
-      groups.push({pair:pair,timeframe:'M'+tf,slots:groupSlots,emptySlots:groupEmpty,periods:['1 bulan','2 bulan','4 bulan']});stats.totalSlots+=groupSlots;stats.emptySlots+=groupEmpty;stats.groups++;
+  const match=text.match(/const\s+D\s*=\s*(\{[\s\S]*?\})\s*,\s*TH\s*=\s*5\s*;/);
+  if(!match)throw new Error('Struktur MPS MARKET PULSE tidak dikenali. Gunakan file hasil konversi XAUUSD M5.');
+  let data;try{data=JSON.parse(match[1]);}catch(err){throw new Error('Data MPS MARKET PULSE tidak valid sebagai JSON.');}
+  const expectedKeys='asOf,dataEnd,dataStart,instrument,periods,timeframe,timezone';
+  if(!data||Object.keys(data).sort().join(',')!==expectedKeys)throw new Error('Properti dataset MPS MARKET PULSE tidak sesuai skema.');
+  if(data.instrument!=='XAUUSD'||data.timeframe!=='M5'||data.timezone!=='Asia/Jakarta')throw new Error('Dataset wajib XAUUSD M5 dengan zona waktu WIB (UTC+7).');
+  function validWibTimestamp(value){
+    if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+07:00$/.test(value))return false;
+    const d=new Date(value);return !isNaN(d.getTime())&&d.toISOString()===new Date(d.getTime()).toISOString();
+  }
+  if(!validWibTimestamp(data.dataStart)||!validWibTimestamp(data.dataEnd)||!validWibTimestamp(data.asOf))throw new Error('Rentang waktu dataset tidak valid atau bukan WIB.');
+  const startMs=new Date(data.dataStart).getTime(),endMs=new Date(data.dataEnd).getTime(),asOfMs=new Date(data.asOf).getTime();
+  if(startMs>endMs||endMs>asOfMs)throw new Error('Urutan waktu data awal, akhir, dan waktu pembuatan tidak valid.');
+  if(!Array.isArray(data.periods)||data.periods.length!==3)throw new Error('Dataset harus memiliki tepat tiga periode: 1, 2, dan 4 bulan.');
+  const expected=[{days:30,label:'1 Bulan'},{days:60,label:'2 Bulan'},{days:120,label:'4 Bulan'}];
+  const stats={totalSlots:0,emptySlots:0,groups:1};
+  data.periods.forEach(function(period,index){
+    if(!period||Object.keys(period).sort().join(',')!=='days,label,slots'||period.days!==expected[index].days||period.label!==expected[index].label)throw new Error('Urutan atau label periode Market Pulse tidak sesuai.');
+    if(!Array.isArray(period.slots)||period.slots.length!==288)throw new Error('Setiap periode M5 wajib memiliki 288 slot waktu WIB.');
+    period.slots.forEach(function(pair){
+      if(!Array.isArray(pair)||pair.length!==2||pair.some(function(v){return !Number.isSafeInteger(v)||v<0;})||pair[0]+pair[1]>period.days)throw new Error('Jumlah candle UP/DOWN pada slot tidak valid.');
+      stats.totalSlots++;if(pair[0]===0&&pair[1]===0)stats.emptySlots++;
     });
   });
-  return {ok:true,data:data,threshold:55,stats:stats,groups:groups,endDates:{XAUUSD:data.XAUUSD.end,EURUSD:data.EURUSD.end}};
+  const groups=[{pair:'XAUUSD',timeframe:'M5',slots:stats.totalSlots,emptySlots:stats.emptySlots,periods:expected.map(function(x){return x.label;})}];
+  return {ok:true,data:data,threshold:5,stats:stats,groups:groups,endDate:data.dataEnd,asOf:data.asOf};
 }
 
 function getMarketPulseData_() {
