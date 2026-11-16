@@ -115,6 +115,8 @@ jobs:
         run: node --test tests/apps-script/admin-rollback-reconciliation.test.mjs
       - name: Run MPS MARKET PULSE XAUUSD M5 dataset conversion and authorization tests
         run: node --test tests/apps-script/market-pulse-dataset.test.mjs
+      - name: Run isolated Learning folder ancestor ACL tests
+        run: node --test tests/apps-script/learning-folder-privacy.test.mjs
       - name: Run MPS MARKET PULSE Drive publication rollback tests (mocked Drive only)
         run: node --test tests/apps-script/market-pulse-publication-rollback.test.mjs
       - name: Run isolated MPS Trading Signals bot API and idempotency tests
