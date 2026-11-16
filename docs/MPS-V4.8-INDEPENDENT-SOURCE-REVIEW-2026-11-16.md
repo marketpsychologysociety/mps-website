@@ -129,3 +129,11 @@ The legacy Heatmap page was already absent from the visible navigation, but the 
 **CI:** GitHub Actions [run #2073](https://github.com/marketpsychologysociety/mps-website/actions/runs/43808168696) completed **SUCCESS, 75/75 steps, 0 failures** on exact tested head `e56c3c8acf3918c5f207af0006ff6f5f2acd0bf1`. The isolated Trading Signals API/idempotency suite, PWA privacy validation, and Chromium browser checks passed. The preceding Drive-ancestor implementation run #2071 also completed 75/75 successfully.
 
 **Boundary:** all Drive ACL tests are isolated mocks; they do not establish the real production Drive folder ACL. No Apps Script deployment, production Drive database, member records, credentials, Telegram configuration, or production triggers were changed. PR #12 remains a draft workbench; no merge or production release is authorized by this work.
+
+## Follow-up verification — Learning Drive folder ancestry (2026-11-16)
+
+The Market Pulse/Learning data folder had the same inherited-sharing blind spot: the backend checked the configured folder itself but not every ancestor. Added a fail-closed parent-chain verifier for the Learning folder. It requires readable folder IDs, parent iterators, and PRIVATE sharing at every level; missing inspection capability or a shared ancestor blocks Learning-folder use. The separate deposit-proof folder identity check remains in place. Five isolated tests cover a fully private tree, a directly shared folder, a shared grandparent, unavailable ancestry inspection, and reuse of the deposit-proof folder.
+
+**CI:** GitHub Actions [run #2078](https://github.com/marketpsychologysociety/mps-website/actions/runs/43808409840) completed **SUCCESS, 76/76 steps, 0 failures** on exact tested head `81ec40fb80f14cd6582c118f3522623750c8b398`. The new Learning ancestor ACL test step passed, as did Market Pulse dataset and publication rollback tests, Trading Signals API/idempotency tests, admin rollback reconciliation, PWA privacy validation, and Chromium browser checks.
+
+**Boundary:** folder ACL verification remains tested against isolated Drive mocks only. Actual production Learning folder and its ancestor permissions have not been inspected or changed; no upload, deployment, merge, member-data mutation, credential change, Telegram change, or trigger change was performed.
