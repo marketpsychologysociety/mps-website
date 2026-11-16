@@ -28,6 +28,14 @@ test('member intelligence ignores attacker-supplied identity and binds output to
   assert.throws(()=>context.apiGetMemberIntelligence('forged-session','MPS-BBBBBBBBBB'),/SESSION_INVALID/);
 });
 
+test('member and administrator session tokens are not persisted in browser storage',()=>{
+  const indexHtml=fs.readFileSync(new URL('../../candidates/Index.html',import.meta.url),'utf8');
+  assert.doesNotMatch(indexHtml,/localStorage\.(?:getItem|setItem)\(\s*['"]mps_(?:member|admin)_/i);
+  assert.doesNotMatch(indexHtml,/sessionStorage\.(?:getItem|setItem)\(\s*['"]mps_(?:member|admin)_/i);
+  assert.doesNotMatch(indexHtml,/localStorage\.[\s\S]{0,120}(?:memberSession|adminSession|memberPin|adminToken)/i);
+  assert.doesNotMatch(indexHtml,/sessionStorage\.[\s\S]{0,120}(?:memberSession|adminSession|memberPin|adminToken)/i);
+});
+
 function uploadContext(){
   const context={
     MPS:{maxLearningFileBytes:8*1024*1024},
