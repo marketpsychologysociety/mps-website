@@ -91,7 +91,7 @@ function doGet(e) {
   // Parameter page hanya memilih tab awal; seluruh konten privat tetap dilindungi sesi.
   const requestedPage = String(p.page || 'home').toLowerCase();
   // Whitelist hanya memilih panel awal; seluruh data privat tetap melewati sesi/API backend.
-  const allowedPages = ['home', 'register', 'deposit', 'heatmap', 'dashboard', 'learning', 'pulse', 'calculator', 'news', 'advertise', 'admin'];
+  const allowedPages = ['home', 'register', 'deposit', 'dashboard', 'learning', 'pulse', 'calculator', 'news', 'advertise', 'admin'];
   const initialPage = allowedPages.indexOf(requestedPage) >= 0 ? requestedPage : 'home';
   const template = HtmlService.createTemplateFromFile('Index');
   template.initialPage = initialPage;
