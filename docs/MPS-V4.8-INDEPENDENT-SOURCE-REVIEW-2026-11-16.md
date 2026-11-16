@@ -119,3 +119,13 @@ A separate Trading Signals security review found that checking only `DriveApp.Ac
 **Verification:** GitHub Actions [run #2068](https://github.com/marketpsychologysociety/mps-website/actions/runs/43807696087) completed **SUCCESS, 75/75 steps, 0 failures** on exact head `b80306efba60f8ea5a798af4ed01b8e9fd1bf804`. Targeted suites: Admin decision rollback/reconciliation **40/40**, Market Pulse conversion/schema/authorization **11/11**, Trading Signals API/idempotency/ACL **13/13**, and Chromium browser checks passed. The CI Drive tests remain mocked and do not establish live Google Drive ACL state.
 
 **Boundary:** no production Drive folder/database, Script Properties, Apps Script deployment, member records, Telegram configuration, or live triggers were changed. The compact Pulse data file remains local/unpublished. PR #12 remains Draft/open/unmerged; production main remains unchanged.
+
+## Follow-up verification — Trading Signals Drive ACL and legacy Heatmap route (2026-11-16)
+
+A second review of the separate Trading Signals database found that checking only the database file and its immediate parent folder did not prove the privacy of higher-level ancestor folders. The backend now walks the complete Drive parent chain, checks each resource's sharing access and named editors/viewers, rejects any non-PRIVATE or unverifiable ACL, and fails closed. A visited-ID set prevents duplicate traversal. Isolated regression coverage now includes named editors/viewers, unavailable ACL methods, a publicly shared immediate parent, and a publicly shared grandparent folder.
+
+The legacy Heatmap page was already absent from the visible navigation, but the public portal's initial deep-link allowlist still accepted `heatmap`. That stale route is now removed; a regression assertion protects the initial-route allowlist as well as the existing menu/API checks.
+
+**CI:** GitHub Actions [run #2073](https://github.com/marketpsychologysociety/mps-website/actions/runs/43808168696) completed **SUCCESS, 75/75 steps, 0 failures** on exact tested head `e56c3c8acf3918c5f207af0006ff6f5f2acd0bf1`. The isolated Trading Signals API/idempotency suite, PWA privacy validation, and Chromium browser checks passed. The preceding Drive-ancestor implementation run #2071 also completed 75/75 successfully.
+
+**Boundary:** all Drive ACL tests are isolated mocks; they do not establish the real production Drive folder ACL. No Apps Script deployment, production Drive database, member records, credentials, Telegram configuration, or production triggers were changed. PR #12 remains a draft workbench; no merge or production release is authorized by this work.
