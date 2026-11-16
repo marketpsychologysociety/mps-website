@@ -54,7 +54,7 @@ test('public VIP ticker identity is a validated real member name; internal Membe
 });
 test('ordinary real member names are allowed while empty, oversized, and identifier-like values are denied',()=>{
   for(const value of ['Budi Santoso','John Doe','Trader MPS']) assert.equal(context.isSafePublicIdentity_(value),true,value);
-  for(const value of ['', '   ', 'A'.repeat(101), 'MPS-ABCDEF1234', 'MPS-APP-0123456789ABCDEF', '@trader_mps', 'MT5 Login: 12345678', 'LOGIN 12345678']) {
+  for(const value of ['', '   ', 'A'.repeat(101), 'MPS-ABCDEF1234', 'MPS-APP-0123456789ABCDEF', '@trader_mps', 'Telegram username: trader_mps', 'Telegram ID: 12345678', 'MT5 Login: 12345678', 'LOGIN 12345678']) {
     assert.equal(context.isSafePublicIdentity_(value),false,String(value));
   }
 });
@@ -81,6 +81,44 @@ test('public website ticker renders validated real names and never renders Membe
   assert.ok(renderer.includes('MPS-(?:APP-)?'));
   assert.ok(renderer.includes('https?:\\/\\/'));
   assert.doesNotMatch(renderer,/item\.MemberId|Member ID |MaskedMemberId|PublicAlias/);
+});
+
+test('public website ticker actually suppresses unsafe identities at render time',()=>{
+  const renderer=readFileSync(fileURLToPath(new URL('../../js/public-center.js',import.meta.url)),'utf8');
+  const start=renderer.indexOf('const renderTicker = data => {');
+  const end=renderer.indexOf('\n  const renderAnnouncements',start+1);
+  assert.ok(start>=0&&end>start,'renderTicker function boundaries must exist');
+  const nodes=[];
+  const track={children:[],style:{},replaceChildren(){this.children=[];},appendChild(node){this.children.push(node);}};
+  const label={textContent:''};
+  const ticker={hidden:false,classList:{remove(){}},querySelector(selector){return selector==='.ticker-track'?track:label;},setAttribute(){}};
+  const isolated={
+    safeText:value=>String(value??'').slice(0,500),
+    document:{querySelector:()=>ticker,createElement:tag=>({tag,textContent:'',className:''})}
+  };
+  vm.createContext(isolated);
+  vm.runInContext(renderer.slice(start,end)+'\\nglobalThis.testRenderTicker=renderTicker;',isolated,{timeout:1000});
+  isolated.testRenderTicker({
+    tickerSettings:{enabled:true,speed:34},
+    announcements:[],
+    activity:[
+      {MemberName:'Budi Santoso',PublicText:'bergabung'},
+      {MemberName:'John Doe',PublicText:'bergabung'},
+      {MemberName:'@trader_mps',PublicText:'bergabung'},
+      {MemberName:'Telegram username: trader_mps',PublicText:'bergabung'},
+      {MemberName:'Telegram ID: 12345678',PublicText:'bergabung'},
+      {MemberName:'MPS-APP-0123456789ABCDEF',PublicText:'bergabung'},
+      {MemberName:'+62 812-3456-7890',PublicText:'bergabung'},
+      {MemberName:'person@example.com',PublicText:'bergabung'},
+      {MemberName:'https://example.com/proof',PublicText:'bergabung'}
+    ]
+  });
+  const rendered=track.children.filter(node=>node.tag==='span').map(node=>node.textContent);
+  assert.ok(rendered.length>0);
+  assert.ok(rendered.every(value=>value.startsWith('Budi Santoso')||value.startsWith('John Doe')));
+  for(const forbidden of ['@trader_mps','Telegram username','Telegram ID','MPS-APP-','+62 812','person@example.com','https://example.com']) {
+    assert.ok(!rendered.join(' ').includes(forbidden),forbidden);
+  }
 });
 
 test('public Center rejects stale ID-only cache payloads after the real-name ticker change',()=>{
