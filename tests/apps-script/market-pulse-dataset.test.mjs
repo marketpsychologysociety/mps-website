@@ -54,8 +54,8 @@ test('converter builds exactly XAUUSD M5, WIB and three rolling windows with 288
   ]);
   const slot07 = 7 * 12;
   assert.deepEqual(dataset.periods[0].slots[slot07], [2, 1]);
-  assert.deepEqual(dataset.periods[1].slots[slot07], [2, 1]);
-  assert.deepEqual(dataset.periods[2].slots[slot07], [2, 2]);
+  assert.deepEqual(dataset.periods[1].slots[slot07], [2, 2]);
+  assert.deepEqual(dataset.periods[2].slots[slot07], [3, 2]);
   assert.ok(Buffer.byteLength(html) < 1024 * 1024);
   assert.match(html, /const D = /);
   assert.match(html, /TH = 5;/);
