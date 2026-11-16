@@ -97,3 +97,14 @@ A separate audit found ambiguous-response gaps in Drive publication: Drive could
 
 ### Remaining boundary / no production claim
 The compact dataset has **not** been uploaded to the production Learning Drive folder. No Apps Script deployment, production Drive file/ACL, Script Properties, triggers, member database, or Telegram configuration was changed. The Drive tests are mocked; actual folder/file ACL and upload acceptance still require the authorized Super Admin runtime. PR #12 remains Draft/open/unmerged; production main is unchanged.
+
+
+## Follow-up verification — Market Pulse stale-source boundary (2026-11-16)
+
+A further independent check found that the first converter draft anchored rolling windows to the conversion timestamp. That can silently shorten the effective sample if a source file is stale. The converter now anchors all 30/60/120-day windows to the timestamp of the latest available candle; the snapshot timestamp remains separate metadata. A regression test uses a source delayed by 59 days and verifies the 30-day sample still ends at the last candle. The member UI also now displays the actual UP share in NETRAL cells rather than a hard-coded 50%.
+
+**Direct source-file verification:** the supplied 18.56 MB HTML was materialized and parsed without executing it. All 315,360 candle records passed strict key, finite-price, positive-price, ascending timestamp, uniqueness, and five-minute-boundary checks. The converter emitted a 7,507-byte data-only HTML payload with 864 cells (288 slots × 3 periods). The generated payload independently passed the backend's timestamp, schema, period, slot-count, nonnegative-integer, and per-period daily-bound checks. A separate raw-source recomputation compared 1,728 UP/DOWN counts (two directions × 288 slots × three periods): **0 mismatches**. The 1/2/4-month slot totals were 7,949 / 15,827 / 31,432; maximum per-slot counts were 30 / 60 / 117 respectively.
+
+**CI:** GitHub Actions [run #2054](https://github.com/marketpsychologysociety/mps-website/actions/runs/43806710625) completed **SUCCESS, 74/74 steps, 0 failures** on exact head `9847996c90cb3a6c4b1a804f99936ba80b014234`. Market Pulse converter/schema/authorization tests: **10/10**; Drive publication rollback tests: **9/9**; Chromium browser checks and PWA validation passed.
+
+**Boundary:** the compact dataset has been generated and locally verified but has **not** been uploaded to any Drive folder. No production deployment, member data, Script Properties, Drive ACL, Telegram configuration, or production triggers were changed. The PR remains a draft workbench; real Apps Script/Drive acceptance and owner release authorization remain outstanding.
