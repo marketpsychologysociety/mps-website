@@ -1658,30 +1658,308 @@ function setupTelegram_() {
     : 'Webhook aktif. Kirim /start@'+botUsername+' di grup VIP resmi, lalu periksa dan konfirmasi kandidat grup dari panel admin.' };
 }
 
+function createMpsTelegramGasJournal_(config) {
+  config = config || {};
+  var spreadsheetId = String(config.spreadsheetId || '').trim();
+  var sheetName = String(config.sheetName || 'MPS Telegram Update Journal');
+  var lockWaitMs = Number(config.lockWaitMs || 10000);
+  var leaseMs = Number(config.leaseMs || 600000);
+  if (!spreadsheetId) throw new Error('JOURNAL_SPREADSHEET_ID_REQUIRED');
+  if (!/^[A-Za-z0-9 _-]{1,120}$/.test(sheetName)) throw new Error('INVALID_JOURNAL_SHEET_NAME');
+  if (!(lockWaitMs > 0 && lockWaitMs <= 30000) || !(leaseMs >= 60000 && leaseMs <= 1800000)) {
+    throw new Error('INVALID_JOURNAL_TIMING');
+  }
+
+  var headers = [
+    'Update ID', 'Update Type', 'Payload SHA-256', 'State',
+    'First Seen At', 'Last Attempt At', 'Attempt Count',
+    'Lease Expires At', 'Claim Token', 'Completed At',
+    'Effect Keys JSON', 'Last Error Code'
+  ];
+  var allowedStates = { RECEIVED: true, PROCESSING: true, RETRYABLE: true, DONE: true, REVIEW: true };
+  var allowedUpdateTypes = { CHAT_JOIN_REQUEST: true, CHAT_MEMBER: true, BOT_CHAT_MEMBER: true, MESSAGE: true, OTHER: true };
+
+  function withLock_(fn) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(lockWaitMs);
+    try { return fn(); } finally { lock.releaseLock(); }
+  }
+
+  function getSheet_() {
+    var ss = SpreadsheetApp.openById(spreadsheetId);
+    var sheet = ss && ss.getSheetByName(sheetName);
+    if (!sheet) throw new Error('JOURNAL_SHEET_MISSING');
+    var actual = sheet.getRange(1, 1, 1, headers.length).getDisplayValues()[0];
+    if (sheet.getLastColumn() !== headers.length || actual.join('\u001f') !== headers.join('\u001f')) throw new Error('JOURNAL_SCHEMA_MISMATCH');
+    return sheet;
+  }
+
+  function validateId_(value) {
+    if (typeof value === 'number') {
+      if (!isFinite(value) || Math.floor(value) !== value || value < 0 || value > 9007199254740991) {
+        throw new Error('INVALID_UPDATE_ID');
+      }
+      return String(value);
+    }
+    var id = String(value == null ? '' : value);
+    if (!/^(0|[1-9]\d{0,19})$/.test(id)) throw new Error('INVALID_UPDATE_ID');
+    return id;
+  }
+
+  function canonicalize_(value) {
+    if (Array.isArray(value)) return value.map(canonicalize_);
+    if (value && typeof value === 'object') {
+      var normalized = {};
+      Object.keys(value).sort().forEach(function(key) { normalized[key] = canonicalize_(value[key]); });
+      return normalized;
+    }
+    return value;
+  }
+
+  function digest_(value) {
+    var raw;
+    try { raw = JSON.stringify(canonicalize_(value)); } catch (err) { throw new Error('INVALID_UPDATE_PAYLOAD'); }
+    var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw, Utilities.Charset.UTF_8);
+    return bytes.map(function(b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join('');
+  }
+
+  function classify_(update) {
+    if (update.chat_join_request) return 'CHAT_JOIN_REQUEST';
+    if (update.chat_member) return 'CHAT_MEMBER';
+    if (update.my_chat_member) return 'BOT_CHAT_MEMBER';
+    if (update.message) return 'MESSAGE';
+    return 'OTHER';
+  }
+
+  function sanitizeCode_(code) {
+    var value = String(code == null ? '' : code).toUpperCase();
+    return /^[A-Z0-9_]{1,40}$/.test(value) ? value : 'UNCLASSIFIED';
+  }
+
+  function normalizeEffects_(keys) {
+    if (!Array.isArray(keys)) throw new Error('INVALID_EFFECT_KEYS');
+    var clean = [];
+    keys.forEach(function(key) {
+      var value = String(key == null ? '' : key);
+      if (!/^[A-Za-z0-9:_-]{1,80}$/.test(value)) throw new Error('INVALID_EFFECT_KEY');
+      if (clean.indexOf(value) < 0) clean.push(value);
+    });
+    return clean.slice(-20);
+  }
+
+  function findRow_(sheet, id) {
+    var last = sheet.getLastRow();
+    if (last < 2) return 0;
+    var ids = sheet.getRange(2, 1, last - 1, 1).getDisplayValues();
+    var found = 0;
+    for (var i = 0; i < ids.length; i++) {
+      if (String(ids[i][0]) === id) {
+        if (found) throw new Error('JOURNAL_DUPLICATE_UPDATE_ID');
+        found = i + 2;
+      }
+    }
+    return found;
+  }
+
+  function readRecord_(sheet, row) {
+    var v = sheet.getRange(row, 1, 1, headers.length).getValues()[0];
+    var record = {
+      updateId: String(v[0] || ''),
+      updateType: String(v[1] || ''),
+      payloadHash: String(v[2] || ''),
+      state: String(v[3] || ''),
+      firstSeenAt: Number(v[4] || 0),
+      lastAttemptAt: Number(v[5] || 0),
+      attemptCount: Number(v[6] || 0),
+      leaseExpiresAt: Number(v[7] || 0),
+      claimToken: String(v[8] || ''),
+      completedAt: Number(v[9] || 0),
+      effectKeys: [],
+      lastErrorCode: String(v[11] || '')
+    };
+    try { record.effectKeys = normalizeEffects_(v[10] ? JSON.parse(String(v[10])) : []); } catch (err) {
+      throw new Error('JOURNAL_EFFECT_KEYS_CORRUPT');
+    }
+    var validId = false;
+    try { validId = validateId_(record.updateId) === record.updateId; } catch (idErr) { validId = false; }
+    var processingValid = record.state !== 'PROCESSING' ||
+      (!!record.claimToken && record.leaseExpiresAt > record.lastAttemptAt);
+    var attemptsValid = isFinite(record.attemptCount) && Math.floor(record.attemptCount) === record.attemptCount &&
+      (record.state === 'RECEIVED' ? record.attemptCount >= 0 : record.attemptCount >= 1);
+    var lastAttemptValid = isFinite(record.lastAttemptAt) &&
+      (record.state === 'RECEIVED' ? record.lastAttemptAt >= 0 : record.lastAttemptAt > 0);
+    var terminalValid = record.state === 'PROCESSING' ||
+      (!record.claimToken && record.leaseExpiresAt === 0);
+    var completionValid = record.state === 'DONE' ? record.completedAt > 0 : record.completedAt === 0;
+    var errorValid = !record.lastErrorCode || /^[A-Z0-9_]{1,40}$/.test(record.lastErrorCode);
+    if (!validId || !/^[a-f0-9]{64}$/.test(record.payloadHash) ||
+        !allowedStates[record.state] || !allowedUpdateTypes[record.updateType] ||
+        !isFinite(record.firstSeenAt) || record.firstSeenAt <= 0 ||
+        !lastAttemptValid || !isFinite(record.leaseExpiresAt) || !isFinite(record.completedAt) ||
+        !attemptsValid || !processingValid || !terminalValid || !completionValid || !errorValid) {
+      throw new Error('JOURNAL_ROW_CORRUPT');
+    }
+    return record;
+  }
+
+  function writeRecord_(sheet, row, record) {
+    var values = [[
+      record.updateId, record.updateType, record.payloadHash, record.state,
+      record.firstSeenAt, record.lastAttemptAt, record.attemptCount,
+      record.leaseExpiresAt, record.claimToken || '', record.completedAt || '',
+      JSON.stringify(record.effectKeys || []), record.lastErrorCode || ''
+    ]];
+    var target = row || (sheet.getLastRow() + 1);
+    sheet.getRange(target, 1, 1, 1).setNumberFormat('@');
+    sheet.getRange(target, 1, 1, headers.length).setValues(values);
+    SpreadsheetApp.flush();
+  }
+
+  function claim(update, now) {
+    now = now == null ? Date.now() : Number(now);
+    if (!isFinite(now)) throw new Error('INVALID_TIMESTAMP');
+    if (!update || typeof update !== 'object') throw new Error('INVALID_UPDATE_PAYLOAD');
+    var id = validateId_(update.update_id);
+    var hash = digest_(update);
+    return withLock_(function() {
+      var sheet = getSheet_();
+      var rowNumber = findRow_(sheet, id);
+      var existing = rowNumber ? readRecord_(sheet, rowNumber) : null;
+      if (existing && existing.payloadHash !== hash) {
+        existing.state = 'REVIEW';
+        existing.completedAt = 0;
+        existing.leaseExpiresAt = 0;
+        existing.claimToken = '';
+        existing.lastErrorCode = 'PAYLOAD_HASH_MISMATCH';
+        writeRecord_(sheet, rowNumber, existing);
+        return { outcome: 'MANUAL_REVIEW' };
+      }
+      if (existing && existing.state === 'DONE') return { outcome: 'DUPLICATE_DONE' };
+      if (existing && existing.state === 'REVIEW') return { outcome: 'MANUAL_REVIEW' };
+      if (existing && existing.state === 'PROCESSING' && existing.leaseExpiresAt > now) {
+        return { outcome: 'BUSY' };
+      }
+      var recovered = !!(existing && (existing.state === 'PROCESSING' || existing.state === 'RETRYABLE'));
+      var record = {
+        updateId: id,
+        updateType: classify_(update),
+        payloadHash: hash,
+        state: 'PROCESSING',
+        firstSeenAt: existing ? existing.firstSeenAt : now,
+        lastAttemptAt: now,
+        attemptCount: existing ? existing.attemptCount + 1 : 1,
+        leaseExpiresAt: now + leaseMs,
+        claimToken: String(Utilities.getUuid()),
+        completedAt: 0,
+        effectKeys: existing ? existing.effectKeys : [],
+        lastErrorCode: ''
+      };
+      if (!record.claimToken) throw new Error('CLAIM_TOKEN_UNAVAILABLE');
+      writeRecord_(sheet, rowNumber, record);
+      return { outcome: 'CLAIMED', recovered: recovered, row: record };
+    });
+  }
+
+  function transition_(idValue, claimToken, now, state, errorCode, effectKeys) {
+    var id = validateId_(idValue);
+    now = now == null ? Date.now() : Number(now);
+    if (!isFinite(now)) throw new Error('INVALID_TIMESTAMP');
+    return withLock_(function() {
+      var sheet = getSheet_();
+      var rowNumber = findRow_(sheet, id);
+      if (!rowNumber) throw new Error('STALE_OR_INVALID_CLAIM');
+      var record = readRecord_(sheet, rowNumber);
+      if (record.state !== 'PROCESSING' || !claimToken ||
+          record.claimToken !== String(claimToken) || record.leaseExpiresAt <= now) {
+        throw new Error('STALE_OR_INVALID_CLAIM');
+      }
+      record.state = state;
+      record.leaseExpiresAt = 0;
+      record.claimToken = '';
+      if (state === 'DONE') {
+        record.completedAt = now;
+        record.effectKeys = normalizeEffects_(record.effectKeys.concat(effectKeys || []));
+        record.lastErrorCode = '';
+      } else {
+        record.lastErrorCode = sanitizeCode_(errorCode);
+      }
+      writeRecord_(sheet, rowNumber, record);
+      return record;
+    });
+  }
+
+  return {
+    claim: claim,
+    finish: function(id, token, now, effectKeys) {
+      return transition_(id, token, now, 'DONE', '', effectKeys || []);
+    },
+    retry: function(id, token, now, errorCode) {
+      return transition_(id, token, now, 'RETRYABLE', errorCode || 'TRANSIENT', []);
+    },
+    review: function(id, token, now, errorCode) {
+      return transition_(id, token, now, 'REVIEW', errorCode || 'AMBIGUOUS', []);
+    }
+  };
+}
+
 function processTelegramUpdate_(update) {
-  if (!update || typeof update !== 'object' || Array.isArray(update)) throw new Error('Telegram update tidak valid.');
-  const updateId=update.update_id;
-  const validUpdateId=(typeof updateId==='number'&&Number.isSafeInteger(updateId)&&updateId>=0)||(typeof updateId==='string'&&/^(0|[1-9]\d{0,19})$/.test(updateId));
-  if(!validUpdateId)throw new Error('Telegram update_id tidak valid; pemrosesan dihentikan.');
-  const cache=CacheService.getScriptCache(),key='mps_tg_update_'+String(updateId);
-  const lock=LockService.getScriptLock();lock.waitLock(10000);
-  try {
-    const state=cache.get(key);
-    if(state==='DONE') return;
-    if(state==='PROCESSING') throw new Error('Telegram update sedang diproses. Minta Telegram mencoba ulang.');
-    // Lease 10 menit melampaui batas eksekusi Apps Script yang umumnya 6 menit.
-    // CacheService tetap best-effort dan dapat menghapus item lebih awal; ini bukan jaminan exactly-once.
-    cache.put(key,'PROCESSING',600);
-  } finally { lock.releaseLock(); }
-  try {
+  if(!update||typeof update!=='object'||Array.isArray(update))throw new Error('Telegram update tidak valid.');
+  const spreadsheetId=String(PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID')||'');
+  if(!spreadsheetId)throw new Error('MPS_SPREADSHEET_ID_REQUIRED_FOR_TELEGRAM_JOURNAL');
+  const journal=createMpsTelegramGasJournal_({spreadsheetId:spreadsheetId,sheetName:MPS_TELEGRAM_UPDATE_JOURNAL.sheet});
+  const claim=journal.claim(update,Date.now());
+  if(!claim||!claim.outcome)throw new Error('TELEGRAM_UPDATE_JOURNAL_INVALID_RESULT');
+  if(claim.outcome==='DUPLICATE_DONE')return;
+  if(claim.outcome==='BUSY')throw new Error('Telegram update sedang diproses oleh eksekusi lain. Coba lagi.');
+  if(claim.outcome==='MANUAL_REVIEW'){
+    enqueueMpsTelegramUpdateReview_(update,'PAYLOAD_OR_STATE_REVIEW');
+    return;
+  }
+  if(claim.outcome!=='CLAIMED'||!claim.row||!claim.row.claimToken)throw new Error('TELEGRAM_UPDATE_JOURNAL_CLAIM_FAILED');
+  const replaySafeTypes=['CHAT_JOIN_REQUEST','CHAT_MEMBER','BOT_CHAT_MEMBER','MESSAGE','OTHER'];
+  const updateType=String(claim.row.updateType||'');
+  if(replaySafeTypes.indexOf(updateType)<0||Number(claim.row.attemptCount)>=5){
+    journal.review(update.update_id,claim.row.claimToken,Date.now(),replaySafeTypes.indexOf(updateType)<0?'UNSUPPORTED_UPDATE_TYPE':'MAX_RETRIES_EXCEEDED');
+    enqueueMpsTelegramUpdateReview_(update,replaySafeTypes.indexOf(updateType)<0?'UNSUPPORTED_UPDATE_TYPE':'MAX_RETRIES_EXCEEDED');
+    return;
+  }
+  try{
     processTelegramUpdateCore_(update);
-    const doneLock=LockService.getScriptLock();doneLock.waitLock(10000);
-    try { cache.put(key,'DONE',21600); } finally { doneLock.releaseLock(); }
-  } catch(err) {
-    const retryLock=LockService.getScriptLock();retryLock.waitLock(10000);
-    try { cache.remove(key); } finally { retryLock.releaseLock(); }
+  }catch(err){
+    const code=mpsTelegramUpdateErrorCode_(err);
+    if(err&&err.ambiguousExternalOutcome===true){
+      journal.review(update.update_id,claim.row.claimToken,Date.now(),'AMBIGUOUS_EXTERNAL_OUTCOME');
+      enqueueMpsTelegramUpdateReview_(update,'AMBIGUOUS_EXTERNAL_OUTCOME');
+      return;
+    }
+    // Every allowlisted handler has its own durable transition, replay guard,
+    // Telegram read-back, or task key. The journal retry only re-enters those
+    // reconciliation paths; it does not blindly repeat an unkeyed side effect.
+    journal.retry(update.update_id,claim.row.claimToken,Date.now(),code);
     throw err;
   }
+  journal.finish(update.update_id,claim.row.claimToken,Date.now(),[]);
+}
+function mpsTelegramUpdateErrorCode_(err) {
+  const message=String(err&&err.message||err);
+  if(message.indexOf('TELEGRAM_MESSAGE_QUEUE_FAILED:')===0)return 'MESSAGE_QUEUE_FAILED';
+  if(message.indexOf('VIP_JOIN_NOTICE_QUEUE_FAILED:')===0)return 'JOIN_NOTICE_QUEUE_FAILED';
+  if(message.indexOf('VIP_TRANSITION_')===0)return 'VIP_TRANSITION_FAILED';
+  if(message.indexOf('VIP_FOLLOWUP_')===0)return 'VIP_FOLLOWUP_FAILED';
+  return 'HANDLER_FAILED';
+}
+function enqueueMpsTelegramUpdateReview_(update,reason) {
+  const updateId=String(update&&update.update_id==null?'UNKNOWN':update.update_id);
+  const updateType=update&&update.chat_join_request?'CHAT_JOIN_REQUEST':update&&update.chat_member?'CHAT_MEMBER':update&&update.my_chat_member?'BOT_CHAT_MEMBER':update&&update.message?'MESSAGE':'OTHER';
+  const code=String(reason||'MANUAL_REVIEW').replace(/[^A-Z0-9_]/gi,'_').toUpperCase().slice(0,40)||'MANUAL_REVIEW';
+  const taskKey='telegram:update-review:'+sha256_(updateId+':'+updateType+':'+code).slice(0,40);
+  const queued=enqueueMpsVipFollowup_({
+    taskKey:taskKey,intentKey:taskKey,action:'ADMIN_ALERT',
+    alertText:'⚠️ MPS Telegram webhook memerlukan pemeriksaan manual. Update ID: '+updateId+'. Jenis: '+updateType+'. Kode: '+code+'. Payload pribadi tidak disimpan pada notifikasi.'
+  });
+  if(!queued||queued.ok!==true)throw new Error('TELEGRAM_UPDATE_REVIEW_ALERT_NOT_DURABLE');
+  runMpsVipFollowupQueue_(5);
+  return true;
 }
 
 function enqueueMpsTelegramMessage_(update,chatId,effectName,action,message) {
@@ -1706,7 +1984,6 @@ function enqueueMpsTelegramMessage_(update,chatId,effectName,action,message) {
 function processTelegramUpdateCore_(update) {
   if (!update || typeof update !== 'object') return;
   const updateId=update.update_id;
-  const updateKey='';
   // Only new message updates may trigger bot commands; edited_message is not a fresh command.
   const msg=update.message;
   if(msg&&msg.chat){
@@ -1724,7 +2001,7 @@ function processTelegramUpdateCore_(update) {
         try{props.setProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_ID',String(chat.id));props.setProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_TITLE',clean_(chat.title,120));}finally{candidateLock.releaseLock();}
         enqueueMpsTelegramMessage_(update,String(chat.id),'group-start-candidate','SEND_MESSAGE','Permintaan koneksi grup diterima. Admin MPS harus memeriksa dan mengonfirmasi ID grup sebelum undangan VIP diaktifkan.');
       }
-      if(updateKey)cache.put(updateKey,'1',21600);return;
+      return;
     }
     if(chat.type==='private'&&msg.from&&/^\/start(?:@[A-Za-z0-9_]+)?(?:\s+([A-Fa-f0-9]{40,64}))?/.test(String(msg.text||''))){
       const match=String(msg.text||'').match(/^\/start(?:@[A-Za-z0-9_]+)?(?:\s+([A-Fa-f0-9]{40,64}))?/),token=match&&match[1];
@@ -1751,7 +2028,6 @@ function processTelegramUpdateCore_(update) {
       }
     }
   }
-  if(updateKey)cache.put(updateKey,'1',21600);
 }
 
 function processVipJoinRequest_(request,update) {
@@ -2179,6 +2455,10 @@ function createMpsVipTransitionStatusWriter_() {
     }
   });
 }
+const MPS_TELEGRAM_UPDATE_JOURNAL = Object.freeze({
+  sheet:'MPS Telegram Update Journal',
+  headers:['Update ID','Update Type','Payload SHA-256','State','First Seen At','Last Attempt At','Attempt Count','Lease Expires At','Claim Token','Completed At','Effect Keys JSON','Last Error Code']
+});
 const MPS_VIP_FOLLOWUP_QUEUE = Object.freeze({
   sheet:'MPS Telegram VIP Follow-up Queue',
   headers:['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At']
@@ -2537,6 +2817,7 @@ function inspectMpsVipTransitionStorageSchemas_(ss,store) {
   check_(MPS_VIP_TICKER_EVENTS.sheet,MPS_VIP_TICKER_EVENTS.headers,true);
   check_('MPS Telegram VIP Transition Intents',store.headers.intents,false);
   check_(MPS_VIP_FOLLOWUP_QUEUE.sheet,MPS_VIP_FOLLOWUP_QUEUE.headers,false);
+  check_(MPS_TELEGRAM_UPDATE_JOURNAL.sheet,MPS_TELEGRAM_UPDATE_JOURNAL.headers,false);
   check_('MPS Telegram VIP Member Cursor',store.headers.cursor,false);
   const blocked=checks.filter(function(x){return !x.ok;});
   return {ok:blocked.length===0,checks:checks,message:blocked.length?'Storage preflight diblokir: '+blocked.map(function(x){return x.name+' ('+x.state+')';}).join(', '):'Seluruh skema storage transisi cocok atau aman untuk dibuat/migrasi.'};
@@ -2632,10 +2913,11 @@ function apiAdminPrepareTelegramVipTransitionStorage(session) {
     }
     ensure_('MPS Telegram VIP Transition Intents',store.headers.intents);
     ensure_(MPS_VIP_FOLLOWUP_QUEUE.sheet,MPS_VIP_FOLLOWUP_QUEUE.headers);
+    ensure_(MPS_TELEGRAM_UPDATE_JOURNAL.sheet,MPS_TELEGRAM_UPDATE_JOURNAL.headers);
     ensure_('MPS Telegram VIP Member Cursor',store.headers.cursor);
   });
   ensureMpsVipFollowupAutomation_();
-  return {ok:true,message:'Penyimpanan transisi VIP dan antrean tindak lanjut siap. Worker otomatis berjalan setiap 5 menit; webhook belum diaktifkan otomatis.'};
+  return {ok:true,message:'Penyimpanan journal webhook, transisi VIP, dan antrean tindak lanjut siap. Worker otomatis berjalan setiap 5 menit; webhook belum diaktifkan otomatis.'};
 }
 
 function kickMpsUnauthorizedUser_(groupId,userId){
