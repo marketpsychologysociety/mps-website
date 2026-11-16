@@ -43,9 +43,10 @@ function buildDataset(candles, asOf = Date.now()) {
   const asOfMs = typeof asOf === 'string' ? Date.parse(asOf) : Number(asOf);
   if (!Number.isFinite(asOfMs)) throw new Error('Waktu snapshot tidak valid.');
   const first = candles[0].time, last = candles[candles.length - 1].time;
-  if (last > asOfMs) throw new Error('Waktu snapshot lebih awal daripada candle terakhir.');
+  if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last) || last > asOfMs) throw new Error('Waktu snapshot lebih awal daripada candle terakhir atau timestamp tidak valid.');
   const counts = PERIODS.map(() => Array.from({ length: SLOT_COUNT }, () => [0, 0]));
-  const cutoffs = PERIODS.map(p => asOfMs - p.days * 86400000);
+  // Rolling windows end at the latest available candle, not the conversion time. This keeps a delayed source honest instead of silently shrinking its historical sample.
+  const cutoffs = PERIODS.map(p => last - p.days * 86400000);
   let previous = -Infinity;
   for (let i = 0; i < candles.length; i++) {
     const c = candles[i];
