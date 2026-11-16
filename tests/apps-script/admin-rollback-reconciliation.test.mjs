@@ -274,7 +274,8 @@ for(const boundary of ['db:1','access:1','apps:1','apps:2','apps:3','apps:4','de
 
 for(const compensation of ['dbDelete:1','access:2','apps:5','deposits:4']){
  test('admin approval quarantines decision and queues alert when '+compensation+' compensation fails',()=>{
-  const h=adminApproveHarness(['deposits:1',compensation]);
+  const primaryFailure=compensation==='deposits:4'?'deposits:3':'deposits:1';
+  const h=adminApproveHarness([primaryFailure,compensation]);
   assert.throws(()=>h.run(),err=>{
    assert.match(err.message,/Rollback tidak lengkap/);
    assert.match(err.message,/Peringatan rekonsiliasi tersimpan di antrean Admin/);
