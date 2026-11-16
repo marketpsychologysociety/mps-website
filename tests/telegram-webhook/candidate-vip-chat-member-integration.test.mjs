@@ -41,6 +41,7 @@ function joinHarness(fetchImpl){
   enqueueMpsVipFollowup_:task=>{const duplicate=queuedKeys.has(task.taskKey);queuedKeys.add(task.taskKey);queuedTasks.push({...task,duplicate});return{ok:true,duplicate};},
   runMpsVipFollowupQueue_:()=>({ok:true,processed:0}),
   recordMpsAudit_:(...args)=>calls.push({type:'audit',args}),
+  recordMpsTelegramAuditOnce_:(...args)=>{calls.push({type:'audit-once',args});return true;},
   clean_:v=>String(v),safeErrorMessage_:e=>String(e&&e.message||e)
  };
  vm.createContext(context);vm.runInContext(joinSource,context,{timeout:1000});
@@ -90,7 +91,7 @@ test('my_chat_member permission warnings use a durable update-scoped admin-alert
  const tasks=[],attempts=[],keys=new Set(),audits=[];
  const context={
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_TELEGRAM_VIP_CHAT_ID'?'-1001234567890':''})},
-  recordMpsAudit_:(...args)=>audits.push(args),
+  recordMpsTelegramAuditOnce_:(...args)=>{audits.push(args);return true;},
   clean_:v=>String(v),
   sha256_:v=>'c'.repeat(64),
   enqueueMpsVipFollowup_:task=>{const duplicate=keys.has(task.taskKey);keys.add(task.taskKey);attempts.push({...task,duplicate});if(!duplicate)tasks.push({...task,duplicate});return{ok:true,duplicate};},
