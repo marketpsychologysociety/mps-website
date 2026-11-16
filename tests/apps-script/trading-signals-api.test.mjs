@@ -64,7 +64,12 @@ function harness(options={}) {
     MPS_SIGNAL_BOT_03_SECRET:'bot-three-secret',
     MPS_SIGNAL_BOT_04_SECRET:'bot-four-secret'
   };
-  const file={getSharingAccess:()=>options.filePrivate===false?'ANYONE':'PRIVATE',getParents:()=>({hasNext:()=>false,next:()=>null})};
+  const parentFolder={getSharingAccess:()=>options.parentPrivate===false?'ANYONE':'PRIVATE',getEditors:()=>options.parentEditors||[],getViewers:()=>options.parentViewers||[]};
+  const file={
+    getSharingAccess:()=>options.filePrivate===false?'ANYONE':'PRIVATE',
+    getEditors:()=>options.fileEditors||[],getViewers:()=>options.fileViewers||[],
+    getParents(){let used=false;return{hasNext:()=>!used&&!!options.withParent,next:()=>{used=true;return parentFolder;}};}
+  };
   const ss={getSheetByName:name=>sheetMap[name]||null};
   const context={
     MPS:{},
@@ -202,6 +207,17 @@ test('member history is session-gated and admin health never exposes secrets',()
 test('separate signal database and inherited Drive folder privacy are mandatory',()=>{
   const h=harness({filePrivate:false});
   assert.throws(()=>h.context.getTradingSignalsSheets_(),/tidak PRIVATE/);
+  const parent=harness({withParent:true,parentPrivate:false});
+  assert.throws(()=>parent.context.getTradingSignalsSheets_(),/tidak PRIVATE/);
+});
+
+test('named Drive collaborators and unverifiable ACLs block the Trading Signals database',()=>{
+  const editor=harness({fileEditors:[{email:'private-editor@example.invalid'}]});
+  assert.throws(()=>editor.context.getTradingSignalsSheets_(),/kolaborator bernama/);
+  const viewer=harness({withParent:true,parentViewers:[{email:'private-viewer@example.invalid'}]});
+  assert.throws(()=>viewer.context.getTradingSignalsSheets_(),/kolaborator bernama/);
+  const noAcl=harness({aclUnavailable:true});
+  assert.throws(()=>noAcl.context.getTradingSignalsSheets_(),/ACL kolaborator/);
 });
 
 test('Super Admin configuration controls bot enablement and allowlists without exposing credentials',()=>{
