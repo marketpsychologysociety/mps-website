@@ -108,3 +108,14 @@ A further independent check found that the first converter draft anchored rollin
 **CI:** GitHub Actions [run #2054](https://github.com/marketpsychologysociety/mps-website/actions/runs/43806710625) completed **SUCCESS, 74/74 steps, 0 failures** on exact head `9847996c90cb3a6c4b1a804f99936ba80b014234`. Market Pulse converter/schema/authorization tests: **10/10**; Drive publication rollback tests: **9/9**; Chromium browser checks and PWA validation passed.
 
 **Boundary:** the compact dataset has been generated and locally verified but has **not** been uploaded to any Drive folder. No production deployment, member data, Script Properties, Drive ACL, Telegram configuration, or production triggers were changed. The PR remains a draft workbench; real Apps Script/Drive acceptance and owner release authorization remain outstanding.
+
+
+## Follow-up verification — rolling-window boundary and Trading Signals Drive ACL (2026-11-16)
+
+A second boundary review tightened the rolling-period cutoff: the start timestamp is exclusive, preventing an exact 30/60/120-day-old candle from becoming an extra sample day. Regression coverage now includes both delayed source conversion and an exact period-boundary candle. The earlier stale-source test fixture was corrected to place its second candle strictly inside the 30-day window.
+
+A separate Trading Signals security review found that checking only `DriveApp.Access.PRIVATE` does not prove the database has no named collaborators. The database guard now also checks the file's editor/viewer lists and every parent folder's link-sharing state and named collaborators. If ACL inspection is unavailable, or any named collaborator exists, Trading Signals fails closed. During first-time database setup, an ACL failure triggers cleanup of the newly created spreadsheet and does not save its Script Property; cleanup failure is surfaced for manual Drive inspection.
+
+**Verification:** GitHub Actions [run #2068](https://github.com/marketpsychologysociety/mps-website/actions/runs/43807696087) completed **SUCCESS, 75/75 steps, 0 failures** on exact head `b80306efba60f8ea5a798af4ed01b8e9fd1bf804`. Targeted suites: Admin decision rollback/reconciliation **40/40**, Market Pulse conversion/schema/authorization **11/11**, Trading Signals API/idempotency/ACL **13/13**, and Chromium browser checks passed. The CI Drive tests remain mocked and do not establish live Google Drive ACL state.
+
+**Boundary:** no production Drive folder/database, Script Properties, Apps Script deployment, member records, Telegram configuration, or live triggers were changed. The compact Pulse data file remains local/unpublished. PR #12 remains Draft/open/unmerged; production main remains unchanged.
