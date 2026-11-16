@@ -3315,20 +3315,40 @@ function apiAdminCreateBackup(session) {
   consumeRateLimit_('mps_backup_global',3,21600,'Backup spreadsheet dibatasi maksimal 3 kali per 6 jam.');
   const id=PropertiesService.getScriptProperties().getProperty('MPS_SPREADSHEET_ID');if(!id)throw new Error('MPS_SPREADSHEET_ID belum dikonfigurasi.');
   const source=DriveApp.getFileById(id);if(String(source.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Database spreadsheet tidak PRIVATE. Amankan file asli sebelum membuat backup.');
+  const sourceBook=SpreadsheetApp.openById(id),sourceMembers=sourceBook&&sourceBook.getSheetByName(MPS.sheetName);
+  if(!sourceMembers)throw new Error('Sheet Database Member tidak ditemukan pada sumber backup.');
+  const sourceColumns=sourceMembers.getLastColumn(),sourceRows=sourceMembers.getLastRow();
+  const expectedHeaders=sourceColumns===18?MPS.headers.slice(0,18):(sourceColumns===MPS.headers.length?MPS.headers.slice():null);
+  if(!expectedHeaders||sourceRows<1)throw new Error('Skema sumber Database Member harus tepat 18 kolom legacy atau 30 kolom v4.8 dengan header lengkap. Backup dibatalkan.');
+  const sourceHeaders=sourceMembers.getRange(1,1,1,sourceColumns).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+  if(expectedHeaders.some(function(header,index){return sourceHeaders[index]!==header;}))throw new Error('Header Database Member sumber tidak cocok. Backup dibatalkan.');
+  const sourceSheetMeta=sourceBook.getSheets().map(function(sheet){return {name:sheet.getName(),rows:sheet.getLastRow(),columns:sheet.getLastColumn()};});
+  const sourceMemberRange=sourceMembers.getRange(1,1,sourceRows,sourceColumns);
+  const sourceMemberFingerprint=sha256_(JSON.stringify({rows:sourceRows,columns:sourceColumns,values:sourceMemberRange.getValues(),formulas:sourceMemberRange.getFormulas()}));
   const stamp=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyyMMdd-HHmmss');
   const copy=source.makeCopy('MPS DATABASE BACKUP '+stamp);
   try{copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Backup tidak dapat dipastikan PRIVATE.');}
   catch(permissionErr){let cleanupWarning='';try{copy.setTrashed(true);}catch(cleanupErr){cleanupWarning=' File backup sementara mungkin masih ada; Super Admin wajib memeriksa Drive.';}throw new Error('Backup dibatalkan karena akses file tidak dapat dipastikan PRIVATE: '+safeErrorMessage_(permissionErr)+cleanupWarning);}
-  // Verifikasi isi salinan sebelum metadata backup ditandai berhasil.
+  // Verify every tab's identity and used dimensions, then fingerprint all member rows,
+  // all 18 legacy columns or all 30 v4.8 columns, before marking the copy successful.
   try{
     if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Akses backup berubah dan tidak lagi PRIVATE.');
     const backupBook=SpreadsheetApp.openById(copy.getId());
+    const backupSheets=backupBook.getSheets();
+    if(backupSheets.length!==sourceSheetMeta.length)throw new Error('Jumlah sheet pada salinan berbeda dari sumber.');
+    sourceSheetMeta.forEach(function(meta){
+      const backupSheet=backupBook.getSheetByName(meta.name);
+      if(!backupSheet)throw new Error('Sheet '+meta.name+' tidak ditemukan pada salinan.');
+      if(backupSheet.getLastRow()!==meta.rows||backupSheet.getLastColumn()!==meta.columns)throw new Error('Dimensi sheet '+meta.name+' berbeda dari sumber.');
+    });
     const backupMembers=backupBook.getSheetByName(MPS.sheetName);
     if(!backupMembers)throw new Error('Sheet Database Member tidak ditemukan pada salinan.');
-    const requiredHeaders=MPS.headers.slice(0,18);
-    if(backupMembers.getLastRow()<1||backupMembers.getLastColumn()<requiredHeaders.length)throw new Error('Struktur Database Member pada salinan tidak lengkap.');
-    const backupHeaders=backupMembers.getRange(1,1,1,requiredHeaders.length).getDisplayValues()[0];
-    if(requiredHeaders.some(function(header,index){return String(backupHeaders[index]||'').trim()!==header;}))throw new Error('Header inti Database Member pada salinan tidak cocok.');
+    if(backupMembers.getLastRow()!==sourceRows||backupMembers.getLastColumn()!==sourceColumns)throw new Error('Jumlah baris atau kolom Database Member pada salinan tidak sama dengan sumber.');
+    const backupHeaders=backupMembers.getRange(1,1,1,sourceColumns).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+    if(expectedHeaders.some(function(header,index){return backupHeaders[index]!==header;}))throw new Error('Header Database Member pada salinan tidak cocok.');
+    const backupRange=backupMembers.getRange(1,1,sourceRows,sourceColumns);
+    const backupFingerprint=sha256_(JSON.stringify({rows:backupMembers.getLastRow(),columns:backupMembers.getLastColumn(),values:backupRange.getValues(),formulas:backupRange.getFormulas()}));
+    if(backupFingerprint!==sourceMemberFingerprint)throw new Error('Fingerprint isi Database Member pada salinan tidak sama dengan sumber.');
     if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Privasi backup tidak dapat dipastikan setelah verifikasi isi.');
   }catch(verifyErr){
     let cleanupWarning='';
@@ -3345,8 +3365,8 @@ function apiAdminCreateBackup(session) {
     if(rollbackErrors.length)throw new Error('Backup dibuat tetapi penyimpanan metadata gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Super Admin perlu memeriksa Drive dan Script Properties.');
     throw new Error('Backup dibatalkan karena metadata Script Properties gagal disimpan; file sementara berhasil dipindahkan ke Trash: '+safeErrorMessage_(propertyErr));
   }
-  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'DATABASE_BACKUP',copy.getId(),'SUCCESS','Spreadsheet database disalin ke file backup terpisah.');
-  return {ok:true,backupId:copy.getId(),name:copy.getName(),url:copy.getUrl(),message:'Backup spreadsheet berhasil dibuat. File asli tidak diubah.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
+  const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'DATABASE_BACKUP',copy.getId(),'SUCCESS','Spreadsheet database disalin ke file backup terpisah; nama sheet, dimensi, header, dan fingerprint Database Member telah diverifikasi.');
+  return {ok:true,backupId:copy.getId(),name:copy.getName(),url:copy.getUrl(),message:'Backup spreadsheet berhasil dibuat dan integritas Database Member diverifikasi. File asli tidak diubah.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
 function assertSheetHeaders_(sheet,headers,name) {
