@@ -928,7 +928,7 @@ function apiAdminVerify(session, applicationRefOrMemberId, decision, adminNote) 
 }
 function adminVerifyApplication_(session,applicationRef,action,note) {
   const lock=LockService.getScriptLock();lock.waitLock(20000);
-  let memberId='',chatId='',nickname='',telegramMessage='',createdRow=0,depositRow=0,appRow=0,db=null,apps=null,ds=null,appSnapshot=null,depositSnapshot=null,access=null,accessRow=0,accessSnapshot=null,rejectedLinks=null,rejectedLinkSnapshots=[],rejectedAccess=null,rejectedAccessRow=0,rejectedAccessSnapshot=null;
+  let memberId='',chatId='',nickname='',telegramMessage='',createdRow=0,memberAppendStarted=false,depositRow=0,appRow=0,db=null,apps=null,ds=null,appSnapshot=null,depositSnapshot=null,access=null,accessRow=0,accessSnapshot=null,rejectedLinks=null,rejectedLinkSnapshots=[],rejectedAccess=null,rejectedAccessRow=0,rejectedAccessSnapshot=null;
   try{
     apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRow_(apps,applicationRef);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
     const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];appSnapshot=app.slice();if(!['Deposit Dikirim','Menunggu Validasi Admin'].includes(String(app[7]||'')))throw new Error('Status aplikasi tidak mengizinkan approval deposit.');
@@ -948,7 +948,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       row[0]=memberId;row[1]=app[1];row[2]=sheetText_(app[2]);row[3]=sheetText_(app[3]||'');row[4]=sheetText_(app[4]);row[5]=sheetText_(app[5]);row[6]=sheetText_(app[6]);row[7]='Menunggu Aktivasi';
       row[8]=sheetText_(dep[2]);row[9]=sheetText_(dep[3]);row[10]=sheetText_(dep[4]);row[11]=Number(dep[5]);row[12]=dep[6];row[13]=dep[8];row[14]='Disetujui';row[15]=sheetText_(note);row[16]=now;row[17]=now;
       row[18]=String(dep[11]);row[20]=now;row[24]=applicationRef;row[29]='Menunggu Aktivasi';
-      db.appendRow(row);createdRow=db.getLastRow();
+      memberAppendStarted=true;db.appendRow(row);createdRow=db.getLastRow();
       access.getRange(accessRow,1).setValue(memberId);
       apps.getRange(appRow,8).setValue('Menunggu Aktivasi');apps.getRange(appRow,9).setValue(memberId);apps.getRange(appRow,14).setValue(sheetText_(note));apps.getRange(appRow,15).setValue(now);
       ds.getRange(depositRow,10).setValue('Menunggu Aktivasi');ds.getRange(depositRow,13).setValue(sheetText_(note));ds.getRange(depositRow,14).setValue(now);
@@ -962,6 +962,9 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     }
   }catch(err){
     const rollbackErrors=[];
+    // appendRow/getLastRow can fail after the server has accepted the row write.
+    // Re-discover the just-issued ID under the same ScriptLock before compensation.
+    if(memberAppendStarted&&!createdRow&&db&&memberId)try{createdRow=findMemberById_(db,memberId);}catch(e){rollbackErrors.push('pemeriksaan baris member setelah append ambigu: '+safeErrorMessage_(e));}
     if(createdRow&&db)try{db.deleteRow(createdRow);}catch(e){rollbackErrors.push('baris member: '+safeErrorMessage_(e));}
     if(accessRow&&accessSnapshot&&access)try{access.getRange(accessRow,1,1,11).setValues([accessSnapshot]);}catch(e){rollbackErrors.push('relasi Telegram approval: '+safeErrorMessage_(e));}
     if(rejectedAccessRow&&rejectedAccessSnapshot&&rejectedAccess)try{rejectedAccess.getRange(rejectedAccessRow,1,1,11).setValues([rejectedAccessSnapshot]);}catch(e){rollbackErrors.push('akses Telegram penolakan: '+safeErrorMessage_(e));}
