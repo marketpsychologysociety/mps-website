@@ -148,6 +148,7 @@ test('backend validator enforces period order, 288 slots, safe nonnegative count
 
 test('legacy Heatmap menu and old multi-market Pulse selectors are removed', () => {
   assert.doesNotMatch(indexHtml, /data-page="heatmap"|id="page-heatmap"|loadHeatmap|refreshHeat|heatPublicPreview/);
+  assert.doesNotMatch(indexHtml, /\['register','deposit','heatmap'/, 'legacy Heatmap deep-link must not be routed');
   assert.doesNotMatch(indexHtml, /data-pair=|data-tf=|pulsePair|pulseTf|pulseSlot|pulseChips/);
   assert.match(indexHtml, /data-page="pulse">Market Pulse/);
   assert.match(indexHtml, /MPS MARKET PULSE · XAUUSD M5/);
