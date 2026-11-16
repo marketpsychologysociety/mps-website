@@ -1475,6 +1475,21 @@ function apiAdminGetLearningFile(session, fileId) {
 }
 
 
+function assertMpsDriveFolderTreePrivate_(folder,label) {
+  if(!folder||typeof folder.getId!=='function'||typeof folder.getParents!=='function')throw new Error('Struktur folder '+String(label||'MPS')+' tidak dapat diverifikasi. Akses dihentikan.');
+  const seen={},stack=[folder],name=String(label||'MPS Drive folder');
+  while(stack.length) {
+    const current=stack.pop(),id=String(current.getId()||'');
+    if(!id)throw new Error('ID folder '+name+' tidak dapat diverifikasi. Akses dihentikan.');
+    if(seen[id])continue;
+    seen[id]=true;
+    if(typeof current.getSharingAccess!=='function'||String(current.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder '+name+' atau folder induknya tidak PRIVATE. Akses dihentikan.');
+    const parents=current.getParents();
+    while(parents.hasNext())stack.push(parents.next());
+  }
+  return true;
+}
+
 function getLearningFolderId_() {
   const props = PropertiesService.getScriptProperties();
   const folderId = props.getProperty('MPS_LEARNING_FOLDER_ID');
@@ -1482,7 +1497,7 @@ function getLearningFolderId_() {
   if (!folderId) throw new Error('Folder materi Learning belum dikonfigurasi admin.');
   if (folderId === proofFolderId) throw new Error('Folder Learning wajib terpisah dari folder bukti deposit.');
   const folder=DriveApp.getFolderById(folderId);
-  if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder Learning tidak PRIVATE. Akses materi dihentikan sampai admin mengamankan folder.');
+  assertMpsDriveFolderTreePrivate_(folder,'Learning');
   return folderId;
 }
 
