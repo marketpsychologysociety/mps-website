@@ -968,7 +968,24 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     for(let i=rejectedLinkSnapshots.length-1;i>=0;i--){const snap=rejectedLinkSnapshots[i];try{rejectedLinks.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan member baris '+snap.row+': '+safeErrorMessage_(e));}}
     if(appRow&&appSnapshot&&apps)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
     if(depositRow&&depositSnapshot&&ds)try{ds.getRange(depositRow,1,1,depositSnapshot.length).setValues([depositSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
-    if(rollbackErrors.length)throw new Error('Transaksi verifikasi gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
+    if(rollbackErrors.length){
+      // Persist a non-sensitive operator alert before releasing the transaction lock.
+      // The original decision intent remains a separate journal entry; this alert
+      // explicitly flags that compensation was incomplete and manual reconciliation is required.
+      let reconciliationAlert='QUEUED';
+      try {
+        const alertKey='admin-rollback-reconcile:'+sha256_('mps-admin-rollback-reconcile-v1|'+String(applicationRef||'')+'|'+String(action||'')+'|'+Utilities.getUuid()).slice(0,40);
+        const queued=enqueueMpsVipFollowup_({
+          taskKey:alertKey,
+          intentKey:'admin-rollback-reconcile:'+sha256_('mps-admin-rollback-reconcile-v1|'+String(applicationRef||'')+'|'+String(action||'')).slice(0,40),
+          action:'ADMIN_ALERT',
+          alertText:'PERLU REKONSILIASI MANUAL MPS. Transaksi verifikasi Admin mengalami rollback tidak lengkap. Application Ref: '+String(applicationRef||'TIDAK TERSEDIA')+'. Keputusan: '+String(action||'TIDAK TERSEDIA')+'. Jangan proses ulang sebelum Super Admin memeriksa Database Member, Applications, Deposits, Telegram Access, dan Member Links.'
+        },true);
+        if(!queued||!queued.ok)reconciliationAlert='FAILED';
+      } catch(alertErr) { reconciliationAlert='FAILED'; }
+      const alertStatus=reconciliationAlert==='QUEUED'?'Peringatan rekonsiliasi tersimpan di antrean Admin.':'Peringatan antrean gagal disimpan; perlu eskalasi manual segera.';
+      throw new Error('Transaksi verifikasi gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). '+alertStatus+' Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
+    }
     throw err;
   }finally{lock.releaseLock();}
   // Best-effort cache invalidation happens after the business transaction commits.
