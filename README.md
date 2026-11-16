@@ -37,7 +37,7 @@ Minimum deposit yang ditampilkan saat ini adalah Rp1.000.000. Nominal lebih besa
 ## Keamanan dan privasi
 
 - Data privat harus dilindungi di backend, bukan hanya dengan menyembunyikan panel pada frontend.
-- Dashboard, Heatmap, Learning, Market Pulse, dan fungsi Admin harus memvalidasi sesi serta role di backend pada setiap permintaan.
+- Dashboard, Learning, Market Pulse, dan fungsi Admin harus memvalidasi sesi serta role di backend pada setiap permintaan.
 - Bukti deposit dan materi Learning harus berada pada folder/file privat; jangan memakai tautan Drive publik.
 - Tautan eksternal dengan `target="_blank"` wajib memakai `rel="noopener noreferrer"`.
 - Ticker publik MPS boleh menampilkan nama asli/identitas member sesuai keputusan produk; jangan menyamarkan nama sebagai default dan jangan membuat aktivitas sosial palsu. Tampilkan hanya nama dan teks aktivitas yang aman. Jangan tampilkan nomor telepon, email, Telegram ID/username, MT5, nominal/tanggal deposit, bukti, PIN, token, atau referensi internal.\n- Announcement Center saat ini adalah prototipe UI dengan data demonstrasi; tidak ada feed pengumuman, status layanan, pemenang, atau undian resmi yang terhubung. Roulette hanya animasi presentasi dan tidak menentukan hasil.
