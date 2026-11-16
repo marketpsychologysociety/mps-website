@@ -4317,6 +4317,7 @@ function getTradingSignalsSheets_() {
   if(id===mainId)throw new Error('Database Trading Signals wajib terpisah dari database member.');
   const file=DriveApp.getFileById(id);
   if(String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Database Trading Signals tidak PRIVATE. Akses dihentikan.');
+  const parents=file.getParents();while(parents.hasNext()){const parent=parents.next();if(String(parent.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder induk database Trading Signals tidak PRIVATE. Akses dihentikan.');}
   const ss=SpreadsheetApp.openById(id);
   const out={};
   Object.keys(MPS_TRADING_SIGNALS.sheets).forEach(function(key){
@@ -4357,15 +4358,17 @@ function normalizeTradingSignalPayload_(input) {
   if(!/^[A-Z0-9._-]{2,20}$/.test(instrument))throw new Error('INSTRUMENT_TIDAK_VALID.');
   if(!['BUY','SELL'].includes(side))throw new Error('SIDE_TIDAK_VALID.');
   if(!/^(M1|M5|M15|M30|H1|H4|D1)$/.test(timeframe))throw new Error('TIMEFRAME_TIDAK_DIDUKUNG.');
-  const entry=Number(p.entry),stopLoss=Number(p.stopLoss),takeProfit1=Number(p.takeProfit1),takeProfit2=Number(p.takeProfit2);
-  if([entry,stopLoss,takeProfit1,takeProfit2].some(function(v){return !Number.isFinite(v)||v<=0;}))throw new Error('HARGA_HARUS_FINITE_DAN_POSITIF.');
+  const rawPrices=[p.entry,p.stopLoss,p.takeProfit1,p.takeProfit2];
+  if(rawPrices.some(function(v){return typeof v!=='number'||!Number.isFinite(v)||v<=0;}))throw new Error('HARGA_HARUS_NUMBER_FINITE_DAN_POSITIF.');
+  const entry=p.entry,stopLoss=p.stopLoss,takeProfit1=p.takeProfit1,takeProfit2=p.takeProfit2;
   if(side==='BUY'&&!(stopLoss<entry&&entry<takeProfit1&&takeProfit1<takeProfit2))throw new Error('URUTAN_HARGA_BUY_TIDAK_VALID.');
   if(side==='SELL'&&!(takeProfit2<takeProfit1&&takeProfit1<entry&&entry<stopLoss))throw new Error('URUTAN_HARGA_SELL_TIDAK_VALID.');
   const status=String(p.status||'').trim().toUpperCase();
   if(!MPS_TRADING_SIGNALS.statuses.includes(status))throw new Error('STATUS_TIDAK_DIDUKUNG.');
   if(eventType==='CREATE'&&status!=='ACTIVE')throw new Error('CREATE_HARUS_STATUS_ACTIVE.');
-  const signalTime=String(p.signalTime||'').trim();
-  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(signalTime)||!Number.isFinite(Date.parse(signalTime)))throw new Error('SIGNAL_TIME_WAJIB_ISO8601_DENGAN_ZONA_WAKTU.');
+  const suppliedSignalTime=String(p.signalTime||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(suppliedSignalTime)||!Number.isFinite(Date.parse(suppliedSignalTime)))throw new Error('SIGNAL_TIME_WAJIB_ISO8601_DENGAN_ZONA_WAKTU.');
+  const signalTime=new Date(Date.parse(suppliedSignalTime)).toISOString();
   const botSecret=String(p.botSecret||'');
   if(!botSecret||botSecret.length>256)throw new Error('KREDENSIAL_BOT_TIDAK_VALID.');
   return {eventId:eventId,signalId:signalId,botId:botId,eventType:eventType,instrument:instrument,side:side,timeframe:timeframe,entry:entry,stopLoss:stopLoss,takeProfit1:takeProfit1,takeProfit2:takeProfit2,status:status,signalTime:signalTime,botSecret:botSecret};
@@ -4435,18 +4438,19 @@ function ingestTradingSignal_(input) {
   try{
     const sheets=getTradingSignalsSheets_();
     const bot=getTradingSignalBotRow_(sheets.bots,p.botId);
-    if(bot.values[2]!==true&&String(bot.values[2]).toUpperCase()!=='TRUE')throw new Error('BOT_DISABLED.');
-    const instruments=String(bot.values[3]||'').split(',').map(function(v){return v.trim().toUpperCase();}).filter(Boolean);
-    const timeframes=String(bot.values[4]||'').split(',').map(function(v){return v.trim().toUpperCase();}).filter(Boolean);
-    if(!instruments.includes(p.instrument))throw new Error('INSTRUMENT_NOT_ALLOWED.');
-    if(!timeframes.includes(p.timeframe))throw new Error('TIMEFRAME_NOT_ALLOWED.');
     const existingEvent=findTradingSignalEventRow_(sheets.events,p.eventId);
     if(existingEvent){
       const saved=sheets.events.getRange(existingEvent,1,1,MPS_TRADING_SIGNALS.headers.events.length).getValues()[0];
       if(String(saved[15])!==fingerprint)throw new Error('EVENT_ID_COLLISION.');
       reconcileTradingSignalEvent_(sheets,existingEvent);
+      sheets.bots.getRange(bot.row,6,1,2).setValues([[new Date(),p.eventId]]);
       return {ok:true,duplicate:true,eventId:p.eventId,signalId:p.signalId,status:String(saved[5])};
     }
+    if(bot.values[2]!==true&&String(bot.values[2]).toUpperCase()!=='TRUE')throw new Error('BOT_DISABLED.');
+    const instruments=String(bot.values[3]||'').split(',').map(function(v){return v.trim().toUpperCase();}).filter(Boolean);
+    const timeframes=String(bot.values[4]||'').split(',').map(function(v){return v.trim().toUpperCase();}).filter(Boolean);
+    if(!instruments.includes(p.instrument))throw new Error('INSTRUMENT_NOT_ALLOWED.');
+    if(!timeframes.includes(p.timeframe))throw new Error('TIMEFRAME_NOT_ALLOWED.');
     const signalRow=findTradingSignalRow_(sheets.signals,p.signalId);
     let previousStatus='';
     if(p.eventType==='CREATE'){
