@@ -1357,17 +1357,50 @@ function adminUploadMarketPulseCore_(session,payload) {
   const matches=folder.getFilesByName('MPS Market Pulse Data.html');
   let oldFile=null;if(matches.hasNext()){oldFile=matches.next();if(matches.hasNext())throw new Error('Ada lebih dari satu file aktif Pulse. Bereskan duplikasi sebelum upload baru.');if(String(oldFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('File Pulse lama tidak PRIVATE. Amankan file sebelum menggantinya.');}
   const stamp=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyyMMdd-HHmmss')+'-'+Utilities.getUuid().slice(0,6);
-  const backupName='MPS Market Pulse Backup '+stamp+'.html';let newFile=null,oldRenamed=false;
+  const canonicalName='MPS Market Pulse Data.html',backupName='MPS Market Pulse Backup '+stamp+'.html';
+  let newFile=null;
   try{
-    if(oldFile){oldFile.setName(backupName);oldRenamed=true;}
-    newFile=folder.createFile(Utilities.newBlob(bytes,'text/html','MPS Market Pulse Data.html'));
+    if(oldFile)oldFile.setName(backupName);
+    newFile=folder.createFile(Utilities.newBlob(bytes,'text/html',canonicalName));
     newFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     if(String(newFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Akses file baru tidak dapat dipastikan PRIVATE.');
     if(newFile.getSize()!==bytes.length)throw new Error('Ukuran file baru tidak cocok setelah disimpan.');
+    const active=folder.getFilesByName(canonicalName);
+    if(!active.hasNext()||active.next().getId()!==newFile.getId()||active.hasNext())throw new Error('Jumlah atau identitas file aktif Market Pulse tidak cocok setelah publikasi.');
+    if(oldFile&&String(oldFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Backup Market Pulse lama tidak lagi PRIVATE.');
   }catch(err){
     const rollbackErrors=[];
-    if(newFile)try{newFile.setTrashed(true);}catch(cleanupErr){rollbackErrors.push('file baru tidak berhasil dipindahkan ke Trash: '+safeErrorMessage_(cleanupErr));}
-    if(oldFile&&oldRenamed)try{oldFile.setName('MPS Market Pulse Data.html');}catch(restoreErr){rollbackErrors.push('nama versi sebelumnya gagal dipulihkan; file masih bernama '+backupName+': '+safeErrorMessage_(restoreErr));}
+    // createFile/setName can succeed in Drive and still lose the response. Reconcile by
+    // canonical filename and the retained old-file ID, not only by local return values.
+    try{
+      const candidates=folder.getFilesByName(canonicalName);
+      while(candidates.hasNext()){
+        const candidate=candidates.next();
+        if(oldFile&&candidate.getId()===oldFile.getId())continue;
+        if(candidate.isTrashed())continue;
+        try{candidate.setTrashed(true);}catch(cleanupErr){
+          if(!candidate.isTrashed())rollbackErrors.push('file baru '+candidate.getId()+' tidak berhasil dipindahkan ke Trash: '+safeErrorMessage_(cleanupErr));
+        }
+        if(!candidate.isTrashed())rollbackErrors.push('file baru '+candidate.getId()+' masih aktif setelah upaya cleanup.');
+      }
+    }catch(cleanupErr){rollbackErrors.push('pemeriksaan/cleanup file baru tidak dapat dipastikan: '+safeErrorMessage_(cleanupErr));}
+    if(oldFile){
+      try{
+        if(oldFile.getName()!==canonicalName){
+          try{oldFile.setName(canonicalName);}catch(renameErr){
+            if(oldFile.getName()!==canonicalName)throw renameErr;
+          }
+        }
+        if(oldFile.getName()!==canonicalName||oldFile.isTrashed())throw new Error('Nama atau status file lama tidak pulih ke keadaan aktif.');
+        if(String(oldFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('File lama tidak lagi PRIVATE.');
+      }catch(restoreErr){rollbackErrors.push('file lama gagal dipulihkan ke nama aktif: '+safeErrorMessage_(restoreErr));}
+    }
+    try{
+      const remaining=folder.getFilesByName(canonicalName);let count=0,remainingId='';
+      while(remaining.hasNext()){const item=remaining.next();if(!item.isTrashed()){count++;remainingId=item.getId();}}
+      const expectedCount=oldFile?1:0;
+      if(count!==expectedCount||(oldFile&&remainingId!==oldFile.getId()))rollbackErrors.push('verifikasi file aktif gagal: ditemukan '+count+' file; jumlah yang diharapkan '+expectedCount+'.');
+    }catch(verifyErr){rollbackErrors.push('verifikasi akhir rollback tidak dapat dipastikan: '+safeErrorMessage_(verifyErr));}
     if(rollbackErrors.length)throw new Error('Publikasi Market Pulse gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Periksa folder Learning sebelum mencoba ulang.');
     throw new Error('Publikasi Market Pulse gagal; versi sebelumnya berhasil dipulihkan: '+safeErrorMessage_(err));
   }
