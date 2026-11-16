@@ -36,6 +36,14 @@ test('member and administrator session tokens are not persisted in browser stora
   assert.doesNotMatch(indexHtml,/sessionStorage\.[\s\S]{0,120}(?:memberSession|adminSession|memberPin|adminToken)/i);
 });
 
+test('public Market Pulse preview contains only static placeholders, never the private dataset',()=>{
+  const preview=fs.readFileSync(new URL('../../heatmap.html',import.meta.url),'utf8');
+  assert.match(preview,/MEMBER ONLY/i);
+  assert.match(preview,/XAUUSD[^<]{0,40}M5/i);
+  assert.match(preview,/•••/);
+  assert.doesNotMatch(preview,/const\s+D\s*=|rawData|\b\d{1,3}\.\d%/i);
+});
+
 test('candidate source files contain no common hard-coded API or bot credential patterns',()=>{
   const paths=['../../candidates/Code.gs','../../candidates/Index.html','../../index.html','../../heatmap.html','../../scripts/build-market-pulse-dataset.mjs'];
   const patterns=[/\b\d{8,10}:[A-Za-z0-9_-]{30,}\b/,/AIza[0-9A-Za-z_-]{30,}/,/gh[pousr]_[A-Za-z0-9]{30,}/,/AKIA[0-9A-Z]{16}/,/sk-[A-Za-z0-9]{20,}/];
