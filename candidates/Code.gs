@@ -968,6 +968,10 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
     for(let i=rejectedLinkSnapshots.length-1;i>=0;i--){const snap=rejectedLinkSnapshots[i];try{rejectedLinks.getRange(snap.row,1,1,snap.values.length).setValues([snap.values]);}catch(e){rollbackErrors.push('tautan member baris '+snap.row+': '+safeErrorMessage_(e));}}
     if(appRow&&appSnapshot&&apps)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
     if(depositRow&&depositSnapshot&&ds)try{ds.getRange(depositRow,1,1,depositSnapshot.length).setValues([depositSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
+    // The durable notification intent was created before the multi-sheet writes.
+    // Settle it on every failed transaction so the worker cannot retry a stale decision.
+    try { settleMpsAdminDecisionIntentAfterRollback_(applicationRef,memberId,action,rollbackErrors.length>0); }
+    catch(intentErr) { rollbackErrors.push('decision intent: '+safeErrorMessage_(intentErr)); }
     if(rollbackErrors.length){
       // Persist a non-sensitive operator alert before releasing the transaction lock.
       // The original decision intent remains a separate journal entry; this alert
