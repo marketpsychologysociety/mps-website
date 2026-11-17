@@ -911,32 +911,25 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
   let auditResult='SUCCESS';
   let auditDetails=action==='approve'?'Persetujuan deposit tersimpan; akun masih Menunggu Aktivasi sampai pengiriman PIN terkonfirmasi.':'Penolakan deposit berhasil disimpan.';
   if(action==='approve'&&result&&result.ok){
-    let pinDm={ok:false,error:'Telegram tidak dapat dihubungi.'};
-    try{pinDm=telegramSendToChat_(memberChatId,'🔐 PIN AKSES MPS\nID Member: '+memberKey+'\nPIN: '+pin+'\nJangan bagikan PIN ini kepada siapa pun.');}
-    catch(sendErr){pinDm={ok:false,error:safeErrorMessage_(sendErr)};}
-    let pinStored=false,pinStorageError='';
-    if(pinDm.ok){try{storeMemberPin_(memberKey,pin);pinStored=true;}catch(storeErr){pinStorageError=safeErrorMessage_(storeErr);}}
-    let pinCurrent=false,pinMarkError='';
-    if(pinStored){try{pinCurrent=markPinDeliveredIfCurrent_(memberKey,pin);}catch(markErr){pinMarkError=safeErrorMessage_(markErr);}}
-    result.pinDelivered=!!pinCurrent;
-    if(pinCurrent){try{activateMemberAfterPin_(memberKey);}catch(activeErr){pinCurrent=false;result.pinWarning='PIN terkirim tetapi status aktivasi belum tersimpan. Admin perlu mengirim ulang PIN.';auditResult='PARTIAL';auditDetails+=' Aktivasi database gagal: '+safeErrorMessage_(activeErr);}}
-    if(pinCurrent)removeMpsCacheBestEffort_('mps_pin_pending_'+sha256_(memberKey).slice(0,24),'legacy PIN activation');
-    if(pinCurrent){result.status='Member aktif. PIN berhasil dikirim dan disimpan.';auditDetails='Persetujuan deposit tersimpan dan PIN berhasil dikirim; status member Berhasil.';
-      let invite;try{invite=sendVipInvite_(memberKey);}catch(inviteErr){invite={ok:false,error:safeErrorMessage_(inviteErr)};}
-      result.vipInviteSent=!!invite.ok&&!invite.queued;result.vipInviteQueued=!!invite.queued;
-      if(!invite.ok){result.vipInviteWarning=invite.error||'Undangan VIP belum dapat dimasukkan ke antrean.';auditResult='PARTIAL';auditDetails+=' PIN tersimpan dan terkirim; undangan VIP belum berhasil dimasukkan ke antrean.';}
-      else if(invite.queued){auditResult='PARTIAL';auditDetails+=' PIN tersimpan dan terkirim; undangan VIP masuk antrean dan menunggu konfirmasi Telegram.';}
+    // Reuse the same durable PIN-delivery quarantine as the Application Ref path.
+    // Never send a PIN before its verifier is stored and login is fail-closed.
+    let issuance={ok:false,delivered:false,activationCompleted:false,message:'Penerbitan PIN belum dapat dijalankan.'};
+    try{issuance=apiAdminIssuePin(session,memberKey);}
+    catch(issueErr){issuance={ok:false,delivered:false,activationCompleted:false,message:'Persetujuan tersimpan, tetapi penerbitan PIN belum berhasil dijalankan: '+safeErrorMessage_(issueErr)};}
+    result.pinDelivered=!!issuance.delivered;
+    result.pinIssuanceOk=!!issuance.ok;
+    result.vipInviteSent=!!issuance.inviteSent;
+    result.vipInviteQueued=!!issuance.inviteQueued;
+    if(issuance.ok&&issuance.activationCompleted){
+      result.status='Member aktif. PIN berhasil dikirim dan dikonfirmasi.';
+      auditDetails='Persetujuan deposit tersimpan; PIN berhasil dikirim dan status member aktif; undangan VIP '+(issuance.inviteQueued?'masuk antrean dan menunggu konfirmasi Telegram.':issuance.inviteSent?'berhasil dikirim.':'belum berhasil atau belum dapat dipastikan.');
+      if(issuance.inviteQueued||!issuance.inviteSent){auditResult='PARTIAL';}
     }else{
-      result.status='Persetujuan tersimpan; status member Menunggu Aktivasi sampai PIN berhasil dikirim dan dikonfirmasi.';
+      result.status='Persetujuan tersimpan; status member tetap Menunggu Aktivasi sampai pengiriman PIN dan aktivasi terkonfirmasi.';
+      result.pinWarning=issuance.message||'Pengiriman atau aktivasi PIN belum dapat dikonfirmasi. Hubungi Super Admin.';
       result.vipInviteSent=false;
-      if(pinDm.ok&&!result.pinWarning){
-        result.pinWarning='PIN terkirim ke Telegram, tetapi penyimpanan/konfirmasi PIN gagal. Member jangan login dahulu; admin perlu memeriksa dan menerbitkan ulang PIN.';
-        auditDetails+=' PIN DM terkirim, tetapi penyimpanan atau konfirmasi PIN gagal.'+(pinStorageError?' Detail: '+pinStorageError:'')+(pinMarkError?' Detail: '+pinMarkError:'');
-      }else{
-        result.pinWarning='Pengiriman PIN gagal. PIN sebelumnya tetap berlaku; undangan VIP ditahan sampai PIN berhasil dikirim.';
-        auditDetails+=' Status database sudah disetujui, tetapi pengiriman PIN gagal; undangan VIP ditahan.';
-      }
       auditResult='PARTIAL';
+      auditDetails='Persetujuan deposit tersimpan, tetapi pengiriman PIN atau aktivasi belum dapat dikonfirmasi. Verifier PIN baru tetap dikarantina bila hasil Telegram ambigu; PIN lama tidak dipulihkan. Undangan VIP ditahan sampai aktivasi terkonfirmasi.';
     }
   }
   try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Legacy admin decision intent drain deferred: '+safeErrorMessage_(queueErr));}
