@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="MPS">
   <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <meta name="robots" content="index,follow">
-  <title>Market Pulse · Anggota Only | MPS</title>
+  <title>Market Pulse · Khusus Anggota | MPS</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css?v=mps-bullbear-20261117">
   <style>
@@ -94,11 +94,11 @@
   let installPrompt=null;
   const ua=navigator.userAgent||'';
   const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Share/Bagikan.\n3. Pilih “Add to Home Screen” / “Tambahkan ke Layar Utama”.\n4. Tekan Add / Tambahkan.'));}
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Bagikan.\n3. Pilih “Tambahkan ke Layar Utama”.\n4. Tekan “Tambahkan”.'));}
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
   btn.addEventListener('click',async()=>{
     if(isAppleMobile)return;
-    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Install app” atau “Tambahkan ke layar utama”.');return;}
+    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Pasang aplikasi” atau “Tambahkan ke layar utama”.');return;}
     installPrompt.prompt();
     try{const choice=await installPrompt.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}
     installPrompt=null;
