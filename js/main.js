@@ -115,9 +115,13 @@ document.addEventListener("DOMContentLoaded", function () {
   startAuto();
 });
 
-// MPS tactile click feedback: ripple originates from the real pointer/touch location (no fake cursor).
+// MPS tactile click feedback: real press/release state plus a ripple at the actual touch point.
 (() => {
   const selector = '.btn, button, .nav-join, .pwa-install-btn';
+  const getTarget = event => {
+    const node = event.target instanceof Element ? event.target : event.target?.parentElement;
+    return node?.closest(selector) || null;
+  };
   const addRipple = (target, x, y) => {
     if (!(target instanceof Element) || !target.matches(selector)) return;
     if (target.disabled || target.getAttribute('aria-disabled') === 'true') return;
@@ -129,17 +133,33 @@ document.addEventListener("DOMContentLoaded", function () {
     ripple.style.top = Math.max(0, Math.min(rect.height, y - rect.top)) + 'px';
     target.appendChild(ripple);
     ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
-    window.setTimeout(() => ripple.remove(), 750);
+    window.setTimeout(() => ripple.remove(), 650);
   };
   document.addEventListener('pointerdown', event => {
-    const target = event.target.closest?.(selector);
-    if (target) addRipple(target, event.clientX, event.clientY);
+    const target = getTarget(event);
+    if (!target || target.disabled || target.getAttribute('aria-disabled') === 'true') return;
+    target.classList.add('mps-is-pressed');
+    addRipple(target, event.clientX, event.clientY);
   }, { passive: true });
+  const release = event => {
+    const target = getTarget(event);
+    if (target) target.classList.remove('mps-is-pressed');
+  };
+  document.addEventListener('pointerup', release, { passive: true });
+  document.addEventListener('pointercancel', release, { passive: true });
   document.addEventListener('click', event => {
     if (event.detail !== 0) return;
-    const target = event.target.closest?.(selector);
-    if (!target) return;
+    const target = getTarget(event);
+    if (!target || target.disabled || target.getAttribute('aria-disabled') === 'true') return;
     const rect = target.getBoundingClientRect();
+    target.classList.add('mps-is-pressed');
     addRipple(target, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    window.setTimeout(() => target.classList.remove('mps-is-pressed'), 150);
+  });
+  document.addEventListener('keyup', event => {
+    if (event.key !== ' ' && event.key !== 'Enter') return;
+    const target = getTarget(event);
+    if (!target) return;
+    target.classList.remove('mps-is-pressed');
   });
 })();
