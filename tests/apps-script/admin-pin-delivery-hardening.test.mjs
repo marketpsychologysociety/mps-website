@@ -85,3 +85,47 @@ test('ambiguous recovery-code delivery preserves the exact challenge for a possi
   assert.ok(failure.includes('DELIVERY_UNCONFIRMED'));
   assert.ok(!failure.includes('props.deleteProperty(propertyKey)'),'ambiguous delivery must not invalidate a possibly delivered code');
 });
+
+test('runtime keeps a possibly delivered recovery challenge after Telegram response loss and releases ScriptLock',()=>{
+  const props=Object.create(null),audit=[];
+  const uuid=['A1B2C3D4-E5F6-7890-ABCD-1234567890AB','11111111-2222-3333-4444-555555555555'];
+  let lockHeld=false,releases=0;
+  const sandbox={
+    consumeRateLimit_:()=>true,
+    getMemberSheet_:()=>({}),
+    findActiveMemberForRecovery_:()=>({memberId:'MPS-ABCDEF12'}),
+    getTelegramAccessSheet_:()=>({}),
+    findUniqueTelegramAccessForRecovery_:()=>({chatId:'123456789'}),
+    sha256_:value=>'digest:'+String(value),
+    Utilities:{getUuid:()=>uuid.shift()},
+    mpsRecoveryPropertyKey_:mt5=>'MPS_RECOVERY_'+mt5,
+    PropertiesService:{getScriptProperties:()=>({
+      setProperty:(key,value)=>{props[key]=String(value);},
+      getProperty:key=>Object.prototype.hasOwnProperty.call(props,key)?props[key]:null,
+      deleteProperty:key=>{delete props[key];}
+    })},
+    LockService:{getScriptLock:()=>({
+      waitLock:()=>{assert.equal(lockHeld,false);lockHeld=true;},
+      releaseLock:()=>{assert.equal(lockHeld,true);lockHeld=false;releases++;}
+    })},
+    telegramSendToChat_:()=>({ok:false,error:'response timeout'}),
+    recordMpsAudit_:(...args)=>{audit.push(args);return true;},
+    safeErrorMessage_:error=>String(error&&error.message||error)
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(extract('apiMemberRecoveryStart'),sandbox,{timeout:1000});
+  const result=sandbox.apiMemberRecoveryStart('12345678901','PIN');
+  const raw=props.MPS_RECOVERY_12345678901;
+  assert.ok(raw,'ambiguous Telegram outcome must preserve the durable challenge');
+  const challenge=JSON.parse(raw);
+  assert.equal(challenge.memberId,'MPS-ABCDEF12');
+  assert.equal(challenge.action,'PIN');
+  assert.equal(challenge.chatId,'123456789');
+  assert.equal(challenge.attempts,0);
+  assert.ok(challenge.expiresAt>Date.now());
+  assert.equal(result.ok,true,'public response remains generic');
+  assert.ok(!JSON.stringify(result).includes('A1B2C3D4'),'recovery code must not be returned to the browser');
+  assert.equal(lockHeld,false,'ScriptLock must always be released');
+  assert.equal(releases,1);
+  assert.equal(audit.at(-1)[4],'DELIVERY_UNCONFIRMED');
+});
