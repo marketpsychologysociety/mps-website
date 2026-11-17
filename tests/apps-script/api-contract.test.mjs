@@ -11,17 +11,17 @@ const calls=[...new Set([...html.matchAll(/\bapi\(\s*['"]([A-Za-z_$][\w$]*)['"]/
 
 test('Public Center direct route is default-deny unless an exact backend Script Property enables it',()=>{
   const gateStart=code.indexOf('function isMpsPublicCenterEnabled_()');
-  const gateEnd=code.indexOf('\\nfunction ',gateStart+1);
+  const gateEnd=code.indexOf('\nfunction ',gateStart+1);
   const routeStart=code.indexOf('function doGet(e)');
-  const routeEnd=code.indexOf('\\nfunction ',routeStart+1);
+  const routeEnd=code.indexOf('\nfunction ',routeStart+1);
   assert.ok(gateStart>=0&&gateEnd>gateStart,'backend Public Center gate must exist');
   assert.ok(routeStart>=0&&routeEnd>routeStart,'doGet route boundaries must exist');
   const gate=code.slice(gateStart,gateEnd);
   const route=code.slice(routeStart,routeEnd);
-  assert.match(gate,/getProperty\\('MPS_PUBLIC_CENTER_ENABLED'\\)\\s*===\\s*'true'/);
-  assert.match(gate,/catch\\s*\\([^)]*\\)\\s*\\{\\s*return false;/);
-  assert.match(route,/if\\s*\\(!isMpsPublicCenterEnabled_\\(\\)\\)/);
-  assert.match(route,/createTextOutput\\('Not Found'\\)/);
+  assert.match(gate,/getProperty\('MPS_PUBLIC_CENTER_ENABLED'\\)\\s*===\\s*'true'/);
+  assert.match(gate,/catch\s*\\([^)]*\\)\\s*\\{\\s*return false;/);
+  assert.match(route,/if\s*\\(!isMpsPublicCenterEnabled_\\(\)\)/);
+  assert.match(route,/createTextOutput\('Not Found'\)/);
 
   for(const propertyValue of [null,'false','TRUE','1','', 'unexpected']) {
     let publicCalls=0;
@@ -31,7 +31,7 @@ test('Public Center direct route is default-deny unless an exact backend Script 
       apiGetPublicCenter:()=>{publicCalls++;return {ok:true};},
       json_:value=>({json:value})
     };
-    runInNewContext(gate+'\\n'+route,context);
+    runInNewContext(gate+'\n'+route,context);
     const response=context.doGet({parameter:{publicCenter:'1'}});
     assert.equal(response.value,'Not Found','unexpectedly accepted property '+String(propertyValue));
     assert.equal(publicCalls,0,'public data handler must not run when disabled');
@@ -44,7 +44,7 @@ test('Public Center direct route is default-deny unless an exact backend Script 
     apiGetPublicCenter:()=>{publicCalls++;return {ok:true};},
     json_:value=>({json:value})
   };
-  runInNewContext(gate+'\\n'+route,context);
+  runInNewContext(gate+'\n'+route,context);
   const response=context.doGet({parameter:{publicCenter:'1'}});
   assert.equal(publicCalls,1,'exact explicit backend enable should reach public handler in isolated test');
   assert.match(response.value,/MPS_PUBLIC_CENTER_DATA/);
