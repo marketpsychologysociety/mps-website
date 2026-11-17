@@ -179,3 +179,21 @@ In `createMemberTelegramLink_()`, the link row is appended before the function r
 Google Sheets/Drive do not provide a multi-resource ACID transaction. The correction must therefore be explicit about a saga/compensation model rather than claiming atomic rollback. Before any mutation, validate all schemas, permissions, proof metadata, and required configuration. Capture exact before-images for every row/file/relationship that can change. Persist a transaction journal in a pre-provisioned, header-validated sheet (never auto-create it in a public request), with a unique transaction ID and non-sensitive operation metadata. Record PREPARED, COMMITTING, COMMITTED, COMPENSATING, COMPENSATED, or RECONCILIATION_REQUIRED states. Do not store PINs, raw Telegram tokens, proof bytes, or credentials in the journal. If the journal itself is unavailable, fail before mutation. The repair process must be admin-only, audited, idempotent, and separate from public submission endpoints.
 
 **Risk update:** RW-05 Medium; RW-06 High; RW-07 Medium. All remain static-source findings pending isolated Apps Script failure injection.
+
+
+## Follow-up disposition — Telegram link creation (2026-11-17)
+
+### RW-07 — mitigated in candidate; regression-tested
+
+The current candidate `createMemberTelegramLink_()` now reads and validates `MPS_TELEGRAM_BOT_USERNAME` before obtaining the write target and before appending the one-time link row. A missing/unreadable or malformed bot username therefore fails before the link row is persisted.
+
+The helper still calls its `onPrepared` callback with the exact token/row identity immediately before `appendRow()`. This is intentional: if the append succeeds remotely but the response is lost/throws, `saveDeposit_()` already knows the exact row and can mark it `Dibatalkan` during compensation rather than orphaning an active pending link.
+
+Regression coverage in `tests/apps-script/deposit-rollback.test.mjs` now executes the actual candidate helper and verifies:
+- bot Script Property read failure creates no new Telegram link row and restores the deposit/application writes;
+- an append that persists its row but throws an ambiguous response is compensated by cancelling that exact prepared row;
+- the pre-existing pending link remains in its original state.
+
+GitHub Actions run [#44036830268](https://github.com/marketpsychologysociety/mps-website/actions/runs/44036830268), run number 2220, completed **SUCCESS, 78/78 workflow steps, 0 failures** on exact code/test head `3cca60f93c3116199498b1049992b8951ac16f4d`. The deposit rollback suite passed **5/5**. These are repository tests with mocked Apps Script/Drive/Sheets services, not live Apps Script or real spreadsheet acceptance.
+
+This closes the specific RW-07 ordering/orphan-link gap at source/mock-test level. Real isolated Apps Script and spreadsheet failure-injection acceptance remains open. Do not interpret this as a true multi-sheet ACID transaction or production rollback guarantee.
