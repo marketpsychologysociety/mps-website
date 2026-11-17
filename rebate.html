@@ -61,7 +61,7 @@
     </div>
 
     <h2>Hubungan IB dan Transparansi</h2>
-    <p>MPS merupakan mitra mitra pengenal (Introducing Broker/IB) Exness dan dapat menerima komisi dari aktivitas transaksi akun yang terdaftar di bawah IB MPS, sesuai ketentuan broker. Untuk saat ini Exness adalah broker mitra MPS. MPS dapat menambahkan broker mitra lain di kemudian hari; setiap perubahan akan diumumkan secara terbuka. Hubungan IB ini merupakan bagian dari model pendanaan MPS dan perlu dipahami oleh setiap anggota.</p>
+    <p>MPS bertindak sebagai Introducing Broker (IB) Exness dan dapat menerima komisi dari aktivitas transaksi akun yang terdaftar di bawah IB MPS, sesuai ketentuan broker. Untuk saat ini Exness adalah broker mitra MPS. MPS dapat menambahkan broker mitra lain di kemudian hari; setiap perubahan akan diumumkan secara terbuka. Hubungan IB ini merupakan bagian dari model pendanaan MPS dan perlu dipahami oleh setiap anggota.</p>
     <p>Keanggotaan MPS tidak dipungut biaya pendaftaran atau iuran. Namun, persyaratan keanggotaan mencakup akun Exness yang terhubung di bawah IB MPS dan deposit minimal Rp1.000.000 ke akun trading tersebut. Deposit bukan biaya keanggotaan atau pembayaran kepada MPS; dana tetap berada di akun trading anggota dan tetap berisiko.</p>
 
     <h2>Transparansi Integrasi API Exness</h2>
@@ -69,7 +69,7 @@
       <strong>Status koneksi data:</strong> BELUM TERHUBUNG / MENUNGGU AKSES API MITRA.
       Halaman ini belum menerima data rebate langsung per akun dari Exness. Karena itu MPS tidak menampilkan angka volume, rebate personal, atau status pembayaran seolah-olah sudah tersinkron.
     </div>
-    <p>MPS sedang menyiapkan integrasi melalui <strong>API Kemitraan Exness (Exness Mitraship API)</strong> (bukan Trading API). Integrasi dirancang hanya-baca dengan izin minimum <code>mitraship.all:read</code>. Kunci API dan kunci penandatanganan hanya boleh disimpan di sistem sisi server; tidak akan ditanam di halaman website, aplikasi peramban, atau dikirim kepada anggota.</p>
+    <p>MPS sedang menyiapkan integrasi melalui <strong>API Kemitraan Exness (Exness Partnership API)</strong> (bukan Trading API). Integrasi dirancang hanya-baca dengan izin minimum <code>partnership.all:read</code>. Kunci API dan kunci penandatanganan hanya boleh disimpan di sistem sisi server; tidak akan ditanam di halaman website, aplikasi peramban, atau dikirim kepada anggota.</p>
     <p>Setelah akses mitra, pemetaan akun, dan rekonsiliasi dinyatakan valid, area <strong>Rebate Saya</strong> akan menampilkan data milik anggota yang sedang masuk saja: nomor akun yang sudah dicocokkan secara unik, volume transaksi, dasar imbalan mitra (terpisah dari hak rebate anggota), alokasi rebate, periode sumber, waktu sinkronisasi terakhir, serta rincian kelompok pemrosesan (batch), baris rebate, dan pembayaran.</p>
     <ul>
       <li><strong>Menunggu / Diproses:</strong> masih diproses, bukan pembayaran selesai.</li>
@@ -77,7 +77,7 @@
       <li><strong>Dibayar:</strong> hanya ditampilkan jika baris rebate dan bukti pembayaran terkait cocok.</li>
       <li><strong>Ditolak / Galat / Perlu Rekonsiliasi:</strong> ditampilkan terpisah dan tidak dihitung sebagai dana yang sudah diterima anggota.</li>
     </ul>
-    <p><strong>Dokumentasi teknis resmi:</strong> <a href="https://www.exness-api.com/reference/partnership/exness-partner-api" target="_blank" rel="noopener noreferrer">Dokumentasi API Kemitraan Exness</a> · <a href="https://www.exness-api.com/partnership/guides/autorebates" target="_blank" rel="noopener noreferrer">Panduan Rebates Exness</a>. Dokumen tersebut menjelaskan ruang lingkup akses hanya-baca, laporan rebate, dan rekonsiliasi kelompok pemrosesan (batch)/baris/pembayaran. API adalah sarana baca data mitra; bukan bukti bahwa MPS telah memperoleh akses atau bahwa suatu rebate telah dibayarkan.</p>
+    <p><strong>Dokumentasi teknis resmi:</strong> <a href="https://www.exness-api.com/reference/partnership/exness-partner-api" target="_blank" rel="noopener noreferrer">Dokumentasi API Kemitraan Exness</a> · <a href="https://www.exness-api.com/partnership/guides/autorebates" target="_blank" rel="noopener noreferrer">Panduan Rebate Exness</a>. Dokumen tersebut menjelaskan ruang lingkup akses hanya-baca, laporan rebate, dan rekonsiliasi kelompok pemrosesan (batch)/baris/pembayaran. API adalah sarana baca data mitra; bukan bukti bahwa MPS telah memperoleh akses atau bahwa suatu rebate telah dibayarkan.</p>
     <p><strong>Batasan yang perlu diketahui:</strong> dokumentasi API saat ini menyatakan tidak menyediakan operasi untuk menyetujui/menolak rebate atau mengulang pembayaran. Karena itu MPS tidak akan menjanjikan kontrol pembayaran melalui API, dan status <em>Telah Diproses</em> tidak akan disamakan dengan <em>Dibayar</em>.</p>
     <p>Jika data Exness terlambat, tidak lengkap, atau nomor akun belum dapat dicocokkan secara unik, MPS akan menandainya sebagai belum terverifikasi dan tidak membuat estimasi seolah-olah merupakan angka resmi broker. Anggota dapat meminta penjelasan perhitungan melalui Admin MPS.</p>
 
