@@ -1,4 +1,4 @@
-const CACHE_NAME='mps-public-shell-v6';
+const CACHE_NAME='mps-public-shell-v7';
 const CACHE_PREFIX='mps-public-shell-';
 const BASE=self.registration.scope;
 const CORE_ASSETS=[
