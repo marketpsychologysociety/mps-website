@@ -220,15 +220,21 @@ function findMpsRequestLedgerRow_(sh,requestId) {
   return 0;
 }
 function createMemberTelegramLink_(memberId,applicationRef,onPrepared) {
+  // Resolve all configuration before the first persistent write. A missing or
+  // unreadable bot setting must not leave a newly appended, unusable link row.
+  const bot=PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_BOT_USERNAME')||'MPS_Notificationnew_bot';
+  const botUsername=String(bot).replace(/^@/,'').trim();
+  if(!/^[A-Za-z0-9_]{5,32}$/.test(botUsername))throw new Error('Konfigurasi username bot Telegram tidak valid.');
   const sh=getMpsMemberLinksSheet_();
   const token=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,'').slice(0,12);
   const now=new Date(),expires=new Date(now.getTime()+15*60*1000),hash=sha256_(token),linkRow=sh.getLastRow()+1;
   const prepared={token:token,row:linkRow};
+  // Publish the exact intended row to the caller before appendRow, so a
+  // write-that-succeeded-but-response-was-lost can still be compensated.
   if(typeof onPrepared==='function')onPrepared(prepared);
   const values=[hash,now,expires,'Menunggu',memberId,applicationRef,'','','','', ''];
   sh.appendRow(values);
-  const bot=PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_BOT_USERNAME')||'MPS_Notificationnew_bot';
-  return {ok:true,token:token,row:linkRow,url:'https://t.me/'+bot.replace(/^@/,'')+'?start='+token,expiresAt:formatDateForClient_(expires),expiresIn:900};
+  return {ok:true,token:token,row:linkRow,url:'https://t.me/'+botUsername+'?start='+token,expiresAt:formatDateForClient_(expires),expiresIn:900};
 }
 function findMpsMemberLinkRow_(sh,hash) {
   if(sh.getLastRow()<2)return 0;const vals=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();
