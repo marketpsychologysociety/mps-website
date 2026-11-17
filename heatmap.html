@@ -18,13 +18,13 @@
   <style>
     :root{color-scheme:dark}
     body{background:#07080c;color:var(--text)}
-    .pulse-pratinjau-wrap{width:min(100% - 32px,920px);margin:42px auto 70px}
-    .pulse-pratinjau-card{position:relative;overflow:hidden;border:1px solid rgba(220,190,125,.25);border-radius:22px;background:linear-gradient(145deg,#171b24,#0b0e14 65%,#101218);padding:clamp(20px,4vw,38px);box-shadow:0 24px 70px rgba(0,0,0,.3)}
-    .pulse-pratinjau-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .pulse-preview-wrap{width:min(100% - 32px,920px);margin:42px auto 70px}
+    .pulse-preview-card{position:relative;overflow:hidden;border:1px solid rgba(220,190,125,.25);border-radius:22px;background:linear-gradient(145deg,#171b24,#0b0e14 65%,#101218);padding:clamp(20px,4vw,38px);box-shadow:0 24px 70px rgba(0,0,0,.3)}
+    .pulse-preview-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
     .pulse-tag{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(231,201,139,.38);border-radius:99px;color:var(--emas2);font-size:11px;font-weight:800;letter-spacing:.12em}
     .pulse-lock{display:grid;place-items:center;width:56px;height:56px;border-radius:16px;background:rgba(231,201,139,.12);border:1px solid rgba(231,201,139,.28);font-size:26px}
-    .pulse-pratinjau-card h1{font-size:clamp(30px,6vw,52px);line-height:1.06;margin:20px 0 12px;color:var(--emas2)}
-    .pulse-pratinjau-card .lead{max-width:650px;color:#b3bac7;line-height:1.7}
+    .pulse-preview-card h1{font-size:clamp(30px,6vw,52px);line-height:1.06;margin:20px 0 12px;color:var(--emas2)}
+    .pulse-preview-card .lead{max-width:650px;color:#b3bac7;line-height:1.7}
     .chart-window{position:relative;margin:28px 0 24px;padding:18px;border-radius:16px;background:rgba(4,12,22,.78);border:1px solid rgba(154,174,199,.18);overflow:hidden}
     .chart-head{display:flex;justify-content:space-between;gap:12px;color:#aebbd0;font-size:12px;margin-bottom:16px}
     .chart-grid{display:grid;grid-template-columns:48px repeat(3,minmax(0,1fr));gap:7px;filter:blur(2.2px);opacity:.78;user-select:none;pointer-events:none}
@@ -37,7 +37,7 @@
     .pulse-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
     .pulse-actions a{min-width:190px;text-align:center}
     .pulse-note{font-size:12px;line-height:1.65;color:#9299a8;margin-top:18px}
-    @media(max-width:560px){.pulse-pratinjau-wrap{margin:22px auto 44px}.chart-window{padding:12px}.chart-grid{grid-template-columns:35px repeat(3,minmax(0,1fr));gap:5px}.chart-grid span{min-height:34px;font-size:9px}.pulse-actions a{width:100%}}
+    @media(max-width:560px){.pulse-preview-wrap{margin:22px auto 44px}.chart-window{padding:12px}.chart-grid{grid-template-columns:35px repeat(3,minmax(0,1fr));gap:5px}.chart-grid span{min-height:34px;font-size:9px}.pulse-actions a{width:100%}}
   </style>
 </head>
 <body>
