@@ -2491,3 +2491,68 @@ body:has(.mps-home-hero) .mps-premium-copy .hero-btns .btn.mps-is-pressed{animat
    animation-duration:5s!important;
  }
 }
+
+
+/* MPS IMPORTANT NAV + CTA AUTO-TAP — shared across all public pages. */
+@keyframes mps-important-auto-tap-v3{
+  0%,76%,100%{
+    transform:translate3d(0,0,0) scale(1);
+    filter:brightness(1);
+    box-shadow:0 4px 14px rgba(0,0,0,.2);
+  }
+  80%{
+    transform:translate3d(0,3px,0) scale(.955);
+    filter:brightness(1.22) saturate(1.16);
+    box-shadow:inset 0 4px 9px rgba(0,0,0,.3),0 0 0 2px rgba(39,211,255,.36),0 0 18px rgba(255,79,216,.27);
+  }
+  84%{
+    transform:translate3d(0,3px,0) scale(.955);
+    filter:brightness(1.22) saturate(1.16);
+    box-shadow:inset 0 4px 9px rgba(0,0,0,.3),0 0 0 2px rgba(39,211,255,.36),0 0 18px rgba(255,79,216,.27);
+  }
+  91%{
+    transform:translate3d(0,-1px,0) scale(1.012);
+    filter:brightness(1.1);
+    box-shadow:0 0 0 1px rgba(39,211,255,.2),0 0 12px rgba(255,79,216,.16);
+  }
+}
+.nav-links > li > a[href]:not(.nav-brand),
+.nav-menu > li > a[href]:not(.nav-brand),
+.btn[href]:not([aria-disabled="true"]):not([data-preview-disabled="true"]),
+button.btn:not(:disabled),
+a.join-cta,
+.mps-home-feature{
+  animation-name:mps-important-auto-tap-v3!important;
+  animation-duration:3.8s!important;
+  animation-timing-function:ease-in-out!important;
+  animation-iteration-count:infinite!important;
+  animation-fill-mode:both!important;
+  transform-origin:center!important;
+  will-change:transform,filter,box-shadow;
+}
+.nav-links > li:nth-child(2) > a{animation-delay:.25s!important}
+.nav-links > li:nth-child(3) > a{animation-delay:.5s!important}
+.nav-links > li:nth-child(4) > a{animation-delay:.75s!important}
+.nav-links > li:nth-child(5) > a{animation-delay:1s!important}
+.nav-links > li:nth-child(6) > a{animation-delay:1.25s!important}
+.nav-links > li:nth-child(7) > a{animation-delay:1.5s!important}
+.nav-links > li:nth-child(8) > a{animation-delay:1.75s!important}
+.nav-links > li:nth-child(9) > a{animation-delay:2s!important}
+.nav-links > li:nth-child(10) > a{animation-delay:2.25s!important}
+.nav-links > li:nth-child(11) > a{animation-delay:2.5s!important}
+.nav-links > li:nth-child(12) > a{animation-delay:2.75s!important}
+.btn[href]:hover,.nav-links > li > a[href]:hover,.mps-home-feature:hover{
+  animation-play-state:paused!important;
+}
+.btn[href]:active,.btn[href].mps-is-pressed,
+.nav-links > li > a[href]:active,.nav-links > li > a[href].mps-is-pressed{
+  animation-play-state:paused!important;
+}
+@media(prefers-reduced-motion:reduce){
+  .nav-links > li > a[href]:not(.nav-brand),
+  .nav-menu > li > a[href]:not(.nav-brand),
+  .btn[href]:not([aria-disabled="true"]):not([data-preview-disabled="true"]),
+  button.btn:not(:disabled),a.join-cta,.mps-home-feature{
+    animation-duration:6s!important;
+  }
+}
