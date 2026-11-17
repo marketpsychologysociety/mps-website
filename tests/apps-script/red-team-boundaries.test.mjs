@@ -38,7 +38,7 @@ test('member and administrator session tokens are not persisted in browser stora
 
 test('public Market Pulse preview contains only static placeholders, never the private dataset',()=>{
   const preview=fs.readFileSync(new URL('../../heatmap.html',import.meta.url),'utf8');
-  assert.match(preview,/MEMBER ONLY/i);
+  assert.match(preview,/KHUSUS ANGGOTA/i);
   assert.match(preview,/XAUUSD[^<]{0,40}M5/i);
   assert.match(preview,/•••/);
   assert.doesNotMatch(preview,/const\s+D\s*=|rawData|\b\d{1,3}\.\d%/i);
