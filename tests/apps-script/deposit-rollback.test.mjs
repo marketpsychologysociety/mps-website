@@ -9,7 +9,7 @@ new vm.Script(source,{filename:'candidate/Code.gs'});
 const start=source.indexOf('function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted) {');
 const end=source.indexOf('function setupMPSStorage_(',start+1);
 assert.ok(start>=0&&end>start,'saveDeposit_ source boundaries must exist');
-const saveSource=source.slice(start,end);
+const saveSource=source.slice(start,end);\nconst helperStart=source.indexOf('function assertMpsDriveFolderTreePrivate_(');\nconst helperEnd=source.indexOf('\\nfunction ',helperStart+1);\nassert.ok(helperStart>=0&&helperEnd>helperStart,'Drive ACL helper boundaries must exist');\nconst driveAclSource=source.slice(helperStart,helperEnd);
 const appRef='MPS-APP-0123456789ABCDEF0123';
 
 function makeSheet(rows,label,{failAt='',state}={}) {
@@ -32,7 +32,7 @@ function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={
  const linksRows=[new Array(11).fill(''),['old-hash',now,new Date(now.getTime()+600000),'Menunggu','',appRef,'','','','','']];
  const apps=makeSheet(appsRows,'app',{state}),deposits=makeSheet(depositsRows,'deposit',{state}),links=makeSheet(linksRows,'links',{state});
  const file={trashed:false,setSharing(){},getSharingAccess:()=> 'PRIVATE',getUrl:()=> 'https://drive.google.test/private-proof',getId:()=> 'file-proof-123456789',setTrashed(v){this.trashed=v;}};
- const folder={getSharingAccess:()=> 'PRIVATE',createFile:()=>file};
+ const folder={getId:()=> 'proof-folder',getParents:()=>({hasNext:()=>false}),getSharingAccess:()=> 'PRIVATE',createFile:()=>file};
  const context={
   MPS:{minDeposit:1000000,maxProofBytes:5242880},
   MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},MPS_MEMBER_LINKS:{headers:new Array(11)},
@@ -56,7 +56,7 @@ function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={
   assert.ok(linkStart>=0&&linkEnd>linkStart,'createMemberTelegramLink_ source boundaries must exist');
   vm.createContext(context);vm.runInContext(source.slice(linkStart,linkEnd),context,{timeout:1000});
  } else vm.createContext(context);
- vm.runInContext(saveSource,context,{timeout:1000});
+ vm.runInContext(driveAclSource,context,{timeout:1000});\n vm.runInContext(saveSource,context,{timeout:1000});
  let uploaded=null,proofLinked=false;
  const payload={applicationRef:appRef,memberName:'Member Test',mt5Login:'12345678',accountType:'Standard',depositAmount:1000000,depositDate:'2026-11-11',proofMimeType:'image/png',proofBase64:'QUJDREVGR0g='};
  return {run:()=>context.saveDeposit_(null,payload,file=>{uploaded=file;},()=>{proofLinked=true;}),appsRows,depositsRows,linksRows,file,getUploaded:()=>uploaded,proofLinked:()=>proofLinked,state};
