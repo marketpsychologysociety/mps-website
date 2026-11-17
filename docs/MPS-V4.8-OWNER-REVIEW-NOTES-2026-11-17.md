@@ -131,8 +131,15 @@ This section supersedes the earlier Public Center route finding above for the ca
 - Candidate source and regression test are committed on the workbench branch. Workflow run #2261 (`44042182475`) completed SUCCESS on exact head `01e7fcb2ad7aab6fc51ffb7fdddd200aa20e5963`; the workflow includes `request-security-hardening.test.mjs`. This is synthetic/mocked CI, not live Apps Script or Telegram acceptance.
 
 
-## PIN reissue delivery ambiguity — retained security gate
+## PIN reissue delivery ambiguity — resolved in candidate source; live acceptance still open
 
-- Source review of `apiAdminIssuePin` found that a non-success/ambiguous Telegram response triggers restoration of the previous PIN verifier and delivery flag. Telegram may have accepted a `sendMessage` even if the caller loses the response; in that case the newly sent PIN could reach the member while the backend restores the old PIN. The current response flags reconciliation when rollback cannot be confirmed, but a confirmed rollback does not prove Telegram did not deliver the message.
-- This is a credential-delivery ambiguity, not a confirmed exploit. Do not blindly retry or claim the new PIN was not delivered solely from a failed/ambiguous HTTP result.
-- Kept as a pre-release hardening gate rather than changing behavior without a reviewed secret-delivery design. A safer resolution needs a durable per-member PIN issuance intent/state machine, explicit ambiguous-delivery quarantine, and an Admin/Super Admin reconciliation path that does not expose PIN values in logs, browser responses, or public data. Add fault-injection tests for “Telegram accepted message, response lost” before production acceptance.
+- The earlier direct-rollback behavior described below has been replaced in candidate `apiAdminIssuePin`: `PENDING_DELIVERY` is persisted before the verifier changes; ambiguous Telegram outcomes retain the exact new verifier in `REVIEW_REQUIRED`; member login fails closed until delivery is confirmed; and stale failures cannot quarantine a newer issuance.
+- The legacy member-ID approval path now delegates to this shared hardened issuer and no longer sends a PIN or writes a verifier directly. Regression tests cover both paths.
+- This resolves the source-level design gap, not the external delivery proof. Real isolated Apps Script/ScriptLock execution and an isolated Telegram test-bot “accepted message, response lost” test remain required before production release. Never infer delivery failure from an ambiguous Telegram response or expose PIN values in logs/browser/public data.
+- Latest verified full CI for the current candidate head `7803456bd1527074b652627d050dccd5d44fddac`: run [#44046409271](https://github.com/marketpsychologysociety/mps-website/actions/runs/44046409271), **SUCCESS, 79/79 steps**; PIN/recovery delivery suite **7/7**, Chromium checks **15 pages**. Synthetic CI does not replace live Apps Script or Telegram acceptance.
+
+## Recovery-code delivery ambiguity — source-level mitigation
+
+- The recovery challenge is stored before Telegram send and is retained for its exact 10-minute lifetime when Telegram delivery is unconfirmed, because the message may have been accepted despite a lost response. A fresh recovery request replaces the challenge; salted hash, five-attempt limit, rate limits, and verified private Telegram binding remain enforced.
+- The response remains generic and audit status is `DELIVERY_UNCONFIRMED`; no code is returned to the browser. Regression coverage is in `admin-pin-delivery-hardening.test.mjs` and passed in the same full CI run.
+- Real Telegram test-bot acceptance and real Apps Script runtime acceptance remain open.
