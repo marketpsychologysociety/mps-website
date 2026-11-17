@@ -1441,3 +1441,98 @@ a.btn[href*="deposit-confirmation"],#joinForm button.btn[type="submit"],
 }
 .btn-outline{color:#27dfff!important;border-color:rgba(39,223,255,.65)!important}
 .nav-join{color:#ff4fd8!important;-webkit-text-fill-color:#ff4fd8!important}
+
+
+/* MPS v4.8 visual correction pass — clean text palette and strictly local button effects. */
+:root{
+  --gold:#27dfff!important;--gold2:#ff4fd8!important;
+  --text:#f3f7ff!important;--muted:#a9b6ca!important;
+  --line:rgba(39,223,255,.26)!important;
+}
+/* Headings use only electric blue and fluorescent pink; no metallic/yellow stop. */
+.hero h1,.section-head h2,.page-head h1,.content h2,.content h3,.card h3,
+.join-spotlight h2,.form-intro h2,.learning-hero-copy h2,.pulse-preview-card h1{
+  background:linear-gradient(105deg,#72e5ff 0%,#f4f7ff 48%,#ff75df 100%)!important;
+  background-size:100% 100%!important;background-position:center!important;
+  -webkit-background-clip:text!important;background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;
+  color:#f3f7ff!important;text-shadow:0 0 14px rgba(39,223,255,.12)!important;
+  animation:none!important;
+}
+/* Brand and small labels: consistent cool neon, never gold/yellow. */
+.nav-brand,.nav-brand strong,.nav-brand small,.footer-brand,.footer-tag,
+.eyebrow,.badge,.tagline,.hero-kicker,.join-live,.form-steps span.active,
+.learning-tag,.pulse-tag,.mps-preview-label,.mps-pratinjau-label,
+.announce-kicker,.announce-eyebrow,.ticker-live,.ticker-track b,
+.announce-read,.winner-overline,.winner-copy p strong,.winner-prize b,
+.announce-filter.active,.nav-join,.mps-bull strong,.mps-bull .mps-animal-symbol{
+  color:#27dfff!important;-webkit-text-fill-color:#27dfff!important;
+  text-shadow:0 0 9px rgba(39,223,255,.16)!important;
+}
+.mps-bear strong,.mps-bear .mps-animal-symbol,.roulette-result,
+.announce-hero h1 em,.winner-prize b{color:#ff4fd8!important;-webkit-text-fill-color:#ff4fd8!important}
+.mps-bull,.mps-bull strong,.mps-bull .mps-animal-symbol{
+  border-color:rgba(39,223,255,.58)!important;
+}
+.mps-bear,.mps-bear strong,.mps-bear .mps-animal-symbol{
+  border-color:rgba(255,79,216,.58)!important;
+}
+/* Kill legacy cursor/finger decorations and all old wide shine animations. */
+a.btn::before,.btn::before,.join-cta::before,
+#joinForm button[type="submit"]::before,#step2Next a.btn-gold::before{
+  content:none!important;display:none!important;animation:none!important;
+}
+a.btn::after,.btn::after,.join-cta::after,
+#joinForm button[type="submit"]::after,#step2Next a.btn-gold::after{
+  content:""!important;position:absolute!important;inset:0 auto 0 -48%!important;
+  width:30%!important;height:100%!important;display:block!important;
+  border-radius:inherit!important;pointer-events:none!important;
+  transform:skewX(-20deg)!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)!important;
+  animation:mps-contained-sheen-v48 4.8s ease-in-out infinite!important;
+}
+@keyframes mps-contained-sheen-v48{
+  0%,24%{left:-48%;opacity:0}
+  34%{opacity:.72}
+  68%,100%{left:118%;opacity:0}
+}
+/* The clipping boundary is the button itself; glow is deliberately kept subtle. */
+.btn,.btn-gold,button,.join-cta,.nav-join,.pwa-install-btn{
+  position:relative!important;isolation:isolate!important;overflow:hidden!important;
+  border-radius:12px!important;clip-path:inset(0 round 12px);
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  transition:transform .13s cubic-bezier(.2,.85,.25,1),filter .13s ease,
+    box-shadow .16s ease!important;
+}
+.btn-gold,.join-cta,a.btn[href*="join"],a.btn[href*="member-portal"],
+a.btn[href*="deposit-confirmation"],#joinForm button[type="submit"],#step2Next a.btn-gold{
+  animation:none!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 3px 0 rgba(5,10,22,.55),
+    0 0 9px rgba(39,223,255,.10)!important;
+}
+.btn:hover,.btn-gold:hover,button:hover,.join-cta:hover{
+  transform:translateY(-1px)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 0 rgba(5,10,22,.48),
+    0 0 12px rgba(39,223,255,.16)!important;
+}
+.btn:active,.btn-gold:active,button:active,.join-cta:active,
+.nav-join:active,.pwa-install-btn:active,.mps-is-pressed{
+  transform:translateY(3px) scale(.965)!important;
+  filter:brightness(1.18) saturate(1.12)!important;
+  box-shadow:inset 0 4px 9px rgba(0,0,0,.34),0 0 0 rgba(39,223,255,0)!important;
+}
+.mps-click-ripple{
+  z-index:1!important;width:14px!important;height:14px!important;
+  border-radius:50%!important;pointer-events:none!important;
+  background:radial-gradient(circle,rgba(255,255,255,.88) 0%,rgba(39,223,255,.48) 38%,rgba(255,79,216,.22) 68%,transparent 74%)!important;
+  animation:mps-real-click-ripple-v48 .48s cubic-bezier(.15,.65,.25,1) forwards!important;
+}
+@keyframes mps-real-click-ripple-v48{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:.92}
+  100%{transform:translate(-50%,-50%) scale(11);opacity:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .btn::after,.join-cta::after,#joinForm button[type="submit"]::after,
+  #step2Next a.btn-gold::after{animation:none!important;display:none!important}
+  .mps-click-ripple{animation:none!important;display:none!important}
+}
