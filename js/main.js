@@ -141,9 +141,8 @@ document.addEventListener("DOMContentLoaded", function () {
     target.classList.add('mps-is-pressed');
     addRipple(target, event.clientX, event.clientY);
   }, { passive: true });
-  const release = event => {
-    const target = getTarget(event);
-    if (target) target.classList.remove('mps-is-pressed');
+  const release = () => {
+    document.querySelectorAll('.mps-is-pressed').forEach(target => target.classList.remove('mps-is-pressed'));
   };
   document.addEventListener('pointerup', release, { passive: true });
   document.addEventListener('pointercancel', release, { passive: true });
