@@ -75,3 +75,13 @@ test('legacy approval delegates PIN delivery to the hardened issuance path',()=>
   const issue=extract('apiAdminIssuePin');
   assert.ok(issue.indexOf("props.setProperty('MPS_PIN_DELIVERY_STATE_'+memberKey,'PENDING_DELIVERY')")<issue.indexOf('storeMemberPin_(memberKey,pin)'));
 });
+
+test('ambiguous recovery-code delivery preserves the exact challenge for a possibly delivered code',()=>{
+  const recovery=extract('apiMemberRecoveryStart');
+  const stored=recovery.indexOf('props.setProperty(propertyKey, JSON.stringify(challenge))');
+  const send=recovery.indexOf('sent = telegramSendToChat_(chatId');
+  assert.ok(stored>=0&&send>stored,'challenge must be durable before Telegram delivery');
+  const failure=recovery.slice(recovery.indexOf('if (!sent || !sent.ok) {',send));
+  assert.ok(failure.includes('DELIVERY_UNCONFIRMED'));
+  assert.ok(!failure.includes('props.deleteProperty(propertyKey)'),'ambiguous delivery must not invalidate a possibly delivered code');
+});
