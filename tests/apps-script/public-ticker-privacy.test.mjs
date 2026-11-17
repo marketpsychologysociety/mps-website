@@ -160,7 +160,7 @@ test('publicCenter GET bridge returns a text-only strict data envelope without e
     }
   };
   vm.createContext(isolated);
-  vm.runInContext(source.slice(gateStart,gateEnd)+'\\n'+source.slice(start,end),isolated,{timeout:1000});
+  vm.runInContext(source.slice(gateStart,gateEnd)+'\n'+source.slice(start,end),isolated,{timeout:1000});
   const response=isolated.doGet({parameter:{publicCenter:'1'}});
   assert.equal(response.mime,'text/plain');
   assert.equal(response.body,'window.MPS_PUBLIC_CENTER_DATA='+JSON.stringify(payload)+';');
