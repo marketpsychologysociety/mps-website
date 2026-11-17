@@ -45,13 +45,14 @@ function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={
   findMpsDepositRow_:(sheet,ref)=>{for(let i=1;i<depositsRows.length;i++)if(depositsRows[i][0]===ref)return i+1;return 0;},
   getMpsMemberLinksSheet_:()=>links,
   findMpsMemberLinkRow_:(sheet,hash)=>{for(let i=1;i<linksRows.length;i++)if(linksRows[i][0]===hash)return i+1;return 0;},
-  sha256_:()=> 'new-hash',formatDateForClient_:()=> '12 Nov 2026',\n  createMemberTelegramLink_:(memberId,ref,onPrepared)=>{const row=linksRows.length+1,token='new-one-time-token';if(onPrepared)onPrepared({token,row});links.appendRow(['new-hash',now,new Date(now.getTime()+900000),'Menunggu',memberId,ref,'','','','','']);return{token,row,url:'https://t.me/MPSBot?start='+token,expiresAt:'12 Nov 2026',expiresIn:900};},
+  sha256_:()=> 'new-hash',formatDateForClient_:()=> '12 Nov 2026',
+  createMemberTelegramLink_:(memberId,ref,onPrepared)=>{const row=linksRows.length+1,token='new-one-time-token';if(onPrepared)onPrepared({token,row});links.appendRow(['new-hash',now,new Date(now.getTime()+900000),'Menunggu',memberId,ref,'','','','','']);return{token,row,url:'https://t.me/MPSBot?start='+token,expiresAt:'12 Nov 2026',expiresIn:900};},
   expireOtherApplicationLinks_:(ref,keepRow)=>{for(let i=1;i<linksRows.length;i++)if(i+1!==keepRow&&linksRows[i][5]===ref&&linksRows[i][3]==='Menunggu')linksRows[i][3]='Diganti';},
   safeErrorMessage_:e=>String(e&&e.message||e),console
  };
  if(realLinkHelper){
   const linkStart=source.indexOf('function createMemberTelegramLink_(memberId,applicationRef,onPrepared) {');
-  const linkEnd=source.indexOf('\\nfunction findMpsMemberLinkRow_',linkStart+1);
+  const linkEnd=source.indexOf('\nfunction findMpsMemberLinkRow_',linkStart+1);
   assert.ok(linkStart>=0&&linkEnd>linkStart,'createMemberTelegramLink_ source boundaries must exist');
   vm.createContext(context);vm.runInContext(source.slice(linkStart,linkEnd),context,{timeout:1000});
  } else vm.createContext(context);
