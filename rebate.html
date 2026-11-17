@@ -21,24 +21,24 @@
   <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt="">MPS</a>
   <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">☰</button>
   <ul class="nav-links" id="navLinks">
-    <li><a href="index.html">Home</a></li>
-    <li><a href="about.html">About</a></li>
-    <li><a href="system.html">Core System</a></li>
-    <li><a href="education.html">Education</a></li>
-    <li><a href="membership.html">Membership</a></li>
-    <li><a href="rewards.html">Rewards</a></li>
+    <li><a href="index.html">Beranda</a></li>
+    <li><a href="about.html">Tentang</a></li>
+    <li><a href="system.html">Sistem Inti</a></li>
+    <li><a href="education.html">Edukasi</a></li>
+    <li><a href="membership.html">Keanggotaan</a></li>
+    <li><a href="rewards.html">Apresiasi</a></li>
     <li><a href="rebate.html">Rebate</a></li>
-    <li><a href="join.html">Join</a></li>
-    <li><a href="contact.html">Contact</a></li>
+    <li><a href="join.html">Gabung</a></li>
+    <li><a href="contact.html">Kontak</a></li>
   
-    <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button></li>
+    <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button></li>
   </ul>
 </nav>
 <div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh running text pengumuman, data demonstrasi">
   <span class="ticker-live"><i></i> DEMO</span>
   <div class="ticker-window"><div class="ticker-track">
     <span>DEMO: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
-    <span>DEMO: Informasi maintenance resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>DEMO: Informasi pemeliharaan resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
     <span>DEMO: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
   </div></div>
   <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
@@ -61,30 +61,30 @@
     </div>
 
     <h2>Hubungan IB dan Transparansi</h2>
-    <p>MPS merupakan mitra Introducing Broker (IB) Exness dan dapat menerima komisi dari aktivitas transaksi akun yang terdaftar di bawah IB MPS, sesuai ketentuan broker. Untuk saat ini Exness adalah broker partner MPS. MPS dapat menambahkan broker partner lain di kemudian hari; setiap perubahan akan diumumkan secara terbuka. Hubungan IB ini merupakan bagian dari model pendanaan MPS dan perlu dipahami oleh setiap anggota.</p>
+    <p>MPS merupakan mitra Mitra Perujuk (Mitra Perujuk/IB) Exness dan dapat menerima komisi dari aktivitas transaksi akun yang terdaftar di bawah IB MPS, sesuai ketentuan broker. Untuk saat ini Exness adalah broker partner MPS. MPS dapat menambahkan broker partner lain di kemudian hari; setiap perubahan akan diumumkan secara terbuka. Hubungan IB ini merupakan bagian dari model pendanaan MPS dan perlu dipahami oleh setiap anggota.</p>
     <p>Keanggotaan MPS tidak dipungut biaya pendaftaran atau iuran. Namun, persyaratan keanggotaan mencakup akun Exness yang terhubung di bawah IB MPS dan deposit minimal Rp1.000.000 ke akun trading tersebut. Deposit bukan biaya keanggotaan atau pembayaran kepada MPS; dana tetap berada di akun trading anggota dan tetap berisiko.</p>
 
     <h2>Transparansi Integrasi API Exness</h2>
     <div class="notice" role="status" aria-live="polite">
-      <strong>Status koneksi data:</strong> NOT CONNECTED / MENUNGGU AKSES PARTNER API.
+      <strong>Status koneksi data:</strong> BELUM TERHUBUNG / MENUNGGU AKSES API MITRA.
       Halaman ini belum menerima data rebate live per akun dari Exness. Karena itu MPS tidak menampilkan angka volume, rebate personal, atau status pembayaran seolah-olah sudah tersinkron.
     </div>
-    <p>MPS sedang menyiapkan integrasi melalui <strong>Exness Partnership API</strong> (bukan Trading API). Integrasi dirancang read-only dengan izin minimum <code>partnership.all:read</code>. Kunci API dan kunci penandatanganan hanya boleh disimpan di backend; tidak akan ditanam di halaman website, aplikasi browser, atau dikirim kepada member.</p>
-    <p>Setelah akses partner, pemetaan akun, dan rekonsiliasi dinyatakan valid, area <strong>Rebate Saya</strong> akan menampilkan data milik member yang sedang login saja: nomor akun yang sudah dicocokkan secara unik, volume trading, dasar reward partner (terpisah dari hak rebate member), alokasi rebate, periode sumber, waktu sinkronisasi terakhir, serta rincian batch, baris rebate, dan pembayaran.</p>
+    <p>MPS sedang menyiapkan integrasi melalui <strong>Exness Partnership API</strong> (bukan Trading API). Integrasi dirancang hanya-baca dengan izin minimum <code>partnership.all:read</code>. Kunci API dan kunci penandatanganan hanya boleh disimpan di backend; tidak akan ditanam di halaman website, aplikasi browser, atau dikirim kepada anggota.</p>
+    <p>Setelah akses partner, pemetaan akun, dan rekonsiliasi dinyatakan valid, area <strong>Rebate Saya</strong> akan menampilkan data milik anggota yang sedang login saja: nomor akun yang sudah dicocokkan secara unik, volume trading, dasar reward partner (terpisah dari hak rebate anggota), alokasi rebate, periode sumber, waktu sinkronisasi terakhir, serta rincian batch, baris rebate, dan pembayaran.</p>
     <ul>
-      <li><strong>Pending / Processing:</strong> masih diproses, bukan pembayaran selesai.</li>
-      <li><strong>Processed:</strong> batch selesai diproses; belum otomatis berarti semua baris sudah dibayar.</li>
-      <li><strong>Paid:</strong> hanya ditampilkan jika baris rebate dan bukti payment terkait cocok.</li>
-      <li><strong>Rejected / Error / Perlu Rekonsiliasi:</strong> ditampilkan terpisah dan tidak dihitung sebagai dana yang sudah diterima member.</li>
+      <li><strong>Menunggu / Diproses:</strong> masih diproses, bukan pembayaran selesai.</li>
+      <li><strong>Telah Diproses:</strong> batch selesai diproses; belum otomatis berarti semua baris sudah dibayar.</li>
+      <li><strong>Dibayar:</strong> hanya ditampilkan jika baris rebate dan bukti payment terkait cocok.</li>
+      <li><strong>Ditolak / Galat / Perlu Rekonsiliasi:</strong> ditampilkan terpisah dan tidak dihitung sebagai dana yang sudah diterima anggota.</li>
     </ul>
-    <p><strong>Dokumentasi teknis resmi:</strong> <a href="https://www.exness-api.com/reference/partnership/exness-partner-api" target="_blank" rel="noopener noreferrer">Exness Partnership API Reference</a> · <a href="https://www.exness-api.com/partnership/guides/autorebates" target="_blank" rel="noopener noreferrer">Panduan Rebates Exness</a>. Dokumen tersebut menjelaskan ruang lingkup akses read-only, laporan rebate, dan rekonsiliasi batch/baris/pembayaran. API adalah sarana baca data partner; bukan bukti bahwa MPS telah memperoleh akses atau bahwa suatu rebate telah dibayarkan.</p>
-    <p><strong>Batasan yang perlu diketahui:</strong> dokumentasi API saat ini menyatakan tidak menyediakan operasi untuk menyetujui/menolak rebate atau mengulang pembayaran. Karena itu MPS tidak akan menjanjikan kontrol payout melalui API, dan status <em>Processed</em> tidak akan disamakan dengan <em>Paid</em>.</p>
-    <p>Jika data Exness terlambat, tidak lengkap, atau nomor akun belum dapat dicocokkan secara unik, MPS akan menandainya sebagai belum terverifikasi dan tidak membuat estimasi seolah-olah merupakan angka resmi broker. Member dapat meminta penjelasan perhitungan melalui Admin MPS.</p>
+    <p><strong>Dokumentasi teknis resmi:</strong> <a href="https://www.exness-api.com/reference/partnership/exness-partner-api" target="_blank" rel="noopener noreferrer">Exness Partnership Dokumentasi API</a> · <a href="https://www.exness-api.com/partnership/guides/autorebates" target="_blank" rel="noopener noreferrer">Panduan Rebates Exness</a>. Dokumen tersebut menjelaskan ruang lingkup akses hanya-baca, laporan rebate, dan rekonsiliasi batch/baris/pembayaran. API adalah sarana baca data partner; bukan bukti bahwa MPS telah memperoleh akses atau bahwa suatu rebate telah dibayarkan.</p>
+    <p><strong>Batasan yang perlu diketahui:</strong> dokumentasi API saat ini menyatakan tidak menyediakan operasi untuk menyetujui/menolak rebate atau mengulang pembayaran. Karena itu MPS tidak akan menjanjikan kontrol payout melalui API, dan status <em>Telah Diproses</em> tidak akan disamakan dengan <em>Dibayar</em>.</p>
+    <p>Jika data Exness terlambat, tidak lengkap, atau nomor akun belum dapat dicocokkan secara unik, MPS akan menandainya sebagai belum terverifikasi dan tidak membuat estimasi seolah-olah merupakan angka resmi broker. Anggota dapat meminta penjelasan perhitungan melalui Admin MPS.</p>
 
     <h2>Bagaimana Rebate Dihitung?</h2>
     <ul>
       <li>Dasar perhitungan adalah komisi IB yang benar-benar diterima MPS dari broker atas transaksi yang memenuhi ketentuan program.</li>
-      <li>Maksimal 70% mengacu pada bagian dari komisi IB yang diterima MPS, bukan 70% dari profit, deposit, nilai transaksi, atau kerugian anggota.</li>
+      <li>Maksimal 70% mengacu pada bagian dari komisi IB yang diterima MPS, bukan 70% dari keuntungan, deposit, nilai transaksi, atau kerugian anggota.</li>
       <li>Besaran rebate aktual dapat berbeda sesuai jenis akun, instrumen, ketentuan broker, dan ketentuan program yang berlaku.</li>
       <li>Transaksi yang tidak menghasilkan komisi IB bagi MPS tidak menghasilkan rebate untuk dibagikan.</li>
     </ul>
@@ -110,31 +110,31 @@
       <strong>Harap diperhatikan:</strong> Rebate bukan penggantian kerugian, perlindungan modal, ataupun jaminan keuntungan. Jangan melakukan deposit atau transaksi hanya untuk mengejar rebate. Keputusan trading dan seluruh risikonya tetap menjadi tanggung jawab masing-masing anggota.
     </div>
 
-    <p>Pelajari juga <a href="terms.html">Syarat &amp; Ketentuan</a> dan <a href="rewards.html">Program Rewards</a>. Untuk pertanyaan lebih lanjut, silakan <a href="contact.html">hubungi MPS</a> sebelum mengikuti program.</p>
+    <p>Pelajari juga <a href="terms.html">Syarat &amp; Ketentuan</a> dan <a href="rewards.html">Program Apresiasi</a>. Untuk pertanyaan lebih lanjut, silakan <a href="contact.html">hubungi MPS</a> sebelum mengikuti program.</p>
   </div>
 </section>
 
 <footer class="footer">
   <div class="footer-brand" data-brand="name">Market Psychology Society</div>
-  <div class="footer-tag" data-brand="tagline">TRADE WITH DISCIPLINE.</div>
-  <div class="footer-quote">“Discipline First. Survival Always.”</div>
+  <div class="footer-tag" data-brand="tagline">TRADING DENGAN DISIPLIN.</div>
+  <div class="footer-quote">“Disiplin Dahulu. Bertahan Selalu.”</div>
   <div class="footer-links">
-    <a href="index.html">Home</a>
-    <a href="about.html">About</a>
-    <a href="system.html">Core System</a>
-    <a href="education.html">Education</a>
-    <a href="membership.html">Membership</a>
-    <a href="rewards.html">Rewards</a>
+    <a href="index.html">Beranda</a>
+    <a href="about.html">Tentang</a>
+    <a href="system.html">Sistem Inti</a>
+    <a href="education.html">Edukasi</a>
+    <a href="membership.html">Keanggotaan</a>
+    <a href="rewards.html">Apresiasi</a>
     <a href="rebate.html">Rebate</a>
     <a href="terms.html">S&amp;K</a>
     <a href="privacy.html">Privasi</a>
-    <a href="join.html">Join</a>
-    <a href="contact.html">Contact</a>
+    <a href="join.html">Gabung</a>
+    <a href="contact.html">Kontak</a>
   </div>
   <p class="footer-disclaimer">
     MPS adalah komunitas edukasi independen, bukan broker, pengelola dana, atau penasihat keuangan. Pendiri &amp; Pengelola: Ndhi Solasi. MPS dapat menerima komisi IB dari aktivitas transaksi akun anggota yang terdaftar di bawah IB MPS. Keanggotaan gratis, tetapi akun di bawah IB MPS wajib. Trading Forex dan Gold berisiko tinggi dan dapat menyebabkan kehilangan sebagian atau seluruh modal. Materi bukan rekomendasi investasi dan MPS tidak menjamin keuntungan.
   </p>
-  <div class="footer-copy" id="year">© 2026 Market Psychology Society. All Rights Reserved.</div>
+  <div class="footer-copy" id="year">© 2026 Market Psychology Society. Hak cipta dilindungi.</div>
 </footer>
 
 <div class="float-chat">
