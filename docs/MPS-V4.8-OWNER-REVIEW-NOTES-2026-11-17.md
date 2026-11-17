@@ -136,7 +136,7 @@ This section supersedes the earlier Public Center route finding above for the ca
 - The earlier direct-rollback behavior described below has been replaced in candidate `apiAdminIssuePin`: `PENDING_DELIVERY` is persisted before the verifier changes; ambiguous Telegram outcomes retain the exact new verifier in `REVIEW_REQUIRED`; member login fails closed until delivery is confirmed; and stale failures cannot quarantine a newer issuance.
 - The legacy member-ID approval path now delegates to this shared hardened issuer and no longer sends a PIN or writes a verifier directly. Regression tests cover both paths.
 - This resolves the source-level design gap, not the external delivery proof. Real isolated Apps Script/ScriptLock execution and an isolated Telegram test-bot “accepted message, response lost” test remain required before production release. Never infer delivery failure from an ambiguous Telegram response or expose PIN values in logs/browser/public data.
-- Latest verified full CI for the current candidate head `7803456bd1527074b652627d050dccd5d44fddac`: run [#44046409271](https://github.com/marketpsychologysociety/mps-website/actions/runs/44046409271), **SUCCESS, 79/79 steps**; PIN/recovery delivery suite **7/7**, Chromium checks **15 pages**. Synthetic CI does not replace live Apps Script or Telegram acceptance.
+- Latest verified full CI for candidate head `fd7a76483cbd8e64d02b209d39ada4d0d54b67a8`: run [#44049472255](https://github.com/marketpsychologysociety/mps-website/actions/runs/44049472255), **SUCCESS, 79/79 steps**; PIN/recovery delivery suite **9/9**, Chromium checks **15 pages**. Synthetic CI does not replace live Apps Script or Telegram acceptance.
 
 ## Recovery-code delivery ambiguity — source-level mitigation
 
