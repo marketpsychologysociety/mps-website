@@ -138,6 +138,46 @@ The security objective is:
 - Acceptance tests must cover: eligible first activation; duplicate/concurrent activation; ineligible or already-used member; expiry boundary; manipulated client clock/timer; logout/login; new browser/device; direct API/URL; stale session; backend outage/fail-closed behavior; and confirmation that deposit/VIP-paid status remains unchanged.
 - No trial implementation or production access is authorized by this design entry alone. Implement and test only on the isolated workbench with synthetic accounts/data; production changes require separate explicit approval.
 
+
+## 2.12 Member self-service account recovery (forgot PIN / forgot Member ID)
+
+**Product objective:** let a legitimate member recover access in a short, understandable flow without contacting Admin when the member still controls the Telegram account previously linked and verified with MPS. Keep the member-facing experience to one MT5 account-number field, one recovery choice, and one Telegram confirmation. Do not ask the member to remember or re-enter their Member ID when choosing “Forgot Member ID.”
+
+### Member experience
+1. From the member login screen, show two clear links: **Lupa PIN** and **Lupa ID Member**.
+2. The member enters the MT5 account number already registered to the MPS member record and selects the required recovery action.
+3. The backend normalizes and matches the MT5 account number against the canonical member record. It must use the Telegram Chat ID already linked and verified in that same record; a typed Telegram username, display name, phone number, or newly supplied Chat ID is never accepted as proof or as a replacement link.
+4. Return a generic acknowledgement that does not reveal whether the MT5 number exists or whether Telegram is linked. If an eligible record exists, send a private Telegram message to its previously verified Chat ID with a one-time confirmation button that clearly names the requested action.
+5. After the member confirms in Telegram:
+   - **Forgot PIN:** issue a short-lived, single-use recovery capability bound to that member and the PIN-reset purpose. The member returns to the MPS recovery page and sets a new PIN. Do not send the permanent PIN in Telegram or expose it in logs.
+   - **Forgot Member ID:** send the Member ID privately to the same verified Telegram chat after confirmation. Do not display the ID on an unverified browser response.
+6. Show a short completion message and a clear route back to login. The normal member login and authorization rules remain unchanged.
+
+### Security and recovery controls
+- Match MT5 only against the canonical, existing member record and require the record's previously verified Telegram Chat ID. Never use MT5 alone, Telegram username alone, or caller-supplied identity fields as authentication.
+- Use an unpredictable, purpose-bound, single-use token/callback with a short expiry. Store only a cryptographic verifier/hash server-side where practical; bind it to the member, MT5 record/version, action, and verified Telegram chat. Reject expired, replayed, mismatched, or superseded tokens.
+- For PIN reset, apply the same server-side PIN policy and secure verifier/hash storage as normal PIN issuance. Commit the new PIN only after the recovery challenge is valid; then revoke existing member sessions, invalidate outstanding recovery challenges, and require a fresh login. Never return the old PIN.
+- For Member ID recovery, disclose the ID only in the already verified private Telegram chat after explicit confirmation. Never include it in public logs, analytics, URLs, or a generic web response.
+- Rate-limit by recovery target and action, and apply an additional global abuse limit. Use generic browser acknowledgements and bounded timing/response behavior to reduce account enumeration. Avoid relying solely on IP-based controls where the platform cannot reliably identify the caller.
+- Make challenge issuance, confirmation, PIN reset, and ID disclosure replay-safe and idempotent. Handle Telegram delivery timeouts as an uncertain outcome; do not create unlimited replacement challenges or silently claim delivery.
+- Record minimal audit events for request, challenge sent/confirmed/expired/rejected, PIN reset, ID disclosure, and Admin-assisted recovery. Audit actor, target reference, action, result, timestamp, and correlation ID; never log PINs, raw tokens, Telegram Chat IDs, or unnecessary MT5/member personal data.
+- If Telegram is no longer accessible, is not linked, or the record cannot be matched safely, do not fall back to a new Telegram account automatically. Route the member to a concise **Hubungi Admin** recovery path. Admin must perform identity checks against existing registration/deposit evidence; sensitive reassignment or recovery requires the defined privileged approval and an audit record.
+- Recovery must not change deposit status, VIP entitlement, membership approval, MT5 ownership, or other profile fields. It only restores the member's login identifier or PIN.
+- Keep the flow mobile-friendly and short: no long questionnaire, no requirement to remember Member ID for PIN recovery, and no repeated entry of information already held in the verified member record.
+
+**Acceptance tests (synthetic accounts/data only):**
+- Correct MT5 + previously verified Telegram: only that linked chat receives the requested confirmation.
+- Wrong/unknown MT5, no linked Telegram, or mismatched chat: generic browser acknowledgement; no identity or account-existence disclosure.
+- Attacker supplies another Telegram username/Chat ID: ignored/rejected; no challenge sent to that destination.
+- Forgot PIN challenge: correct purpose/member/chat works once; wrong purpose, wrong member, expired token, replay, stale record, or concurrent redemption fails closed.
+- Successful PIN reset: new PIN verifier is stored using the approved secure method; old PIN no longer authenticates; existing sessions and other recovery tokens are revoked; member status/deposit/VIP data remain unchanged.
+- Forgot Member ID: ID is disclosed only to the previously verified private Telegram chat after explicit confirmation, never in an unverified browser response or public log.
+- Telegram send timeout/ambiguous acknowledgement: state is reconciled safely without issuing multiple active challenges or falsely reporting success.
+- Rate limits, enumeration resistance, audit failure handling, Admin fallback, and Android/mobile usability are tested.
+- No live member data, production Telegram bot, production credentials, or production deployment is used for acceptance testing.
+
+This is a mandatory design requirement for the isolated workbench. It does not authorize production data access, Telegram configuration changes, credential rotation, deployment, or release.
+
 ## 3. Required adversarial test matrix
 
 Run only against an isolated workbench/test backend and synthetic accounts/data unless a separately approved production test plan exists.
