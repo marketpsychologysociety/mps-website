@@ -49,10 +49,10 @@
     el.textContent = (cfg.brand && cfg.brand.name) || "Market Psychology Society";
   });
   document.querySelectorAll("[data-brand='tagline']").forEach(el => {
-    el.textContent = (cfg.brand && cfg.brand.tagline) || "DISCIPLINE OVER IMPULSE";
+    el.textContent = (cfg.brand && cfg.brand.tagline) || "DISIPLIN DI ATAS IMPULS";
   });
   const year = document.getElementById("year");
-  if (year) year.textContent = `© ${new Date().getFullYear()} ${(cfg.brand && cfg.brand.name) || "Market Psychology Society"}. All Rights Reserved.`;
+  if (year) year.textContent = `© ${new Date().getFullYear()} ${(cfg.brand && cfg.brand.name) || "Market Psychology Society"}. Hak cipta dilindungi.`;
 })();
 // MPS AUTOMATIC IMAGE SLIDER
 document.addEventListener("DOMContentLoaded", function () {
