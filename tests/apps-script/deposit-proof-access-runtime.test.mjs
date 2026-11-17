@@ -21,7 +21,8 @@ function harness({authorized=true,status='Menunggu Validasi Admin',storedFileId=
   const member=new Array(30).fill('');member[0]=memberId;member[13]=proofUrl;member[14]='Menunggu verifikasi';
   let sheetReads=0,fileReads=0,rateCalls=0;
   const file={getId:()=>fileId,getName:()=> 'bukti.png',getMimeType:()=> 'image/png',getSize:()=>png.length,isTrashed:()=>false,getSharingAccess:()=>privateFile,getBlob:()=>({getBytes:()=>png}),getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return{getId:()=> 'proof-folder'};}};}};
-  const parent={getId:()=> 'proof-parent',getSharingAccess:()=>privateParent,getParents:()=>({hasNext:()=>false})};\n  const folder={getId:()=> 'proof-folder',getSharingAccess:()=>privateFolder,getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return parent;}};}};
+  const parent={getId:()=> 'proof-parent',getSharingAccess:()=>privateParent,getParents:()=>({hasNext:()=>false})};
+  const folder={getId:()=> 'proof-folder',getSharingAccess:()=>privateFolder,getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return parent;}};}};
   const context={
     MPS:{headers:new Array(30),maxProofBytes:5*1024*1024},
     MPS_COL:{depositStatus:15,proofUrl:14},
