@@ -312,3 +312,14 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - CI remains repository-based with synthetic/mocked Apps Script, Sheets, Drive and Telegram dependencies. It is not live Apps Script, live spreadsheet/Drive ACL, Telegram delivery, or physical Android acceptance.
 - No production resources or `main` were changed. No Public Center activation property was configured; the feature remains disabled. Official Winner Draw remains BLOCKED / NO-GO; Lucky Roulette remains SIMULATION ONLY.
 - The Market Pulse replacement dataset/provenance handoff remains pending; no historical candidate dataset is approved for publication.
+
+
+## 2026-11-17 — Member recovery and Exness rebate transparency
+
+- **Candidate implementation added:** member can request forgotten PIN or forgotten Member ID using registered MT5 login and the previously linked private Telegram identity. A one-time 8-character code is sent to the verified Telegram chat; expiry 10 minutes; wrong-code attempts capped at five; global/per-target rate limits; new PIN is member-chosen and stored using the existing salted verifier; previous sessions become invalid. Member ID is delivered only to Telegram and never returned to browser.
+- **Admin fallback:** if the prior Telegram account is inaccessible or linkage is ambiguous, self-service does not accept a new Telegram ID. Member is directed to Admin for verification against existing registration/deposit evidence.
+- **Synthetic validation:** latest completed code/test checkpoint run #44023899652 passed 78/78 steps on exact SHA `932904aa2c1f1716bd11c19e0ecd41c0d4f164ec`. This included API contract checks, MT5 lookup helper tests and Chromium checks. Live Telegram, deployed Apps Script and Android device tests remain outstanding.
+- **Exness public transparency:** Rebate page clearly shows **NOT CONNECTED / WAITING FOR PARTNER API ACCESS**; no live member amount or payment status is fabricated. Intended source is official Exness Partnership API with read-only `partnership.all:read`; partner reward, member rebate, batch status, row status and payment status remain distinct.
+- **Not implemented yet:** live Exness adapter/signer and member-specific Rebate Saya figures. Prerequisites are partner eligibility/access verification, read-only API key and Ed25519 signing key stored securely, approved signing runtime, unique MT5/client-account mapping, reconciliation tests and explicit owner authorization for credential setup. No credentials or production access were supplied or used.
+- The public Rebate page deposit minimum was aligned to Rp1.000.000, matching the current Membership page. This is a copy consistency correction, not a change to deposit processing.
+- No production resources, main branch, member database, Telegram bot configuration or Exness settings were changed. Official Winner Draw remains BLOCKED / NO-GO; Lucky Roulette remains SIMULATION ONLY.
