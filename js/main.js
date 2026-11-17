@@ -114,3 +114,32 @@ document.addEventListener("DOMContentLoaded", function () {
   showSlide(0);
   startAuto();
 });
+
+// MPS tactile click feedback: ripple originates from the real pointer/touch location (no fake cursor).
+(() => {
+  const selector = '.btn, button, .nav-join, .pwa-install-btn';
+  const addRipple = (target, x, y) => {
+    if (!(target instanceof Element) || !target.matches(selector)) return;
+    if (target.disabled || target.getAttribute('aria-disabled') === 'true') return;
+    const rect = target.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'mps-click-ripple';
+    ripple.setAttribute('aria-hidden', 'true');
+    ripple.style.left = Math.max(0, Math.min(rect.width, x - rect.left)) + 'px';
+    ripple.style.top = Math.max(0, Math.min(rect.height, y - rect.top)) + 'px';
+    target.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+    window.setTimeout(() => ripple.remove(), 750);
+  };
+  document.addEventListener('pointerdown', event => {
+    const target = event.target.closest?.(selector);
+    if (target) addRipple(target, event.clientX, event.clientY);
+  }, { passive: true });
+  document.addEventListener('click', event => {
+    if (event.detail !== 0) return;
+    const target = event.target.closest?.(selector);
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    addRipple(target, rect.left + rect.width / 2, rect.top + rect.height / 2);
+  });
+})();
