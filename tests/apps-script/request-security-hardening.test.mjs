@@ -139,8 +139,8 @@ test('member recovery challenge replacement and Telegram delivery are serialized
   const releaseAt=body.indexOf('lock.releaseLock()');
   assert.ok(lockAt>=0&&lockAt<writeAt,'acquire lock before replacing challenge');
   assert.ok(writeAt<sendAt&&sendAt<releaseAt,'hold lock through Telegram delivery');
-  assert.match(body,/finally\\s*\\{\\s*lock\\.releaseLock\\(\\)/);
+  assert.ok(body.includes('finally {\n    lock.releaseLock();'),'lock is always released');
   const complete=extract('apiMemberRecoveryComplete');
-  assert.match(complete,/lock\\.waitLock\\(10000\\)/,'completion shares the ScriptLock');
-  assert.match(body,/if\\(current === JSON\\.stringify\\(challenge\\)\\) props\\.deleteProperty\\(propertyKey\\)/);
+  assert.ok(complete.includes('lock.waitLock(10000)'),'completion shares the ScriptLock');
+  assert.ok(body.includes('if (current === JSON.stringify(challenge)) props.deleteProperty(propertyKey);'),'cleanup only removes the matching challenge');
 });
