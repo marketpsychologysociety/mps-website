@@ -1384,8 +1384,8 @@ a.btn[href*="join"]::after,a.btn[href*="deposit-confirmation"]::after,
 }
 @keyframes mps-button-sheen-contained{0%,18%{left:-65%;opacity:0}30%{opacity:.8}65%,100%{left:135%;opacity:0}}
 @keyframes mps-cta-contained-pulse{
-  0%,100%{box-shadow:0 0 0 1px rgba(39,223,255,.13),0 0 10px rgba(39,223,255,.10)!important}
-  50%{box-shadow:0 0 0 1px rgba(255,79,216,.22),0 0 15px rgba(255,79,216,.15)!important}
+  0%,100%{box-shadow:0 0 0 1px rgba(39,223,255,.13),0 0 10px rgba(39,223,255,.10)}
+  50%{box-shadow:0 0 0 1px rgba(255,79,216,.22),0 0 15px rgba(255,79,216,.15)}
 }
 /* All click targets get a tactile press; the ripple is created at the actual touch/click point. */
 .btn,.btn-gold,button,.nav-join,.pwa-install-btn{
@@ -1416,3 +1416,9 @@ a.btn[href*="join"]::after,a.btn[href*="deposit-confirmation"]::after,
   #step2Next a.btn-gold{animation:none!important}
   .mps-click-ripple{animation:none!important;display:none!important}
 }
+
+/* Final contrast corrections for legacy market-direction panels and ripple stacking. */
+.mps-bull-panel,.signal-bull-panel{background:rgba(39,223,255,.07)!important;border-color:rgba(39,223,255,.34)!important}
+.mps-bear-panel,.signal-bear-panel{background:rgba(255,79,216,.07)!important;border-color:rgba(255,79,216,.34)!important}
+.mps-click-ripple{z-index:1!important}
+.btn>:not(.mps-click-ripple),button>:not(.mps-click-ripple),.nav-join>:not(.mps-click-ripple),.pwa-install-btn>:not(.mps-click-ripple){position:relative;z-index:2}
