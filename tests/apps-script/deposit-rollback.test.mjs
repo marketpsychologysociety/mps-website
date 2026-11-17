@@ -21,11 +21,11 @@ function makeSheet(rows,label,{failAt='',state}={}) {
    setValue(v){if(!rows[r-1])rows[r-1]=[];rows[r-1][c-1]=v;if((Array.isArray(state.failAt)?state.failAt.includes(label):state.failAt===label)&&!state.failed.has(label)){state.failed.add(label);throw new Error('INJECTED_'+label+'_WRITE');}},
    setValues(values){values.forEach((line,ri)=>{if(!rows[r-1+ri])rows[r-1+ri]=[];line.forEach((v,ci)=>rows[r-1+ri][c-1+ci]=v);});if((Array.isArray(state.failAt)?state.failAt.includes('oldLinkRollback'):state.failAt==='oldLinkRollback')&&label==='links'&&r===2&&values[0][3]==='Menunggu'&&!state.failed.has('oldLinkRollback')){state.failed.add('oldLinkRollback');throw new Error('INJECTED_oldLinkRollback');}if((Array.isArray(state.failAt)?state.failAt.includes(label):state.failAt===label)&&!state.failed.has(label)){state.failed.add(label);throw new Error('INJECTED_'+label+'_WRITE');}}
   };},
-  appendRow(row){rows.push(row.slice());},
+  appendRow(row){rows.push(row.slice());if(label==='links'&&state.failAt==='linkAppendResponse'&&!state.failed.has('linkAppendResponse')){state.failed.add('linkAppendResponse');throw new Error('INJECTED_linkAppendResponse_AFTER_WRITE');}},
   deleteRow(row){rows.splice(row-1,1);}
  };
 }
-function depositHarness({failAt=''}={}) {
+function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={}) {
  const state={failAt,failed:new Set()},now=new Date('2026-11-12T00:00:00Z');
  const appsRows=[new Array(15).fill(''),[appRef,now,'Member Test','@member_test','ID','Trading','', 'Menunggu Deposit','','','','','','',now]];
  const depositsRows=[new Array(14).fill('')];
@@ -38,18 +38,24 @@ function depositHarness({failAt=''}={}) {
   MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},MPS_MEMBER_LINKS:{headers:new Array(11)},
   clean_:v=>String(v??'').trim(),sheetText_:v=>String(v??''),validDate_:()=>true,isValidImageSignature_:()=>true,
   Utilities:{formatDate:()=> '2026-11-12',getUuid:()=> '12345678-1234-1234-1234-123456789abc',base64Decode:()=>new Uint8Array([1,2,3,4,5,6,7,8]),newBlob:()=>({getDataAsString:()=>''})},
-  PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_PROOF_FOLDER_ID'?'proof-folder':key==='MPS_LEARNING_FOLDER_ID'?'learning-folder':''})},
+  PropertiesService:{getScriptProperties:()=>({getProperty:key=>{if(key==='MPS_TELEGRAM_BOT_USERNAME'&&failBotProperty)throw new Error('INJECTED_BOT_PROPERTY_READ');return key==='MPS_PROOF_FOLDER_ID'?'proof-folder':key==='MPS_LEARNING_FOLDER_ID'?'learning-folder':key==='MPS_TELEGRAM_BOT_USERNAME'?'MPSBot':'';}})},
   DriveApp:{Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'},getFolderById:()=>folder},
   getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
   getMpsDepositsSheet_:()=>deposits,
   findMpsDepositRow_:(sheet,ref)=>{for(let i=1;i<depositsRows.length;i++)if(depositsRows[i][0]===ref)return i+1;return 0;},
   getMpsMemberLinksSheet_:()=>links,
   findMpsMemberLinkRow_:(sheet,hash)=>{for(let i=1;i<linksRows.length;i++)if(linksRows[i][0]===hash)return i+1;return 0;},
-  createMemberTelegramLink_:(memberId,ref,onPrepared)=>{const row=linksRows.length+1,token='new-one-time-token';if(onPrepared)onPrepared({token,row});links.appendRow(['new-hash',now,new Date(now.getTime()+900000),'Menunggu',memberId,ref,'','','','','']);return{token,row,url:'https://t.me/MPSBot?start='+token,expiresAt:'12 Nov 2026',expiresIn:900};},
+  sha256_:()=> 'new-hash',formatDateForClient_:()=> '12 Nov 2026',\n  createMemberTelegramLink_:(memberId,ref,onPrepared)=>{const row=linksRows.length+1,token='new-one-time-token';if(onPrepared)onPrepared({token,row});links.appendRow(['new-hash',now,new Date(now.getTime()+900000),'Menunggu',memberId,ref,'','','','','']);return{token,row,url:'https://t.me/MPSBot?start='+token,expiresAt:'12 Nov 2026',expiresIn:900};},
   expireOtherApplicationLinks_:(ref,keepRow)=>{for(let i=1;i<linksRows.length;i++)if(i+1!==keepRow&&linksRows[i][5]===ref&&linksRows[i][3]==='Menunggu')linksRows[i][3]='Diganti';},
   safeErrorMessage_:e=>String(e&&e.message||e),console
  };
- vm.createContext(context);vm.runInContext(saveSource,context,{timeout:1000});
+ if(realLinkHelper){
+  const linkStart=source.indexOf('function createMemberTelegramLink_(memberId,applicationRef,onPrepared) {');
+  const linkEnd=source.indexOf('\\nfunction findMpsMemberLinkRow_',linkStart+1);
+  assert.ok(linkStart>=0&&linkEnd>linkStart,'createMemberTelegramLink_ source boundaries must exist');
+  vm.createContext(context);vm.runInContext(source.slice(linkStart,linkEnd),context,{timeout:1000});
+ } else vm.createContext(context);
+ vm.runInContext(saveSource,context,{timeout:1000});
  let uploaded=null,proofLinked=false;
  const payload={applicationRef:appRef,memberName:'Member Test',mt5Login:'12345678',accountType:'Standard',depositAmount:1000000,depositDate:'2026-11-11',proofMimeType:'image/png',proofBase64:'QUJDREVGR0g='};
  return {run:()=>context.saveDeposit_(null,payload,file=>{uploaded=file;},()=>{proofLinked=true;}),appsRows,depositsRows,linksRows,file,getUploaded:()=>uploaded,proofLinked:()=>proofLinked,state};
@@ -78,5 +84,25 @@ test('incomplete old-link rollback preserves private proof and flags operator re
   return true;
  });
  assert.equal(h.file.trashed,false);
+ assert.equal(h.proofLinked(),false);
+});
+
+test('Telegram bot configuration failure happens before any new link row is persisted',()=>{
+ const h=depositHarness({failBotProperty:true,realLinkHelper:true});
+ assert.throws(()=>h.run(),/INJECTED_BOT_PROPERTY_READ/);
+ assert.equal(h.linksRows.length,2,'no orphan or unusable Telegram link row may be appended');
+ assert.equal(h.depositsRows.length,1,'deposit row is compensated');
+ assert.equal(h.appsRows[1][7],'Menunggu Deposit','application state is restored');
+ assert.equal(h.proofLinked(),false);
+});
+
+test('ambiguous Telegram-link append response is compensated using the exact prepared row',()=>{
+ const h=depositHarness({failAt:'linkAppendResponse',realLinkHelper:true});
+ assert.throws(()=>h.run(),/INJECTED_linkAppendResponse_AFTER_WRITE/);
+ assert.equal(h.linksRows.length,3);
+ assert.equal(h.linksRows[2][3],'Dibatalkan','the exact row appended before the lost response is cancelled');
+ assert.equal(h.depositsRows.length,1,'deposit row is compensated');
+ assert.equal(h.appsRows[1][7],'Menunggu Deposit','application state is restored');
+ assert.equal(h.linksRows[1][3],'Menunggu','previous link state is restored');
  assert.equal(h.proofLinked(),false);
 });
