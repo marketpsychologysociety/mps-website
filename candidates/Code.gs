@@ -3378,7 +3378,7 @@ function markPinDeliveredIfCurrent_(memberId,pin) {
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
     const props=PropertiesService.getScriptProperties(),record=props.getProperty(pinPropertyKey_(memberId));
-    if(!record||!verifyMemberPin_(memberId,pin,record)){props.deleteProperty('MPS_PIN_DELIVERED_'+memberId);return false;}
+    if(!record||!verifyMemberPin_(memberId,pin,record)){return false;}
     props.setProperty('MPS_PIN_DELIVERED_'+memberId,'1');
     props.setProperty('MPS_PIN_DELIVERY_STATE_'+memberId,'ACTIVE');
     return true;
