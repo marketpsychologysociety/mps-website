@@ -1282,6 +1282,11 @@ function apiMemberRecoveryComplete(mt5Login, confirmationCode, newPin) {
       props.deleteProperty(propertyKey);
       throw new Error('Data member berubah atau tidak dapat diverifikasi. Hubungi Admin MPS.');
     }
+    const currentTelegramLink = findUniqueTelegramAccessForRecovery_(getTelegramAccessSheet_(), member.memberId);
+    if (!currentTelegramLink || currentTelegramLink.chatId !== String(challenge.chatId || '')) {
+      props.deleteProperty(propertyKey);
+      throw new Error('Tautan Telegram terverifikasi telah berubah. Mulai pemulihan kembali atau hubungi Admin MPS.');
+    }
     if (!constantTimeEquals_(String(challenge.codeHash), sha256_(String(challenge.salt) + ':' + code))) {
       challenge.attempts = Number(challenge.attempts || 0) + 1;
       if (challenge.attempts >= 5) props.deleteProperty(propertyKey);
