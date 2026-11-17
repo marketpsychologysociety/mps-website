@@ -73,12 +73,13 @@ function harness(options={}) {
   };
   if(!options.aclUnavailable){file.getEditors=()=>options.fileEditors||[];file.getViewers=()=>options.fileViewers||[];}
   const ss={getSheetByName:name=>sheetMap[name]||null};
+  const lockStats={acquired:0,released:0};
   const context={
     MPS:{},
     PropertiesService:{getScriptProperties:()=>({getProperty:key=>properties[key]||'',setProperty:(key,value)=>{properties[key]=value;}})},
     DriveApp:{Access:{PRIVATE:'PRIVATE'},getFileById:()=>file},
     SpreadsheetApp:{openById:()=>ss},
-    LockService:{getScriptLock:()=>({waitLock:()=>{},releaseLock:()=>{}})},
+    LockService:{getScriptLock:()=>({waitLock:()=>{lockStats.acquired++;},releaseLock:()=>{lockStats.released++;}})},
     consumeRateLimit_:()=>{},
     constantTimeEquals_:(a,b)=>String(a)===String(b),
     sha256_:value=>createHash('sha256').update(String(value)).digest('hex'),
@@ -92,7 +93,7 @@ function harness(options={}) {
   };
   vm.createContext(context);
   vm.runInContext(source,context,{timeout:1000});
-  return {context,signals,events,bots,properties};
+  return {context,signals,events,bots,properties,lockStats};
 }
 
 function payload(overrides={}) {
@@ -227,8 +228,11 @@ test('named Drive collaborators and unverifiable ACLs block the Trading Signals 
 test('Super Admin configuration controls bot enablement and allowlists without exposing credentials',()=>{
   const h=harness();
   assert.throws(()=>h.context.apiAdminConfigureTradingSignalBot('admin-session','BOT_01','SMC',true,'XAUUSD','M5'),/SUPER_ADMIN_REQUIRED/);
+  const beforeLock={...h.lockStats};
   const result=h.context.apiAdminConfigureTradingSignalBot('super-session','BOT_02','News Bot',true,'XAUUSD,EURUSD','M5,M15');
   assert.equal(result.enabled,true);
+  assert.equal(h.lockStats.acquired-beforeLock.acquired,1,'configuration write must acquire the shared ScriptLock');
+  assert.equal(h.lockStats.released-beforeLock.released,1,'configuration write must release ScriptLock before audit');
   assert.equal(h.bots.snapshot()[2][2],true);
   assert.equal(h.bots.snapshot()[2][3],'XAUUSD,EURUSD');
   assert.equal(JSON.stringify(h.context.apiAdminGetTradingSignalsHealth('admin-session')).includes('bot-two-secret'),false);
