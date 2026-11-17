@@ -46,7 +46,7 @@
 
 
 <header class="page-head">
-  <div class="eyebrow">Rebate Program</div>
+  <div class="eyebrow">Program Rebate</div>
   <h1>Rebate MPS</h1>
   <p>Program rebate bagi anggota MPS yang menggunakan akun Exness terdaftar di bawah IB MPS. Exness merupakan broker partner MPS saat ini; broker partner lain dapat ditambahkan di kemudian hari dan akan diumumkan secara resmi.</p>
 </header>
@@ -70,7 +70,7 @@
       Halaman ini belum menerima data rebate live per akun dari Exness. Karena itu MPS tidak menampilkan angka volume, rebate personal, atau status pembayaran seolah-olah sudah tersinkron.
     </div>
     <p>MPS sedang menyiapkan integrasi melalui <strong>Exness Partnership API</strong> (bukan Trading API). Integrasi dirancang hanya-baca dengan izin minimum <code>partnership.all:read</code>. Kunci API dan kunci penandatanganan hanya boleh disimpan di backend; tidak akan ditanam di halaman website, aplikasi browser, atau dikirim kepada anggota.</p>
-    <p>Setelah akses partner, pemetaan akun, dan rekonsiliasi dinyatakan valid, area <strong>Rebate Saya</strong> akan menampilkan data milik anggota yang sedang login saja: nomor akun yang sudah dicocokkan secara unik, volume trading, dasar reward partner (terpisah dari hak rebate anggota), alokasi rebate, periode sumber, waktu sinkronisasi terakhir, serta rincian batch, baris rebate, dan pembayaran.</p>
+    <p>Setelah akses partner, pemetaan akun, dan rekonsiliasi dinyatakan valid, area <strong>Rebate Saya</strong> akan menampilkan data milik anggota yang sedang login saja: nomor akun yang sudah dicocokkan secara unik, volume trading, dasar imbalan mitra (terpisah dari hak rebate anggota), alokasi rebate, periode sumber, waktu sinkronisasi terakhir, serta rincian batch, baris rebate, dan pembayaran.</p>
     <ul>
       <li><strong>Menunggu / Diproses:</strong> masih diproses, bukan pembayaran selesai.</li>
       <li><strong>Telah Diproses:</strong> batch selesai diproses; belum otomatis berarti semua baris sudah dibayar.</li>
@@ -132,7 +132,7 @@
     <a href="contact.html">Kontak</a>
   </div>
   <p class="footer-disclaimer">
-    MPS adalah komunitas edukasi independen, bukan broker, pengelola dana, atau penasihat keuangan. Pendiri &amp; Pengelola: Ndhi Solasi. MPS dapat menerima komisi IB dari aktivitas transaksi akun anggota yang terdaftar di bawah IB MPS. Keanggotaan gratis, tetapi akun di bawah IB MPS wajib. Trading Forex dan Gold berisiko tinggi dan dapat menyebabkan kehilangan sebagian atau seluruh modal. Materi bukan rekomendasi investasi dan MPS tidak menjamin keuntungan.
+    MPS adalah komunitas edukasi independen, bukan broker, pengelola dana, atau penasihat keuangan. Pendiri &amp; Pengelola: Ndhi Solasi. MPS dapat menerima komisi IB dari aktivitas transaksi akun anggota yang terdaftar di bawah IB MPS. Keanggotaan gratis, tetapi akun di bawah IB MPS wajib. Trading Forex dan emas berisiko tinggi dan dapat menyebabkan kehilangan sebagian atau seluruh modal. Materi bukan rekomendasi investasi dan MPS tidak menjamin keuntungan.
   </p>
   <div class="footer-copy" id="year">© 2026 Market Psychology Society. Hak cipta dilindungi.</div>
 </footer>
@@ -154,11 +154,11 @@
   let installPrompt=null;
   const ua=navigator.userAgent||'';
   const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Share/Bagikan.\n3. Pilih “Add to Home Screen” / “Tambahkan ke Layar Utama”.\n4. Tekan Add / Tambahkan.'));}
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Bagikan.\n3. Pilih “Tambahkan ke Layar Utama”.\n4. Tekan “Tambahkan”.'));}
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
   btn.addEventListener('click',async()=>{
     if(isAppleMobile)return;
-    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Install app” atau “Tambahkan ke layar utama”.');return;}
+    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Pasang aplikasi” atau “Tambahkan ke layar utama”.');return;}
     installPrompt.prompt();
     try{const choice=await installPrompt.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}
     installPrompt=null;
