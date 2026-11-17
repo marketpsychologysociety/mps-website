@@ -9,6 +9,47 @@ const html=readFileSync(fileURLToPath(new URL('../../candidates/Index.html',impo
 const definitions=new Set([...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m=>m[1]));
 const calls=[...new Set([...html.matchAll(/\bapi\(\s*['"]([A-Za-z_$][\w$]*)['"]/g)].map(m=>m[1]))].sort();
 
+test('Public Center direct route is default-deny unless an exact backend Script Property enables it',()=>{
+  const gateStart=code.indexOf('function isMpsPublicCenterEnabled_()');
+  const gateEnd=code.indexOf('\\nfunction ',gateStart+1);
+  const routeStart=code.indexOf('function doGet(e)');
+  const routeEnd=code.indexOf('\\nfunction ',routeStart+1);
+  assert.ok(gateStart>=0&&gateEnd>gateStart,'backend Public Center gate must exist');
+  assert.ok(routeStart>=0&&routeEnd>routeStart,'doGet route boundaries must exist');
+  const gate=code.slice(gateStart,gateEnd);
+  const route=code.slice(routeStart,routeEnd);
+  assert.match(gate,/getProperty\\('MPS_PUBLIC_CENTER_ENABLED'\\)\\s*===\\s*'true'/);
+  assert.match(gate,/catch\\s*\\([^)]*\\)\\s*\\{\\s*return false;/);
+  assert.match(route,/if\\s*\\(!isMpsPublicCenterEnabled_\\(\\)\\)/);
+  assert.match(route,/createTextOutput\\('Not Found'\\)/);
+
+  for(const propertyValue of [null,'false','TRUE','1','', 'unexpected']) {
+    let publicCalls=0;
+    const context={
+      PropertiesService:{getScriptProperties:()=>({getProperty:key=>{assert.equal(key,'MPS_PUBLIC_CENTER_ENABLED');return propertyValue;}})},
+      ContentService:{MimeType:{TEXT:'text'},createTextOutput:value=>({value,setMimeType(type){this.mimeType=type;return this;}})},
+      apiGetPublicCenter:()=>{publicCalls++;return {ok:true};},
+      json_:value=>({json:value})
+    };
+    runInNewContext(gate+'\\n'+route,context);
+    const response=context.doGet({parameter:{publicCenter:'1'}});
+    assert.equal(response.value,'Not Found','unexpectedly accepted property '+String(propertyValue));
+    assert.equal(publicCalls,0,'public data handler must not run when disabled');
+  }
+
+  let publicCalls=0;
+  const context={
+    PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_PUBLIC_CENTER_ENABLED'?'true':null})},
+    ContentService:{MimeType:{TEXT:'text'},createTextOutput:value=>({value,setMimeType(type){this.mimeType=type;return this;}})},
+    apiGetPublicCenter:()=>{publicCalls++;return {ok:true};},
+    json_:value=>({json:value})
+  };
+  runInNewContext(gate+'\\n'+route,context);
+  const response=context.doGet({parameter:{publicCenter:'1'}});
+  assert.equal(publicCalls,1,'exact explicit backend enable should reach public handler in isolated test');
+  assert.match(response.value,/MPS_PUBLIC_CENTER_DATA/);
+});
+
 test('every literal frontend google.script.run API call has a matching backend function',()=>{
   assert.ok(calls.length>=40,'expected the complete frontend API inventory');
   const missing=calls.filter(name=>!definitions.has(name));
