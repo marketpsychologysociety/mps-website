@@ -302,3 +302,13 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - The Admin archive-notification outbox implementation and its runtime regression tests have been fast-forwarded into the main v4.8 workbench candidate. PR #12 now contains this code; the separate archive-outbox branch is identical to the workbench and is no longer an independent change.
 - This consolidation changes only the development branch. It does not merge PR #12 into \`main\`, deploy Apps Script, alter production Script Properties, provision Sheets, modify Drive permissions, or send Telegram messages.
 - Re-run the complete candidate CI against the consolidated workbench head before considering source integration complete.
+
+
+## Current checkpoint — 2026-11-17 (Public Center backend gate)
+
+- Current code/test head at this checkpoint: `f4b81c289fdde6850e2d224fc268ac1d146fa212`; PR #12 remains OPEN / DRAFT / NOT MERGED against base `43d9fb9c9383853e9e2d2775393e7e700c18f5d6`.
+- The candidate Apps Script `doGet(e)` Public Center route is now independently default-deny. It requires Script Property `MPS_PUBLIC_CENTER_ENABLED` to equal the exact string `true`; missing, false, malformed values, or property access errors deny the direct URL route. The public website config remains disabled.
+- GitHub Actions [run #44022596543](https://github.com/marketpsychologysociety/mps-website/actions/runs/44022596543) completed **SUCCESS, 78/78 workflow steps, 0 failures** on the exact code/test head above. The backend route-gate regression, public-center GET bridge, public ticker privacy, API contract, and Chromium browser checks passed.
+- CI remains repository-based with synthetic/mocked Apps Script, Sheets, Drive and Telegram dependencies. It is not live Apps Script, live spreadsheet/Drive ACL, Telegram delivery, or physical Android acceptance.
+- No production resources or `main` were changed. No Public Center activation property was configured; the feature remains disabled. Official Winner Draw remains BLOCKED / NO-GO; Lucky Roulette remains SIMULATION ONLY.
+- The Market Pulse replacement dataset/provenance handoff remains pending; no historical candidate dataset is approved for publication.
