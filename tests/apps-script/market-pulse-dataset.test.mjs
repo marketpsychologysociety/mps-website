@@ -44,6 +44,7 @@ test('raw heatmap reader parses data only and rejects malformed candle sequences
 
 test('converter builds exactly XAUUSD M5, WIB and three rolling windows with 288 slots each', () => {
   assert.equal(dataset.instrument, 'XAUUSD');
+  assert.deepEqual(dataset.source, { provider: 'Binance Spot', symbol: 'PAXGUSDT', description: 'Gold-market proxy; not a broker forex XAUUSD feed.' });
   assert.equal(dataset.timeframe, 'M5');
   assert.equal(dataset.timezone, 'Asia/Jakarta');
   assert.equal(dataset.dataStart, '2026-08-01T07:00:00+07:00');
@@ -130,6 +131,15 @@ test('backend validator rejects legacy or cross-instrument dataset shapes', () =
   assert.throws(() => validate(mutate(d => { d.extra = true; })), /Properti dataset/);
 });
 
+test('backend validator requires exact Binance Spot PAXGUSDT gold-proxy provenance', () => {
+  assert.equal(validate(html).data.source.symbol, 'PAXGUSDT');
+  assert.throws(() => validate(mutate(d => { delete d.source; })), /Properti dataset/);
+  assert.throws(() => validate(mutate(d => { d.source.provider = 'Broker Forex'; })), /Provenance wajib Binance Spot PAXGUSDT/);
+  assert.throws(() => validate(mutate(d => { d.source.symbol = 'XAUUSD'; })), /Provenance wajib Binance Spot PAXGUSDT/);
+  assert.throws(() => validate(mutate(d => { d.source.description = 'Broker forex XAUUSD feed'; })), /Provenance wajib Binance Spot PAXGUSDT/);
+  assert.throws(() => validate(mutate(d => { d.source.extra = true; })), /Provenance wajib Binance Spot PAXGUSDT/);
+});
+
 test('backend validator enforces timestamp validity, chronology and M5 boundaries', () => {
   assert.throws(() => validate(mutate(d => { d.dataEnd = '2026-02-30T03:20:00+07:00'; })), /Rentang waktu/);
   assert.throws(() => validate(mutate(d => { d.dataStart = '2026-08-01T07:01:00+07:00'; })), /Rentang waktu/);
@@ -152,6 +162,8 @@ test('legacy Heatmap menu and old multi-market Pulse selectors are removed', () 
   assert.doesNotMatch(indexHtml, /data-pair=|data-tf=|pulsePair|pulseTf|pulseSlot|pulseChips/);
   assert.match(indexHtml, /data-page="pulse">Market Pulse/);
   assert.match(indexHtml, /MPS MARKET PULSE · XAUUSD M5/);
+  assert.match(indexHtml, /Binance Spot PAXGUSDT/);
+  assert.match(indexHtml, /bukan feed XAUUSD broker forex/);
   assert.match(indexHtml, /MEMBER ONLY/);
   assert.match(indexHtml, /api\('apiGetMarketPulse',state\.memberSession\)/);
   assert.match(indexHtml, /api\('apiAdminGetMarketPulse',state\.adminSession\)/);
