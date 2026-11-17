@@ -43,9 +43,11 @@ test('persistent aggregate limiter isolates fixed buckets',()=>{
   const h=limiterHarness();
   h.run('public_submit_register',1,600,'register blocked');
   h.run('public_submit_deposit',1,600,'deposit blocked');
+  h.run('public_status_global',1,60,'status blocked');
   assert.throws(()=>h.run('public_submit_register',1,600,'register blocked'),/register blocked/);
   assert.throws(()=>h.run('public_submit_deposit',1,600,'deposit blocked'),/deposit blocked/);
-  assert.equal(h.shared.size,2);
+  assert.throws(()=>h.run('public_status_global',1,60,'status blocked'),/status blocked/);
+  assert.equal(h.shared.size,3);
 });
 
 test('persistent aggregate limiter rejects attacker-controlled property names',()=>{
@@ -74,6 +76,16 @@ test('durable request ledger is provisioned only by the Super Admin initializati
   assert.match(body,/MPS_MEMBER_LINKS,MPS_REQUEST_LEDGER/);
   assert.match(source,/function getMpsRequestLedgerSheet_\(\)/);
   assert.match(source,/function findMpsRequestLedgerRow_\(sh,requestId\)/);
+});
+
+test('public request status applies aggregate persistent throttling before any ledger lookup',()=>{
+  const start=source.indexOf('function doGet(e)');
+  const end=source.indexOf('\nfunction doPost(e)',start+1);
+  const body=source.slice(start,end);
+  const throttle=body.indexOf("consumePersistentBucketRateLimit_('public_status_global', 1200, 60");
+  const lookup=body.indexOf('getMpsRequestLedgerSheet_()');
+  assert.ok(throttle>=0&&lookup>throttle,'throttle must execute before the ledger spreadsheet is opened');
+  assert.match(source,/public_status_global/);
 });
 
 test('public request status reads only generic completion state from durable ledger',()=>{
@@ -125,7 +137,7 @@ test('Super Admin read-only configuration diagnostic reports request ledger sche
 });
 
 test('all aggregate public/login throttles use a fixed persistent allow-listed bucket',()=>{
-  assert.match(source,/const allowed=\['member_login_global','public_submit_register','public_submit_deposit','ad_request_global'\]/);
+  assert.match(source,/const allowed=\['member_login_global','public_submit_register','public_submit_deposit','ad_request_global','public_status_global'\]/);
   assert.match(source,/consumePersistentBucketRateLimit_\('member_login_global',600,60/);
   assert.match(source,/consumePersistentBucketRateLimit_\('public_submit_' \+ action/);
   assert.match(source,/consumePersistentBucketRateLimit_\('ad_request_global',30,3600/);
