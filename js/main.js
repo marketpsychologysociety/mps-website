@@ -131,8 +131,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 })();
 
-// MPS v4.8 button feedback v3: pointer, touch fallback, keyboard and click confirmation.
-// Uses delegated listeners so dynamically-created controls receive the same feedback.
+// MPS v4.8 button feedback v4: tactile press + real pointer-position ripple.
 (() => {
   const selector = '.btn,button,.nav-join,.pwa-install-btn,input[type="button"],input[type="submit"]';
   let pressed = null;
@@ -143,20 +142,37 @@ document.addEventListener("DOMContentLoaded", function () {
     return node && node.closest(selector);
   };
   const usable = el => el && !el.disabled && el.getAttribute('aria-disabled') !== 'true';
+  const ripple = (el, event) => {
+    if (!usable(el) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const rect = el.getBoundingClientRect();
+    const x = event && Number.isFinite(event.clientX) && event.clientX
+      ? event.clientX - rect.left : rect.width / 2;
+    const y = event && Number.isFinite(event.clientY) && event.clientY
+      ? event.clientY - rect.top : rect.height / 2;
+    const dot = document.createElement('span');
+    dot.className = 'mps-click-ripple';
+    dot.setAttribute('aria-hidden', 'true');
+    dot.style.left = x + 'px';
+    dot.style.top = y + 'px';
+    el.querySelectorAll(':scope > .mps-click-ripple').forEach(old => old.remove());
+    el.appendChild(dot);
+    dot.addEventListener('animationend', () => dot.remove(), { once: true });
+    window.setTimeout(() => { if (dot.isConnected) dot.remove(); }, 750);
+  };
   const flash = el => {
     if (!usable(el)) return;
     el.classList.remove('mps-click-feedback');
-    // Force a style boundary so repeated taps replay the release animation.
     void el.offsetWidth;
     el.classList.add('mps-click-feedback');
     window.clearTimeout(flashTimer);
     flashTimer = window.setTimeout(() => el.classList.remove('mps-click-feedback'), 480);
   };
-  const begin = el => {
+  const begin = (el, event) => {
     if (!usable(el)) return;
     pressed = el;
     window.clearTimeout(releaseTimer);
     el.classList.add('mps-is-pressed');
+    ripple(el, event);
   };
   const end = () => {
     const el = pressed;
@@ -165,8 +181,12 @@ document.addEventListener("DOMContentLoaded", function () {
     el.classList.remove('mps-is-pressed');
     flash(el);
   };
-  document.addEventListener('pointerdown', event => begin(getControl(event.target)), true);
-  document.addEventListener('touchstart', event => begin(getControl(event.target)), {capture:true, passive:true});
+  if ('PointerEvent' in window) {
+    document.addEventListener('pointerdown', event => begin(getControl(event.target), event), true);
+  } else {
+    document.addEventListener('touchstart', event => begin(getControl(event.target), event.changedTouches[0]), { capture: true, passive: true });
+    document.addEventListener('mousedown', event => begin(getControl(event.target), event), true);
+  }
   document.addEventListener('pointerup', end, true);
   document.addEventListener('touchend', end, true);
   document.addEventListener('touchcancel', () => {
@@ -178,11 +198,11 @@ document.addEventListener("DOMContentLoaded", function () {
     pressed = null;
   }, true);
   document.addEventListener('keydown', event => {
-    if (event.repeat || !['Enter',' '].includes(event.key)) return;
-    begin(getControl(event.target));
+    if (event.repeat || !['Enter', ' '].includes(event.key)) return;
+    begin(getControl(event.target), null);
   }, true);
   document.addEventListener('keyup', event => {
-    if (!['Enter',' '].includes(event.key)) return;
+    if (!['Enter', ' '].includes(event.key)) return;
     end();
   }, true);
   window.addEventListener('blur', () => {
@@ -192,5 +212,6 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener('click', event => {
     const el = getControl(event.target);
     if (el && !el.classList.contains('mps-click-feedback')) flash(el);
+    if (el && event.detail === 0) ripple(el, null);
   }, true);
 })();
