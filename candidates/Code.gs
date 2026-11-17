@@ -1185,6 +1185,23 @@ function findActiveMemberForRecovery_(sheet, mt5) {
   if (!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(memberId)) return null;
   return {row:row, memberId:memberId};
 }
+function findUniqueTelegramAccessForRecovery_(sheet, memberId) {
+  const last = sheet.getLastRow();
+  if (last < 2) return null;
+  const rows = sheet.getRange(2, 1, last - 1, 6).getValues();
+  const matches = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (String(row[0] || '').trim().toUpperCase() !== String(memberId || '').trim().toUpperCase()) continue;
+    const userId = String(row[1] || '').trim();
+    const chatId = String(row[2] || '').trim();
+    const linkedAt = row[5];
+    if (!/^\d{3,20}$/.test(userId) || userId !== chatId ||
+        !(linkedAt instanceof Date) || isNaN(linkedAt.getTime())) return null;
+    matches.push({row:i + 2, userId:userId, chatId:chatId});
+  }
+  return matches.length === 1 ? matches[0] : null;
+}
 function apiMemberRecoveryStart(mt5Login, recoveryAction) {
   const mt5 = String(mt5Login || '').replace(/\s+/g, '');
   const action = String(recoveryAction || '').toUpperCase();
@@ -1204,13 +1221,10 @@ function apiMemberRecoveryStart(mt5Login, recoveryAction) {
   } catch (err) {
     return generic;
   }
-  const accessRow = findTelegramAccessByMemberId_(access, member.memberId);
-  if (!accessRow) return generic;
-  const linked = access.getRange(accessRow, 1, 1, 11).getValues()[0];
-  const userId = String(linked[1] || '').trim();
-  const chatId = String(linked[2] || '').trim();
-  if (!/^\d{3,20}$/.test(userId) || userId !== chatId ||
-      String(linked[0] || '').toUpperCase() !== member.memberId) return generic;
+  const telegramLink = findUniqueTelegramAccessForRecovery_(access, member.memberId);
+  if (!telegramLink) return generic;
+  const userId = telegramLink.userId;
+  const chatId = telegramLink.chatId;
   const code = Utilities.getUuid().replace(/-/g, '').slice(0, 8).toUpperCase();
   const salt = Utilities.getUuid().replace(/-/g, '');
   const challenge = {
