@@ -1,5 +1,20 @@
 # MPS v4.8 remaining acceptance gates
 
+**LATEST AUTHORITATIVE SNAPSHOT — 2026-11-17 (PR #12 workbench):**
+- Current code/test head verified by GitHub Actions: `3cca60f93c3116199498b1049992b8951ac16f4d` on `mps-v4.8-workbench`; PR #12 remains OPEN / DRAFT / NOT MERGED against `main` base `43d9fb9c9383853e9e2d2775393e7e700c18f5d6`.
+- GitHub Actions run [#44036830268](https://github.com/marketpsychologysociety/mps-website/actions/runs/44036830268) (run number 2220) completed **SUCCESS: 78/78 workflow steps, 0 failures** on that exact SHA.
+- New candidate Telegram-link regression coverage executes the actual `createMemberTelegramLink_()` helper: bot configuration read failure before append and ambiguous append-after-write compensation. Deposit rollback suite: **5/5 passed**.
+- Existing Admin verification rollback/reconciliation suite, all other Apps Script contract/security suites, and Chromium checks also completed successfully in the same workflow.
+- These results are repository CI with synthetic/mocked Apps Script, Sheets, Drive, Telegram and local Chromium. They are not live Google Apps Script, actual spreadsheet persistence/locking, live Drive ACL, Telegram delivery, external Exness API, or physical Android acceptance.
+- The Telegram-link ordering/orphan-row issue RW-07 is closed at candidate source/mock-test level; actual disposable Apps Script acceptance remains open.
+- The owner-confirmed Exness IB link and QR destination are documented in `docs/MPS-MEMBER-RECOVERY-AND-EXNESS-REBATE-TRANSPARENCY-2026-11-17.md`. API product/permission/authentication and live member-account mapping remain unverified; integration remains blueprint-only/read-only.
+- Remaining release gates: actual isolated GAS/Sheets/ScriptLock/trigger acceptance; actual Drive folder/file ACL and direct-route/API authorization; isolated Telegram test-bot delivery and handler reconciliation; physical Android/PWA acceptance; independent security/operational review; backup/restore evidence; explicit owner release authorization.
+- Production `main`, member data, Apps Script deployment, Script Properties, Drive ACLs, Telegram configuration, Exness API credentials/settings and production triggers remain untouched. **Production activation remains NO-GO.**
+
+---
+
+# MPS v4.8 remaining acceptance gates
+
 **Snapshot:** 2026-11-16  
 **Scope:** workbench / Draft PR #12 only. This checklist separates verified repository checks from work that still requires isolated Google Apps Script, Telegram test infrastructure, Android-device testing, independent review, or explicit production authorization.
 
