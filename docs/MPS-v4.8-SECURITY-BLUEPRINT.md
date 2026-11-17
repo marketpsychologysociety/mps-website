@@ -398,3 +398,86 @@ Added a real child-process crash test for the narrow failure window where a writ
 Added `tests/official-draw/synthetic-external-anchor.mjs` and its test suite. The contract models monotonically ordered journal checkpoints, create-only anchor objects, previous-receipt chaining, deterministic receipt hashes, idempotent retry for the same checkpoint, conflict rejection for a changed checkpoint, and fail-closed detection of missing, tampered, reordered, or unknown-field anchors. Five synthetic tests are wired into the clean-checkout workflow.
 
 **Trust boundary:** provider is deliberately in-memory and exists only to test the contract. This is not an external anchor, immutable storage, cloud service, independent account boundary, or production security control. No external resource, bucket, retention policy, credentials, or project has been created. Before selecting a real provider, governance must decide ownership, separate IAM principals/projects, create-only semantics, retention duration, deletion/policy-change monitoring, backup/export, independent verification, recovery, cost, and privacy minimization. Irreversible retention locking remains prohibited without explicit approval. Official draw stays BLOCKED / NO-GO; roulette remains SIMULATION ONLY.
+
+
+## 2.13 Exness Partnership API integration — Rebate Dashboard (design approved; access not yet verified)
+
+**Decision:** Exness publishes an official Partnership API suitable as a potential source for MPS partner reporting and rebate reconciliation. The intended integration is the **Partnership API**, not the separate Exness Trading API. This is a documented integration design, not evidence that MPS currently has partner eligibility, credentials, client attribution, or a working connection.
+
+### Official capability and relevant read endpoints
+
+- Partner reports:
+  - `GET /v1/partnership/reports/clients` — referred-client level report.
+  - `GET /v1/partnership/reports/clients/accounts` — account-level activity, including trading volume and partner reward figures.
+  - `GET /v1/partnership/reports/rewards` — credited partner reward history.
+  - `GET /v1/partnership/reports/orders` — closed-order detail associated with partner rewards, subject to the endpoint's date-range limits.
+  - `GET /v1/partnership/reports/orders/pending` — pending reward-calculation activity; do not present as final credited reward.
+- Rebate and payment reconciliation:
+  - `GET /v1/partnership/autorebates` — generated rebate batches and batch-level amounts/status.
+  - `GET /v1/partnership/autorebates/history` — rebate processing history/rows.
+  - `GET /v1/partnership/autorebates/payments` — payment records and payment-level status/amounts.
+  - `GET /v1/partnership/autorebates/payments/{payment_id}/rebate-rows` — rows included in a payment.
+  - `GET /v1/partnership/autorebates/{rebate_id}/clients` and `/aggregates` — client-account rows and batch aggregates.
+
+Use the current official API reference for exact request parameters and response schemas before implementation. Reports and rebate resources are partner-scoped; only data available to the partner associated with the API key can be returned. Client attribution and trading-account attribution are distinct and must not be conflated.
+
+### Eligibility and credentials gate
+
+1. MPS must have an eligible Exness partner relationship (such as an approved IB or Digital Affiliate relationship) and access to its Partner Personal Area.
+2. An authorized partner operator must create an active Partnership API key and private signing key with the minimum required scope.
+3. Initial integration must request **read-only** scope `partnership.all:read`. Do not request `partnership.all` (write/full access) for the Rebate Dashboard.
+4. Confirm the API key's permitted partner, source-IP restrictions (if configured), and report/resource access with Exness. A public referral link alone is not proof of API eligibility or of historical client attribution.
+5. Do not ask the member or MPS operator to paste API keys/signing keys into chat, HTML, GitHub, or a spreadsheet. Store credentials only in approved backend secret storage; never expose them to browser code, member responses, logs, or public artifacts.
+6. If MPS partner eligibility or access is not yet available, keep the integration in **NOT CONNECTED / WAITING FOR PARTNER ACCESS** state. Do not fabricate data or silently substitute manual estimates.
+
+### Proposed MPS data flow
+
+1. A backend-only scheduled/manual sync calls Exness Partnership API using fresh request signatures and the exact signed request path/query.
+2. A dedicated adapter validates HTTP status, response schema, partner scope, pagination, timestamps, currency, volume and identifiers.
+3. The reconciliation layer joins Exness client-account rows to MPS member records only through a verified, unique trading-account mapping already held by MPS. Do not join by display name, email, Telegram username, or fuzzy matching. Ambiguous, duplicate, missing, or changed mappings go to an Admin review queue and are not shown as confirmed member balances.
+4. Store normalized raw-source snapshots and derived member projections separately, with source, period, sync time, currency, source identifiers, and reconciliation outcome. Preserve enough provenance to reproduce a displayed figure; do not overwrite historical snapshots without an audit trail.
+5. Member-facing **Rebate Saya** reads only the authenticated member's own reconciled projection. Public pages and other members must never receive this data.
+6. Admin tools may inspect reconciliation exceptions and source totals under server-side Admin authorization. No member-facing endpoint may proxy arbitrary Exness API paths or accept caller-supplied partner/account identifiers.
+
+### Rebate Dashboard semantics and status rules
+
+- Candidate member metrics: trading volume (lots), partner reward (where relevant and clearly labelled as partner-side reward), rebate allocated to the member, pending/in-process amount, processed/paid amount, rejected/error amount, and period history.
+- Never equate the partner's reward with the member's rebate. They are different values and the configured MPS-to-member rebate share/rules must be established and reconciled before display.
+- Keep batch, individual rebate-row, and payment statuses separate. A batch marked `PROCESSED` does not prove every row was paid; inspect row status and the corresponding payment record. A processed payment must reconcile to its included rows and amounts.
+- Treat `PENDING`, `APPROVED`, `PROCESSING`, `ERROR`, `PROCESSED_PARTIAL`, `PROCESSED`, and `REJECTED` according to the specific endpoint/field. Preserve unknown or null statuses as unknown; never convert them to “Dibayar”.
+- A payment date alone is not proof of successful payment. Show “Dibayar” only when the relevant payment and row evidence supports that conclusion. For ambiguous or inconsistent results, show “Perlu rekonsiliasi” or “Menunggu konfirmasi”, not a payable balance.
+- Exness reports are asynchronously updated and may not share one consistent snapshot. Show the source period and last successful sync time; reconcile recent periods by repeat reads and stable pagination filters.
+- Parse financial amounts using decimal-safe arithmetic, retain the source currency, and do not silently convert currencies. Volume and money fields may be represented as strings or numbers depending on the endpoint schema.
+- If the official data does not establish an individual member's rebate entitlement or payment, show the source fact with a clear label or withhold the member payment claim until MPS's own allocation/payment evidence exists.
+
+### Security, reliability, and operational controls
+
+- Use a dedicated backend adapter and narrow allowlist of read endpoints; reject arbitrary URL/path, query, and method forwarding from clients.
+- Generate a fresh signed request for each API call. Sign the exact path and query as transmitted; keep the signing key server-side.
+- Enforce pagination, stable filters while paging, bounded date windows, request scheduling, exponential backoff, and `Retry-After` handling. The documented shared Partnership API budget is 600 requests per 60 seconds per partner across that partner's keys; do not design around burst usage or assume a separate budget per key.
+- Handle 401/403 as credential/scope/partner-access failures; 429 as throttling; transport/5xx failures with bounded backoff. Do not mark a sync successful on partial pages or partial failures.
+- Use idempotent snapshot ingestion keyed by documented source identifiers where available. The API documentation does not define a universal stable row key or universal idempotent-write semantics; do not invent one or deduplicate solely by display fields. Record unresolved duplicates for reconciliation.
+- Minimize stored personal data. Do not copy client contact/KYC data into general logs or the member dashboard. Log sync actor, time, endpoint class, result, counts, correlation ID and sanitized error category; never log API keys, signing material, full signed headers, or unnecessary client identifiers.
+- Add a backend kill switch to stop Exness sync without affecting member login, deposits, VIP status, Pulse, or other MPS services.
+- This integration is read-only by design. Do not create/update/delete rebate groups, change rebate percentages, assign clients, select destination accounts, approve batches, retry payments, or trigger payouts through this integration. The documented API does not expose payment approval/rejection/retry operations.
+
+### Implementation and acceptance gates
+
+- First verify MPS's actual Exness partner status and Partner Personal Area access. This is a prerequisite, not an assumed fact.
+- Obtain a synthetic/test partner API credential through the authorized Exness partner account where Exness provides an appropriate test facility; otherwise use sanitized approved partner samples and contract tests. Never use production member data for local fixtures.
+- Verify signing, key scope, source-IP restrictions, pagination, rate limits, date filters, response schemas, null fields, currency/decimal handling, asynchronous report lag, and error/backoff behavior.
+- Test exact account mapping: one valid unique match; no match; duplicate MT5 mapping; account reassignment/change; account not attributed to MPS; and cross-member isolation.
+- Test reconciliation across batch, rebate row and payment statuses, including partial processed batches, rejected rows, ERROR, unknown/null status, payment mismatch, and delayed report updates.
+- Test that a member can read only their own rebate projection through direct API calls as well as the UI; Admin access is separately authorized and audited.
+- Verify no API key/signing key appears in frontend bundles, Git history, browser network responses, logs, or public repository artifacts.
+- Keep UI in **NOT CONNECTED / WAITING FOR PARTNER ACCESS** until eligibility, credentials, attribution, mapping and end-to-end reconciliation are independently verified.
+- No production credential creation, API connection, data import, schema migration, member-visible rebate figure, deployment, or payout operation is authorized by this design entry alone. Any such step requires its own explicit approval and test evidence.
+
+**Official documentation checked (2026-11-17):**
+- Exness Partnership API overview: https://www.exness-api.com/partnership/get-started
+- Partnership reports: https://www.exness-api.com/partnership/guides/reports
+- Partnership rebates: https://www.exness-api.com/partnership/guides/autorebates
+- API reference: https://www.exness-api.com/reference/partnership/exness-partner-api
+- API configuration and limits: https://www.exness-api.com/partnership/guides/api-configuration-and-limits
+
+**Evidence boundary:** official documentation confirms that the API product and the described operations exist. It does not confirm that MPS is an eligible Exness partner, that any MPS API key exists, that MPS client accounts are attributed correctly, or that an integration has been implemented or tested. The separate Exness Trading API is not required for this partner rebate reporting design.
