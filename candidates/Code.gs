@@ -1080,7 +1080,7 @@ function apiAdminIssuePin(session, memberId) {
   const memberKey=clean_(memberId,40).toUpperCase();
   if(!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(memberKey))throw new Error('ID Member tidak valid.');
   consumeRateLimit_('mps_pin_issue_'+sha256_(memberKey).slice(0,24),3,MPS.adminWindowSeconds,'Penerbitan PIN untuk member ini terlalu sering. Coba lagi 15 menit.');
-  let pin='',chatId='',previousPinRecord=null,previousDelivered=null;
+  let pin='',chatId='';
   const pendingKey='mps_pin_pending_'+sha256_(memberKey).slice(0,24);
   const pinKey=pinPropertyKey_(memberKey),deliveredKey='MPS_PIN_DELIVERED_'+memberKey;
   const lock=LockService.getScriptLock();lock.waitLock(20000);
@@ -1094,31 +1094,19 @@ function apiAdminIssuePin(session, memberId) {
     if(cached){try{const pending=JSON.parse(cached);if(pending&&/^\d{6}$/.test(String(pending.pin||''))&&Date.now()-Number(pending.createdAt)<600000)pin=String(pending.pin);}catch(ignore){}}
     if(!pin){pin=generatePin_();CacheService.getScriptCache().put(pendingKey,JSON.stringify({pin:pin,createdAt:Date.now()}),600);}
     const props=PropertiesService.getScriptProperties();
-    previousPinRecord=props.getProperty(pinKey);
-    previousDelivered=props.getProperty(deliveredKey);
-    // Simpan PIN baru sebelum mengirimkannya; jika pengiriman gagal, pulihkan PIN lama.
+    // Quarantine login before changing the verifier. If execution stops or Telegram's
+    // response is ambiguous, the account remains blocked until a delivery is confirmed.
+    props.setProperty('MPS_PIN_DELIVERY_STATE_'+memberKey,'PENDING_DELIVERY');
     storeMemberPin_(memberKey,pin);
     props.deleteProperty(deliveredKey);
   }finally{lock.releaseLock();}
   let sent={ok:false,error:'Telegram tidak dapat dihubungi.'};try{sent=telegramSendToChat_(chatId,'🔐 PIN AKSES MPS DIPERBARUI\nID Member: '+memberKey+'\nPIN baru: '+pin+'\nJangan bagikan PIN ini kepada siapa pun.');}catch(sendErr){sent={ok:false,error:safeErrorMessage_(sendErr)};}
   if(!sent.ok){
-    let restored=false;
-    const restoreLock=LockService.getScriptLock();
-    try{
-      restoreLock.waitLock(20000);
-      const props=PropertiesService.getScriptProperties();
-      // Pulihkan hanya bila PIN yang tersimpan masih PIN yang dibuat transaksi ini.
-      const current=props.getProperty(pinKey);
-      if(current&&verifyMemberPin_(memberKey,pin,current)){
-        if(previousPinRecord)props.setProperty(pinKey,previousPinRecord);else props.deleteProperty(pinKey);
-        if(previousDelivered!==null)props.setProperty(deliveredKey,previousDelivered);else props.deleteProperty(deliveredKey);
-        restored=true;
-      }
-    }catch(restoreErr){console.error('PIN rollback after Telegram failure: '+safeErrorMessage_(restoreErr));}
-    finally{try{restoreLock.releaseLock();}catch(ignore){}}
-    if(restored)removeMpsCacheBestEffort_(pendingKey,'PIN rollback');
-    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,restored?'DELIVERY_FAILED':'RECONCILIATION_REQUIRED',restored?'Pengiriman PIN gagal; PIN lama dan status delivery dipulihkan.':'Pengiriman PIN gagal dan pemulihan PIN lama tidak dapat dipastikan; perlu rekonsiliasi manual.');
-    return {ok:false,delivered:false,message:restored?'Telegram gagal mengirim PIN. PIN sebelumnya tetap berlaku. Coba lagi beberapa saat.':'Telegram gagal mengirim PIN dan pemulihan PIN sebelumnya belum dapat dipastikan. Hentikan percobaan login dan minta Super Admin memeriksa akun.',reconciliationRequired:!restored,auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
+    let stateRecorded=false;
+    try{setPinDeliveryState_(memberKey,'REVIEW_REQUIRED');stateRecorded=true;}
+    catch(stateErr){console.error('PIN delivery quarantine: '+safeErrorMessage_(stateErr));}
+    const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'RECONCILIATION_REQUIRED','Telegram tidak mengonfirmasi hasil pengiriman PIN. Verifier baru dipertahankan dalam karantina; PIN lama tidak dipulihkan karena pesan mungkin sudah terkirim. Login diblokir sampai pengiriman PIN berhasil dikonfirmasi. Isi PIN tidak dicatat.');
+    return {ok:false,delivered:false,message:'Telegram tidak mengonfirmasi hasil pengiriman PIN. Akun dikunci sementara dari login sampai Super Admin memastikan PIN berhasil dikirim. Jangan gunakan PIN lama atau mengulang secara manual.',reconciliationRequired:true,quarantineRecorded:stateRecorded,auditWarning:auditWritten?'':'Penulisan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
   }
   let pinCurrent=false;try{pinCurrent=markPinDeliveredIfCurrent_(memberKey,pin);}catch(markErr){console.error('PIN delivery confirmation: '+safeErrorMessage_(markErr));}
   let activationCompleted=false;
@@ -1153,7 +1141,12 @@ function apiMemberLogin(memberId, pin) {
   if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus - 1]) !== 'Disetujui') {
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   }
-  const stored = PropertiesService.getScriptProperties().getProperty(pinPropertyKey_(id));
+  const pinProps = PropertiesService.getScriptProperties();
+  const deliveryState = pinProps.getProperty('MPS_PIN_DELIVERY_STATE_' + id);
+  if (deliveryState && deliveryState !== 'ACTIVE') {
+    throw new Error('PIN sedang menunggu konfirmasi pengiriman atau pemeriksaan Admin. Hubungi Super Admin MPS.');
+  }
+  const stored = pinProps.getProperty(pinPropertyKey_(id));
   if (!stored || !verifyMemberPin_(id, pinText, stored)) {
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   }
@@ -1315,6 +1308,7 @@ function apiMemberRecoveryComplete(mt5Login, confirmationCode, newPin) {
       const pin = String(newPin || '').trim();
       if (!/^\d{6}$/.test(pin)) throw new Error('PIN baru harus terdiri dari 6 digit angka.');
       storeMemberPin_(member.memberId, pin);
+      props.setProperty('MPS_PIN_DELIVERY_STATE_' + member.memberId, 'ACTIVE');
       props.setProperty('MPS_PIN_DELIVERED_' + member.memberId, '1');
       sheet.getRange(member.row, 23).setValue(new Date());
       pinReset = true;
@@ -3374,12 +3368,21 @@ function consumeTotpCode_(role,secret,code,timestampSeconds) {
   } finally { lock.releaseLock(); }
 }
 
+function setPinDeliveryState_(memberId,state) {
+  if(!['PENDING_DELIVERY','REVIEW_REQUIRED','ACTIVE'].includes(String(state)))throw new Error('Status pengiriman PIN tidak valid.');
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
+  try{PropertiesService.getScriptProperties().setProperty('MPS_PIN_DELIVERY_STATE_'+memberId,String(state));}
+  finally{lock.releaseLock();}
+}
+
 function markPinDeliveredIfCurrent_(memberId,pin) {
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
     const props=PropertiesService.getScriptProperties(),record=props.getProperty(pinPropertyKey_(memberId));
     if(!record||!verifyMemberPin_(memberId,pin,record)){props.deleteProperty('MPS_PIN_DELIVERED_'+memberId);return false;}
-    props.setProperty('MPS_PIN_DELIVERED_'+memberId,'1');return true;
+    props.setProperty('MPS_PIN_DELIVERED_'+memberId,'1');
+    props.setProperty('MPS_PIN_DELIVERY_STATE_'+memberId,'ACTIVE');
+    return true;
   }finally{lock.releaseLock();}
 }
 
