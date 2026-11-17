@@ -1229,30 +1229,41 @@ function apiMemberRecoveryStart(mt5Login, recoveryAction) {
   }
   const telegramLink = findUniqueTelegramAccessForRecovery_(access, member.memberId);
   if (!telegramLink) return generic;
-  const userId = telegramLink.userId;
   const chatId = telegramLink.chatId;
   const code = Utilities.getUuid().replace(/-/g, '').slice(0, 8).toUpperCase();
   const salt = Utilities.getUuid().replace(/-/g, '');
+  const now = Date.now();
   const challenge = {
     memberId:member.memberId, action:action, chatId:chatId, salt:salt,
-    codeHash:sha256_(salt + ':' + code), createdAt:Date.now(),
-    expiresAt:Date.now() + 10 * 60 * 1000, attempts:0
+    codeHash:sha256_(salt + ':' + code), createdAt:now,
+    expiresAt:now + 10 * 60 * 1000, attempts:0
   };
   const props = PropertiesService.getScriptProperties();
   const propertyKey = mpsRecoveryPropertyKey_(mt5);
-  props.setProperty(propertyKey, JSON.stringify(challenge));
+  // Serialize challenge replacement, delivery, and failed-delivery cleanup with
+  // completion (which uses the same ScriptLock). A newer request cannot invalidate
+  // a code while an earlier request is still being sent.
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
   let sent = {ok:false};
   try {
-    sent = telegramSendToChat_(chatId,
-      '🔐 KONFIRMASI PEMULIHAN AKUN MPS\n\nKode sekali pakai: ' + code +
-      '\nBerlaku 10 menit untuk: ' + (action === 'PIN' ? 'atur PIN baru' : 'meminta kembali Member ID') +
-      '\n\nJangan berikan kode ini kepada siapa pun, termasuk admin MPS.');
-  } catch (err) {
-    console.error('MPS recovery Telegram delivery failed: ' + safeErrorMessage_(err));
+    props.setProperty(propertyKey, JSON.stringify(challenge));
+    try {
+      sent = telegramSendToChat_(chatId,
+        '🔐 KONFIRMASI PEMULIHAN AKUN MPS\n\nKode sekali pakai: ' + code +
+        '\nBerlaku 10 menit untuk: ' + (action === 'PIN' ? 'atur PIN baru' : 'meminta kembali Member ID') +
+        '\n\nJangan berikan kode ini kepada siapa pun, termasuk admin MPS.');
+    } catch (err) {
+      console.error('MPS recovery Telegram delivery failed: ' + safeErrorMessage_(err));
+    }
+    if (!sent || !sent.ok) {
+      const current = props.getProperty(propertyKey);
+      if (current === JSON.stringify(challenge)) props.deleteProperty(propertyKey);
+    }
+  } finally {
+    lock.releaseLock();
   }
   if (!sent || !sent.ok) {
-    const current = props.getProperty(propertyKey);
-    if (current === JSON.stringify(challenge)) props.deleteProperty(propertyKey);
     recordMpsAudit_('SYSTEM','RECOVERY','MEMBER_RECOVERY_CHALLENGE',targetKey,'DELIVERY_FAILED','Konfirmasi pemulihan tidak berhasil dikirim melalui Telegram.');
     return generic;
   }
