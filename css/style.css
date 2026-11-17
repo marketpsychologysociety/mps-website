@@ -2416,3 +2416,44 @@ body:has(.mps-home-hero) .mps-final-cta .eyebrow{color:#f4bd45}
  body:has(.mps-home-hero) .mps-premium-copy h1{font-size:clamp(32px,8.5vw,42px)!important}
  body:has(.mps-home-hero) .mps-premium-copy .desc{font-size:12px}
 }
+
+
+/* MPS AUTO-TAP CTA — subtle repeating press/release, like a finger tapping the button. */
+@keyframes mps-auto-tap{
+  0%,72%,100%{
+    transform:translateY(0) scale(1);
+    filter:brightness(1);
+    box-shadow:0 4px 16px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  77%{
+    transform:translateY(3px) scale(.965);
+    filter:brightness(1.22) saturate(1.16);
+    box-shadow:inset 0 4px 9px rgba(0,0,0,.34),0 0 0 2px rgba(39,223,255,.34),0 0 18px rgba(255,79,216,.24);
+  }
+  82%{
+    transform:translateY(3px) scale(.965);
+    filter:brightness(1.22) saturate(1.16);
+    box-shadow:inset 0 4px 9px rgba(0,0,0,.34),0 0 0 2px rgba(39,223,255,.34),0 0 18px rgba(255,79,216,.24);
+  }
+  89%{
+    transform:translateY(-1px) scale(1.015);
+    filter:brightness(1.12);
+    box-shadow:0 0 0 2px rgba(39,223,255,.28),0 0 16px rgba(255,79,216,.2);
+  }
+}
+.btn-gold,.join-cta,.nav-join,.pwa-install-btn{
+  animation:mps-auto-tap 3.2s ease-in-out infinite!important;
+  will-change:transform,filter;
+}
+.nav-join{animation-delay:.55s!important}
+.pwa-install-btn{animation-delay:1.1s!important}
+.btn-gold:hover,.join-cta:hover,.nav-join:hover,.pwa-install-btn:hover{
+  animation-play-state:paused!important;
+}
+.btn-gold:active,.join-cta:active,.nav-join:active,.pwa-install-btn:active,
+.btn-gold.mps-is-pressed,.join-cta.mps-is-pressed,.nav-join.mps-is-pressed,.pwa-install-btn.mps-is-pressed{
+  animation:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+  .btn-gold,.join-cta,.nav-join,.pwa-install-btn{animation:none!important;will-change:auto}
+}
