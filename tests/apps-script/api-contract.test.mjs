@@ -10,6 +10,7 @@ const definitions=new Set([...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\
 const calls=[...new Set([...html.matchAll(/\bapi\(\s*['"]([A-Za-z_$][\w$]*)['"]/g)].map(m=>m[1]))].sort();
 
 test('member self-service recovery is MT5-bound, Telegram-confirmed, rate-limited and never discloses Member ID to browser',()=>{
+  const body=name=>{const start=code.indexOf('function '+name+'(');const end=code.indexOf('\\nfunction ',start+1);assert.ok(start>=0&&end>start,'missing '+name);return code.slice(start,end);};
   const start=body('apiMemberRecoveryStart');
   const complete=body('apiMemberRecoveryComplete');
   assert.match(start,/findActiveMemberForRecovery_\(sheet,\s*mt5\)/);
