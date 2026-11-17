@@ -1242,15 +1242,14 @@ function apiMemberRecoveryStart(mt5Login, recoveryAction) {
     } catch (err) {
       console.error('MPS recovery Telegram delivery failed: ' + safeErrorMessage_(err));
     }
-    if (!sent || !sent.ok) {
-      const current = props.getProperty(propertyKey);
-      if (current === JSON.stringify(challenge)) props.deleteProperty(propertyKey);
-    }
+    // Keep the exact challenge after an unconfirmed Telegram response. Telegram may
+    // have accepted the message before the response was lost; deleting the challenge
+    // here would make a delivered one-time code unusable. A fresh request replaces it.
   } finally {
     lock.releaseLock();
   }
   if (!sent || !sent.ok) {
-    recordMpsAudit_('SYSTEM','RECOVERY','MEMBER_RECOVERY_CHALLENGE',targetKey,'DELIVERY_FAILED','Konfirmasi pemulihan tidak berhasil dikirim melalui Telegram.');
+    recordMpsAudit_('SYSTEM','RECOVERY','MEMBER_RECOVERY_CHALLENGE',targetKey,'DELIVERY_UNCONFIRMED','Telegram tidak mengonfirmasi hasil pengiriman kode pemulihan. Tantangan sementara dipertahankan agar kode tetap dapat digunakan bila pesan sebenarnya sudah terkirim.');
     return generic;
   }
   recordMpsAudit_('SYSTEM','RECOVERY','MEMBER_RECOVERY_CHALLENGE',member.memberId,'SUCCESS','Tantangan pemulihan ' + action + ' dikirim ke Telegram privat terverifikasi; kode tidak dicatat.');
