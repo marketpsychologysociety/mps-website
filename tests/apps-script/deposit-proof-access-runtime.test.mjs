@@ -7,11 +7,13 @@ import vm from 'node:vm';
 const source=readFileSync(fileURLToPath(new URL('../../candidates/Code.gs',import.meta.url)),'utf8');
 new vm.Script(source,{filename:'candidate/Code.gs'});
 function extract(name){
-  const start=source.indexOf('function '+name+'('),end=source.indexOf('\nfunction ',start+1);
+  const start=source.indexOf('function '+name+'('),end=source.indexOf('
+function ',start+1);
   assert.ok(start>=0&&end>start,name+' boundaries must exist');
   return source.slice(start,end);
 }
-const runtimeSource=['isValidImageSignature_','validateProofFileForApproval_','apiAdminGetDepositProof','assertMpsDriveFolderTreePrivate_'].map(extract).join('\n');
+const runtimeSource=['isValidImageSignature_','validateProofFileForApproval_','apiAdminGetDepositProof','assertMpsDriveFolderTreePrivate_'].map(extract).join('
+');
 const applicationRef='MPS-APP-0123456789ABCDEF0123',memberId='MPS-ABCDEF1234',fileId='proof-file-0123456789';
 const proofUrl='https://drive.google.com/file/d/'+fileId+'/view';
 const png=[137,80,78,71,13,10,26,10,0];
@@ -58,7 +60,10 @@ test('proof endpoint denies non-pending records and mismatched stored file IDs',
 });
 test('proof endpoint rejects non-private Drive storage before returning bytes',()=>{
   assert.throws(()=>harness({privateFile:'ANYONE'}).run(),/File bukti deposit tidak PRIVATE/);
-  assert.throws(()=>harness({privateFolder:'ANYONE'}).run(),/Folder bukti deposit.*tidak PRIVATE/);\n  const inherited=harness({privateParent:'ANYONE'});\n  assert.throws(()=>inherited.run(),/Folder bukti deposit.*tidak PRIVATE/);\n  assert.equal(inherited.stats().fileReads,0);
+  assert.throws(()=>harness({privateFolder:'ANYONE'}).run(),/Folder bukti deposit.*tidak PRIVATE/);
+  const inherited=harness({privateParent:'ANYONE'});
+  assert.throws(()=>inherited.run(),/Folder bukti deposit.*tidak PRIVATE/);
+  assert.equal(inherited.stats().fileReads,0);
 });
 test('legacy pending deposits remain accessible through the same Admin-only proof proxy',()=>{
   const h=harness({legacy:true});
