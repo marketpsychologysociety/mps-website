@@ -366,3 +366,11 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - Replaced the Home page's standalone Heatmap preview CTA with a Portal Member CTA and updated its copy to direct members to the authenticated MPS Market Pulse in the member portal.
 - Audited all top-level HTML pages on the workbench branch; no remaining navigation or CTA references to `heatmap.html` were found. The standalone file itself was not deleted; this change removes its site navigation entry as requested, without destroying the page artifact.
 - This is a source change only; the updated pages still require CI and production deployment/route acceptance.
+
+## 2026-11-17 — Legacy approval PIN delivery convergence
+
+- Source audit found the legacy member-ID approval path still sent a PIN directly through Telegram before storing its verifier. Although the member remained blocked by the pending-activation status, an ambiguous Telegram response could leave a delivered PIN unusable and bypass the newer explicit PIN-delivery state.
+- The legacy approval path now delegates PIN issuance to the shared `apiAdminIssuePin` flow after its approval transaction commits. The shared flow stores `PENDING_DELIVERY` before changing the verifier, retains the new verifier and sets `REVIEW_REQUIRED` on ambiguous Telegram outcomes, and only marks the PIN `ACTIVE` after confirmed delivery of the exact current verifier.
+- Removed the legacy direct PIN send and direct verifier write. Added a regression contract asserting the legacy path uses the shared hardened issuer and cannot call Telegram or write the PIN verifier directly.
+- GitHub Actions validation was triggered for this source/test update; record its final result only after the run completes. The regression suite uses repository Node/V8 tests and does not replace real Apps Script or Telegram test-bot acceptance.
+- This is candidate-branch source only. No production deployment, live member data, Script Properties, Telegram configuration, or production `main` was changed.
