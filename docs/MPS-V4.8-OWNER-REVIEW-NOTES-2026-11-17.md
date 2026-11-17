@@ -1,0 +1,70 @@
+# MPS v4.8 — owner review notes (2026-11-17)
+
+**Scope:** read-only source review of workbench head `5f6a817eab02bd88d91a781b35d3caf7686ddffe` for PR #12. This note records review findings and safe next steps only. It does not authorize merge, deployment, production changes, Public Center activation, or an official draw.
+
+## Verified GitHub snapshot
+
+- PR: https://github.com/marketpsychologysociety/mps-website/pull/12
+- State: OPEN / DRAFT / NOT MERGED.
+- Head: `5f6a817eab02bd88d91a781b35d3caf7686ddffe` (`mps-v4.8-workbench`).
+- Base: `43d9fb9c9383853e9e2d2775393e7e700c18f5d6` (`main`).
+- PR-triggered workflow run #2160: https://github.com/marketpsychologysociety/mps-website/actions/runs/43990241055
+- Run #2160 was completed/success on the exact head above. Job `validate-pwa` completed all listed steps successfully, including Chromium checks. Apps Script, Sheets, Drive, and Telegram tests in this workflow use synthetic or mocked services and are not live operational acceptance.
+
+## Findings requiring closure before any release proposal
+
+### 1. Public Center needs a backend-side default-off gate
+
+In `candidates/Code.gs`, `doGet(e)` dispatches `?publicCenter=1` directly to `apiGetPublicCenter()`. In `config.js`, `publicCenter.enabled` is false, but that is a frontend configuration value and does not itself guard the Apps Script route.
+
+**Safe release requirement:** keep the frontend flag false and add an independent server-side default-deny control for the Public Center route. The server gate must remain off unless a separately approved, explicit activation is configured. Add regression tests for direct URL requests with the gate absent, false, malformed, and explicitly enabled in an isolated test harness. Do not test against or alter the configured live Apps Script deployment.
+
+Relevant source:
+- `config.js` Public Center flag.
+- `candidates/Code.gs` `doGet(e)` Public Center route.
+
+### 2. Public VIP ticker identity contract
+
+The current product requirement is to display a verified member's real display name in the VIP ticker, not the internal MPS Member ID. The current candidate renderer reads `MemberName` and filters email/phone-like strings, MT5/login identifiers, Telegram handles/IDs, MPS IDs, URLs, and payment-like values before rendering with text content.
+
+**Acceptance requirement:** preserve the approved real-name display behavior, keep internal Member IDs and unrelated sensitive fields out of the public response, and verify both backend projection and frontend rendering with regression tests. Do not revert to an ID-only display contract. Live GAS response verification remains outstanding.
+
+Relevant source:
+- `candidates/Code.gs` public feed projection and identity validation.
+- `js/public-center.js` ticker renderer.
+
+### 3. Market Pulse source provenance must be explicit
+
+The candidate converter emits `instrument: XAUUSD`, `timeframe: M5`, and `timezone: Asia/Jakarta`, but the generated dataset schema does not include a source/provenance field.
+
+**Required product disclosure:** identify the data source as Binance Spot `PAXGUSDT`, described as a gold-market proxy. Do not describe it as a broker-forex XAUUSD feed. Preserve the familiar XAUUSD display label only alongside this explicit source disclosure. Add schema/validator tests requiring the provenance metadata before any replacement dataset is accepted.
+
+No final replacement dataset is approved or published by this review. The user's post-PR dataset handoff remains pending.
+
+Relevant source:
+- `scripts/build-market-pulse-dataset.mjs`.
+
+### 4. Acceptance documentation is stale
+
+The current `docs/MPS-V4.8-REMAINING-ACCEPTANCE-GATES.md` snapshot still cites older heads and workflow runs (for example, #2152 / `fe1864b...`) rather than the exact current head and run #2160.
+
+**Safe documentation action:** reconcile the authoritative snapshot after the next code or documentation change, clearly distinguish current CI evidence from historical notes, and keep live Apps Script/Sheets/Drive/Telegram/Android acceptance marked open until performed.
+
+## Explicit non-claims and boundaries
+
+- CI success is not proof of live Apps Script execution, production spreadsheet behavior, actual Drive ACL inheritance, Telegram delivery, or physical Android acceptance.
+- This review did not inspect or change the production Apps Script deployment, live spreadsheets, Drive ACLs, Script Properties, Telegram configuration, triggers, DNS, hosting, or production member data.
+- No merge or deployment was performed or authorized.
+- `publicCenter` remains disabled; no public activation was performed.
+- Official Winner Draw remains BLOCKED / NO-GO; Lucky Roulette remains SIMULATION ONLY.
+- No production or candidate source code was changed as part of this review note.
+
+## Recommended work order
+
+1. Add and test a server-side default-deny Public Center gate in the isolated candidate.
+2. Add required Market Pulse provenance fields and validator tests using the approved PAXGUSDT proxy disclosure.
+3. Re-run full CI on the resulting exact head and record the run ID/SHA.
+4. Reconcile the acceptance snapshot and PR description to current GitHub metadata.
+5. Keep all live operational gates and owner approvals outstanding until separately completed.
+
+**Disposition: REVIEW ONLY — RELEASE NO-GO.**
