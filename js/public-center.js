@@ -24,10 +24,10 @@
   };
   const categoryInfo = value => {
     const raw = safeText(value, 40).toLowerCase();
-    if (/maintenance|pemeliharaan|perbaikan/.test(raw)) return {key:"maintenance", label:"MAINTENANCE"};
+    if (/maintenance|pemeliharaan|perbaikan/.test(raw)) return {key:"maintenance", label:"PEMELIHARAAN"};
     if (/important|penting|urgent/.test(raw)) return {key:"important", label:"PENTING"};
     if (/community|komunitas|vip/.test(raw)) return {key:"community", label:"KOMUNITAS"};
-    if (/update|fitur|system/.test(raw)) return {key:"update", label:"UPDATE"};
+    if (/update|fitur|system/.test(raw)) return {key:"update", label:"PEMBARUAN"};
     return {key:"update", label:"INFORMASI"};
   };
 
