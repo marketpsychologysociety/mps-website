@@ -18,7 +18,7 @@ test('member self-service recovery is MT5-bound, Telegram-confirmed, rate-limite
   assert.match(start,/findUniqueTelegramAccessForRecovery_\(access,\s*member\.memberId\)/);
   assert.match(start,/telegramSendToChat_\(chatId/);
   assert.match(start,/mps_member_recovery_target_/);
-  assert.match(complete,/constantTimeEquals_\(/);
+  assert.match(complete,/findUniqueTelegramAccessForRecovery_\(getTelegramAccessSheet_\(\),\s*member\.memberId\)/);\n  assert.match(complete,/currentTelegramLink\.chatId\s*!==\s*String\(challenge\.chatId/);\n  assert.match(complete,/constantTimeEquals_\(/);
   assert.match(complete,/attempts\s*>=\s*5/);
   assert.match(complete,/storeMemberPin_\(/);
   assert.match(complete,/MPS_PIN_DELIVERED_/);
