@@ -1276,3 +1276,143 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   .nav-links.open{display:flex}
   .nav-links a{font-size:13px;padding:4px 0}
 }
+
+/* MPS v4.8 FINAL UI POLISH — remove legacy gold, contain button sheen, real press feedback */
+:root{
+  --gold:#27dfff!important;
+  --gold2:#ff4fd8!important;
+  --bull:#27dfff!important;
+  --bull-soft:#8deeff!important;
+  --mps-bull:#27dfff!important;
+  --mps-bear:#ff4fd8!important;
+  --line:rgba(39,223,255,.26)!important;
+  --mps-blue:#27dfff;
+  --mps-pink:#ff4fd8;
+}
+/* Replace residual gold-colored text and decorative accents with the approved blue/pink system. */
+.nav-brand,.nav-brand small,.footer-brand,.footer-tag,
+.hero-kicker,.hero-kicker span,.nav-links .nav-join,
+.join-live,.join-spotlight h2,.form-intro h2,
+.form-steps span.active,.learning-tag,.learning-hero-copy h2,
+.learning-topic .topic-icon,.pulse-tag,.pulse-preview-card h1,
+.chart-overlay strong,.mps-preview-label,.mps-pratinjau-label,
+.mps-quote-band,.route-number,.route-symbol,
+.roulette-result,.ticker-live,.ticker-track b,.announce-kicker,
+.announce-hero h1 em,.announce-hero-stats strong,.announce-eyebrow,
+.tag-update,.symbol-update,.announce-read,.winner-medal,
+.winner-overline,.winner-copy p strong,.winner-prize b,
+.announce-filter.active,.nav-join{
+  color:var(--mps-blue)!important;
+  -webkit-text-fill-color:var(--mps-blue)!important;
+  text-shadow:0 0 10px rgba(39,223,255,.20)!important;
+}
+.hero-kicker,.join-live,.nav-links .nav-join,.learning-tag,.pulse-tag,
+.mps-preview-label,.mps-pratinjau-label,.announce-kicker,
+.announce-filter.active,.ticker-toggle{
+  border-color:rgba(39,223,255,.48)!important;
+  background-color:rgba(39,223,255,.055)!important;
+}
+.mps-quote-band,.mps-pillars-section,.mps-benefits-section,
+.mps-exness-section,.mps-pulse-section,.mps-final-cta,
+.join-spotlight,.announce-hero,.announce-stats{
+  border-color:rgba(39,223,255,.22)!important;
+}
+.hero,.page-head,.form-intro,.join-spotlight,.announce-hero{
+  background-image:
+    radial-gradient(ellipse at 18% 24%,rgba(39,223,255,.10),transparent 44%),
+    radial-gradient(ellipse at 82% 34%,rgba(255,79,216,.085),transparent 44%),
+    linear-gradient(180deg,#090d1b,#070912)!important;
+}
+.hero h1,.section-head h2,.page-head h1,.content h2,.content h3,
+.card h3,.nav-brand,.footer-brand{
+  text-shadow:0 0 16px rgba(39,223,255,.14)!important;
+}
+.mps-bull,.mps-bull strong,.mps-bull .mps-animal-symbol,
+.mps-bull-panel,.signal-bull-panel{
+  color:var(--mps-blue)!important;
+  border-color:rgba(39,223,255,.58)!important;
+}
+.mps-bear,.mps-bear strong,.mps-bear .mps-animal-symbol,
+.mps-bear-panel,.signal-bear-panel{
+  color:var(--mps-pink)!important;
+  border-color:rgba(255,79,216,.58)!important;
+}
+.mps-bull strong,.mps-bear strong{-webkit-text-fill:currentColor!important}
+.ticker-live i,.announce-kicker i{background:var(--mps-blue)!important;box-shadow:0 0 9px rgba(39,223,255,.65)!important}
+.tag-update,.symbol-update{background:rgba(39,223,255,.09)!important}
+.winner-medal{border-color:rgba(39,223,255,.48)!important;background:rgba(39,223,255,.07)!important;box-shadow:0 0 18px rgba(39,223,255,.10)!important}
+.winner-medal small{color:var(--mps-blue)!important}
+.winner-prize b{color:var(--mps-pink)!important}
+.roulette-result{color:var(--mps-pink)!important}
+.mps-quote-band{border-left-color:var(--mps-blue)!important;background:rgba(39,223,255,.045)!important}
+.mps-hook-icon,.route-symbol{background:rgba(39,223,255,.09)!important;color:var(--mps-blue)!important}
+.navbar{border-bottom-color:rgba(39,223,255,.25)!important}
+.card:hover,.form-card:focus-within,.mps-preview-card:hover{
+  border-color:rgba(255,79,216,.38)!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.30),0 0 15px rgba(255,79,216,.07)!important;
+}
+/* Remove the old animated mouse-pointer graphic entirely. Keep sheen clipped to each CTA. */
+a.btn[href*="member-portal"],a.btn[href*="page=register"],a.btn[href*="join"],
+a.btn[href*="deposit-confirmation"],.join-cta,
+#joinForm button.btn[type="submit"],#step2Next a.btn-gold,
+.btn,.btn-gold,.join-cta,button,.nav-join,.pwa-install-btn{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+a.btn[href*="member-portal"],a.btn[href*="page=register"],a.btn[href*="join"],
+a.btn[href*="deposit-confirmation"],.join-cta,
+#joinForm button.btn[type="submit"],#step2Next a.btn-gold{
+  overflow:hidden!important;
+  border-radius:12px!important;
+  box-shadow:0 0 0 1px rgba(39,223,255,.14),0 0 12px rgba(39,223,255,.13)!important;
+  animation:mps-cta-contained-pulse 3.2s ease-in-out infinite!important;
+}
+a.btn[href*="member-portal"]::before,a.btn[href*="page=register"]::before,
+a.btn[href*="join"]::before,a.btn[href*="deposit-confirmation"]::before,
+.join-cta::before,#joinForm button.btn[type="submit"]::before,
+#step2Next a.btn-gold::before{content:none!important;display:none!important;animation:none!important}
+a.btn[href*="member-portal"]::after,a.btn[href*="page=register"]::after,
+a.btn[href*="join"]::after,a.btn[href*="deposit-confirmation"]::after,
+.join-cta::after,#joinForm button.btn[type="submit"]::after,
+#step2Next a.btn-gold::after{
+  content:""!important;display:block!important;position:absolute!important;
+  top:-30%!important;bottom:-30%!important;left:-65%!important;width:32%!important;height:160%!important;
+  transform:skewX(-22deg)!important;pointer-events:none!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.48),transparent)!important;
+  animation:mps-button-sheen-contained 4.2s ease-in-out infinite!important;
+  border-radius:inherit!important;
+}
+@keyframes mps-button-sheen-contained{0%,18%{left:-65%;opacity:0}30%{opacity:.8}65%,100%{left:135%;opacity:0}}
+@keyframes mps-cta-contained-pulse{
+  0%,100%{box-shadow:0 0 0 1px rgba(39,223,255,.13),0 0 10px rgba(39,223,255,.10)!important}
+  50%{box-shadow:0 0 0 1px rgba(255,79,216,.22),0 0 15px rgba(255,79,216,.15)!important}
+}
+/* All click targets get a tactile press; the ripple is created at the actual touch/click point. */
+.btn,.btn-gold,button,.nav-join,.pwa-install-btn{
+  position:relative;
+  transition:transform .12s cubic-bezier(.2,.8,.2,1),filter .12s ease,box-shadow .16s ease!important;
+  overflow:hidden;
+}
+.btn:active,.btn-gold:active,button:active,.nav-join:active,.pwa-install-btn:active{
+  transform:translateY(2px) scale(.965)!important;
+  filter:brightness(1.22) saturate(1.18)!important;
+  box-shadow:inset 0 3px 8px rgba(0,0,0,.30),0 0 14px rgba(39,223,255,.22)!important;
+}
+.mps-click-ripple{
+  position:absolute!important;z-index:0!important;display:block!important;
+  width:12px;height:12px;border-radius:50%;pointer-events:none!important;
+  background:radial-gradient(circle,rgba(255,255,255,.72) 0%,rgba(39,223,255,.34) 35%,rgba(255,79,216,.18) 68%,transparent 74%);
+  transform:translate(-50%,-50%) scale(0);opacity:.9;
+  animation:mps-real-click-ripple .58s ease-out forwards;
+}
+@keyframes mps-real-click-ripple{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:.9}
+  72%{opacity:.42}
+  100%{transform:translate(-50%,-50%) scale(15);opacity:0}
+}
+@media(prefers-reduced-motion:reduce){
+  a.btn[href*="member-portal"],a.btn[href*="page=register"],a.btn[href*="join"],
+  a.btn[href*="deposit-confirmation"],.join-cta,#joinForm button.btn[type="submit"],
+  #step2Next a.btn-gold{animation:none!important}
+  .mps-click-ripple{animation:none!important;display:none!important}
+}
