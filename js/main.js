@@ -116,64 +116,53 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-// MPS v4.8 tactile interaction: explicit pointer, touch-compatible, and keyboard press states.
+// MPS v4.8 stable button feedback: no disappearing ripple or oversized press scaling.
 (() => {
   const selector = '.btn,button,.nav-join,.pwa-install-btn,input[type="button"],input[type="submit"]';
-  const pressed = new Map();
   const timers = new WeakMap();
+  const active = new Set();
   const findButton = target => {
     const node = target instanceof Element ? target : target && target.parentElement;
     return node && node.closest(selector);
   };
-  const clearRelease = el => { const t=timers.get(el); if(t){clearTimeout(t);timers.delete(el);} };
-  const press = (el, event) => {
-    if(!el || el.disabled || el.getAttribute('aria-disabled')==='true') return;
-    clearRelease(el);
+  const clear = el => {
+    const timer = timers.get(el);
+    if (timer) window.clearTimeout(timer);
+    timers.delete(el);
+  };
+  const press = el => {
+    if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+    clear(el);
+    active.add(el);
     el.classList.add('mps-is-pressed');
-    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const rect=el.getBoundingClientRect();
-    const x=event && Number.isFinite(event.clientX) ? event.clientX : rect.left+rect.width/2;
-    const y=event && Number.isFinite(event.clientY) ? event.clientY : rect.top+rect.height/2;
-    const ripple=document.createElement('span');
-    ripple.className='mps-click-ripple';
-    ripple.setAttribute('aria-hidden','true');
-    ripple.style.left=Math.max(0,Math.min(rect.width,x-rect.left))+'px';
-    ripple.style.top=Math.max(0,Math.min(rect.height,y-rect.top))+'px';
-    el.appendChild(ripple);
-    window.setTimeout(()=>ripple.remove(),680);
   };
   const release = el => {
-    if(!el)return;
-    clearRelease(el);
-    timers.set(el,window.setTimeout(()=>{el.classList.remove('mps-is-pressed');timers.delete(el);},230));
+    if (!el) return;
+    clear(el);
+    const timer = window.setTimeout(() => {
+      el.classList.remove('mps-is-pressed');
+      active.delete(el);
+      timers.delete(el);
+    }, 150);
+    timers.set(el, timer);
   };
-  document.addEventListener('pointerdown',event=>{
-    const el=findButton(event.target); if(!el)return;
-    pressed.set(event.pointerId,el); press(el,event);
-  },{capture:true,passive:true});
-  document.addEventListener('pointerup',event=>{
-    const el=pressed.get(event.pointerId)||findButton(event.target);
-    pressed.delete(event.pointerId); release(el);
-  },{capture:true,passive:true});
-  document.addEventListener('pointercancel',event=>{
-    const el=pressed.get(event.pointerId); pressed.delete(event.pointerId);
-    if(el){clearRelease(el);el.classList.remove('mps-is-pressed');}
-  },{capture:true,passive:true});
-  document.addEventListener('keydown',event=>{
-    if(event.repeat || !['Enter',' '].includes(event.key))return;
-    const el=findButton(event.target); if(el)press(el,null);
-  },true);
-  document.addEventListener('keyup',event=>{
-    if(!['Enter',' '].includes(event.key))return;
+  document.addEventListener('pointerdown', event => press(findButton(event.target)), {capture:true, passive:true});
+  document.addEventListener('pointerup', event => release(findButton(event.target)), {capture:true, passive:true});
+  document.addEventListener('pointercancel', event => {
+    const el = findButton(event.target);
+    if (!el) return;
+    clear(el); el.classList.remove('mps-is-pressed'); active.delete(el);
+  }, {capture:true, passive:true});
+  document.addEventListener('keydown', event => {
+    if (event.repeat || !['Enter',' '].includes(event.key)) return;
+    press(findButton(event.target));
+  }, true);
+  document.addEventListener('keyup', event => {
+    if (!['Enter',' '].includes(event.key)) return;
     release(findButton(event.target));
-  },true);
-  document.addEventListener('click',event=>{
-    if(event.detail!==0)return;
-    const el=findButton(event.target); if(el){press(el,null);release(el);}
-  },true);
-  window.addEventListener('blur',()=>{
-    for(const el of pressed.values()){clearRelease(el);el.classList.remove('mps-is-pressed');}
-    pressed.clear();
-    document.querySelectorAll('.mps-is-pressed').forEach(el=>el.classList.remove('mps-is-pressed'));
+  }, true);
+  window.addEventListener('blur', () => {
+    active.forEach(el => { clear(el); el.classList.remove('mps-is-pressed'); });
+    active.clear();
   });
 })();
