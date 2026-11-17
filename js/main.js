@@ -115,10 +115,11 @@ document.addEventListener("DOMContentLoaded", function () {
   startAuto();
 });
 
-// MPS v4.8 tactile button response — capture touch/mouse early and hold the press state visibly.
+// MPS v4.8 tactile button response — capture touch/mouse early and track the original pressed target.
 (() => {
   const selector = '.btn,button,.nav-join,.pwa-install-btn,input[type="button"],input[type="submit"]';
   const timers = new WeakMap();
+  const activePointers = new Map();
   const targetOf = event => {
     const el = event.target instanceof Element ? event.target : event.target?.parentElement;
     return el?.closest(selector) || null;
@@ -145,7 +146,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!el) return;
     const oldTimer = timers.get(el);
     if (oldTimer) window.clearTimeout(oldTimer);
-    // Keep the pressed state visible briefly after finger release for a tactile click.
     timers.set(el, window.setTimeout(() => {
       el.classList.remove('mps-is-pressed');
       timers.delete(el);
@@ -154,15 +154,25 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener('pointerdown', event => {
     const el = targetOf(event);
     if (!el) return;
+    activePointers.set(event.pointerId, el);
     press(el, event.clientX, event.clientY);
   }, { capture: true, passive: true });
-  document.addEventListener('pointerup', event => release(targetOf(event)), { capture: true, passive: true });
+  document.addEventListener('pointerup', event => {
+    const el = activePointers.get(event.pointerId) || targetOf(event);
+    activePointers.delete(event.pointerId);
+    release(el);
+  }, { capture: true, passive: true });
   document.addEventListener('pointercancel', event => {
-    const el = targetOf(event);
-    if (el) { el.classList.remove('mps-is-pressed'); const t=timers.get(el); if(t) window.clearTimeout(t); }
+    const el = activePointers.get(event.pointerId) || targetOf(event);
+    activePointers.delete(event.pointerId);
+    if (el) {
+      el.classList.remove('mps-is-pressed');
+      const timer = timers.get(el);
+      if (timer) window.clearTimeout(timer);
+      timers.delete(el);
+    }
   }, { capture: true, passive: true });
   document.addEventListener('click', event => {
-    // Keyboard and assistive-technology activation has no pointerdown event.
     if (event.detail !== 0) return;
     const el = targetOf(event);
     if (!el) return;
@@ -171,6 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
     release(el);
   }, true);
   window.addEventListener('blur', () => {
+    activePointers.clear();
     document.querySelectorAll('.mps-is-pressed').forEach(el => el.classList.remove('mps-is-pressed'));
   });
 })();
