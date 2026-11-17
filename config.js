@@ -31,7 +31,7 @@ window.MPS_CONFIG = {
     fallbackNote: "Pendaftaran online belum terhubung. Silakan buka Portal Anggota MPS atau hubungi admin melalui Telegram resmi."
   },
   depositForm: {
-    endpoint: "https://script.google.com/macros/s/AKfycbxhIqXGOr9iUy_oqbwu1iCNW0OKbFQ1nkYNR3mwa2O7tjSSuYYlmPvXAm6dyMFO1lUvGQ/exec",
+    endpoint: "",
     maxFileSizeMB: 5
   },
   rebate: {
