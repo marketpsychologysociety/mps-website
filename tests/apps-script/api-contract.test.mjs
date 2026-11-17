@@ -29,6 +29,33 @@ test('member self-service recovery is MT5-bound, Telegram-confirmed, rate-limite
   assert.match(html,/apiMemberRecoveryComplete/);
   assert.match(html,/https:\/\/t\.me\/Ndhisolasi/);
 });
+test('MT5 recovery lookup accepts only one active approved canonical member record',()=>{
+  const name='findActiveMemberForRecovery_';
+  const start=code.indexOf('function '+name+'('),end=code.indexOf('\nfunction ',start+1);
+  assert.ok(start>=0&&end>start,'recovery lookup helper must exist');
+  const context={
+    MPS_COL:{mt5:10,id:1,registrationStatus:8,depositStatus:15},
+    MPS:{headers:Array(30).fill('column')},
+    String:String,Number:Number,Array:Array,RegExp:RegExp
+  };
+  runInNewContext(code.slice(start,end),context);
+  const makeSheet=(entries)=>({
+    getLastRow:()=>entries.length+1,
+    getRange:(row,col,numRows,numCols)=>({
+      getDisplayValues:()=>entries.slice(row-2,row-2+numRows).map(x=>[x.mt5]),
+      getValues:()=>[entries[row-2].record]
+    })
+  });
+  const approved=Array(30).fill('');
+  approved[0]='MPS-ABCDEF12';approved[7]='Berhasil';approved[14]='Disetujui';
+  const found=context.findActiveMemberForRecovery_(makeSheet([{mt5:'12345678',record:approved}]),'12345678');
+  assert.equal(found.memberId,'MPS-ABCDEF12');
+  assert.equal(found.row,2);
+  assert.equal(context.findActiveMemberForRecovery_(makeSheet([{mt5:'12345678',record:approved},{mt5:'12345678',record:approved}]),'12345678'),null);
+  const pending=approved.slice();pending[7]='Menunggu Aktivasi';
+  assert.equal(context.findActiveMemberForRecovery_(makeSheet([{mt5:'12345678',record:pending}]),'12345678'),null);
+  assert.equal(context.findActiveMemberForRecovery_(makeSheet([{mt5:'12345678',record:approved}]),'87654321'),null);
+});
 test('Public Center direct route is default-deny unless an exact backend Script Property enables it',()=>{
   const gateStart=code.indexOf('function isMpsPublicCenterEnabled_()');
   const gateEnd=code.indexOf('\nfunction ',gateStart+1);
