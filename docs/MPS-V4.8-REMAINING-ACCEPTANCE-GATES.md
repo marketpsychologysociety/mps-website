@@ -14,9 +14,6 @@
 
 # MPS v4.8 remaining acceptance gates
 
-
-# MPS v4.8 remaining acceptance gates
-
 **Snapshot:** 2026-11-16  
 **Scope:** workbench / Draft PR #12 only. This checklist separates verified repository checks from work that still requires isolated Google Apps Script, Telegram test infrastructure, Android-device testing, independent review, or explicit production authorization.
 
