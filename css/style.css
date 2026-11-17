@@ -2699,3 +2699,21 @@ a.btn[href]:active,button.btn:active,
 .card:nth-child(3n+1),.announce-card:nth-child(3n+1),.service-status-card:nth-child(3n+1){animation-delay:0s!important}
 .card:nth-child(3n+2),.announce-card:nth-child(3n+2),.service-status-card:nth-child(3n+2){animation-delay:1.05s!important}
 .card:nth-child(3n),.announce-card:nth-child(3n),.service-status-card:nth-child(3n){animation-delay:2.1s!important}
+
+
+/* MPS HOME CTA TURN-TAKING v4.3 — six named homepage actions pulse one at a time. */
+/* Animation window is ~0.8s; 1.2s phase spacing prevents neighboring CTA pulses overlapping. */
+section.mps-exness-section .text-center.mt-3 > a.btn,
+section.mps-benefits-section .text-center.mt-3 > a.btn,
+section.mps-final-cta .hero-btns > a.btn{
+  animation-duration:7.2s!important;
+  animation-timing-function:ease-in-out!important;
+  animation-iteration-count:infinite!important;
+}
+/* Sequence follows the homepage reading order: Exness guide, membership, then final join CTA. */
+section.mps-exness-section .text-center.mt-3 > a.btn:nth-of-type(1){animation-delay:0s!important}
+section.mps-exness-section .text-center.mt-3 > a.btn:nth-of-type(2){animation-delay:1.2s!important}
+section.mps-benefits-section .text-center.mt-3 > a.btn:nth-of-type(1){animation-delay:2.4s!important}
+section.mps-benefits-section .text-center.mt-3 > a.btn:nth-of-type(2){animation-delay:3.6s!important}
+section.mps-final-cta .hero-btns > a.btn:nth-of-type(1){animation-delay:4.8s!important}
+section.mps-final-cta .hero-btns > a.btn:nth-of-type(2){animation-delay:6s!important}
