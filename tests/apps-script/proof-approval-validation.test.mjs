@@ -54,7 +54,7 @@ test('approval rejects spoofed image MIME when the stored bytes do not match',()
   }
 });
 test('approval rejects a non-private proof folder or file',()=>{
-  assert.throws(()=>harness({folderPrivate:'ANYONE'}).run(),/Folder bukti deposit tidak PRIVATE/);
+  assert.throws(()=>harness({folderPrivate:'ANYONE'}).run(),/Folder bukti deposit.*tidak PRIVATE/);
   assert.throws(()=>harness({filePrivate:'ANYONE'}).run(),/File bukti deposit tidak PRIVATE/);
 });
 test('approval rejects trashed, oversized, and out-of-folder proof files',()=>{
