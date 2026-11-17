@@ -116,7 +116,8 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-// MPS v4.8 button feedback v2: track the pressed control even when the pointer is released outside it.
+// MPS v4.8 button feedback v3: pointer, touch fallback, keyboard and click confirmation.
+// Uses delegated listeners so dynamically-created controls receive the same feedback.
 (() => {
   const selector = '.btn,button,.nav-join,.pwa-install-btn,input[type="button"],input[type="submit"]';
   let pressed = null;
@@ -150,7 +151,13 @@ document.addEventListener("DOMContentLoaded", function () {
     flash(el);
   };
   document.addEventListener('pointerdown', event => begin(getControl(event.target)), true);
+  document.addEventListener('touchstart', event => begin(getControl(event.target)), {capture:true, passive:true});
   document.addEventListener('pointerup', end, true);
+  document.addEventListener('touchend', end, true);
+  document.addEventListener('touchcancel', () => {
+    if (pressed) pressed.classList.remove('mps-is-pressed');
+    pressed = null;
+  }, true);
   document.addEventListener('pointercancel', () => {
     if (pressed) pressed.classList.remove('mps-is-pressed');
     pressed = null;
