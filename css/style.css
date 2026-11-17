@@ -2175,3 +2175,26 @@ body:not(:has(.mps-home-hero)) .announce-section-title{color:#f4d58e}
   body:not(:has(.mps-home-hero)) .page-head{padding:54px 16px 40px}
   body:not(:has(.mps-home-hero)) .card{padding:20px}
 }
+
+
+/* FINAL BUTTON FEEDBACK — stable visibility, readable labels, restrained tactile press. */
+.btn,button,.nav-join,.pwa-install-btn,input[type="button"],input[type="submit"]{
+  opacity:1!important;visibility:visible!important;
+  -webkit-tap-highlight-color:transparent!important;touch-action:manipulation;
+  transition:transform .14s ease,filter .14s ease,box-shadow .16s ease!important;
+}
+.btn,.btn-gold,.btn-outline,.nav-join,.pwa-install-btn{
+  box-shadow:0 4px 16px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.18)!important;
+}
+.btn:hover,button:hover,.nav-join:hover,.pwa-install-btn:hover{
+  filter:brightness(1.08)!important;transform:translateY(-2px)!important;
+  box-shadow:0 7px 22px rgba(0,0,0,.28),0 0 15px rgba(39,223,255,.16)!important;
+}
+.btn:active,button:active,.nav-join:active,.pwa-install-btn:active,
+.btn.mps-is-pressed,button.mps-is-pressed,.nav-join.mps-is-pressed,.pwa-install-btn.mps-is-pressed{
+  transform:translateY(1px) scale(.99)!important;filter:brightness(1.12)!important;
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.24),0 0 0 1px rgba(39,223,255,.26)!important;
+}
+.btn:focus-visible,button:focus-visible,.nav-join:focus-visible,.pwa-install-btn:focus-visible{
+  outline:2px solid #27dfff!important;outline-offset:3px!important;
+}
