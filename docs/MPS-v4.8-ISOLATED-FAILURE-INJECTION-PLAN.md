@@ -78,3 +78,16 @@ These four risks are static-source findings documented in `MPS-v4.8-BACKEND-ROW-
 - Separate PASS for pure Node mock tests from PASS for actual Apps Script runtime tests.
 - No production mutation, migration, deployment, or Telegram/Drive operation is permitted as part of this suite.
 - If the isolated Apps Script project or disposable spreadsheet is not available, mark runtime failure injection NOT TESTED; do not replace it with a simulation and call it complete.
+
+
+## Candidate test update — Telegram link creation compensation (2026-11-17)
+
+The candidate now resolves and validates the Telegram bot username before the first persistent link-row append. The caller callback receives the exact prepared row identity before append so an ambiguous append response can be compensated safely.
+
+Repository regression tests execute the actual `createMemberTelegramLink_()` source together with `saveDeposit_()` and cover:
+1. bot configuration read throws before append: no new link row exists; deposit/application changes are restored;
+2. append persists the new row and then throws: the exact prepared row is marked `Dibatalkan`; deposit/application state is restored; the previous link remains `Menunggu`.
+
+Evidence: GitHub Actions run [#44036830268](https://github.com/marketpsychologysociety/mps-website/actions/runs/44036830268), exact code/test head `3cca60f93c3116199498b1049992b8951ac16f4d`, **SUCCESS 78/78 steps**; deposit rollback suite **5/5 passed**.
+
+Scope limitation: these tests use mocked services. The plan's actual disposable Apps Script project, real test spreadsheet persistence/locking, concurrent execution, quotas, and Drive behavior remain NOT TESTED. No production IDs or resources were used.
