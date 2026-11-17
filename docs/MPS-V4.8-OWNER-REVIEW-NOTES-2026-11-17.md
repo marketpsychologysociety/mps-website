@@ -91,3 +91,14 @@ This section supersedes the earlier Public Center route finding above for the ca
 - GitHub Actions run #44023899652 passed 78/78 steps on candidate SHA `932904aa2c1f1716bd11c19e0ecd41c0d4f164ec`. Latest doc-only commits after that SHA require their own exact-head CI before claiming a pass for the latest head.
 - Exness integration remains blocked on verified partner API eligibility/access, read-only key, Ed25519 signing-key handling, secure backend signing runtime, verified unique account mapping, and reconciliation acceptance. Do not ask for secrets in chat or commit them.
 - No production deployment, live Apps Script changes, Telegram bot settings, Exness API calls, member data changes, or payout operations were performed.
+
+
+## Follow-up hardening — Telegram link creation and current CI (2026-11-17)
+
+- Candidate `createMemberTelegramLink_()` now reads and validates the Telegram bot username before any persistent link-row append. The exact intended row/token is still exposed to the caller's compensation callback before append, covering a remote append that persisted but returned an ambiguous error.
+- Added two end-to-end deposit rollback regressions using the actual candidate helper: configuration-read failure before append leaves no link row; append-after-write response loss cancels the exact prepared row and restores deposit/application/previous-link state.
+- The updated deposit rollback suite passed **5/5**. Admin verification rollback/reconciliation tests and all other workflow steps also passed in the same run.
+- GitHub Actions run [#44036830268](https://github.com/marketpsychologysociety/mps-website/actions/runs/44036830268), run number 2220, completed **SUCCESS, 78/78 workflow steps, 0 failures** on exact code/test head `3cca60f93c3116199498b1049992b8951ac16f4d`.
+- This is repository CI using synthetic/mocked Apps Script, Sheets, Drive, Telegram and local Chromium. It does not establish real Apps Script execution, real spreadsheet locking/persistence, live Drive ACL, Telegram delivery, or physical Android acceptance.
+- Exness referral assets are now owner-confirmed for MPS: direct registration URL `https://one.toexness.com/a/bdthbxwb2q?platform=mobile` and QR destination `https://one.toexness.com/a/bdthbxwb2q?method=qrcode`, both using referral code `bdthbxwb2q`. This is a blueprint/documentation decision only; API access and live integration remain unverified.
+- PR #12 remains OPEN / DRAFT / NOT MERGED. No production main, Apps Script deployment, database, Drive ACL, Script Properties, Telegram configuration, or Exness account settings were changed.
