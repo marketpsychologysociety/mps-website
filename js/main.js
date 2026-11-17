@@ -136,7 +136,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const selector = '.btn,button,.nav-join,.pwa-install-btn,input[type="button"],input[type="submit"]';
   let pressed = null;
   let releaseTimer = 0;
-  let flashTimer = 0;
   const getControl = target => {
     const node = target instanceof Element ? target : target && target.parentElement;
     return node && node.closest(selector);
@@ -145,10 +144,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const ripple = (el, event) => {
     if (!usable(el) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const rect = el.getBoundingClientRect();
-    const x = event && Number.isFinite(event.clientX) && event.clientX
-      ? event.clientX - rect.left : rect.width / 2;
-    const y = event && Number.isFinite(event.clientY) && event.clientY
-      ? event.clientY - rect.top : rect.height / 2;
+    const x = event && Number.isFinite(event.clientX) ? event.clientX - rect.left : rect.width / 2;
+    const y = event && Number.isFinite(event.clientY) ? event.clientY - rect.top : rect.height / 2;
     const dot = document.createElement('span');
     dot.className = 'mps-click-ripple';
     dot.setAttribute('aria-hidden', 'true');
@@ -164,8 +161,7 @@ document.addEventListener("DOMContentLoaded", function () {
     el.classList.remove('mps-click-feedback');
     void el.offsetWidth;
     el.classList.add('mps-click-feedback');
-    window.clearTimeout(flashTimer);
-    flashTimer = window.setTimeout(() => el.classList.remove('mps-click-feedback'), 480);
+    window.setTimeout(() => el.classList.remove('mps-click-feedback'), 480);
   };
   const begin = (el, event) => {
     if (!usable(el)) return;
