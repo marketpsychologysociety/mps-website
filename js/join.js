@@ -7,9 +7,9 @@
   notice.className = "notice";
   notice.setAttribute("role", "status");
   var title = document.createElement("strong");
-  title.textContent = "Pendaftaran MPS kini melalui sistem resmi v4.1.";
+  title.textContent = "Pendaftaran MPS dilakukan melalui Portal Anggota MPS v4.8.";
   var copy = document.createElement("p");
-  copy.textContent = "Gunakan portal agar ID Member diterbitkan langsung oleh database MPS dan notifikasi Telegram diproses oleh backend.";
+  copy.textContent = "Sistem memberikan Application Ref setelah pengajuan. ID Anggota hanya diterbitkan setelah seluruh persyaratan diverifikasi dan disetujui admin.";
   var link = document.createElement("a");
   link.className = "btn btn-gold";
   link.href = "member-portal.html";
