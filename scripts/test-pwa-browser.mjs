@@ -86,13 +86,13 @@ try {
   const versionedCssStatus = await page.evaluate(async () => (await fetch('/css/style.css?v=mps-test-version')).status);
   if (versionedCssStatus !== 200) failures.push('Versioned CSS request failed online');
   const versionedCssCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     return (await cache.keys()).some(request => request.url.includes('/css/style.css?v=mps-test-version'));
   });
   if (!versionedCssCached) failures.push('Realistic versioned CSS URL was not cached');
 
   const cachedCss = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/css/style.css'));
   });
@@ -102,21 +102,21 @@ try {
   const jsOnline = await page.evaluate(async () => (await fetch('/js/main.js')).status);
   if (jsOnline !== 200) failures.push('JavaScript network-first request failed online');
   const cachedJs = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/js/main.js'));
   });
   if (!cachedJs) failures.push('JavaScript was not cached after successful network-first request');
   const arbitraryScriptStatus = await page.evaluate(async () => (await fetch('/admin.js')).status);
   const arbitraryScriptCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     return (await cache.keys()).some(request => new URL(request.url).pathname === '/admin.js');
   });
   if (arbitraryScriptCached) failures.push('Non-allowlisted same-origin JavaScript was cached');
 
   const parameterizedAssetStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?cache-bust=1')).status);
   const parameterizedAssetCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     return (await cache.keys()).some(request => request.url.includes('cache-bust=1'));
   });
   if (parameterizedAssetStatus !== 200) failures.push('Parameterized asset request failed');
@@ -131,13 +131,13 @@ try {
   const otherQueryStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?other=not-allowed')).status);
   if (otherQueryStatus !== 200) failures.push('Other-query asset test request failed');
   const otherQueryCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     return (await cache.keys()).some(request => request.url.includes('other=not-allowed'));
   });
   if (otherQueryCached) failures.push('Non-version query URL was incorrectly cached');
 
   const tokenWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('session=browser-test-secret'));
   });
@@ -163,13 +163,13 @@ try {
 
   const apiStatus = await page.evaluate(async () => (await fetch('/api/member?token=browser-test-secret')).status);
   const apiWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/api/member') || request.url.includes('token=browser-test-secret'));
   });
   if (apiWasCached) failures.push('API/member URL was incorrectly cached');
   const htmlPagesCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v6');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => {
       const pathname = new URL(request.url).pathname;
@@ -207,7 +207,7 @@ try {
   } catch (error) {
     failures.push('Offline navigation threw: ' + error.message);
   }
-  if (!offlineBody.includes('MPS sedang offline')) failures.push('Offline PWA start_url navigation did not show the privacy-safe offline page');
+  if (!offlineBody.includes('MPS sedang tidak terhubung')) failures.push('Offline PWA start_url navigation did not show the privacy-safe offline page');
 
   await context.setOffline(false);
 
@@ -288,7 +288,7 @@ try {
   const heatmapResponse = await page.goto(base + '/heatmap.html', { waitUntil: 'domcontentloaded' });
   if (!heatmapResponse || heatmapResponse.status() !== 200) failures.push('Public Market Pulse preview did not return HTTP 200');
   const publicPulseState = await page.evaluate(() => ({
-    memberOnly: document.body.innerText.includes('MEMBER ONLY · DATA PRIVAT'),
+    memberOnly: document.body.innerText.includes('KHUSUS ANGGOTA · DATA PRIVAT'),
     previewDisclosure: document.body.innerText.includes('bukan data Market Pulse yang sebenarnya'),
     demoTicker: !!document.querySelector('[data-mps-demo-ticker]'),
     actualDatasetInline: [...document.scripts].some(script => /const\s+D\s*=/.test(script.textContent || '')),
@@ -301,10 +301,10 @@ try {
     failures.push('Public Market Pulse page contains an actual dataset or dataset script');
   }
 
-  // Exercise the Announcement Center prototype: ticker controls, category filter,
+  // Exercise the Pusat Pengumuman prototype: ticker controls, category filter,
   // and the presentation-only roulette. No real member or draw data is loaded.
   const announcementResponse = await page.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
-  if (!announcementResponse || announcementResponse.status() !== 200) failures.push('Announcement Center did not return HTTP 200');
+  if (!announcementResponse || announcementResponse.status() !== 200) failures.push('Pusat Pengumuman did not return HTTP 200');
   const announcementTitle = await page.title();
   const publicCenterSafety = await page.evaluate(() => ({
     enabled: window.MPS_CONFIG?.publicCenter?.enabled,
@@ -315,7 +315,7 @@ try {
   }));
   if (publicCenterSafety.enabled !== false) failures.push('Public Center feature flag must remain disabled in the static prototype');
   if (publicCenterSafety.remoteScripts !== 0) failures.push('Public Center injected a remote Apps Script executable into the page');
-  if (!announcementTitle.includes('Announcement Center')) failures.push('Announcement Center title is missing');
+  if (!announcementTitle.includes('Pusat Pengumuman')) failures.push('Pusat Pengumuman title is missing');
   const tickerButton = page.locator('.ticker-toggle');
   await tickerButton.click();
   const tickerPaused = await page.locator('.ticker-track').evaluate(el => el.classList.contains('is-paused'));
@@ -337,7 +337,7 @@ try {
   const originalConfig = fs.readFileSync(path.join(root, 'config.js'), 'utf8');
   const testConfig = originalConfig
     .replace('enabled: false', 'enabled: true')
-    .replace(/endpoint: "https:\/\/script\.google\.com\/macros\/s\/[^"]+\/exec"/, 'endpoint: "' + testEndpoint + '"');
+    .replace('webApp: { endpoint: "" }', 'webApp: { endpoint: "' + testEndpoint + '" }');
   await feedContext.route('https://**/*', route => route.abort());
   await feedContext.route('**/config.js', route => route.fulfill({
     status: 200, contentType: 'text/javascript; charset=utf-8', body: testConfig
@@ -394,14 +394,14 @@ try {
   await iosPage.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
   await iosPage.locator('#navToggle').click();
   const iosInstallButton = iosPage.locator('#installMpsApp');
-  if (!await iosInstallButton.isVisible()) failures.push('iOS Add to Home Screen helper button did not appear');
+  if (!await iosInstallButton.isVisible()) failures.push('iOS Tambahkan ke Layar Utama helper button did not appear');
   let iosInstructions = '';
   iosPage.once('dialog', async dialog => {
     iosInstructions = dialog.message();
     await dialog.accept();
   });
   await iosInstallButton.click();
-  if (!iosInstructions.includes('Safari') || !iosInstructions.includes('Add to Home Screen')) failures.push('iOS install instructions are incomplete');
+  if (!iosInstructions.includes('Safari') || !iosInstructions.includes('Tambahkan ke Layar Utama')) failures.push('iOS install instructions are incomplete');
   await iosContext.close();
 
   if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
@@ -419,4 +419,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('MPS PWA browser test PASSED');
-console.log('Chromium passed 15 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, iOS Add to Home Screen guidance, public Market Pulse static-preview isolation, and data-only public-center CORS, malformed-payload, and inert-HTML/XSS checks.');
+console.log('Chromium passed 15 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, iOS Tambahkan ke Layar Utama guidance, public Market Pulse static-preview isolation, and data-only public-center CORS, malformed-payload, and inert-HTML/XSS checks.');
