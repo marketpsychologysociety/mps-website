@@ -9,7 +9,11 @@ new vm.Script(source,{filename:'candidate/Code.gs'});
 const start=source.indexOf('function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted) {');
 const end=source.indexOf('function setupMPSStorage_(',start+1);
 assert.ok(start>=0&&end>start,'saveDeposit_ source boundaries must exist');
-const saveSource=source.slice(start,end);\nconst helperStart=source.indexOf('function assertMpsDriveFolderTreePrivate_(');\nconst helperEnd=source.indexOf('\\nfunction ',helperStart+1);\nassert.ok(helperStart>=0&&helperEnd>helperStart,'Drive ACL helper boundaries must exist');\nconst driveAclSource=source.slice(helperStart,helperEnd);
+const saveSource=source.slice(start,end);
+const helperStart=source.indexOf('function assertMpsDriveFolderTreePrivate_(');
+const helperEnd=source.indexOf('\\nfunction ',helperStart+1);
+assert.ok(helperStart>=0&&helperEnd>helperStart,'Drive ACL helper boundaries must exist');
+const driveAclSource=source.slice(helperStart,helperEnd);
 const appRef='MPS-APP-0123456789ABCDEF0123';
 
 function makeSheet(rows,label,{failAt='',state}={}) {
