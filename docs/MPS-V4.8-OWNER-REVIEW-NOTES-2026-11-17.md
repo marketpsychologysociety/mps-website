@@ -6,7 +6,7 @@
 
 This reconciliation was added after the original read-only review above. The original review scope/head remains historical; this update is **not** an independent security review and does not claim live operational acceptance.
 
-- Current PR #12 head after the latest test-contract correction: `1a1cd61d59105be67ad9d7cf13b9d1d619aacd8e`. PR remains OPEN / DRAFT / NOT MERGED.
+- Latest code/test checkpoint after the test-contract correction: `1a1cd61d59105be67ad9d7cf13b9d1d619aacd8e`. Later workbench commits update review/acceptance documentation only; recheck the live PR head and state before any release decision. PR was OPEN / DRAFT / NOT MERGED at the checkpoint.
 - Current PR-triggered CI run [#44068537403](https://github.com/marketpsychologysociety/mps-website/actions/runs/44068537403) completed SUCCESS, **79/79 workflow steps, 0 failures**, including the Apps Script API contract suite and Chromium browser checks.
 - The earlier Public Center direct-route finding is closed in candidate source: `isMpsPublicCenterEnabled_()` requires Script Property `MPS_PUBLIC_CENTER_ENABLED` to equal exactly `true`; `doGet(e)` returns generic `Not Found` otherwise. Contract tests cover missing, false, malformed values and explicit enablement in an isolated harness. The frontend flag remains disabled; no live Script Property was changed.
 - The earlier Market Pulse provenance finding is closed in candidate source: the converter emits the exact Binance Spot / `PAXGUSDT` provenance object; the backend validator rejects missing, altered, or extra provenance fields; the candidate UI discloses that PAXGUSDT is a gold-market proxy and not a broker forex XAUUSD feed. The final replacement dataset handoff remains pending.
