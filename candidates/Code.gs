@@ -1103,7 +1103,7 @@ function apiAdminIssuePin(session, memberId) {
   let sent={ok:false,error:'Telegram tidak dapat dihubungi.'};try{sent=telegramSendToChat_(chatId,'🔐 PIN AKSES MPS DIPERBARUI\nID Member: '+memberKey+'\nPIN baru: '+pin+'\nJangan bagikan PIN ini kepada siapa pun.');}catch(sendErr){sent={ok:false,error:safeErrorMessage_(sendErr)};}
   if(!sent.ok){
     let stateRecorded=false;
-    try{setPinDeliveryState_(memberKey,'REVIEW_REQUIRED');stateRecorded=true;}
+    try{stateRecorded=setPinDeliveryState_(memberKey,'REVIEW_REQUIRED',pin)===true;}
     catch(stateErr){console.error('PIN delivery quarantine: '+safeErrorMessage_(stateErr));}
     const auditWritten=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'PIN_REISSUED',memberKey,'RECONCILIATION_REQUIRED','Telegram tidak mengonfirmasi hasil pengiriman PIN. Verifier baru dipertahankan dalam karantina; PIN lama tidak dipulihkan karena pesan mungkin sudah terkirim. Login diblokir sampai pengiriman PIN berhasil dikonfirmasi. Isi PIN tidak dicatat.');
     return {ok:false,delivered:false,message:'Telegram tidak mengonfirmasi hasil pengiriman PIN. Akun dikunci sementara dari login sampai Super Admin memastikan PIN berhasil dikirim. Jangan gunakan PIN lama atau mengulang secara manual.',reconciliationRequired:true,quarantineRecorded:stateRecorded,auditWarning:auditWritten?'':'Penulisan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
@@ -3368,11 +3368,18 @@ function consumeTotpCode_(role,secret,code,timestampSeconds) {
   } finally { lock.releaseLock(); }
 }
 
-function setPinDeliveryState_(memberId,state) {
+function setPinDeliveryState_(memberId,state,expectedPin) {
   if(!['PENDING_DELIVERY','REVIEW_REQUIRED','ACTIVE'].includes(String(state)))throw new Error('Status pengiriman PIN tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
-  try{PropertiesService.getScriptProperties().setProperty('MPS_PIN_DELIVERY_STATE_'+memberId,String(state));}
-  finally{lock.releaseLock();}
+  try{
+    const props=PropertiesService.getScriptProperties();
+    if(expectedPin){
+      const current=props.getProperty(pinPropertyKey_(memberId));
+      if(!current||!verifyMemberPin_(memberId,expectedPin,current))return false;
+    }
+    props.setProperty('MPS_PIN_DELIVERY_STATE_'+memberId,String(state));
+    return true;
+  }finally{lock.releaseLock();}
 }
 
 function markPinDeliveredIfCurrent_(memberId,pin) {
