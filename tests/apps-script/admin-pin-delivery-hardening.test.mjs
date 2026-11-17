@@ -129,3 +129,24 @@ test('runtime keeps a possibly delivered recovery challenge after Telegram respo
   assert.equal(releases,1);
   assert.equal(audit.at(-1)[4],'DELIVERY_UNCONFIRMED');
 });
+
+test('late success from an older PIN issuance cannot clear the newer delivery marker',()=>{
+  const props={PIN_MPS123:'verifier:NEWER',MPS_PIN_DELIVERED_MPS123:'1',MPS_PIN_DELIVERY_STATE_MPS123:'ACTIVE'};
+  let releases=0;
+  const sandbox={
+    LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){releases++;}})},
+    PropertiesService:{getScriptProperties:()=>({
+      getProperty:key=>Object.prototype.hasOwnProperty.call(props,key)?props[key]:null,
+      setProperty:(key,value)=>{props[key]=String(value);},
+      deleteProperty:key=>{delete props[key];}
+    })},
+    pinPropertyKey_:id=>'PIN_'+id,
+    verifyMemberPin_:(id,pin,stored)=>stored==='verifier:'+pin
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(extract('markPinDeliveredIfCurrent_'),sandbox);
+  assert.equal(sandbox.markPinDeliveredIfCurrent_('MPS123','OLDER'),false);
+  assert.equal(props.MPS_PIN_DELIVERED_MPS123,'1');
+  assert.equal(props.MPS_PIN_DELIVERY_STATE_MPS123,'ACTIVE');
+  assert.equal(releases,1);
+});
