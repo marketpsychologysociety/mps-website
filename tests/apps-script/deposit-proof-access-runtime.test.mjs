@@ -11,17 +11,17 @@ function extract(name){
   assert.ok(start>=0&&end>start,name+' boundaries must exist');
   return source.slice(start,end);
 }
-const runtimeSource=['isValidImageSignature_','validateProofFileForApproval_','apiAdminGetDepositProof'].map(extract).join('\n');
+const runtimeSource=['isValidImageSignature_','validateProofFileForApproval_','apiAdminGetDepositProof','assertMpsDriveFolderTreePrivate_'].map(extract).join('\n');
 const applicationRef='MPS-APP-0123456789ABCDEF0123',memberId='MPS-ABCDEF1234',fileId='proof-file-0123456789';
 const proofUrl='https://drive.google.com/file/d/'+fileId+'/view';
 const png=[137,80,78,71,13,10,26,10,0];
 
-function harness({authorized=true,status='Menunggu Validasi Admin',storedFileId=fileId,privateFile='PRIVATE',privateFolder='PRIVATE',legacy=false}={}){
+function harness({authorized=true,status='Menunggu Validasi Admin',storedFileId=fileId,privateFile='PRIVATE',privateFolder='PRIVATE',privateParent='PRIVATE',legacy=false}={}){
   const deposit=[applicationRef,new Date(),'Nama','12345678','Standard',1000000,new Date(),storedFileId,proofUrl,status,'','','',new Date()];
   const member=new Array(30).fill('');member[0]=memberId;member[13]=proofUrl;member[14]='Menunggu verifikasi';
   let sheetReads=0,fileReads=0,rateCalls=0;
   const file={getId:()=>fileId,getName:()=> 'bukti.png',getMimeType:()=> 'image/png',getSize:()=>png.length,isTrashed:()=>false,getSharingAccess:()=>privateFile,getBlob:()=>({getBytes:()=>png}),getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return{getId:()=> 'proof-folder'};}};}};
-  const folder={getSharingAccess:()=>privateFolder};
+  const parent={getId:()=> 'proof-parent',getSharingAccess:()=>privateParent,getParents:()=>({hasNext:()=>false})};\n  const folder={getId:()=> 'proof-folder',getSharingAccess:()=>privateFolder,getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return parent;}};}};
   const context={
     MPS:{headers:new Array(30),maxProofBytes:5*1024*1024},
     MPS_COL:{depositStatus:15,proofUrl:14},
@@ -57,7 +57,7 @@ test('proof endpoint denies non-pending records and mismatched stored file IDs',
 });
 test('proof endpoint rejects non-private Drive storage before returning bytes',()=>{
   assert.throws(()=>harness({privateFile:'ANYONE'}).run(),/File bukti deposit tidak PRIVATE/);
-  assert.throws(()=>harness({privateFolder:'ANYONE'}).run(),/Folder bukti deposit tidak PRIVATE/);
+  assert.throws(()=>harness({privateFolder:'ANYONE'}).run(),/Folder bukti deposit.*tidak PRIVATE/);\n  const inherited=harness({privateParent:'ANYONE'});\n  assert.throws(()=>inherited.run(),/Folder bukti deposit.*tidak PRIVATE/);\n  assert.equal(inherited.stats().fileReads,0);
 });
 test('legacy pending deposits remain accessible through the same Admin-only proof proxy',()=>{
   const h=harness({legacy:true});
