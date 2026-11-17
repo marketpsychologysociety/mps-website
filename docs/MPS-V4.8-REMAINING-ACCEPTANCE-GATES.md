@@ -382,3 +382,10 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - The response remains generic and does not disclose whether an account matched. The audit outcome is recorded as `DELIVERY_UNCONFIRMED`, not a definite delivery failure.
 - Added a regression assertion that challenge persistence precedes Telegram send and ambiguous delivery does not delete the possibly delivered challenge. The first follow-up CI run exposed one stale assertion in the older request-security test, not a runtime/source failure; that assertion was updated to match the new fail-safe behavior. GitHub Actions run [#44046178827](https://github.com/marketpsychologysociety/mps-website/actions/runs/44046178827) then completed **SUCCESS, 79/79 workflow steps, 0 failures**. The request-security suite passed **11/11**, the PIN/recovery delivery suite passed **7/7**, and Chromium checks passed across 15 pages. Real Telegram test-bot acceptance remains open.
 - Candidate branch only; no production resources or live member data changed.
+
+## 2026-11-17 — Stale PIN delivery-success isolation
+
+- A further concurrency review found that a late Telegram success callback for an older PIN could fail its verifier comparison but still delete the shared `MPS_PIN_DELIVERED_<member>` marker belonging to a newer, already-confirmed issuance.
+- The candidate helper now returns without mutating any delivery marker/state when the verifier no longer matches. This preserves the newer issuance's `ACTIVE` state and delivery marker.
+- Added VM regression coverage for stale success as well as stale failure, and runtime fault injection for a possibly delivered recovery code with guaranteed ScriptLock release. The newest code/test update is awaiting its exact-head CI result; do not infer it from the earlier successful run.
+- Candidate branch only. No live PIN, member data, Telegram, Script Properties, or production resources were touched.
