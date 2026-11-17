@@ -30,3 +30,18 @@ Evidence: Exness official Partnership API reference (checked 2026-11-17): https:
 - This does not test a live Apps Script deployment, actual Telegram delivery, a real member account, or Android device acceptance. No production resource was changed.
 - A prior run failed because the new test assertion helper referenced an undefined local extractor; that test harness was corrected. The latest exact-head run above passed.
 - The rebate page's minimum-deposit wording was aligned from Rp1.500.000 to Rp1.000.000 to match the current Membership page. This is a text consistency correction only; no deposit policy or member data was changed.
+
+
+## Official MPS Exness IB referral assets — owner confirmation (2026-11-17)
+
+The owner confirmed that the following referral code/link belongs to the MPS owner IB account and approved it as the official Exness registration route for all MPS members:
+
+- **Official member registration link:** https://one.toexness.com/a/bdthbxwb2q?platform=mobile
+- **QR Code destination:** https://one.toexness.com/a/bdthbxwb2q?method=qrcode
+- Both URLs carry the same referral code: `bdthbxwb2q`; the query parameter identifies a different entry method/source.
+
+MPS may present the direct link as the registration button and the matching QR destination as the scan-to-register option. This is a referral-routing decision only: it does not prove that every registrant is successfully attributed, eligible for rebates, or visible through a partner API. Backend affiliation and client-account mapping must still be verified from authorized Exness data.
+
+The owner also confirmed access to the Partner Personal Area. This does **not** establish permission for external API integration. The legacy `my.exnessaffiliates.com/api/schema/` documentation and its login/password/token flow must not be mixed with the newer Exness Partnership API key + Ed25519 signing model. Exness confirmation of the approved API product, external-use permission, authentication, scopes, and data terms remains a prerequisite.
+
+No QR image binary is committed by this documentation note; the documented QR destination is the exact payload represented by the image supplied by the owner.
