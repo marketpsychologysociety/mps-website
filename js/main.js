@@ -116,53 +116,59 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-// MPS v4.8 stable button feedback: no disappearing ripple or oversized press scaling.
+// MPS v4.8 button feedback v2: track the pressed control even when the pointer is released outside it.
 (() => {
   const selector = '.btn,button,.nav-join,.pwa-install-btn,input[type="button"],input[type="submit"]';
-  const timers = new WeakMap();
-  const active = new Set();
-  const findButton = target => {
+  let pressed = null;
+  let releaseTimer = 0;
+  let flashTimer = 0;
+  const getControl = target => {
     const node = target instanceof Element ? target : target && target.parentElement;
     return node && node.closest(selector);
   };
-  const clear = el => {
-    const timer = timers.get(el);
-    if (timer) window.clearTimeout(timer);
-    timers.delete(el);
+  const usable = el => el && !el.disabled && el.getAttribute('aria-disabled') !== 'true';
+  const flash = el => {
+    if (!usable(el)) return;
+    el.classList.remove('mps-click-feedback');
+    // Force a style boundary so repeated taps replay the release animation.
+    void el.offsetWidth;
+    el.classList.add('mps-click-feedback');
+    window.clearTimeout(flashTimer);
+    flashTimer = window.setTimeout(() => el.classList.remove('mps-click-feedback'), 480);
   };
-  const press = el => {
-    if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
-    clear(el);
-    active.add(el);
+  const begin = el => {
+    if (!usable(el)) return;
+    pressed = el;
+    window.clearTimeout(releaseTimer);
     el.classList.add('mps-is-pressed');
   };
-  const release = el => {
+  const end = () => {
+    const el = pressed;
     if (!el) return;
-    clear(el);
-    const timer = window.setTimeout(() => {
-      el.classList.remove('mps-is-pressed');
-      active.delete(el);
-      timers.delete(el);
-    }, 150);
-    timers.set(el, timer);
+    pressed = null;
+    el.classList.remove('mps-is-pressed');
+    flash(el);
   };
-  document.addEventListener('pointerdown', event => press(findButton(event.target)), {capture:true, passive:true});
-  document.addEventListener('pointerup', event => release(findButton(event.target)), {capture:true, passive:true});
-  document.addEventListener('pointercancel', event => {
-    const el = findButton(event.target);
-    if (!el) return;
-    clear(el); el.classList.remove('mps-is-pressed'); active.delete(el);
-  }, {capture:true, passive:true});
+  document.addEventListener('pointerdown', event => begin(getControl(event.target)), true);
+  document.addEventListener('pointerup', end, true);
+  document.addEventListener('pointercancel', () => {
+    if (pressed) pressed.classList.remove('mps-is-pressed');
+    pressed = null;
+  }, true);
   document.addEventListener('keydown', event => {
     if (event.repeat || !['Enter',' '].includes(event.key)) return;
-    press(findButton(event.target));
+    begin(getControl(event.target));
   }, true);
   document.addEventListener('keyup', event => {
     if (!['Enter',' '].includes(event.key)) return;
-    release(findButton(event.target));
+    end();
   }, true);
   window.addEventListener('blur', () => {
-    active.forEach(el => { clear(el); el.classList.remove('mps-is-pressed'); });
-    active.clear();
+    if (pressed) pressed.classList.remove('mps-is-pressed');
+    pressed = null;
   });
+  document.addEventListener('click', event => {
+    const el = getControl(event.target);
+    if (el && !el.classList.contains('mps-click-feedback')) flash(el);
+  }, true);
 })();
