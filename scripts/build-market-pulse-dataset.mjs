@@ -63,6 +63,7 @@ function buildDataset(candles, asOf = Date.now()) {
   }
   return {
     instrument: 'XAUUSD',
+    source: { provider: 'Binance Spot', symbol: 'PAXGUSDT', description: 'Gold-market proxy; not a broker forex XAUUSD feed.' },
     timeframe: 'M5',
     timezone: 'Asia/Jakarta',
     dataStart: toWibIso(first),
