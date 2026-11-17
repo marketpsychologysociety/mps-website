@@ -61,7 +61,7 @@
     <div class="announce-filters" role="group" aria-label="Filter kategori pengumuman">
       <button class="announce-filter active" type="button" data-filter="all" aria-pressed="true">Semua</button>
       <button class="announce-filter" type="button" data-filter="important" aria-pressed="false">Penting</button>
-      <button class="announce-filter" type="button" data-filter="maintenance" aria-pressed="false">Maintenance</button>
+      <button class="announce-filter" type="button" data-filter="maintenance" aria-pressed="false">Pemeliharaan</button>
       <button class="announce-filter" type="button" data-filter="update" aria-pressed="false">Update</button>
       <button class="announce-filter" type="button" data-filter="community" aria-pressed="false">Komunitas</button>
     </div>
@@ -73,7 +73,7 @@
         <button class="announce-read" type="button" data-demo-detail="Pengumuman prioritas akan dibuat, ditinjau, dan dipublikasikan melalui alur admin resmi. Data prototipe ini tidak mewakili pemberitahuan aktual.">Baca contoh detail <span>↗</span></button>
       </article>
       <article class="announce-card" data-category="maintenance">
-        <div class="announce-card-top"><span class="announce-tag tag-maintenance">MAINTENANCE</span><span class="announce-date">CONTOH JADWAL</span></div>
+        <div class="announce-card-top"><span class="announce-tag tag-maintenance">PEMELIHARAAN</span><span class="announce-date">CONTOH JADWAL</span></div>
         <div class="announce-card-symbol symbol-maintenance">⚙</div><h3>Contoh pemberitahuan pemeliharaan sistem</h3>
         <p>Jadwal, layanan terdampak, estimasi waktu, dan pembaruan progres akan ditampilkan secara transparan.</p>
         <button class="announce-read" type="button" data-demo-detail="Contoh saja: admin akan mengisi layanan terdampak, jadwal, estimasi yang sudah diverifikasi, serta timeline perubahan status.">Baca contoh detail <span>↗</span></button>
@@ -97,7 +97,7 @@
   <section class="winner-section">
     <div class="announce-section-title"><div><span class="announce-eyebrow">APRESIASI KOMUNITAS</span><h2>Papan Pemenang</h2><p>Papan hasil program dan aktivitas komunitas yang telah diverifikasi.</p></div><span class="demo-chip">BUKAN HASIL RESMI</span></div>
     <div class="winner-showcase">
-      <div class="winner-medal">✦<small>WINNER</small></div>
+      <div class="winner-medal">✦<small>PEMENANG</small></div>
       <div class="winner-copy"><span class="winner-overline">HASIL RESMI</span><h3>Belum ada hasil resmi yang dipublikasikan</h3><p>Papan Pemenang hanya menampilkan hasil undian yang telah diverifikasi dan disetujui untuk publikasi.</p></div>
       <div class="winner-proof"><span>STATUS</span><strong>MENUNGGU</strong><small>Tidak ada pemenang yang ditampilkan</small></div>
     </div>
@@ -139,11 +139,11 @@
   let installPrompt=null;
   const ua=navigator.userAgent||'';
   const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Share/Bagikan.\n3. Pilih “Add to Home Screen” / “Tambahkan ke Layar Utama”.\n4. Tekan Add / Tambahkan.'));}
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Bagikan.\n3. Pilih “Tambahkan ke Layar Utama”.\n4. Tekan “Tambahkan”.'));}
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
   btn.addEventListener('click',async()=>{
     if(isAppleMobile)return;
-    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Install app” atau “Tambahkan ke layar utama”.');return;}
+    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Pasang aplikasi” atau “Tambahkan ke layar utama”.');return;}
     installPrompt.prompt();
     try{const choice=await installPrompt.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}
     installPrompt=null;
