@@ -147,8 +147,12 @@ test('publicCenter GET bridge returns a text-only strict data envelope without e
   const start=source.indexOf('function doGet(e) {');
   const end=source.indexOf(String.fromCharCode(10)+'function doPost(e)',start+1);
   assert.ok(start>=0&&end>start,'doGet boundaries must exist');
+  const gateStart=source.indexOf('function isMpsPublicCenterEnabled_()');
+  const gateEnd=source.indexOf(String.fromCharCode(10)+'function ',gateStart+1);
+  assert.ok(gateStart>=0&&gateEnd>gateStart,'backend Public Center gate boundaries must exist');
   const payload={ok:true,activity:[{MemberName:'Budi Santoso',PublicText:'telah bergabung ke MPS VIP Community'}],announcements:[]};
   const isolated={
+    PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_PUBLIC_CENTER_ENABLED'?'true':null})},
     apiGetPublicCenter:()=>payload,
     ContentService:{
       MimeType:{TEXT:'text/plain'},
@@ -156,7 +160,7 @@ test('publicCenter GET bridge returns a text-only strict data envelope without e
     }
   };
   vm.createContext(isolated);
-  vm.runInContext(source.slice(start,end),isolated,{timeout:1000});
+  vm.runInContext(source.slice(gateStart,gateEnd)+'\\n'+source.slice(start,end),isolated,{timeout:1000});
   const response=isolated.doGet({parameter:{publicCenter:'1'}});
   assert.equal(response.mime,'text/plain');
   assert.equal(response.body,'window.MPS_PUBLIC_CENTER_DATA='+JSON.stringify(payload)+';');
