@@ -77,6 +77,8 @@
       <li><strong>Paid:</strong> hanya ditampilkan jika baris rebate dan bukti payment terkait cocok.</li>
       <li><strong>Rejected / Error / Perlu Rekonsiliasi:</strong> ditampilkan terpisah dan tidak dihitung sebagai dana yang sudah diterima member.</li>
     </ul>
+    <p><strong>Dokumentasi teknis resmi:</strong> <a href="https://www.exness-api.com/reference/partnership/exness-partner-api" target="_blank" rel="noopener noreferrer">Exness Partnership API Reference</a> · <a href="https://www.exness-api.com/partnership/guides/autorebates" target="_blank" rel="noopener noreferrer">Panduan Rebates Exness</a>. Dokumen tersebut menjelaskan ruang lingkup akses read-only, laporan rebate, dan rekonsiliasi batch/baris/pembayaran. API adalah sarana baca data partner; bukan bukti bahwa MPS telah memperoleh akses atau bahwa suatu rebate telah dibayarkan.</p>
+    <p><strong>Batasan yang perlu diketahui:</strong> dokumentasi API saat ini menyatakan tidak menyediakan operasi untuk menyetujui/menolak rebate atau mengulang pembayaran. Karena itu MPS tidak akan menjanjikan kontrol payout melalui API, dan status <em>Processed</em> tidak akan disamakan dengan <em>Paid</em>.</p>
     <p>Jika data Exness terlambat, tidak lengkap, atau nomor akun belum dapat dicocokkan secara unik, MPS akan menandainya sebagai belum terverifikasi dan tidak membuat estimasi seolah-olah merupakan angka resmi broker. Member dapat meminta penjelasan perhitungan melalui Admin MPS.</p>
 
     <h2>Bagaimana Rebate Dihitung?</h2>
