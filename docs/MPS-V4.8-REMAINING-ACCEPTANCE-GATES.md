@@ -425,3 +425,5 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - Scope: this is source/VM-test hardening only. It does not inspect or change live Drive ACLs, production files, member data, Script Properties, or deployment. Live Drive ACL verification remains an acceptance gate.
 
 - First CI run after the source change (#2344) exposed a test-harness dependency omission: the existing deposit rollback VM test extracted `saveDeposit_` without loading the newly used ACL helper. The candidate source was not shown to fail in Apps Script; the harness was corrected to load the exact helper from candidate Code.gs and provide a private synthetic folder. This is recorded as a test harness correction, not a source rollback. A fresh exact-head CI run is required.
+
+- Follow-up CI run #2348 then caught a literal escaped-newline formatting error in the adjusted deposit rollback harness. The test file was corrected to contain real line breaks; the candidate source change was unchanged. The next exact-head CI run is the validation checkpoint.
