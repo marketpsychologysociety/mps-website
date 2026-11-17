@@ -1,18 +1,18 @@
 # MPS v4.8 remaining acceptance gates
 
 **LATEST AUTHORITATIVE SNAPSHOT — 2026-11-17 (PR #12 workbench):**
-- Exact code/test head: `42df8a43fc3abe5cf99f6603bd382b4c742dfa2d` on `mps-v4.8-workbench`. GitHub Actions run [#44037414873](https://github.com/marketpsychologysociety/mps-website/actions/runs/44037414873), run number 2235, completed **SUCCESS: 78/78 workflow steps, 0 failures** on this exact SHA.
-- PR #12 remains OPEN / DRAFT / NOT MERGED against `main` base `43d9fb9c9383853e9e2d2775393e7e700c18f5d6`; no production change or release authorization.
-- Deposit rollback suite: **5/5 passed**, including actual candidate Telegram-link helper tests for bot-configuration failure before append and ambiguous append-after-write compensation.
-- Market Pulse converter/validator/access suite: **12/12 passed**. Dataset provenance is now required to identify Binance Spot `PAXGUSDT` as a gold-market proxy, explicitly not a broker forex XAUUSD feed. Public preview and authenticated data note disclose this source while retaining the XAUUSD M5 display label.
-- Admin verification rollback/reconciliation suite, all other configured contract/security suites, and Chromium browser checks also completed successfully.
-- CI evidence uses synthetic/mocked Apps Script, Sheets, Drive, Telegram and local Chromium. It is not live Apps Script, real spreadsheet locking/persistence, live Drive ACL, Telegram delivery, Exness API, or physical Android acceptance.
-- The earlier RW-07 Telegram-link ordering/orphan-row issue is closed at candidate source/mock-test level. Real isolated Apps Script failure injection remains open.
-- Owner-confirmed Exness referral link and matching QR destination are documented in `docs/MPS-MEMBER-RECOVERY-AND-EXNESS-REBATE-TRANSPARENCY-2026-11-17.md`. External API eligibility/authentication and live account mapping remain unverified; integration remains blueprint-only/read-only.
+- Exact code/test head: `42df8a43fc3abe5cf99f6603bd382b4c742dfa2d`. GitHub Actions run [#44037414873](https://github.com/marketpsychologysociety/mps-website/actions/runs/44037414873), run number 2235, completed **SUCCESS: 78/78 workflow steps, 0 failures** on this exact SHA.
+- Exact documentation head before this acceptance-snapshot refresh: `21ac8361c64a207197fa9ddc43494f03175c3d48`. Documentation CI run [#44038133862](https://github.com/marketpsychologysociety/mps-website/actions/runs/44038133862), run number 2244, completed **SUCCESS: 78/78 steps, 0 failures**.
+- PR #12 remains OPEN / DRAFT / NOT MERGED; comparison is **1,395 commits ahead, 0 behind `main`, 186 changed files**. Base `main` SHA remains `43d9fb9c9383853e9e2d2775393e7e700c18f5d6`.
+- Deposit rollback suite: **5/5 passed**, including actual candidate Telegram-link helper tests for bot-configuration failure before append and ambiguous append-after-write compensation. RW-07 is closed at candidate source/mock-test level.
+- Admin verification rollback/reconciliation suite: **40/40 passed**, covering rejection/approval snapshot restoration, decision-intent settlement, durable reconciliation alert, and REVIEW quarantine when compensation is incomplete.
+- Market Pulse converter/validator/access suite: **12/12 passed**. Dataset provenance is mandatory: Binance Spot `PAXGUSDT`, explicitly a gold-market proxy and not a broker forex XAUUSD feed. Public preview and authenticated member/Admin note disclose the source while retaining the familiar XAUUSD M5 display label.
+- Telegram handler documentation was reconciled with current candidate behavior: durable VIP `chat_member` transitions, link notices, Admin decision notices, VIP invite queue, and other outbox-backed notices are distinguished from credential-bearing PIN/recovery direct sends. The current public VIP ticker displays a validated real member display name, not the internal Member ID.
+- All configured CI suites and Chromium browser checks passed on the exact code/test head. CI uses synthetic/mocked Apps Script, Sheets, Drive, Telegram and local Chromium; it is not live Apps Script, actual spreadsheet locking/persistence, live Drive ACL, Telegram delivery, Exness API, or physical Android acceptance.
+- Owner-confirmed Exness IB link and QR destination are documented. External API eligibility/authentication and live account mapping remain unverified; Exness integration remains blueprint-only/read-only.
 - Remaining release gates: actual isolated GAS/Sheets/ScriptLock/trigger acceptance; actual Drive folder/file ACL and direct-route/API authorization; isolated Telegram test-bot delivery and non-`chat_member` handler reconciliation; physical Android/PWA acceptance; independent security/operational review; backup/restore evidence; explicit owner release authorization.
 - Final replacement Market Pulse dataset is still pending the user's post-PR handoff. No dataset upload/publication has been approved.
 - Production `main`, member data, Apps Script deployment, Script Properties, Drive ACLs, Telegram configuration, Exness API credentials/settings and production triggers remain untouched. **Production activation remains NO-GO.**
-
 ---
 
 # MPS v4.8 remaining acceptance gates
