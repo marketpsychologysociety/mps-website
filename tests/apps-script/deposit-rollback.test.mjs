@@ -60,7 +60,8 @@ function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={
   assert.ok(linkStart>=0&&linkEnd>linkStart,'createMemberTelegramLink_ source boundaries must exist');
   vm.createContext(context);vm.runInContext(source.slice(linkStart,linkEnd),context,{timeout:1000});
  } else vm.createContext(context);
- vm.runInContext(driveAclSource,context,{timeout:1000});\n vm.runInContext(saveSource,context,{timeout:1000});
+ vm.runInContext(driveAclSource,context,{timeout:1000});
+ vm.runInContext(saveSource,context,{timeout:1000});
  let uploaded=null,proofLinked=false;
  const payload={applicationRef:appRef,memberName:'Member Test',mt5Login:'12345678',accountType:'Standard',depositAmount:1000000,depositDate:'2026-11-11',proofMimeType:'image/png',proofBase64:'QUJDREVGR0g='};
  return {run:()=>context.saveDeposit_(null,payload,file=>{uploaded=file;},()=>{proofLinked=true;}),appsRows,depositsRows,linksRows,file,getUploaded:()=>uploaded,proofLinked:()=>proofLinked,state};
