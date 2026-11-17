@@ -20,3 +20,13 @@
 
 Evidence: Exness official Partnership API reference (checked 2026-11-17): https://www.exness-api.com/reference/partnership/exness-partner-api ; Rebates guide: https://www.exness-api.com/partnership/guides/autorebates
 
+
+
+## Verification checkpoint — 2026-11-17
+
+- Latest candidate head for this checkpoint: `932904aa2c1f1716bd11c19e0ecd41c0d4f164ec`.
+- GitHub Actions run [#44023899652](https://github.com/marketpsychologysociety/mps-website/actions/runs/44023899652) completed **SUCCESS, 78/78 steps, 0 failed steps** on this exact SHA.
+- The API contract suite passed, including the new recovery contract assertions and runtime tests for unique MT5 matching, duplicate MT5 rejection, inactive-member rejection, and non-matching MT5 rejection. Chromium browser checks also passed.
+- This does not test a live Apps Script deployment, actual Telegram delivery, a real member account, or Android device acceptance. No production resource was changed.
+- A prior run failed because the new test assertion helper referenced an undefined local extractor; that test harness was corrected. The latest exact-head run above passed.
+- The rebate page's minimum-deposit wording was aligned from Rp1.500.000 to Rp1.000.000 to match the current Membership page. This is a text consistency correction only; no deposit policy or member data was changed.
