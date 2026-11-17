@@ -130,3 +130,17 @@ test('all aggregate public/login throttles use a fixed persistent allow-listed b
   assert.match(source,/consumePersistentBucketRateLimit_\('public_submit_' \+ action/);
   assert.match(source,/consumePersistentBucketRateLimit_\('ad_request_global',30,3600/);
 });
+
+test('member recovery challenge replacement and Telegram delivery are serialized with completion',()=>{
+  const body=extract('apiMemberRecoveryStart');
+  const lockAt=body.indexOf('lock.waitLock(10000)');
+  const writeAt=body.indexOf('props.setProperty(propertyKey');
+  const sendAt=body.indexOf('telegramSendToChat_(chatId');
+  const releaseAt=body.indexOf('lock.releaseLock()');
+  assert.ok(lockAt>=0&&lockAt<writeAt,'acquire lock before replacing challenge');
+  assert.ok(writeAt<sendAt&&sendAt<releaseAt,'hold lock through Telegram delivery');
+  assert.match(body,/finally\\s*\\{\\s*lock\\.releaseLock\\(\\)/);
+  const complete=extract('apiMemberRecoveryComplete');
+  assert.match(complete,/lock\\.waitLock\\(10000\\)/,'completion shares the ScriptLock');
+  assert.match(body,/if\\(current === JSON\\.stringify\\(challenge\\)\\) props\\.deleteProperty\\(propertyKey\\)/);
+});
