@@ -5099,8 +5099,12 @@ function apiAdminConfigureTradingSignalBot(session,botId,displayName,enabled,ins
   const allowedTimeframes=list(timeframes,/^(M1|M5|M15|M30|H1|H4|D1)$/);
   if(allowedInstruments.some(function(v){return !/^[A-Z0-9._-]{2,20}$/.test(v);})||!allowedInstruments.length)throw new Error('ALLOWLIST_INSTRUMENT_TIDAK_VALID.');
   if(allowedTimeframes.some(function(v){return !/^(M1|M5|M15|M30|H1|H4|D1)$/.test(v);})||!allowedTimeframes.length)throw new Error('ALLOWLIST_TIMEFRAME_TIDAK_VALID.');
-  const sheets=getTradingSignalsSheets_(),bot=getTradingSignalBotRow_(sheets.bots,id);
-  sheets.bots.getRange(bot.row,2,1,4).setValues([[name,enabled===true,allowedInstruments.join(','),allowedTimeframes.join(',')]]);
+  const lock=LockService.getScriptLock();lock.waitLock(15000);
+  try{
+    const sheets=getTradingSignalsSheets_(),bot=getTradingSignalBotRow_(sheets.bots,id);
+    sheets.bots.getRange(bot.row,2,1,4).setValues([[name,enabled===true,allowedInstruments.join(','),allowedTimeframes.join(',')]]);
+  }finally{lock.releaseLock();}
+  // Audit after releasing ScriptLock: the audit writer may acquire the same lock.
   recordMpsAudit_('SUPER_ADMIN',adminActorRef_(session),'TRADING_SIGNAL_BOT_CONFIGURED',id,'SUCCESS','Konfigurasi bot Trading Signals diperbarui tanpa menampilkan kredensial.');
   return {ok:true,botId:id,enabled:enabled===true};
 }
