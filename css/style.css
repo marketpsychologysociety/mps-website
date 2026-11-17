@@ -1239,3 +1239,6 @@ body{background-color:var(--bg);color:var(--text)}
 .pulse-cell.down,.pulse-cell.strong-down{border-color:rgba(255,79,216,.35)}
 a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline-color:var(--mps-pink)!important}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Penyelarasan logo raster lama dengan palet neon biru MPS */
+.nav-brand img,.hero-logo{filter:hue-rotate(145deg) saturate(1.65) drop-shadow(0 0 14px rgba(39,223,255,.28))}
