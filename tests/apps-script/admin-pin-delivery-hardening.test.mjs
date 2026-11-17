@@ -66,3 +66,12 @@ test('quarantine cannot overwrite a newer PIN issuance verifier',()=>{
   assert.equal(props.MPS_PIN_DELIVERY_STATE_MPS123,'REVIEW_REQUIRED');
   assert.equal(releases,2);
 });
+
+test('legacy approval delegates PIN delivery to the hardened issuance path',()=>{
+  const legacy=extract('adminVerifyLegacy_');
+  assert.ok(legacy.includes('apiAdminIssuePin(session,memberKey)'));
+  assert.ok(!legacy.includes('telegramSendToChat_('),'legacy approval must not send a PIN before storing its verifier');
+  assert.ok(!legacy.includes('storeMemberPin_('),'legacy approval must not bypass delivery-state quarantine');
+  const issue=extract('apiAdminIssuePin');
+  assert.ok(issue.indexOf("props.setProperty('MPS_PIN_DELIVERY_STATE_'+memberKey,'PENDING_DELIVERY')")<issue.indexOf('storeMemberPin_(memberKey,pin)'));
+});
