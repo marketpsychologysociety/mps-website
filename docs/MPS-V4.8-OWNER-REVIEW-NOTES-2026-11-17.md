@@ -102,3 +102,13 @@ This section supersedes the earlier Public Center route finding above for the ca
 - This is repository CI using synthetic/mocked Apps Script, Sheets, Drive, Telegram and local Chromium. It does not establish real Apps Script execution, real spreadsheet locking/persistence, live Drive ACL, Telegram delivery, or physical Android acceptance.
 - Exness referral assets are now owner-confirmed for MPS: direct registration URL `https://one.toexness.com/a/bdthbxwb2q?platform=mobile` and QR destination `https://one.toexness.com/a/bdthbxwb2q?method=qrcode`, both using referral code `bdthbxwb2q`. This is a blueprint/documentation decision only; API access and live integration remain unverified.
 - PR #12 remains OPEN / DRAFT / NOT MERGED. No production main, Apps Script deployment, database, Drive ACL, Script Properties, Telegram configuration, or Exness account settings were changed.
+
+
+## Market Pulse provenance correction and exact-head CI — 2026-11-17
+
+- Closed the source-provenance gap noted in the earlier owner review: the converter now emits `source.provider=Binance Spot`, `source.symbol=PAXGUSDT`, and an explicit statement that this is a gold-market proxy, not a broker forex XAUUSD feed.
+- The backend validator requires the exact provenance object and fails closed on missing/altered/extra source metadata. Public preview, Market Pulse header, and authenticated member/Admin note visibly disclose the PAXGUSDT source while retaining the familiar XAUUSD label.
+- Market Pulse converter/validator/access suite passed **12/12**; deposit rollback suite passed **5/5**; Chromium browser checks passed.
+- GitHub Actions run [#44037414873](https://github.com/marketpsychologysociety/mps-website/actions/runs/44037414873), run number 2235, completed **SUCCESS, 78/78 workflow steps, 0 failures** on exact code/test head `42df8a43fc3abe5cf99f6603bd382b4c742dfa2d`.
+- This does not approve a final dataset. The user-directed replacement dataset handoff remains pending; the earlier raw PAXGUSDT conversion remains candidate-only and must not be published as final.
+- All checks are repository CI, synthetic/mocked Apps Script/Drive/Sheets, and local Chromium. Live GAS/Sheets/Drive ACL, actual API authorization, Telegram delivery, and physical Android acceptance remain outstanding.
