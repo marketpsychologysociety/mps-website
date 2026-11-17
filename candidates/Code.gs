@@ -98,6 +98,9 @@ function doGet(e) {
     return json_({ service: 'MPS Member Backend', status: 'ready', version: MPS.version });
   }
   if (p.action === 'status') {
+    // Public status polling is data-minimal but still performs a ledger lookup.
+    // Bound aggregate traffic before opening the spreadsheet to reduce read-amplification abuse.
+    consumePersistentBucketRateLimit_('public_status_global', 1200, 60, 'Pemeriksaan status permintaan terlalu sering. Coba lagi sebentar.');
     const requestId = cleanRequestId_(p.requestId);
     if (!requestId) return json_({ ok: false, error: 'requestId tidak valid.' });
     const ledger=getMpsRequestLedgerSheet_(),ledgerRow=findMpsRequestLedgerRow_(ledger,requestId);
@@ -3251,7 +3254,7 @@ function clearPersistentLoginRateLimit_(key) {
 
 function consumePersistentBucketRateLimit_(bucket, maxAttempts, windowSeconds, message) {
   // Fixed allow-list prevents attacker-controlled Script Properties growth.
-  const allowed=['member_login_global','public_submit_register','public_submit_deposit','ad_request_global'];
+  const allowed=['member_login_global','public_submit_register','public_submit_deposit','ad_request_global','public_status_global'];
   if(allowed.indexOf(String(bucket))<0)throw new Error('Rate-limit bucket tidak dikenal.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
