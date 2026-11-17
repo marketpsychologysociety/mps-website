@@ -1716,9 +1716,10 @@ function validateMarketPulseSource_(source) {
   const match=text.match(/const\s+D\s*=\s*(\{[\s\S]*?\})\s*,\s*TH\s*=\s*5\s*;/);
   if(!match)throw new Error('Struktur MPS MARKET PULSE tidak dikenali. Gunakan file hasil konversi XAUUSD M5.');
   let data;try{data=JSON.parse(match[1]);}catch(err){throw new Error('Data MPS MARKET PULSE tidak valid sebagai JSON.');}
-  const expectedKeys='asOf,dataEnd,dataStart,instrument,periods,timeframe,timezone';
+  const expectedKeys='asOf,dataEnd,dataStart,instrument,periods,source,timeframe,timezone';
   if(!data||Object.keys(data).sort().join(',')!==expectedKeys)throw new Error('Properti dataset MPS MARKET PULSE tidak sesuai skema.');
   if(data.instrument!=='XAUUSD'||data.timeframe!=='M5'||data.timezone!=='Asia/Jakarta')throw new Error('Dataset wajib XAUUSD M5 dengan zona waktu WIB (UTC+7).');
+  if(!data.source||Object.keys(data.source).sort().join(',')!=='description,provider,symbol'||data.source.provider!=='Binance Spot'||data.source.symbol!=='PAXGUSDT'||data.source.description!=='Gold-market proxy; not a broker forex XAUUSD feed.')throw new Error('Provenance wajib Binance Spot PAXGUSDT sebagai gold-market proxy, bukan feed XAUUSD broker forex.');
   function validWibTimestamp(value,candleBoundary){
     const m=typeof value==='string'?value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+07:00$/):null;
     if(!m)return false;
