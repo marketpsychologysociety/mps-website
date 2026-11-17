@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="n" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#27dfff"/><stop offset=".55" stop-color="#ff4fd8"/><stop offset="1" stop-color="#27dfff"/></linearGradient></defs><rect x="5" y="5" width="170" height="170" rx="36" fill="#070912" stroke="url(#n)" stroke-width="6"/><text x="90" y="112" text-anchor="middle" font-family="Arial,sans-serif" font-size="62" font-weight="900" fill="url(#n)">MPS</text><path d="M48 137h84" stroke="#b8ff3b" stroke-width="4" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="MPS Market Psychology Society">
+<defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0b5"/><stop offset=".42" stop-color="#e8bd58"/><stop offset="1" stop-color="#9d681b"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<rect x="5" y="5" width="170" height="170" rx="30" fill="#090b10" stroke="url(#gold)" stroke-width="3"/>
+<g fill="url(#gold)" filter="url(#glow)"><rect x="34" y="73" width="15" height="35" rx="2"/><rect x="57" y="57" width="15" height="51" rx="2"/><rect x="80" y="39" width="15" height="69" rx="2"/></g>
+<path d="M35 66 66 43 88 27 111 27M96 17l15 10-15 11" fill="none" stroke="url(#gold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+<text x="111" y="102" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="900" letter-spacing="-2" fill="url(#gold)">MPS</text>
+<path d="M28 121h124" stroke="url(#gold)" stroke-width="2" opacity=".8"/>
+<text x="90" y="139" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1.2" fill="#e8d6a4">MARKET PSYCHOLOGY</text>
+<text x="90" y="152" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="2" fill="#e8d6a4">SOCIETY</text></svg>
