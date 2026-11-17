@@ -131,7 +131,7 @@ test('all aggregate public/login throttles use a fixed persistent allow-listed b
   assert.match(source,/consumePersistentBucketRateLimit_\('ad_request_global',30,3600/);
 });
 
-test('member recovery challenge replacement and Telegram delivery are serialized with completion',()=>{
+test('member recovery challenge replacement is serialized and ambiguous Telegram delivery preserves the code',()=>{
   const body=extract('apiMemberRecoveryStart');
   const lockAt=body.indexOf('lock.waitLock(10000)');
   const writeAt=body.indexOf('props.setProperty(propertyKey');
@@ -142,5 +142,7 @@ test('member recovery challenge replacement and Telegram delivery are serialized
   assert.ok(body.includes('finally {\n    lock.releaseLock();'),'lock is always released');
   const complete=extract('apiMemberRecoveryComplete');
   assert.ok(complete.includes('lock.waitLock(10000)'),'completion shares the ScriptLock');
-  assert.ok(body.includes('if (current === JSON.stringify(challenge)) props.deleteProperty(propertyKey);'),'cleanup only removes the matching challenge');
+  const failure=body.slice(body.indexOf('if (!sent || !sent.ok) {',sendAt));
+  assert.ok(failure.includes('DELIVERY_UNCONFIRMED'),'ambiguous delivery is not reported as a definite failure');
+  assert.ok(!failure.includes('props.deleteProperty(propertyKey)'),'a possibly delivered one-time code remains valid until expiry or replacement');
 });
