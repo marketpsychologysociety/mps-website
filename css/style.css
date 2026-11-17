@@ -1262,3 +1262,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   .nav-links.open{display:flex}
   .navbar{padding:0 20px}
 }
+
+/* Logo vektor MPS sudah memakai warna neon asli; jangan ubah hue-nya lagi. */
+.nav-brand img,.hero-logo{filter:drop-shadow(0 0 14px rgba(39,223,255,.28))!important}
+.mps-bull .mps-animal-symbol{filter:grayscale(1) sepia(1) saturate(9) hue-rotate(155deg) brightness(1.25) drop-shadow(0 0 14px rgba(39,223,255,.9))!important}
+.mps-bear .mps-animal-symbol{filter:grayscale(1) sepia(1) saturate(10) hue-rotate(285deg) brightness(1.2) drop-shadow(0 0 14px rgba(255,79,216,.9))!important}
