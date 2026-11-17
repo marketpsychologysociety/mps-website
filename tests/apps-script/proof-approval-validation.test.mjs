@@ -13,6 +13,7 @@ function extract(name){
   return source.slice(start,end);
 }
 const helperSource=extract('isValidImageSignature_');
+const driveAclSource=extract('assertMpsDriveFolderTreePrivate_');
 const approvalSource=extract('validateProofFileForApproval_');
 const fileId='proof-file-0123456789';
 
@@ -22,7 +23,7 @@ function harness({mime='image/png',bytes=[137,80,78,71,13,10,26,10,0],filePrivat
     getId:()=>fileId,getName:()=>'proof.png',getBlob:()=>({getBytes:()=>bytes}),
     getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return{getId:()=>inFolder?'proof-folder':'other-folder'};}};}
   };
-  const folder={getSharingAccess:()=>folderPrivate};
+  const folder={getId:()=>'proof-folder',getParents:()=>({hasNext:()=>false}),getSharingAccess:()=>folderPrivate};
   const context={
     MPS:{maxProofBytes:5*1024*1024},
     PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_PROOF_FOLDER_ID'?'proof-folder':key==='MPS_LEARNING_FOLDER_ID'?'learning-folder':''})},
@@ -30,6 +31,7 @@ function harness({mime='image/png',bytes=[137,80,78,71,13,10,26,10,0],filePrivat
   };
   vm.createContext(context);
   vm.runInContext(helperSource,context,{timeout:1000});
+  vm.runInContext(driveAclSource,context,{timeout:1000});
   vm.runInContext(approvalSource,context,{timeout:1000});
   return {run:(url='https://drive.google.com/file/d/'+fileId+'/view')=>context.validateProofFileForApproval_(url),file};
 }
@@ -64,6 +66,6 @@ test('approval rejects malformed and non-Google-Drive proof URLs',()=>{
   assert.throws(()=>harness().run('not-a-drive-url'),/tautan Google Drive yang valid/);
   const h=harness();
   const ctx={MPS:{maxProofBytes:5*1024*1024},PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_PROOF_FOLDER_ID'?'proof-folder':'learning-folder'})},DriveApp:{Access:{PRIVATE:'PRIVATE'},getFolderById:()=>({getSharingAccess:()=>'PRIVATE'})}};
-  vm.createContext(ctx);vm.runInContext(helperSource,ctx);vm.runInContext(approvalSource,ctx);
+  vm.createContext(ctx);vm.runInContext(helperSource,ctx);vm.runInContext(driveAclSource,ctx);vm.runInContext(approvalSource,ctx);
   assert.throws(()=>ctx.validateProofFileForApproval_('https://example.com/file/'+fileId),/tautan Google Drive yang valid/);
 });
