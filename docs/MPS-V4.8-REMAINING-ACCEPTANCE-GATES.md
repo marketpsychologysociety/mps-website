@@ -358,3 +358,11 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - PR #12 remains OPEN / DRAFT / NOT MERGED. Latest head `c47e4414307bd63641c26824e058c9f1369ac611`; base remains `43d9fb9c9383853e9e2d2775393e7e700c18f5d6`. Current comparison reports 1,412 commits ahead and 187 changed files; the unusually broad integration history/scope still requires owner review before merge.
 - Remaining NO-GO gates are unchanged: real isolated Google Apps Script/Sheets/ScriptLock/trigger acceptance; real Drive ACL and direct-route checks; Telegram test-bot delivery and handler reconciliation; physical Android/PWA acceptance; independent security/operational review; backup/restore evidence; final Market Pulse replacement dataset/provenance handoff; and explicit owner release approval. CI remains synthetic/mocked and does not close these live gates.
 - Public Center remains disabled, official Winner Draw remains NO-GO, Lucky Roulette remains simulation-only, and Exness remains NOT CONNECTED pending partner API access and approved mapping. No merge, deployment, production resource change, or external Telegram/Exness action was performed.
+
+
+## 2026-11-17 — Legacy Heatmap navigation cleanup
+
+- Removed standalone `heatmap.html` navigation entries from all top-level site pages where they appeared (About, Announcements, Contact, Deposit Confirmation, Education, Home, Join, Membership, Rebate, Rewards, and System).
+- Replaced the Home page's standalone Heatmap preview CTA with a Portal Member CTA and updated its copy to direct members to the authenticated MPS Market Pulse in the member portal.
+- Audited all top-level HTML pages on the workbench branch; no remaining navigation or CTA references to `heatmap.html` were found. The standalone file itself was not deleted; this change removes its site navigation entry as requested, without destroying the page artifact.
+- This is a source change only; the updated pages still require CI and production deployment/route acceptance.
