@@ -2556,3 +2556,96 @@ a.join-cta,
     animation-duration:6s!important;
   }
 }
+
+
+/* MPS AUTO-TAP v4 — complete coverage for primary navigation, CTAs and feature/info cards. */
+@keyframes mps-important-auto-tap-v4{
+  0%,76%,100%{
+    transform:translate3d(0,0,0) scale(1);
+    filter:brightness(1);
+    box-shadow:0 4px 14px rgba(0,0,0,.2);
+  }
+  80%{
+    transform:translate3d(0,3px,0) scale(.965);
+    filter:brightness(1.18) saturate(1.12);
+    box-shadow:inset 0 4px 8px rgba(0,0,0,.26),0 0 0 2px rgba(39,211,255,.3),0 0 16px rgba(255,79,216,.2);
+  }
+  84%{
+    transform:translate3d(0,3px,0) scale(.965);
+    filter:brightness(1.18) saturate(1.12);
+    box-shadow:inset 0 4px 8px rgba(0,0,0,.26),0 0 0 2px rgba(39,211,255,.3),0 0 16px rgba(255,79,216,.2);
+  }
+  91%{
+    transform:translate3d(0,-1px,0) scale(1.01);
+    filter:brightness(1.08);
+    box-shadow:0 0 0 1px rgba(39,211,255,.18),0 0 10px rgba(255,79,216,.13);
+  }
+}
+/* Navigation, main links and all functional CTA buttons. */
+.nav-links > li > a[href]:not(.nav-brand),
+.nav-menu > li > a[href]:not(.nav-brand),
+a.btn[href]:not([aria-disabled="true"]):not([data-preview-disabled="true"]),
+button.btn:not(:disabled),
+a.join-cta,
+.nav-toggle:not(:disabled),
+.ticker-toggle:not(:disabled),
+.announce-filter:not(:disabled),
+.announce-read:not(:disabled),
+.mps-arrow:not(:disabled),
+.contact-link[href]{
+  animation:mps-important-auto-tap-v4 3.8s ease-in-out infinite!important;
+  transform-origin:center!important;
+  will-change:transform,filter,box-shadow;
+}
+/* Clickable feature tiles and key information cards throughout the site. */
+.mps-home-feature,
+.mps-preview-card,
+.mps-hook-card,
+.mps-ib-card,
+article.card,
+.card.learning-topic,
+.announce-card,
+.service-status-card,
+.contact-card,
+.learning-topic{
+  animation:mps-important-auto-tap-v4 4.4s ease-in-out infinite!important;
+  transform-origin:center!important;
+  will-change:transform,filter,box-shadow;
+}
+/* Offset neighboring items so the whole page does not pulse in unison. */
+.nav-links > li:nth-child(2) > a{animation-delay:.2s!important}
+.nav-links > li:nth-child(3) > a{animation-delay:.4s!important}
+.nav-links > li:nth-child(4) > a{animation-delay:.6s!important}
+.nav-links > li:nth-child(5) > a{animation-delay:.8s!important}
+.nav-links > li:nth-child(6) > a{animation-delay:1s!important}
+.nav-links > li:nth-child(7) > a{animation-delay:1.2s!important}
+.mps-home-feature:nth-child(2),.mps-preview-card:nth-child(2),article.card:nth-of-type(2),.announce-card:nth-child(2){animation-delay:.45s!important}
+.mps-home-feature:nth-child(3),.mps-preview-card:nth-child(3),article.card:nth-of-type(3),.announce-card:nth-child(3){animation-delay:.9s!important}
+.mps-home-feature:nth-child(4),.announce-card:nth-child(4){animation-delay:1.35s!important}
+/* Pause decorative loop during actual user interaction. */
+.nav-links > li > a[href]:hover,
+a.btn[href]:hover,button.btn:hover,
+.mps-home-feature:hover,.mps-preview-card:hover,.mps-hook-card:hover,
+.mps-ib-card:hover,article.card:hover,.announce-card:hover,
+.service-status-card:hover,.learning-topic:hover{
+  animation-play-state:paused!important;
+}
+.nav-links > li > a[href]:active,
+a.btn[href]:active,button.btn:active,
+.mps-home-feature:active,.mps-preview-card:active,.mps-hook-card:active,
+.announce-filter:active,.announce-read:active,.ticker-toggle:active{
+  animation-play-state:paused!important;
+}
+@media(prefers-reduced-motion:reduce){
+  .nav-links > li > a[href]:not(.nav-brand),
+  .nav-menu > li > a[href]:not(.nav-brand),
+  a.btn[href]:not([aria-disabled="true"]):not([data-preview-disabled="true"]),
+  button.btn:not(:disabled),a.join-cta,.nav-toggle:not(:disabled),
+  .ticker-toggle:not(:disabled),.announce-filter:not(:disabled),
+  .announce-read:not(:disabled),.mps-arrow:not(:disabled),.contact-link[href],
+  .mps-home-feature,.mps-preview-card,.mps-hook-card,.mps-ib-card,
+  article.card,.card.learning-topic,.announce-card,.service-status-card,
+  .contact-card,.learning-topic{
+    animation-duration:6s!important;
+  }
+}
