@@ -8,8 +8,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#070910",
-  "theme_color": "#080b12",
+  "background_color": "#070912",
+  "theme_color": "#070912",
   "icons": [
     {
       "src": "./assets/mps-app-icon.svg",
