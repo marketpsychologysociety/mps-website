@@ -1499,7 +1499,7 @@ a.btn::after,.btn::after,.join-cta::after,
 /* The clipping boundary is the button itself; glow is deliberately kept subtle. */
 .btn,.btn-gold,button,.join-cta,.nav-join,.pwa-install-btn{
   position:relative!important;isolation:isolate!important;overflow:hidden!important;
-  border-radius:12px!important;clip-path:inset(0 round 12px);
+  clip-path:none!important;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
   transition:transform .13s cubic-bezier(.2,.85,.25,1),filter .13s ease,
     box-shadow .16s ease!important;
