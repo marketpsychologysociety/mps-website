@@ -857,7 +857,7 @@ body{background:var(--bg);color:var(--text)}
 .card,.form-card{background:linear-gradient(145deg,#151923,#0d1017);border-color:var(--line)}
 .page-head{background:radial-gradient(ellipse at top,rgba(220,235,0,.10),transparent 60%);border-bottom-color:var(--line)}
 .btn{border-color:var(--gold)}
-.btn-gold{background:linear-gradient(135deg,#27dfff,#27dfff 58%,#8f8a00);color:#090a05}
+.btn-gold{background:linear-gradient(135deg,#27dfff,#27dfff 58%,#27dfff);color:#090a05}
 .btn-outline{color:var(--gold2)}
 .btn:hover{box-shadow:0 8px 26px rgba(220,235,0,.18)}
 :focus-visible{outline-color:var(--gold2)}
@@ -986,7 +986,7 @@ a.btn[href*="join"]:hover,a.btn[href*="deposit-confirmation"]:hover,
   box-shadow:0 0 0 1px rgba(239,255,75,.08),0 12px 38px rgba(0,0,0,.32),0 0 24px rgba(239,255,75,.075);
 }
 .nav-links a.active,.nav-links a:hover{ text-shadow:0 0 12px rgba(239,255,75,.35) }
-.nav-join{border:1px solid rgba(239,255,75,.4);border-radius:999px;padding:8px 12px;color:var(--gold2)}
+.nav-join{border:1px solid rgba(39,223,255,.4);border-radius:999px;padding:8px 12px;color:var(--gold2)}
 /* Avoid motion for users who request it; keep high-contrast static states. */
 @media(prefers-reduced-motion:reduce){
   body::before,.hero h1,.section-head h2,.page-head h1,.card h3,.content h2,.content h3,.nav-brand,.footer-brand,
@@ -1165,7 +1165,7 @@ body::before{background:
 
 
 /* MPS NEON BLUE-PINK FINAL THEME */
-:root{--bg:#070912;--panel:#0d1220;--panel2:#111a2c;--gold:#28c7ff;--gold2:#ff4fd8;--text:#f3f7ff;--muted:#a9b6ca;--line:rgba(40,199,255,.28);--mps-blue:#28c7ff;--mps-pink:#ff4fd8;--mps-lime:#b8ff3b;--mps-bull:#ffe45e;--mps-bear:#28c7ff}
+:root{--bg:#070912;--panel:#0d1220;--panel2:#111a2c;--gold:#28c7ff;--gold2:#ff4fd8;--text:#f3f7ff;--muted:#a9b6ca;--line:rgba(40,199,255,.28);--mps-blue:#28c7ff;--mps-pink:#ff4fd8;--mps-lime:#b8ff3b;--mps-bull:#27dfff;--mps-bear:#28c7ff}
 body{background:radial-gradient(ellipse at 12% 8%,rgba(40,199,255,.09),transparent 35%),radial-gradient(ellipse at 88% 16%,rgba(255,79,216,.08),transparent 34%),#070912!important;color:var(--text)!important}
 .navbar{background:rgba(7,9,18,.95)!important;border-bottom-color:rgba(40,199,255,.32)!important;box-shadow:0 6px 28px rgba(0,0,0,.32)}
 .nav-links a:hover,.nav-links a.active{color:#ff80e5!important;text-shadow:0 0 12px rgba(255,79,216,.48)}
@@ -1185,7 +1185,7 @@ body{background:radial-gradient(ellipse at 12% 8%,rgba(40,199,255,.09),transpare
 .mps-ticker{border-color:rgba(40,199,255,.3)!important;background:#080d19!important}
 .ticker-live{color:#b8ff3b!important}.ticker-live i{background:#b8ff3b!important;box-shadow:0 0 12px #b8ff3b!important}
 .mps-bull{border-color:rgba(255,228,94,.62)!important;box-shadow:0 0 22px rgba(255,228,94,.1)!important}
-.mps-bull .mps-animal-symbol{color:#ffe45e!important;filter:drop-shadow(0 0 14px rgba(255,228,94,.72))}.mps-bull strong{color:#ffe45e!important}
+.mps-bull .mps-animal-symbol{color:#27dfff!important;filter:drop-shadow(0 0 14px rgba(39,223,255,.32))}.mps-bull strong{color:#27dfff!important}
 .mps-bear{border-color:rgba(40,199,255,.62)!important;box-shadow:0 0 22px rgba(40,199,255,.12)!important}
 .mps-bear .mps-animal-symbol{color:#28c7ff!important;filter:drop-shadow(0 0 14px rgba(40,199,255,.78))}.mps-bear strong{color:#62dcff!important}
 .mps-animal-card{background:linear-gradient(145deg,#10182a,#090d18)!important}
@@ -1568,9 +1568,9 @@ input[type="button"]:active,input[type="submit"]:active{
   animation:mps-ripple-interaction-repair .62s cubic-bezier(.12,.68,.25,1) forwards!important;
 }
 @keyframes mps-ripple-interaction-repair{
-  0%{transform:translate(-50%,-50%) scale(.2)!important;opacity:.95}
+  0%{transform:translate(-50%,-50%) scale(.2);opacity:.95}
   65%{opacity:.5}
-  100%{transform:translate(-50%,-50%) scale(12)!important;opacity:0}
+  100%{transform:translate(-50%,-50%) scale(12);opacity:0}
 }
 /* Force the CTA highlight to use the clipped button interior, overriding old pointer effects. */
 a.btn[href*="member-portal"]::before,a.btn[href*="page=register"]::before,
