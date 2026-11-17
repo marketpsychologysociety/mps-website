@@ -45,3 +45,12 @@ MPS may present the direct link as the registration button and the matching QR d
 The owner also confirmed access to the Partner Personal Area. This does **not** establish permission for external API integration. The legacy `my.exnessaffiliates.com/api/schema/` documentation and its login/password/token flow must not be mixed with the newer Exness Partnership API key + Ed25519 signing model. Exness confirmation of the approved API product, external-use permission, authentication, scopes, and data terms remains a prerequisite.
 
 No QR image binary is committed by this documentation note; the documented QR destination is the exact payload represented by the image supplied by the owner.
+
+
+## Market Pulse source disclosure contract — candidate update (2026-11-17)
+
+The approved display label remains **XAUUSD M5** for member familiarity, but the dataset and UI must disclose the actual source as **Binance Spot PAXGUSDT**, a gold-market proxy. It is not a broker-forex XAUUSD feed.
+
+The converter now emits a strict `source` object containing provider, symbol, and the explicit non-broker-feed description. The backend validator rejects a missing, altered, or extra provenance field. The public static preview, Market Pulse header, and authenticated member/Admin data note disclose the same source.
+
+Regression evidence: `tests/apps-script/market-pulse-dataset.test.mjs` passed **12/12** on GitHub Actions run [#44037414873](https://github.com/marketpsychologysociety/mps-website/actions/runs/44037414873), exact code/test head `42df8a43fc3abe5cf99f6603bd382b4c742dfa2d`. This is repository CI with synthetic fixtures and local Chromium; no final replacement dataset was supplied, uploaded, or published.
