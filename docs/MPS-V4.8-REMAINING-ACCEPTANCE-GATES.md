@@ -414,3 +414,12 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - Added a regression assertion that the Super Admin configuration mutation acquires and releases exactly one shared ScriptLock before audit. This is VM-level coverage with a lock spy; it does not prove real Apps Script lock scheduling or live spreadsheet behavior.
 - Source commit: `35120e842668575f4a58aef8269ed788a04fbac4`; regression-test commit: `ab401cbbca9d7e3234de32618398986e805b419e`. Source and test were read back from the PR branch after update. CI status for the new head is not yet reported as completed at the time of this note; do not treat this change as CI-verified until a full workflow run succeeds.
 - No production spreadsheet, Script Properties, Drive ACL, bot credential, Telegram configuration, or deployment was touched.
+
+
+## 2026-11-17 — Deposit-proof inherited Drive ACL hardening
+
+- Source review found that deposit-proof upload and Admin proof retrieval checked the configured proof folder's own sharing flag, but did not walk its parent-folder chain. A parent folder with broader inherited sharing could therefore escape the local-folder check.
+- Candidate-only correction: both proof upload and proof approval/retrieval now call the existing fail-closed `assertMpsDriveFolderTreePrivate_` helper, which checks the configured folder and every ancestor folder before proceeding. The helper rejects unverifiable folder IDs/parent traversal and any non-PRIVATE ancestor.
+- Regression test extends the Admin proof-access VM harness with a shared ancestor case and asserts the request fails before any proof file is read. Existing direct-folder and file-level privacy cases remain covered.
+- Source commit: `aedad19c4f52233b9cb5984bbcdb880efb27641e`; regression-test commit: `600c6cb507d67cf5bbdc9b70f14bf2b4e0e006d8`. CI for the new exact head must complete successfully before this fix is considered validated.
+- Scope: this is source/VM-test hardening only. It does not inspect or change live Drive ACLs, production files, member data, Script Properties, or deployment. Live Drive ACL verification remains an acceptance gate.
