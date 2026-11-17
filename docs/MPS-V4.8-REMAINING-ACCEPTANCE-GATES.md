@@ -374,3 +374,11 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - Removed the legacy direct PIN send and direct verifier write. Added a regression contract asserting the legacy path uses the shared hardened issuer and cannot call Telegram or write the PIN verifier directly.
 - GitHub Actions run [#44045574395](https://github.com/marketpsychologysociety/mps-website/actions/runs/44045574395) completed **SUCCESS, 79/79 workflow steps, 0 failures** on the documented candidate update. The PIN delivery regression suite passed **6/6**, including the new legacy-path assertion; Chromium checks passed across 15 pages. The regression suite uses repository Node/V8 tests and does not replace real Apps Script or Telegram test-bot acceptance.
 - This is candidate-branch source only. No production deployment, live member data, Script Properties, Telegram configuration, or production `main` was changed.
+
+## 2026-11-17 — Recovery-code Telegram response-loss handling
+
+- A second audit found that member recovery deleted the one-time challenge whenever Telegram did not return a confirmed success. If Telegram had accepted the message but its response was lost, the member could receive a code that the backend had already invalidated.
+- The candidate now retains the exact 10-minute, one-time challenge on an unconfirmed send. A new recovery request replaces the challenge; the code remains protected by its salted hash, expiry, five-attempt cap, existing rate limits, and verified private Telegram binding.
+- The response remains generic and does not disclose whether an account matched. The audit outcome is recorded as `DELIVERY_UNCONFIRMED`, not a definite delivery failure.
+- Added a regression assertion that challenge persistence precedes Telegram send and ambiguous delivery does not delete the possibly delivered challenge. CI validation is pending for this follow-up change; real Telegram test-bot acceptance remains open.
+- Candidate branch only; no production resources or live member data changed.
