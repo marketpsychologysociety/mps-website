@@ -67,10 +67,27 @@ const MPS_REQUEST_LEDGER = Object.freeze({
   headers: ['Request ID','Fingerprint','Status','Started At','Completed At','Action','Application Ref','Member ID','Result Status']
 });
 
+/**
+ * Public Center is default-deny at the backend. The public config.js flag is
+ * only a UI switch and must never authorize this route by itself.
+ * Enable only by an explicit Script Property set to the exact string 'true'.
+ */
+function isMpsPublicCenterEnabled_() {
+  try {
+    return PropertiesService.getScriptProperties().getProperty('MPS_PUBLIC_CENTER_ENABLED') === 'true';
+  } catch (err) {
+    return false;
+  }
+}
+
 /** Web app entry point. */
 function doGet(e) {
   const p = (e && e.parameter) || {};
   if (p.publicCenter === '1') {
+    if (!isMpsPublicCenterEnabled_()) {
+      return ContentService.createTextOutput('Not Found')
+        .setMimeType(ContentService.MimeType.TEXT);
+    }
     // Static-site bridge is data-only: the browser fetches text and JSON.parse()s
     // the strict envelope; no remote JavaScript is injected or executed.
     const payload=apiGetPublicCenter();
