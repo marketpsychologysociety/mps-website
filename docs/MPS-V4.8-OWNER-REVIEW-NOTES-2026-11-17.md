@@ -81,3 +81,13 @@ This section supersedes the earlier Public Center route finding above for the ca
 - PR #12 remains OPEN / DRAFT / NOT MERGED. The head is `f4b81c289fdde6850e2d224fc268ac1d146fa212`, base `43d9fb9c9383853e9e2d2775393e7e700c18f5d6`; mergeability was true at the time of this checkpoint.
 - No production deployment, live Script Property, Google Sheet, Drive ACL, Telegram setting, trigger, or production resource was changed. The backend flag was not set to true anywhere; Public Center remains disabled.
 - This is isolated candidate CI only. It does not prove execution in a real Apps Script deployment or live data transport.
+
+
+## Member recovery and Exness transparency follow-up — 2026-11-17
+
+- Candidate backend and login UI now include MT5-bound self-service recovery for forgotten PIN and forgotten Member ID. Confirmation is sent only to the previously verified private Telegram chat; Member ID is not returned to the browser. PIN reset uses the existing salted verifier and invalidates sessions through the existing verifier-bound session check.
+- Recovery fallback points to Admin when the old Telegram account is unavailable; Admin must verify existing registration/deposit evidence. This has not been tested against a live Telegram bot or production member.
+- Rebate page now discloses that Exness Partnership API data is **NOT CONNECTED / WAITING FOR PARTNER API ACCESS**, explains the future read-only data model and status semantics, and shows no fabricated live figures. The public page's deposit minimum is aligned to Rp1.000.000, matching Membership.
+- GitHub Actions run #44023899652 passed 78/78 steps on candidate SHA `932904aa2c1f1716bd11c19e0ecd41c0d4f164ec`. Latest doc-only commits after that SHA require their own exact-head CI before claiming a pass for the latest head.
+- Exness integration remains blocked on verified partner API eligibility/access, read-only key, Ed25519 signing-key handling, secure backend signing runtime, verified unique account mapping, and reconciliation acceptance. Do not ask for secrets in chat or commit them.
+- No production deployment, live Apps Script changes, Telegram bot settings, Exness API calls, member data changes, or payout operations were performed.
