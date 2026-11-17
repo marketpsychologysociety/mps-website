@@ -1267,3 +1267,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 .nav-brand img,.hero-logo{filter:drop-shadow(0 0 14px rgba(39,223,255,.28))!important}
 .mps-bull .mps-animal-symbol{filter:grayscale(1) sepia(1) saturate(9) hue-rotate(155deg) brightness(1.25) drop-shadow(0 0 14px rgba(39,223,255,.9))!important}
 .mps-bear .mps-animal-symbol{filter:grayscale(1) sepia(1) saturate(10) hue-rotate(285deg) brightness(1.2) drop-shadow(0 0 14px rgba(255,79,216,.9))!important}
+
+/* Menu lipat di layar besar agar navigasi 11 halaman tidak bertumpuk atau terpotong. */
+@media(min-width:1201px){
+  .nav-toggle{display:block}
+  .navbar{gap:14px}
+  .nav-links{display:none;position:absolute;top:75px;right:max(20px,calc((100% - var(--max))/2));left:auto;width:min(390px,calc(100vw - 40px));max-height:calc(100vh - 90px);overflow:auto;padding:18px 22px 22px;flex-direction:column;align-items:stretch;gap:12px;background:#080d19;border:1px solid rgba(39,223,255,.34);border-radius:0 0 12px 12px;box-shadow:0 16px 40px rgba(0,0,0,.42)}
+  .nav-links.open{display:flex}
+  .nav-links a{font-size:13px;padding:4px 0}
+}
