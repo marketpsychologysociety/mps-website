@@ -2345,3 +2345,30 @@ body:has(.mps-home-hero) .mps-pulse-section{padding-top:54px;padding-bottom:58px
  body:has(.mps-home-hero) .mps-gallery,
  body:has(.mps-home-hero) .mps-pulse-section{padding-top:42px;padding-bottom:42px}
 }
+
+
+/* Correct the brand lockup: the original MPS logo stands alone. */
+body:has(.mps-home-hero) .mps-premium-copy .mps-hero-identity{justify-content:flex-start!important;gap:0!important;margin:0 0 18px!important}
+body:has(.mps-home-hero) .mps-premium-copy .mps-hero-identity .hero-logo{display:block!important;width:76px!important;height:76px!important;margin:0!important;object-fit:contain}
+body:has(.mps-home-hero) .mps-home-proof{padding:20px 0;background:#080f1d;border-bottom:1px solid rgba(244,189,69,.16)}
+body:has(.mps-home-hero) .mps-home-proof-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+body:has(.mps-home-hero) .mps-home-proof-grid article{display:grid;grid-template-columns:34px 1fr;column-gap:10px;align-items:center;padding:9px 17px;border-right:1px solid rgba(130,158,196,.18)}
+body:has(.mps-home-hero) .mps-home-proof-grid article:last-child{border-right:0}
+body:has(.mps-home-hero) .mps-home-proof-grid article>span{grid-row:span 2;color:#f4bd45;font-size:22px;font-weight:900}
+body:has(.mps-home-hero) .mps-home-proof-grid strong{font-size:10px;letter-spacing:1px;color:#f4d58e}
+body:has(.mps-home-hero) .mps-home-proof-grid small{font-size:9px;color:#9eafc5;line-height:1.4}
+body:has(.mps-home-hero) .mps-home-activity{padding:42px 0;background:linear-gradient(100deg,#0b1425,#101d31);border-block:1px solid rgba(71,176,240,.18)}
+body:has(.mps-home-hero) .mps-home-activity-inner{display:flex;align-items:center;justify-content:space-between;gap:28px}
+body:has(.mps-home-hero) .mps-home-activity h2{margin:7px 0;color:#f5d58a;font-size:clamp(22px,3vw,32px)}
+body:has(.mps-home-hero) .mps-home-activity p{max-width:720px;margin:0;color:#afc0d5;font-size:12px;line-height:1.7}
+@media(max-width:700px){
+ body:has(.mps-home-hero) .mps-premium-copy .mps-hero-identity{justify-content:center!important;margin-bottom:10px!important}
+ body:has(.mps-home-hero) .mps-premium-copy .mps-hero-identity .hero-logo{width:56px!important;height:56px!important}
+ body:has(.mps-home-hero) .mps-home-proof{padding:12px 0}
+ body:has(.mps-home-hero) .mps-home-proof-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+ body:has(.mps-home-hero) .mps-home-proof-grid article{padding:9px 8px;border-right:0}
+ body:has(.mps-home-hero) .mps-home-proof-grid article>span{font-size:18px}
+ body:has(.mps-home-hero) .mps-home-proof-grid strong{font-size:9px}
+ body:has(.mps-home-hero) .mps-home-proof-grid small{font-size:8px}
+ body:has(.mps-home-hero) .mps-home-activity-inner{align-items:flex-start;flex-direction:column;gap:18px}
+}
