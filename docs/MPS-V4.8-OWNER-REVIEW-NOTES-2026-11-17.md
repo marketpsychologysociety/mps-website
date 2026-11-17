@@ -68,3 +68,16 @@ The current `docs/MPS-V4.8-REMAINING-ACCEPTANCE-GATES.md` snapshot still cites o
 5. Keep all live operational gates and owner approvals outstanding until separately completed.
 
 **Disposition: REVIEW ONLY — RELEASE NO-GO.**
+
+
+## Follow-up hardening checkpoint — 2026-11-17
+
+This section supersedes the earlier Public Center route finding above for the candidate source at head `f4b81c289fdde6850e2d224fc268ac1d146fa212`.
+
+- Added `isMpsPublicCenterEnabled_()` in `candidates/Code.gs`. The direct `?publicCenter=1` route now returns a generic `Not Found` text response unless Script Property `MPS_PUBLIC_CENTER_ENABLED` is exactly the string `true`. Missing, false, malformed values, and property-read exceptions fail closed. The public `config.js` flag remains false and is not treated as backend authorization.
+- Added isolated regression coverage in `tests/apps-script/api-contract.test.mjs` for absent/false/malformed property values and explicit true, and updated `tests/apps-script/public-ticker-privacy.test.mjs` to load the new backend helper in its isolated GET-bridge harness.
+- GitHub Actions run [#44022596543](https://github.com/marketpsychologysociety/mps-website/actions/runs/44022596543) completed **SUCCESS, 78/78 steps, 0 failed steps** on this exact head. Both new route-gate and existing public-center bridge regression tests passed. The public VIP ticker privacy test also passed.
+- The earlier intermediate run #44022484266 failed because the pre-existing public-center bridge test harness did not load the new helper. That harness was updated; the later exact-head run above passed. Do not treat the intermediate failure as a source runtime failure.
+- PR #12 remains OPEN / DRAFT / NOT MERGED. The head is `f4b81c289fdde6850e2d224fc268ac1d146fa212`, base `43d9fb9c9383853e9e2d2775393e7e700c18f5d6`; mergeability was true at the time of this checkpoint.
+- No production deployment, live Script Property, Google Sheet, Drive ACL, Telegram setting, trigger, or production resource was changed. The backend flag was not set to true anywhere; Public Center remains disabled.
+- This is isolated candidate CI only. It does not prove execution in a real Apps Script deployment or live data transport.
