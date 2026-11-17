@@ -2,6 +2,17 @@
 
 **Scope:** read-only source review of workbench head `5f6a817eab02bd88d91a781b35d3caf7686ddffe` for PR #12. This note records review findings and safe next steps only. It does not authorize merge, deployment, production changes, Public Center activation, or an official draw.
 
+## Current-head reconciliation — 2026-11-17
+
+This reconciliation was added after the original read-only review above. The original review scope/head remains historical; this update is **not** an independent security review and does not claim live operational acceptance.
+
+- Current PR #12 head after the latest test-contract correction: `1a1cd61d59105be67ad9d7cf13b9d1d619aacd8e`. PR remains OPEN / DRAFT / NOT MERGED.
+- Current PR-triggered CI run [#44068537403](https://github.com/marketpsychologysociety/mps-website/actions/runs/44068537403) completed SUCCESS, **79/79 workflow steps, 0 failures**, including the Apps Script API contract suite and Chromium browser checks.
+- The earlier Public Center direct-route finding is closed in candidate source: `isMpsPublicCenterEnabled_()` requires Script Property `MPS_PUBLIC_CENTER_ENABLED` to equal exactly `true`; `doGet(e)` returns generic `Not Found` otherwise. Contract tests cover missing, false, malformed values and explicit enablement in an isolated harness. The frontend flag remains disabled; no live Script Property was changed.
+- The earlier Market Pulse provenance finding is closed in candidate source: the converter emits the exact Binance Spot / `PAXGUSDT` provenance object; the backend validator rejects missing, altered, or extra provenance fields; the candidate UI discloses that PAXGUSDT is a gold-market proxy and not a broker forex XAUUSD feed. The final replacement dataset handoff remains pending.
+- Current release blockers remain unchanged: real isolated GAS/Sheets/ScriptLock/trigger acceptance; actual Drive ACL and direct-route/API authorization; Telegram test-bot delivery/reconciliation; physical Android acceptance; independent security/operational review; real backup/restore evidence; final Market Pulse dataset handoff; and explicit owner release authorization.
+- No production deployment, live Script Property, spreadsheet/member data, Drive ACL, Telegram configuration, trigger, or production resource was changed.
+
 ## Verified GitHub snapshot
 
 - PR: https://github.com/marketpsychologysociety/mps-website/pull/12
