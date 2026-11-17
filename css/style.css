@@ -1242,3 +1242,23 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 
 /* Penyelarasan logo raster lama dengan palet neon biru MPS */
 .nav-brand img,.hero-logo{filter:hue-rotate(145deg) saturate(1.65) drop-shadow(0 0 14px rgba(39,223,255,.28))}
+
+
+/* Penyelesaian identitas MPS: ikon arah pasar neon dan navigasi ringkas. */
+.mps-bull .mps-animal-symbol{
+  filter:grayscale(1) sepia(1) saturate(9) hue-rotate(155deg) brightness(1.25) drop-shadow(0 0 14px rgba(39,223,255,.9))!important;
+}
+.mps-bear .mps-animal-symbol{
+  filter:grayscale(1) sepia(1) saturate(10) hue-rotate(285deg) brightness(1.2) drop-shadow(0 0 14px rgba(255,79,216,.9))!important;
+}
+.mps-bull,.mps-bear{position:relative;overflow:hidden}
+.mps-bull:after,.mps-bear:after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.45;
+  background:linear-gradient(115deg,transparent 20%,rgba(255,255,255,.035) 50%,transparent 78%);
+}
+@media(max-width:1200px){
+  .nav-toggle{display:block}
+  .nav-links{display:none;position:absolute;top:75px;left:0;right:0;max-height:calc(100vh - 80px);overflow:auto;background:#080d19!important;border-bottom:1px solid rgba(39,223,255,.3);padding:15px 22px 22px;flex-direction:column;align-items:flex-start;gap:13px}
+  .nav-links.open{display:flex}
+  .navbar{padding:0 20px}
+}
