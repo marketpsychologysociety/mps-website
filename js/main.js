@@ -1,5 +1,14 @@
 (() => {
   const cfg = window.MPS_CONFIG || {};
+
+  if (cfg.previewMode === true) {
+    document.querySelectorAll("a[data-preview-disabled=\"true\"]").forEach(link => {
+      link.removeAttribute("href");
+      link.setAttribute("aria-disabled", "true");
+      link.classList.add("mps-preview-disabled");
+      link.title = "Belum aktif dalam pratinjau statis";
+    });
+  }
   const toggle = document.getElementById("navToggle");
   const nav = document.getElementById("navLinks");
 
