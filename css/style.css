@@ -1422,3 +1422,22 @@ a.btn[href*="join"]::after,a.btn[href*="deposit-confirmation"]::after,
 .mps-bear-panel,.signal-bear-panel{background:rgba(255,79,216,.07)!important;border-color:rgba(255,79,216,.34)!important}
 .mps-click-ripple{z-index:1!important}
 .btn>:not(.mps-click-ripple),button>:not(.mps-click-ripple),.nav-join>:not(.mps-click-ripple),.pwa-install-btn>:not(.mps-click-ripple){position:relative;z-index:2}
+
+/* Uniform button palette: electric blue → violet → fluorescent pink, with no legacy red/gold pulse. */
+.btn,.btn-gold,.join-cta,.nav-join,.pwa-install-btn{
+  border-color:rgba(39,223,255,.62)!important;
+}
+.btn-gold,.join-cta,
+a.btn[href*="member-portal"],a.btn[href*="page=register"],a.btn[href*="join"],
+a.btn[href*="deposit-confirmation"],#joinForm button.btn[type="submit"],
+#step2Next a.btn-gold{
+  color:#07101b!important;
+  -webkit-text-fill-color:#07101b!important;
+  background:linear-gradient(115deg,#27dfff 0%,#7c5cff 52%,#ff4fd8 100%)!important;
+}
+.btn{box-shadow:0 0 10px rgba(39,223,255,.10)!important}
+.btn:hover,.btn-gold:hover,.join-cta:hover{
+  box-shadow:0 0 13px rgba(39,223,255,.20),0 0 16px rgba(255,79,216,.13)!important;
+}
+.btn-outline{color:#27dfff!important;border-color:rgba(39,223,255,.65)!important}
+.nav-join{color:#ff4fd8!important;-webkit-text-fill-color:#ff4fd8!important}
