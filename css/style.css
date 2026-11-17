@@ -2649,3 +2649,13 @@ a.btn[href]:active,button.btn:active,
     animation-duration:6s!important;
   }
 }
+
+
+/* v4.1 coverage fix: include generic div.card containers used on portal, system and membership pages. */
+.card{
+  animation:mps-important-auto-tap-v4 4.4s ease-in-out infinite!important;
+  transform-origin:center!important;
+  will-change:transform,filter,box-shadow;
+}
+.card:hover{animation-play-state:paused!important}
+@media(prefers-reduced-motion:reduce){.card{animation-duration:6s!important}}
