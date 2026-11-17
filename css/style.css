@@ -1536,3 +1536,64 @@ a.btn[href*="deposit-confirmation"],#joinForm button[type="submit"],#step2Next a
   #step2Next a.btn-gold::after{animation:none!important;display:none!important}
   .mps-click-ripple{animation:none!important;display:none!important}
 }
+
+
+/* MPS v4.8 interaction repair: clear physical press feedback on touch, mouse and keyboard. */
+.btn,button,.nav-join,.pwa-install-btn,input[type="button"],input[type="submit"]{
+  position:relative!important;isolation:isolate!important;overflow:hidden!important;
+  -webkit-tap-highlight-color:transparent!important;touch-action:manipulation;
+  transition:transform .11s cubic-bezier(.2,.8,.2,1),filter .11s ease,box-shadow .14s ease!important;
+}
+.btn.mps-is-pressed,button.mps-is-pressed,.nav-join.mps-is-pressed,
+.pwa-install-btn.mps-is-pressed,input[type="button"].mps-is-pressed,
+input[type="submit"].mps-is-pressed,
+.btn:active,button:active,.nav-join:active,.pwa-install-btn:active,
+input[type="button"]:active,input[type="submit"]:active{
+  transform:translateY(3px) scale(.955)!important;
+  filter:brightness(1.28) saturate(1.2)!important;
+  box-shadow:inset 0 5px 12px rgba(0,0,0,.38),0 0 0 2px rgba(39,223,255,.32),
+    0 0 18px rgba(255,79,216,.28)!important;
+}
+.btn.mps-is-pressed > *,button.mps-is-pressed > *,
+.nav-join.mps-is-pressed > *, .pwa-install-btn.mps-is-pressed > *{
+  transform:translateY(1px)!important;
+}
+.mps-click-ripple{
+  position:absolute!important;left:0;top:0;width:16px!important;height:16px!important;
+  display:block!important;z-index:5!important;pointer-events:none!important;
+  border:0!important;border-radius:50%!important;padding:0!important;margin:0!important;
+  background:radial-gradient(circle,rgba(255,255,255,.98) 0%,rgba(39,223,255,.72) 28%,
+    rgba(255,79,216,.42) 58%,transparent 76%)!important;
+  transform:translate(-50%,-50%) scale(0)!important;opacity:.95!important;
+  animation:mps-ripple-interaction-repair .62s cubic-bezier(.12,.68,.25,1) forwards!important;
+}
+@keyframes mps-ripple-interaction-repair{
+  0%{transform:translate(-50%,-50%) scale(.2)!important;opacity:.95}
+  65%{opacity:.5}
+  100%{transform:translate(-50%,-50%) scale(12)!important;opacity:0}
+}
+/* Force the CTA highlight to use the clipped button interior, overriding old pointer effects. */
+a.btn[href*="member-portal"]::before,a.btn[href*="page=register"]::before,
+a.btn[href*="join"]::before,a.btn[href*="deposit-confirmation"]::before,
+.join-cta::before,#joinForm button.btn[type="submit"]::before,
+#step2Next a.btn-gold::before{content:none!important;display:none!important}
+a.btn[href*="member-portal"]::after,a.btn[href*="page=register"]::after,
+a.btn[href*="join"]::after,a.btn[href*="deposit-confirmation"]::after,
+.join-cta::after,#joinForm button.btn[type="submit"]::after,
+#step2Next a.btn-gold::after{
+  content:""!important;display:block!important;position:absolute!important;
+  top:0!important;bottom:0!important;left:-42%!important;width:27%!important;height:100%!important;
+  border:0!important;border-radius:inherit!important;pointer-events:none!important;
+  transform:skewX(-19deg)!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.48),transparent)!important;
+  animation:mps-cta-sheen-interaction-repair 3.6s ease-in-out infinite!important;
+}
+@keyframes mps-cta-sheen-interaction-repair{
+  0%,20%{left:-42%;opacity:0}
+  32%{opacity:.88}
+  64%,100%{left:125%;opacity:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .mps-click-ripple{animation:none!important;opacity:0!important}
+  .btn,button,.nav-join,.pwa-install-btn{transition:transform .08s ease!important}
+}
