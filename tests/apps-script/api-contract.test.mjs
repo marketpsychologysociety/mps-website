@@ -18,9 +18,9 @@ test('Public Center direct route is default-deny unless an exact backend Script 
   assert.ok(routeStart>=0&&routeEnd>routeStart,'doGet route boundaries must exist');
   const gate=code.slice(gateStart,gateEnd);
   const route=code.slice(routeStart,routeEnd);
-  assert.match(gate,/getProperty\('MPS_PUBLIC_CENTER_ENABLED'\\)\\s*===\\s*'true'/);
-  assert.match(gate,/catch\s*\\([^)]*\\)\\s*\\{\\s*return false;/);
-  assert.match(route,/if\s*\\(!isMpsPublicCenterEnabled_\\(\)\)/);
+  assert.match(gate,/getProperty\('MPS_PUBLIC_CENTER_ENABLED'\)\s*===\s*'true'/);
+  assert.match(gate,/catch\s*\([^)]*\)\s*\{\s*return false;/);
+  assert.match(route,/if\s*\(!isMpsPublicCenterEnabled_\(\)\)/);
   assert.match(route,/createTextOutput\('Not Found'\)/);
 
   for(const propertyValue of [null,'false','TRUE','1','', 'unexpected']) {
