@@ -4,15 +4,6 @@ on:
   push:
     branches:
       - mps-v4.8-preview-pages
-    paths:
-      - '.github/workflows/deploy-mps-preview.yml'
-      - '*.html'
-      - 'assets/**'
-      - 'css/**'
-      - 'js/**'
-      - 'config.js'
-      - 'manifest.webmanifest'
-      - 'sw.js'
   workflow_dispatch:
 
 permissions:
