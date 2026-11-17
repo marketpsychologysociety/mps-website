@@ -1963,3 +1963,132 @@ input:focus,select:focus,textarea:focus{border-color:#32baff!important;box-shado
 .mps-premium-copy .btn-outline{border-color:#37c6ff!important;color:#b5edff!important;box-shadow:0 0 18px rgba(0,153,255,.18)}
 @media(min-width:1000px){.mps-premium-hero{min-height:780px!important}.mps-premium-art-wrap{height:650px}.mps-premium-copy{padding-bottom:10px!important}}
 @media(max-width:700px){.mps-premium-hero{min-height:600px!important;padding:0 10px 34px!important}.mps-premium-art-wrap{height:430px;top:8px}.mps-premium-copy{padding:0 10px!important}.mps-premium-copy h1{font-size:30px!important}.mps-premium-copy .desc{font-size:13px}.mps-premium-copy .hero-btns{gap:9px}.mps-premium-copy .btn{padding:12px 15px;font-size:12px}}
+
+
+/* MPS HOMEPAGE — layout & palette aligned to the approved first mockup.
+   Identity, logo artwork, brand name and tagline are intentionally untouched. */
+body:has(.mps-home-hero){background:#050914;color:#e9eef8}
+body:has(.mps-home-hero) .navbar{
+  position:relative;z-index:20;min-height:82px;padding:12px clamp(16px,4vw,64px);
+  display:flex;align-items:center;gap:24px;
+  background:linear-gradient(100deg,rgba(5,9,20,.98),rgba(12,18,34,.96));
+  border-bottom:1px solid rgba(244,189,69,.24);
+  box-shadow:0 12px 36px rgba(0,0,0,.32)
+}
+body:has(.mps-home-hero) .nav-brand{flex-shrink:0;gap:12px}
+body:has(.mps-home-hero) .nav-brand img{width:54px;height:54px;object-fit:contain}
+body:has(.mps-home-hero) .nav-brand strong{color:#f5d58a;letter-spacing:.3px}
+body:has(.mps-home-hero) .nav-brand small{color:#9eb4d1;letter-spacing:1.7px}
+body:has(.mps-home-hero) .nav-links{gap:clamp(8px,1.2vw,19px);align-items:center}
+body:has(.mps-home-hero) .nav-links a{font-size:12px;font-weight:750;color:#d4dced;white-space:nowrap;transition:color .2s}
+body:has(.mps-home-hero) .nav-links a:hover{color:#f4bd45}
+body:has(.mps-home-hero) .nav-join{background:linear-gradient(120deg,#ff64d9,#a94bff)!important;color:white!important;border:0!important;border-radius:9px;padding:11px 17px;box-shadow:0 0 22px rgba(222,70,222,.24)}
+body:has(.mps-home-hero) .demo-ticker{background:#0a1222;border-top:1px solid rgba(67,191,255,.18);border-bottom:1px solid rgba(67,191,255,.22);color:#dce8fb}
+body:has(.mps-home-hero) .ticker-live{color:#6ef0a8}
+body:has(.mps-home-hero) .ticker-live i{background:#45e895;box-shadow:0 0 10px #45e895}
+
+/* Hero composition: existing bull/bear artwork is the visual anchor; copy moves left. */
+body:has(.mps-home-hero) .mps-premium-hero{
+  min-height:690px!important;height:min(760px,calc(100vh - 110px));
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;
+  padding:42px clamp(22px,7vw,112px)!important;isolation:isolate;
+  background:radial-gradient(ellipse at 78% 45%,rgba(0,115,255,.15),transparent 42%),linear-gradient(115deg,#050914 0%,#091326 52%,#050914 100%)!important
+}
+body:has(.mps-home-hero) .mps-premium-hero:before{
+  background:radial-gradient(ellipse at 72% 48%,rgba(0,132,255,.18),transparent 39%),radial-gradient(ellipse at 90% 60%,rgba(255,177,38,.12),transparent 35%),linear-gradient(90deg,#050914 0%,rgba(5,9,20,.94) 34%,rgba(5,9,20,.12) 76%,#050914 100%)!important
+}
+body:has(.mps-home-hero) .mps-premium-hero:after{
+  background:linear-gradient(0deg,#050914 0%,transparent 22%,transparent 82%,rgba(5,9,20,.45) 100%)!important
+}
+body:has(.mps-home-hero) .mps-premium-art-wrap{
+  inset:0 0 0 auto!important;width:68%!important;height:100%!important;max-height:none!important;
+  align-items:center;justify-content:flex-end;z-index:-1
+}
+body:has(.mps-home-hero) .mps-premium-art{
+  width:100%!important;height:100%!important;object-fit:contain!important;object-position:center right;
+  filter:drop-shadow(0 0 30px rgba(33,157,255,.2))
+}
+body:has(.mps-home-hero) .mps-premium-copy{
+  width:min(570px,49%)!important;max-width:570px!important;margin:0!important;padding:30px 0!important;
+  text-align:left!important;background:none!important
+}
+body:has(.mps-home-hero) .mps-premium-copy .hero-kicker{justify-content:flex-start;color:#f4c85f!important;letter-spacing:2.5px;font-size:11px}
+body:has(.mps-home-hero) .mps-premium-copy h1{font-size:clamp(34px,4.4vw,62px)!important;line-height:1.04!important;letter-spacing:1px!important;color:#f5d58a!important;text-align:left;text-shadow:0 0 24px rgba(244,189,69,.2)!important}
+body:has(.mps-home-hero) .mps-premium-copy .tagline{font-size:clamp(15px,1.65vw,21px)!important;line-height:1.5;color:#eaf4ff!important;text-shadow:none!important;letter-spacing:.8px}
+body:has(.mps-home-hero) .mps-premium-copy .headline{color:#73d6ff!important;letter-spacing:2px;font-size:11px}
+body:has(.mps-home-hero) .mps-premium-copy .desc{margin:16px 0 22px!important;max-width:510px;color:#c5d1e3!important;line-height:1.8}
+body:has(.mps-home-hero) .mps-premium-copy .hero-btns{justify-content:flex-start}
+body:has(.mps-home-hero) .mps-premium-copy .btn-gold{background:linear-gradient(120deg,#ffe6a0,#e8ad35 58%,#a96b13)!important;border:1px solid #ffe4a0!important;color:#161006!important;box-shadow:0 0 24px rgba(244,189,69,.25)!important}
+body:has(.mps-home-hero) .mps-premium-copy .btn-outline{border-color:#38bfff!important;color:#bceeff!important}
+body:has(.mps-home-hero) .mps-premium-copy .hero-footnote{color:#91a2bb!important;text-align:left}
+
+/* Content rhythm and the mockup's controlled gold / magenta / green / blue accents. */
+body:has(.mps-home-hero) main{background:linear-gradient(180deg,#050914,#081020 45%,#050914)}
+body:has(.mps-home-hero) .mps-intro-section,
+body:has(.mps-home-hero) .mps-pillars-section,
+body:has(.mps-home-hero) .mps-benefits-section,
+body:has(.mps-home-hero) .mps-gallery,
+body:has(.mps-home-hero) .mps-pulse-section{padding-top:76px;padding-bottom:76px}
+body:has(.mps-home-hero) .section-head{max-width:850px;margin:0 auto 34px;text-align:center}
+body:has(.mps-home-hero) .section-head .eyebrow,
+body:has(.mps-home-hero) .eyebrow{color:#f3c65d!important;letter-spacing:2px}
+body:has(.mps-home-hero) .section-head h2{color:#f4d58e!important;text-shadow:0 0 20px rgba(244,189,69,.12)}
+body:has(.mps-home-hero) .section-head p{color:#aebbd0}
+body:has(.mps-home-hero) .mps-hook-grid,
+body:has(.mps-home-hero) .mps-pillar-grid{gap:20px}
+body:has(.mps-home-hero) .mps-hook-card,
+body:has(.mps-home-hero) .mps-pillar-grid .card,
+body:has(.mps-home-hero) .mps-benefit-grid .card{
+  position:relative;overflow:hidden;border-radius:16px!important;
+  background:linear-gradient(145deg,rgba(18,29,49,.96),rgba(7,13,25,.98))!important;
+  border:1px solid rgba(105,165,225,.2)!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.04)!important;
+  transition:transform .25s,border-color .25s,box-shadow .25s
+}
+body:has(.mps-home-hero) .mps-hook-card:hover,
+body:has(.mps-home-hero) .mps-pillar-grid .card:hover,
+body:has(.mps-home-hero) .mps-benefit-grid .card:hover{transform:translateY(-4px);border-color:rgba(244,189,69,.5)!important;box-shadow:0 20px 48px rgba(0,0,0,.36),0 0 22px rgba(244,189,69,.08)!important}
+body:has(.mps-home-hero) .mps-hook-card:nth-child(1){border-top:2px solid #e64bd4!important}
+body:has(.mps-home-hero) .mps-hook-card:nth-child(2){border-top:2px solid #54df9a!important}
+body:has(.mps-home-hero) .mps-hook-card:nth-child(3){border-top:2px solid #39bfff!important}
+body:has(.mps-home-hero) .mps-hook-icon{color:#f4bd45}
+body:has(.mps-home-hero) .mps-quote-band{border:1px solid rgba(244,189,69,.22);border-radius:15px;background:linear-gradient(100deg,rgba(244,189,69,.08),rgba(50,160,255,.05));padding:24px 28px}
+body:has(.mps-home-hero) .mps-exness-section{background:linear-gradient(180deg,#081020,#070c17)}
+body:has(.mps-home-hero) .mps-route-step,
+body:has(.mps-home-hero) .mps-ib-card,
+body:has(.mps-home-hero) .mps-preview-card{border-radius:16px!important}
+body:has(.mps-home-hero) .mps-preview-card:first-child{border-color:rgba(230,75,212,.42)!important}
+body:has(.mps-home-hero) .mps-preview-card:last-child{border-color:rgba(84,223,154,.38)!important}
+body:has(.mps-home-hero) .mps-preview-copy h3{color:#f0a4e8!important}
+body:has(.mps-home-hero) .mps-final-cta{background:radial-gradient(ellipse at center,rgba(24,91,150,.2),transparent 68%),#070c17;border-top:1px solid rgba(65,173,255,.18)}
+body:has(.mps-home-hero) .footer{background:#03060d!important;border-top:1px solid rgba(244,189,69,.25)!important}
+body:has(.mps-home-hero) .footer-brand{color:#f4bd45!important}
+body:has(.mps-home-hero) .footer-tag{color:#72d8ff!important}
+
+/* Tablet and Android layouts retain readable copy and keep the artwork visible. */
+@media(max-width:1050px){
+ body:has(.mps-home-hero) .navbar{align-items:flex-start;flex-wrap:wrap}
+ body:has(.mps-home-hero) .nav-links{flex-wrap:wrap;justify-content:center}
+ body:has(.mps-home-hero) .mps-premium-hero{min-height:660px!important}
+ body:has(.mps-home-hero) .mps-premium-copy{width:54%!important}
+ body:has(.mps-home-hero) .mps-premium-art-wrap{width:65%!important}
+}
+@media(max-width:700px){
+ body:has(.mps-home-hero) .navbar{padding:10px 14px;min-height:70px}
+ body:has(.mps-home-hero) .nav-brand img{width:45px;height:45px}
+ body:has(.mps-home-hero) .mps-premium-hero{height:auto;min-height:0!important;padding:300px 20px 44px!important;align-items:flex-end!important}
+ body:has(.mps-home-hero) .mps-premium-art-wrap{top:0!important;left:0!important;right:0!important;width:100%!important;height:340px!important;max-height:340px!important;justify-content:center!important}
+ body:has(.mps-home-hero) .mps-premium-art{object-position:center top!important;object-fit:contain!important}
+ body:has(.mps-home-hero) .mps-premium-copy{width:100%!important;max-width:none!important;padding:0!important;text-align:center!important}
+ body:has(.mps-home-hero) .mps-premium-copy .hero-kicker{justify-content:center;font-size:9px;letter-spacing:1.6px}
+ body:has(.mps-home-hero) .mps-premium-copy h1{text-align:center!important;font-size:clamp(30px,8vw,42px)!important}
+ body:has(.mps-home-hero) .mps-premium-copy .tagline{font-size:15px!important}
+ body:has(.mps-home-hero) .mps-premium-copy .desc{font-size:13px!important;margin:12px auto 18px!important}
+ body:has(.mps-home-hero) .mps-premium-copy .hero-btns{justify-content:center;flex-wrap:wrap}
+ body:has(.mps-home-hero) .mps-premium-copy .hero-footnote{text-align:center;font-size:10px}
+ body:has(.mps-home-hero) .mps-intro-section,
+ body:has(.mps-home-hero) .mps-pillars-section,
+ body:has(.mps-home-hero) .mps-benefits-section,
+ body:has(.mps-home-hero) .mps-gallery,
+ body:has(.mps-home-hero) .mps-pulse-section{padding-top:52px;padding-bottom:52px}
+}
