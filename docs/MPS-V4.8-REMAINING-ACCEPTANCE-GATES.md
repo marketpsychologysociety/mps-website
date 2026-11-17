@@ -389,3 +389,12 @@ Historical note from 2026-11-13 (superseded for webhook ingress on 2026-11-16): 
 - The candidate helper now returns without mutating any delivery marker/state when the verifier no longer matches. This preserves the newer issuance's `ACTIVE` state and delivery marker.
 - Added VM regression coverage for stale success as well as stale failure, and runtime fault injection for a possibly delivered recovery code with guaranteed ScriptLock release. GitHub Actions run [#44049472255](https://github.com/marketpsychologysociety/mps-website/actions/runs/44049472255) completed **SUCCESS, 79/79 steps, 0 failures** on exact candidate head `fd7a76483cbd8e64d02b209d39ada4d0d54b67a8`. The PIN/recovery delivery suite passed **9/9**, including both runtime checks; Chromium checks passed across 15 pages.
 - Candidate branch only. No live PIN, member data, Telegram, Script Properties, or production resources were touched.
+
+
+## Exact-head CI verification correction — 2026-11-17
+
+- Rechecked the GitHub Actions job for PR head `13b7d98668ad6420761d9ee0fe1ac466f14a0972`, run [#44049746709](https://github.com/marketpsychologysociety/mps-website/actions/runs/44049746709).
+- The run completed successfully. Although the workflow job is named `validate-pwa`, its actual step list includes the full synthetic validation sequence: schema compatibility, P1.23–P1.33 security/recovery suites, Telegram webhook/journal/outbox and handler reconciliation tests, VIP transition tests, Apps Script API and authorization tests, Market Pulse conversion/access/Drive rollback tests, deposit and PIN delivery regression tests, backup/privacy checks, Admin TOTP MFA, isolated GAS harness static checks, and Chromium browser checks. Every listed step completed with success.
+- This supersedes any earlier note implying run #44049746709 only performed the initial PWA validation. The exact PR head is therefore covered by the full repository CI workflow, not merely a documentation/PWA subset.
+- This remains repository CI with synthetic data and mocked Apps Script, Sheets, Drive, Telegram, and local Chromium. It does not close real isolated Apps Script/Sheets/ScriptLock/trigger acceptance, live Drive ACL checks, Telegram test-bot delivery/reconciliation, physical Android/PWA acceptance, independent security review, or a real backup/restore drill.
+- PR #12 remains OPEN / DRAFT / NOT MERGED. No production resources, member data, credentials, deployment, or production `main` were changed by this verification.
