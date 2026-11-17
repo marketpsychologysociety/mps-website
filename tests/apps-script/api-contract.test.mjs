@@ -51,7 +51,7 @@ test('recovery Telegram destination requires one unique private-chat link with a
   assert.equal(context.findUniqueTelegramAccessForRecovery_(makeSheet([wrongChat]),'MPS-ABCDEF12'),null,'group or mismatched chat must fail closed');
   const noTimestamp=valid.slice();noTimestamp[5]='';
   assert.equal(context.findUniqueTelegramAccessForRecovery_(makeSheet([noTimestamp]),'MPS-ABCDEF12'),null,'unverified link timestamp must fail closed');
-  assert.equal(context.findUniqueTelegramAccessForRecovery_(makeSheet([valid]),'MPS-OTHER123'),'null'==='null'?null:null);
+  assert.equal(context.findUniqueTelegramAccessForRecovery_(makeSheet([]),'MPS-ABCDEF12'),null,'missing link must fail closed');
 });
 test('MT5 recovery lookup accepts only one active approved canonical member record',()=>{
   const name='findActiveMemberForRecovery_';
