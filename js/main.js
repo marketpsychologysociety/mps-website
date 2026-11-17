@@ -116,6 +116,21 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
+// Homepage information ticker: pause/resume the moving text with an accessible state.
+(() => {
+  const ticker = document.querySelector('.mps-home-ticker');
+  const button = ticker && ticker.querySelector('.ticker-toggle');
+  const track = ticker && ticker.querySelector('.ticker-track');
+  if (!button || !track) return;
+  button.addEventListener('click', () => {
+    const paused = button.getAttribute('aria-pressed') !== 'true';
+    button.setAttribute('aria-pressed', String(paused));
+    button.textContent = paused ? 'Lanjut' : 'Jeda';
+    track.style.animationPlayState = paused ? 'paused' : 'running';
+    button.setAttribute('aria-label', paused ? 'Lanjutkan teks berjalan' : 'Jeda teks berjalan');
+  });
+})();
+
 // MPS v4.8 button feedback v3: pointer, touch fallback, keyboard and click confirmation.
 // Uses delegated listeners so dynamically-created controls receive the same feedback.
 (() => {
