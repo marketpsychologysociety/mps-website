@@ -2,7 +2,22 @@
 
 **Scope:** read-only source review of the isolated MPS v4.8 Code.gs candidate. No production deployment, spreadsheet, Script Properties, webhook, or Telegram API was changed or exercised.
 
+## Authoritative current candidate checkpoint — 2026-11-17
+
+This section supersedes older status statements below wherever they conflict. Historical hazard analysis remains useful as rationale, but it is not a current source-status claim.
+
+- **VIP `chat_member` transitions:** candidate source uses durable transition intents/cursors and keyed ticker/audit effects under a scoped ScriptLock. External Telegram follow-up actions run outside the lock and use the durable follow-up queue. This is candidate/mocked behavior; real Apps Script persistence, locking, and Telegram delivery remain unverified.
+- **One-time link confirmation and guidance:** application/legacy success notices and invalid/expired/private-chat guidance use stable update-scoped queue tasks. Raw one-time tokens and PINs are not written into generic notification text.
+- **Admin decisions and archive notices:** approval/rejection member notices and Admin archive alerts are materialized from the durable `DECISION_INTENT` journal after business-state validation, with deterministic child task keys and REVIEW quarantine for ambiguous delivery.
+- **VIP invite delivery:** invite creation records the current invite state and queues a `VIP_INVITE_DM` task. The worker revalidates the exact current invite, Telegram identity, member/deposit eligibility, PIN-delivery confirmation, and expiry before sending. Ambiguous sends are not blindly retried; the invite URL is handled in the dedicated invite-link field, not generic alert text.
+- **Other group/private notices:** `/start` welcomes, join-request notices, and bot-permission alerts use the durable message outbox with stable update/effect keys and REVIEW handling for ambiguous delivery. This is not a global exactly-once guarantee for every Telegram update.
+- **Credential-bearing direct sends remain intentionally separate:** PIN issuance/reset, recovery confirmation codes, and Member ID recovery messages are sent only to the previously verified private Telegram chat. They must not be moved into the generic text queue. A separately reviewed secret-delivery/reconciliation design and live Telegram acceptance remain open.
+- **Manual Admin webhook setup/test messages** are explicit Admin-triggered operations, not automatic webhook handler side effects.
+- **Public VIP ticker identity:** the current approved contract displays a validated real member display name, not the internal Member ID. Public projection excludes unrelated sensitive fields; the Admin projection remains minimized. This supersedes older historical statements below that describe an ID-only public ticker.
+- **Remaining boundaries:** no live Google Apps Script/Sheets/ScriptLock/trigger acceptance, Telegram test-bot delivery, production webhook behavior, or physical Android testing has been performed. Repository CI uses synthetic/mocked services. Do not describe these paths as live-tested or globally exactly-once.
+
 ## Findings
+
 
 ### Newly verified source-level gaps (isolated Code.gs candidate, read-only)
 
