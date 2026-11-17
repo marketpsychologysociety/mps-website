@@ -1160,6 +1160,150 @@ function apiMemberLogin(memberId, pin) {
 }
 
 
+/**
+ * Member self-service recovery. The only browser identifier is the registered MT5
+ * login; the confirmation code is delivered to the previously verified private
+ * Telegram chat. Member ID is never returned to the browser.
+ */
+function mpsRecoveryPropertyKey_(mt5) {
+  return 'MPS_MEMBER_RECOVERY_' + sha256_(String(mt5 || '')).slice(0, 32);
+}
+function findActiveMemberForRecovery_(sheet, mt5) {
+  const last = sheet.getLastRow();
+  if (last < 2) return null;
+  const rows = sheet.getRange(2, MPS_COL.mt5, last - 1, 1).getDisplayValues();
+  const matches = [];
+  for (let i = 0; i < rows.length; i++) {
+    if (String(rows[i][0] || '').replace(/\s+/g, '') === mt5) matches.push(i + 2);
+  }
+  if (matches.length !== 1) return null;
+  const row = matches[0];
+  const record = sheet.getRange(row, 1, 1, MPS.headers.length).getValues()[0];
+  if (String(record[MPS_COL.registrationStatus - 1]) !== 'Berhasil' ||
+      String(record[MPS_COL.depositStatus - 1]) !== 'Disetujui') return null;
+  const memberId = String(record[MPS_COL.id - 1] || '').trim().toUpperCase();
+  if (!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(memberId)) return null;
+  return {row:row, memberId:memberId};
+}
+function apiMemberRecoveryStart(mt5Login, recoveryAction) {
+  const mt5 = String(mt5Login || '').replace(/\s+/g, '');
+  const action = String(recoveryAction || '').toUpperCase();
+  if (!/^\d{5,20}$/.test(mt5) || !['PIN','MEMBER_ID'].includes(action)) {
+    throw new Error('Masukkan nomor MT5 dan pilih jenis pemulihan yang valid.');
+  }
+  consumeRateLimit_('mps_member_recovery_global', 30, 60, 'Permintaan pemulihan terlalu sering. Coba lagi sebentar.');
+  const targetKey = sha256_(mt5).slice(0, 24);
+  consumeRateLimit_('mps_member_recovery_target_' + targetKey, 3, 900, 'Permintaan pemulihan untuk akun ini terlalu sering. Coba lagi 15 menit.');
+  const generic = {ok:true,message:'Jika data cocok dan Telegram MPS Anda masih tertaut, kode konfirmasi satu kali akan dikirim ke chat Telegram pribadi yang terverifikasi.'};
+  const sheet = getMemberSheet_();
+  const member = findActiveMemberForRecovery_(sheet, mt5);
+  if (!member) return generic;
+  let access;
+  try {
+    access = getTelegramAccessSheet_();
+  } catch (err) {
+    return generic;
+  }
+  const accessRow = findTelegramAccessByMemberId_(access, member.memberId);
+  if (!accessRow) return generic;
+  const linked = access.getRange(accessRow, 1, 1, 11).getValues()[0];
+  const userId = String(linked[1] || '').trim();
+  const chatId = String(linked[2] || '').trim();
+  if (!/^\d{3,20}$/.test(userId) || userId !== chatId ||
+      String(linked[0] || '').toUpperCase() !== member.memberId) return generic;
+  const code = Utilities.getUuid().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const salt = Utilities.getUuid().replace(/-/g, '');
+  const challenge = {
+    memberId:member.memberId, action:action, chatId:chatId, salt:salt,
+    codeHash:sha256_(salt + ':' + code), createdAt:Date.now(),
+    expiresAt:Date.now() + 10 * 60 * 1000, attempts:0
+  };
+  const props = PropertiesService.getScriptProperties();
+  const propertyKey = mpsRecoveryPropertyKey_(mt5);
+  props.setProperty(propertyKey, JSON.stringify(challenge));
+  let sent = {ok:false};
+  try {
+    sent = telegramSendToChat_(chatId,
+      '🔐 KONFIRMASI PEMULIHAN AKUN MPS\n\nKode sekali pakai: ' + code +
+      '\nBerlaku 10 menit untuk: ' + (action === 'PIN' ? 'atur PIN baru' : 'meminta kembali Member ID') +
+      '\n\nJangan berikan kode ini kepada siapa pun, termasuk admin MPS.');
+  } catch (err) {
+    console.error('MPS recovery Telegram delivery failed: ' + safeErrorMessage_(err));
+  }
+  if (!sent || !sent.ok) {
+    const current = props.getProperty(propertyKey);
+    if (current === JSON.stringify(challenge)) props.deleteProperty(propertyKey);
+    recordMpsAudit_('SYSTEM','RECOVERY','MEMBER_RECOVERY_CHALLENGE',targetKey,'DELIVERY_FAILED','Konfirmasi pemulihan tidak berhasil dikirim melalui Telegram.');
+    return generic;
+  }
+  recordMpsAudit_('SYSTEM','RECOVERY','MEMBER_RECOVERY_CHALLENGE',member.memberId,'SUCCESS','Tantangan pemulihan ' + action + ' dikirim ke Telegram privat terverifikasi; kode tidak dicatat.');
+  return generic;
+}
+function apiMemberRecoveryComplete(mt5Login, confirmationCode, newPin) {
+  const mt5 = String(mt5Login || '').replace(/\s+/g, '');
+  const code = String(confirmationCode || '').trim().toUpperCase();
+  if (!/^\d{5,20}$/.test(mt5) || !/^[A-F0-9]{8}$/.test(code)) {
+    throw new Error('Kode konfirmasi tidak valid atau sudah kedaluwarsa.');
+  }
+  consumeRateLimit_('mps_member_recovery_complete_global', 60, 60, 'Konfirmasi pemulihan terlalu sering. Coba lagi sebentar.');
+  const targetKey = sha256_(mt5).slice(0, 24);
+  consumeRateLimit_('mps_member_recovery_complete_' + targetKey, 8, 900, 'Konfirmasi pemulihan terlalu sering. Coba lagi 15 menit.');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  let challenge = null, member = null, action = '', pinReset = false;
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const propertyKey = mpsRecoveryPropertyKey_(mt5);
+    const raw = props.getProperty(propertyKey);
+    challenge = raw ? safeParseJson_(raw, null) : null;
+    if (!challenge || !challenge.memberId || !challenge.salt || !challenge.codeHash ||
+        !['PIN','MEMBER_ID'].includes(String(challenge.action)) ||
+        !Number.isFinite(Number(challenge.expiresAt)) || Number(challenge.expiresAt) <= Date.now()) {
+      if (raw) props.deleteProperty(propertyKey);
+      throw new Error('Kode konfirmasi tidak valid atau sudah kedaluwarsa. Mulai pemulihan kembali.');
+    }
+    const sheet = getMemberSheet_();
+    member = findActiveMemberForRecovery_(sheet, mt5);
+    if (!member || member.memberId !== String(challenge.memberId)) {
+      props.deleteProperty(propertyKey);
+      throw new Error('Data member berubah atau tidak dapat diverifikasi. Hubungi Admin MPS.');
+    }
+    if (!constantTimeEquals_(String(challenge.codeHash), sha256_(String(challenge.salt) + ':' + code))) {
+      challenge.attempts = Number(challenge.attempts || 0) + 1;
+      if (challenge.attempts >= 5) props.deleteProperty(propertyKey);
+      else props.setProperty(propertyKey, JSON.stringify(challenge));
+      throw new Error('Kode konfirmasi tidak valid atau sudah kedaluwarsa.');
+    }
+    action = String(challenge.action);
+    if (action === 'PIN') {
+      const pin = String(newPin || '').trim();
+      if (!/^\d{6}$/.test(pin)) throw new Error('PIN baru harus terdiri dari 6 digit angka.');
+      storeMemberPin_(member.memberId, pin);
+      props.setProperty('MPS_PIN_DELIVERED_' + member.memberId, '1');
+      sheet.getRange(member.row, 23).setValue(new Date());
+      pinReset = true;
+    }
+    props.deleteProperty(propertyKey);
+  } finally {
+    lock.releaseLock();
+  }
+  if (pinReset) {
+    recordMpsAudit_('MEMBER',member.memberId,'MEMBER_PIN_RECOVERED','MEMBER_LOGIN','SUCCESS','Member mengatur PIN baru setelah konfirmasi Telegram; sesi lama otomatis tidak berlaku; PIN tidak dicatat.');
+    return {ok:true,message:'PIN baru berhasil disimpan. Sesi sebelumnya tidak berlaku; silakan login kembali menggunakan PIN baru.'};
+  }
+  let sent = {ok:false};
+  try {
+    sent = telegramSendToChat_(String(challenge.chatId),
+      '🔐 PEMULIHAN MEMBER ID MPS BERHASIL\n\nMember ID Anda: ' + member.memberId +
+      '\n\nSimpan informasi ini secara pribadi. Jangan bagikan PIN atau kode verifikasi kepada siapa pun.');
+  } catch (err) {
+    console.error('MPS member ID recovery delivery failed: ' + safeErrorMessage_(err));
+  }
+  recordMpsAudit_('MEMBER',member.memberId,'MEMBER_ID_RECOVERED','MEMBER_LOGIN',sent && sent.ok ? 'SUCCESS' : 'DELIVERY_FAILED','Member ID hanya dikirim ke Telegram privat terverifikasi; tidak dikembalikan ke browser.');
+  if (!sent || !sent.ok) throw new Error('Konfirmasi berhasil, tetapi Telegram belum mengonfirmasi pengiriman Member ID. Ulangi pemulihan atau hubungi Admin MPS.');
+  return {ok:true,message:'Member ID telah dikirim ke chat Telegram pribadi Anda yang terverifikasi.'};
+}
+
 function requireMember_(session) {
   const s=String(session||''),sessionValue=s?CacheService.getScriptCache().get('mps_member_'+sha256_(s)):'';
   const parts=String(sessionValue||'').split('|'),id=parts[0]||'',pinRecord=id?PropertiesService.getScriptProperties().getProperty(pinPropertyKey_(id)):'';
