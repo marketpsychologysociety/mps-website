@@ -23,7 +23,7 @@ test('member self-service recovery is MT5-bound, Telegram-confirmed, rate-limite
   assert.match(complete,/storeMemberPin_\(/);
   assert.match(complete,/MPS_PIN_DELIVERED_/);
   assert.match(complete,/telegramSendToChat_\(String\(challenge\.chatId\)/);
-  assert.doesNotMatch(complete,/return\s*\{\s*ok:true,[^}]*memberId\s*:/);
+  assert.equal(complete.includes('return {ok:true,memberId:'),false,'Member ID must never be returned to the browser');
   assert.match(html,/LUPA PIN \/ ID MEMBER\?/);
   assert.match(html,/apiMemberRecoveryStart/);
   assert.match(html,/apiMemberRecoveryComplete/);
