@@ -481,3 +481,40 @@ Use the current official API reference for exact request parameters and response
 - API configuration and limits: https://www.exness-api.com/partnership/guides/api-configuration-and-limits
 
 **Evidence boundary:** official documentation confirms that the API product and the described operations exist. It does not confirm that MPS is an eligible Exness partner, that any MPS API key exists, that MPS client accounts are attributed correctly, or that an integration has been implemented or tested. The separate Exness Trading API is not required for this partner rebate reporting design.
+
+
+## 2.14 VIP membership activity and retention policy — 60-day inactivity
+
+**Community principle:** MPS is intended for traders who genuinely want to learn, participate, and remain active in their trading development. VIP membership is a participation privilege, not a permanent entitlement independent of the published activity rules. Apply this policy consistently, transparently, and without arbitrary manual targeting.
+
+### Inactivity definition and measurement
+
+- A VIP member is considered inactive when the member's verified, MPS-attributed trading account has **no qualifying executed trading activity for 60 consecutive calendar days**.
+- Measure from the timestamp/date of the last qualifying executed trade reported by the broker/official partner data source, using a single documented timezone for policy calculations (WIB / Asia/Jakarta). Do not treat website login, Telegram group presence, opening the trading platform, pending orders, deposits, withdrawals, or message activity as trading activity.
+- Use official broker/partner reports or another approved, auditable source. A self-reported claim or screenshot alone must not silently reset the inactivity clock; it may be submitted for Admin review.
+- Where multiple trading accounts are officially linked to one member, define the member's activity from any one eligible, verified, MPS-attributed account, unless the published VIP terms explicitly state otherwise. Do not infer attribution from names or fuzzy matches.
+- Store the source, last-activity timestamp, sync timestamp, account-mapping status, and calculation result needed to explain an inactivity decision. Show the member the relevant last-activity date and deadline where practical.
+
+### Notice and removal
+
+- Send a private notice around day 45 and a final reminder around day 55, explaining the last recorded activity date and the day-60 consequence. Notices must not reveal another member's account or activity.
+- At 60 consecutive days of verified inactivity, revoke the member's **VIP group membership** and **VIP-only website entitlements/resources** through authorized server-side controls. Remove or disable the relevant VIP group access through the approved administrative process; do not rely only on hiding a frontend menu.
+- Do not delete the member's MPS account, historical records, audit trail, learning progress, financial/rebate records, deposit history, or other data merely because VIP access is revoked. This policy changes VIP eligibility/access only; it does not cancel a legitimate financial obligation or alter deposit/payment records.
+- If broker reporting is unavailable, stale, incomplete, the account mapping is disputed, or an integration outage could have hidden activity, do not automatically classify the member as inactive. Mark the case **ACTIVITY DATA UNVERIFIED / REVIEW REQUIRED**, pause the automatic removal decision, and reconcile the source before acting.
+- Any Admin override, reinstatement, disputed activity correction, or exception must require an authorized role, a reason, timestamp, evidence reference, and audit event. Do not allow a member-facing request or browser parameter to change the inactivity state directly.
+
+### Rejoining after removal
+
+- A member whose VIP access was revoked for 60-day inactivity and who wants to return must **apply/join again from the beginning of the VIP onboarding process**. This includes the currently required identity/account verification and acceptance of the then-current VIP rules.
+- Rejoining is a new eligibility decision, not an automatic restoration of the previous VIP entitlement. The member must meet the current entry requirements; prior VIP status does not guarantee reapproval.
+- Preserve the original member identity and historical records. Do not create duplicate member records or erase the prior history to simulate a new person. Link the new application/review to the existing canonical member record after identity verification.
+- On successful reapproval, issue fresh VIP entitlements and group access. Old sessions, invitations, and access grants must not be revived automatically.
+
+### Fairness, transparency, and acceptance tests
+
+- Publish the 60-day rule, what counts as activity, the timezone, notice schedule, and rejoining requirement in the VIP terms/member-facing policy before enforcement.
+- Provide a concise member status such as **AKTIF**, **MENDEKATI BATAS INAKTIF**, **DITINJAU**, or **AKSES VIP DICABUT**, with the last verified trading activity date and a clear explanation. Do not expose raw broker credentials or another member's data.
+- Test synthetic cases: activity on day 59 resets the clock; exactly 60 consecutive days without qualifying activity triggers the policy; website/Telegram login alone does not reset it; pending orders/deposits do not count; multiple verified attributed accounts are evaluated consistently; broker outage/stale data pauses enforcement; disputed mappings require review; revoked VIP member cannot access VIP-only pages or APIs directly; historical member/financial records remain unchanged; and rejoining requires fresh verification and approval.
+- This is a policy and implementation requirement only. It does not authorize immediate removal of any existing VIP member, changes to live Telegram groups, member records, access entitlements, or production deployment. Enforcement requires a separately approved rollout after the activity source, member notice, backend revocation paths, audit trail, and test evidence are verified.
+
+**Default rule adopted for the MPS workbench design:** 60 consecutive days without verified executed trading activity; notice on approximately days 45 and 55; VIP group and VIP-only website access revoked at day 60; rejoining requires fresh VIP onboarding and approval.
