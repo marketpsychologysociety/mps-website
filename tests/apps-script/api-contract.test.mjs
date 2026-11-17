@@ -9,6 +9,25 @@ const html=readFileSync(fileURLToPath(new URL('../../candidates/Index.html',impo
 const definitions=new Set([...code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m=>m[1]));
 const calls=[...new Set([...html.matchAll(/\bapi\(\s*['"]([A-Za-z_$][\w$]*)['"]/g)].map(m=>m[1]))].sort();
 
+test('member self-service recovery is MT5-bound, Telegram-confirmed, rate-limited and never discloses Member ID to browser',()=>{
+  const start=body('apiMemberRecoveryStart');
+  const complete=body('apiMemberRecoveryComplete');
+  assert.match(start,/findActiveMemberForRecovery_\(sheet,\s*mt5\)/);
+  assert.match(start,/getTelegramAccessSheet_\(\)/);
+  assert.match(start,/userId\s*!==\s*chatId/);
+  assert.match(start,/telegramSendToChat_\(chatId/);
+  assert.match(start,/mps_member_recovery_target_/);
+  assert.match(complete,/constantTimeEquals_\(/);
+  assert.match(complete,/attempts\s*>=\s*5/);
+  assert.match(complete,/storeMemberPin_\(/);
+  assert.match(complete,/MPS_PIN_DELIVERED_/);
+  assert.match(complete,/telegramSendToChat_\(String\(challenge\.chatId\)/);
+  assert.doesNotMatch(complete,/return\s*\{\s*ok:true,[^}]*memberId\s*:/);
+  assert.match(html,/LUPA PIN \/ ID MEMBER\?/);
+  assert.match(html,/apiMemberRecoveryStart/);
+  assert.match(html,/apiMemberRecoveryComplete/);
+  assert.match(html,/https:\/\/t\.me\/Ndhisolasi/);
+});
 test('Public Center direct route is default-deny unless an exact backend Script Property enables it',()=>{
   const gateStart=code.indexOf('function isMpsPublicCenterEnabled_()');
   const gateEnd=code.indexOf('\nfunction ',gateStart+1);
