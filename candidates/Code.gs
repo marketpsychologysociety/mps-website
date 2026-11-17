@@ -431,7 +431,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted
   if(!bytes||!bytes.length||bytes.length>MPS.maxProofBytes||!isValidImageSignature_(bytes,mime))throw new Error('Ukuran atau isi file bukti tidak valid.');
   const props=PropertiesService.getScriptProperties(),folderId=props.getProperty('MPS_PROOF_FOLDER_ID'),learningId=props.getProperty('MPS_LEARNING_FOLDER_ID');
   if(!folderId||folderId===learningId)throw new Error('Folder bukti belum dikonfigurasi secara terpisah dari folder Learning.');
-  const folder=DriveApp.getFolderById(folderId);if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder bukti deposit tidak PRIVATE. Upload dihentikan.');
+  const folder=DriveApp.getFolderById(folderId);assertMpsDriveFolderTreePrivate_(folder,'bukti deposit');
   const ext=mime==='image/jpeg'?'.jpg':mime==='image/png'?'.png':'.webp',file=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-'+applicationRef+'-'+Utilities.getUuid()+ext));onFileCreated(file);
   file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
   if(String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Izin privat file bukti tidak dapat dipastikan.');
@@ -844,7 +844,7 @@ function validateProofFileForApproval_(proofUrl) {
   if(!match)throw new Error('Bukti deposit tidak memiliki tautan Google Drive yang valid. Admin tidak dapat menyetujui deposit tanpa bukti.');
   const proofFolderId=String(PropertiesService.getScriptProperties().getProperty('MPS_PROOF_FOLDER_ID')||''),learningFolderId=String(PropertiesService.getScriptProperties().getProperty('MPS_LEARNING_FOLDER_ID')||'');
   if(!proofFolderId||proofFolderId===learningFolderId)throw new Error('Folder bukti deposit belum dikonfigurasi terpisah dari folder Learning.');
-  const folder=DriveApp.getFolderById(proofFolderId);if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder bukti deposit tidak PRIVATE. Amankan folder sebelum menyetujui member.');
+  const folder=DriveApp.getFolderById(proofFolderId);assertMpsDriveFolderTreePrivate_(folder,'bukti deposit');
   const file=DriveApp.getFileById(match[1]);if(file.isTrashed()||file.getSize()>MPS.maxProofBytes||!/^image\/(jpeg|png|webp)$/.test(String(file.getMimeType()||'')))throw new Error('File bukti deposit tidak tersedia, terlalu besar, atau formatnya tidak sesuai.');
   if(String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('File bukti deposit tidak PRIVATE. Admin harus mengamankan file sebelum menyetujui member.');
   const proofBytes=file.getBlob().getBytes();
