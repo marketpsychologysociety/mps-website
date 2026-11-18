@@ -12,58 +12,82 @@
   <meta name="apple-mobile-web-app-title" content="MPS">
   <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <title>Market Psychology Society | Disiplin di Atas Impuls</title>
-  <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-neon-bluepink-20261117">
+  <link rel="icon" href="assets/favicon.svg?v=20261117c" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css?v=mps-home-design1-20261118a">
 </head>
 <body>
-<nav class="navbar" aria-label="Navigasi utama">
-  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt=""><span><strong>Market Psychology Society</strong><small>MPS · DISIPLIN DI ATAS IMPULS</small></span></a>
-  <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">☰</button>
+<nav class="navbar mps-home-nav" aria-label="Navigasi utama">
+  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=mps-original-20261118" alt="Logo Market Psychology Society"><span><strong>Market Psychology Society</strong><small>MPS · PREMIUM DARK PRO</small></span></a>
+  <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks" type="button">☰</button>
   <ul class="nav-links" id="navLinks">
-    <li><a href="index.html">Beranda</a></li>
-    <li><a href="system.html">Sistem MPS</a></li>
-    <li><a href="education.html">Edukasi</a></li>
-    <li><a href="membership.html">Keanggotaan</a></li>
-    <li><a href="join.html">Pendaftaran</a></li>
-    <li><a href="member-portal.html">Portal Anggota</a></li>
-    <li><a href="about.html">Tentang MPS</a></li>
-    <li><a href="rewards.html">Apresiasi</a></li>
-    <li><a href="announcements.html">Pengumuman</a></li>
-    <li><a href="rebate.html">Pengembalian Komisi</a></li>
-    <li><a href="contact.html">Kontak</a></li>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="member-portal.html">Member</a></li>
+    <li><a href="education.html">Learning</a></li>
+    <li><a href="system.html">Market Pulse</a></li>
+    <li><a href="announcements.html">News</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a class="mps-nav-login" href="member-portal.html">Login</a></li>
+    <li><a class="nav-join" href="join.html">Daftar</a></li>
     <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button></li>
   </ul>
 </nav>
-<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh teks berjalan pengumuman, data demonstrasi">
-  <span class="ticker-live"><i></i> CONTOH</span>
-  <div class="ticker-window"><div class="ticker-track">
-    <span>SIMULASI: Anggota VIP baru berhasil diaktifkan — Nama Anggota (contoh)</span><b>✦</b>
-    <span>CONTOH: Pengumuman pemenang program komunitas</span><b>✦</b>
-    <span>INFORMASI: Jadwal pemeliharaan akan diumumkan melalui kanal resmi</span><b>✦</b>
-  </div></div>
-  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
-</div>
 
-<header class="hero mps-home-hero">
-  <div class="hero-content reveal">
-    <div class="hero-kicker"><span></span> DISIPLIN · PSIKOLOGI · KOMUNITAS</div>
-    <img src="assets/logo.svg?v=20261104-2" alt="Logo Market Psychology Society" class="hero-logo">
-    <h1>MARKET PSYCHOLOGY<br>SOCIETY</h1>
-    <div class="tagline">DISIPLIN DI ATAS IMPULS</div>
-    <p class="headline">“PASAR TIDAK MEMBERI IMBALAN PADA EMOSI. PASAR MENGHARGAI DISIPLIN.”</p>
-    <p class="desc">Perdagangan bukan hanya tentang mencari peluang. Ini tentang mengelola risiko, memahami psikologi diri, dan membangun kebiasaan yang bisa dievaluasi.</p>
+
+<header class="hero mps-home-hero mps-premium-hero">
+  <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1" alt=""></div>
+  <div class="hero-content reveal mps-premium-copy">
+    <div class="hero-kicker"><span></span> MARKET PSYCHOLOGY SOCIETY</div>
+      <h1>Market Psychology<br>Society <span>(MPS)</span></h1>
+    <div class="tagline">Discipline · Psychology · Community</div>
+    <p class="desc">Bersama MPS, kita belajar, berkembang, dan meraih konsistensi dalam dunia trading.</p>
     <div class="hero-btns">
-      <a href="member-portal.html" class="btn btn-gold">Kenali & Daftar MPS</a>
-      <a href="system.html" class="btn btn-outline">Pelajari Sistem Kami</a>
+      <a href="join.html" class="btn btn-gold">Gabung Sekarang <span aria-hidden="true">→</span></a>
+      <a href="#mps-fasilitas" class="btn btn-outline">Pelajari Lebih Lanjut <span aria-hidden="true">▷</span></a>
     </div>
     <p class="hero-footnote">Komunitas edukasi dan diskusi perdagangan independen. Bukan penyedia sinyal atau jaminan keuntungan.</p>
   </div>
 </header>
 
-<section class="mps-market-identity" aria-label="Simbol arah naik dan arah turun MPS">
-  <div class="container mps-animal-grid">
-    <article class="mps-animal-card mps-bull"><span class="mps-animal-symbol" aria-hidden="true">🐂</span><div><strong>BULLISH · BANTENG · ARAH NAIK</strong><p>Melambangkan optimisme pasar dan dominasi tekanan beli.</p></div></article>
-    <article class="mps-animal-card mps-bear"><span class="mps-animal-symbol" aria-hidden="true">🐻</span><div><strong>BEARISH · BERUANG · ARAH TURUN</strong><p>Melambangkan kewaspadaan pasar dan dominasi tekanan jual.</p></div></article>
+<div class="mps-ticker mps-home-ticker" aria-label="Informasi utama MPS">
+  <span class="ticker-live"><i></i> MPS INFO</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>DISIPLIN DI ATAS IMPULS · TRADE SMARTER · GROW STRONGER · TOGETHER</span><b>✦</b>
+    <span>Utamakan manajemen risiko, proses belajar, dan keputusan yang bertanggung jawab</span><b>✦</b>
+    <span>MPS adalah komunitas edukasi dan diskusi perdagangan independen</span><b>✦</b>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
+<section class="mps-home-proof mps-home-stats" aria-label="Ringkasan fasilitas MPS">
+  <div class="container mps-home-proof-grid">
+    <article><span>03</span><strong>PILAR UTAMA</strong><small>Modal · Psikologi · Disiplin</small></article>
+    <article><span>04</span><strong>FASILITAS MPS</strong><small>Pulse · Learning · Community · Dashboard</small></article>
+    <article><span>04</span><strong>MANFAAT ANGGOTA</strong><small>Empat kelompok manfaat keanggotaan</small></article>
+    <article><span>01</span><strong>KOMUNITAS</strong><small>Belajar dan berkembang bersama</small></article>
+  </div>
+</section>
+
+<section class="mps-home-features" id="mps-fasilitas" aria-label="Fasilitas utama MPS">
+  <div class="container">
+    <div class="mps-home-feature-grid">
+      <a class="mps-home-feature mps-feature-pulse" href="member-portal.html"><span class="mps-feature-icon">◈</span><span class="mps-feature-kicker">01 · MARKET INSIGHT</span><strong>Market Pulse</strong><small>Analisa dan update pasar terkini</small><em>Akses sekarang <b>↗</b></em></a>
+      <a class="mps-home-feature mps-feature-learning" href="education.html"><span class="mps-feature-icon">✧</span><span class="mps-feature-kicker">02 · LEARNING</span><strong>Learning</strong><small>Materi edukasi trading dan psikologi</small><em>Mulai belajar <b>↗</b></em></a>
+      <a class="mps-home-feature mps-feature-community" href="member-portal.html"><span class="mps-feature-icon">◎</span><span class="mps-feature-kicker">03 · COMMUNITY</span><strong>Community</strong><small>Bergabung dan berkembang bersama</small><em>Join sekarang <b>↗</b></em></a>
+      <a class="mps-home-feature mps-feature-dashboard" href="member-portal.html"><span class="mps-feature-icon">▦</span><span class="mps-feature-kicker">04 · MEMBER AREA</span><strong>Dashboard</strong><small>Pantau aktivitas dan progress Anda</small><em>Lihat dashboard <b>↗</b></em></a>
+    </div>
+  </div>
+</section>
+
+<section class="mps-home-activity mps-home-latest" aria-label="Aktivitas member terbaru">
+  <div class="container">
+    <div class="mps-latest-heading">
+      <div><span class="eyebrow">✦ MPS COMMUNITY</span><h2>Aktivitas Member Terbaru</h2></div>
+      <a class="btn btn-outline" href="announcements.html">Lihat Semua <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="mps-latest-empty" role="status">
+      <span aria-hidden="true">✦</span>
+      <div><strong>Ruang aktivitas komunitas MPS</strong><p>Aktivitas anggota akan ditampilkan di sini setelah datanya tersedia dan terverifikasi. Tidak ada aktivitas fiktif yang ditampilkan.</p></div>
+    </div>
   </div>
 </section>
 
@@ -110,7 +134,7 @@
     </div>
     <div class="mps-ib-card">
       <div><span class="eyebrow">KEMITRAAN RESMI EXNESS</span><h3>Daftar Exness melalui IB MPS</h3><p>Gunakan tautan rujukan resmi MPS. Kode IB / kode rujukan MPS: <strong>bdthbxwb2q</strong>. Pastikan kamu memahami risiko perdagangan dan ketentuan Exness sebelum membuka akun.</p></div>
-      <a class="btn btn-gold" href="https://one.exnessonelink.com/a/bdthbxwb2q" target="_blank" rel="noopener noreferrer">Daftar akun Exness</a>
+      <a class="btn btn-gold" href="https://one.toexness.com/a/bdthbxwb2q?platform=mobile" target="_blank" rel="noopener noreferrer">Daftar akun Exness</a>
     </div>
     <div class="mps-soft-alert"><span class="alert-icon">⚠</span><div><strong>Jika belum memiliki akun Exness</strong><p>Gunakan tautan rujukan resmi MPS dan masukkan kode IB bdthbxwb2q apabila diminta. Jika akun Exness sudah terdaftar di bawah mitra lain, tanyakan prosedur perubahan mitra langsung kepada Dukungan Exness.</p></div></div>
     <div class="mps-critical-alert"><span class="alert-icon">!</span><div><strong>Penting — jangan membuat akun baru tanpa arahan Exness.</strong><p>Jangan menutup Area Pribadi lama, membuat akun ganda, atau memindahkan dana hanya untuk mengganti mitra. Minta petunjuk langsung dari Dukungan Exness terlebih dahulu. Jangan pernah memberikan kata sandi, kode OTP, atau akses akun kepada admin maupun pihak lain.</p></div></div>
@@ -121,7 +145,7 @@
 
 <section class="mps-benefits-section">
   <div class="container">
-    <div class="section-head"><div class="eyebrow">LEBIH DARI SEKADAR KOMUNITAS PERDAGANGAN</div><h2>Belajar, Terhubung, dan Bertumbuh.</h2><p>MPS menghadirkan ruang komunitas dan program pendukung. Setiap manfaat mengikuti syarat, ketentuan, dan ketersediaan program.</p></div>
+    <div class="section-head"><div class="eyebrow">LEBIH DARI SEKADAR KOMUNITAS PERDAGANGAN</div><h2>Apa Saja yang Sudah Kamu Dapat Selama Trading?</h2><p>Perjalanan trading bukan hanya soal membuka posisi. Di MPS, kamu mendapat ruang belajar, alat bantu, komunitas, dan program apresiasi yang mengikuti ketentuan.</p></div>
     <div class="grid grid-2 mps-benefit-grid">
       <article class="card"><div class="card-num">01</div><h3>Komunitas & Diskusi</h3><p>Ruang untuk berbagi pengalaman, bertanya, dan berdiskusi dengan tetap menghormati proses serta keputusan masing-masing pelaku perdagangan.</p></article>
       <article class="card"><div class="card-num">02</div><h3>Materi & Alat Bantu Edukasi</h3><p>Materi psikologi, manajemen modal, jurnal, daftar periksa, dan alat bantu evaluasi untuk mendukung proses belajar.</p></article>
@@ -132,7 +156,7 @@
     <div class="mps-critical-alert"><span class="alert-icon">!</span><div><strong>Risiko perdagangan — baca sebelum mengambil keputusan</strong><p>Perdagangan valuta asing dan emas berisiko tinggi. Kamu dapat kehilangan sebagian atau seluruh modal. Pengembalian Komisi bukan penggantian kerugian, perlindungan modal, atau jaminan keuntungan. Jangan melakukan deposit atau transaksi hanya untuk mengejar pengembalian komisi, apresiasi, atau komisi mitra.</p></div></div>
     <div class="text-center mt-3"><a href="membership.html" class="btn btn-outline">Pelajari Keanggotaan & Ketentuan</a> <a href="member-portal.html" class="btn btn-gold">Buka Portal Anggota</a></div>
   </div>
-</section>
+</section> 
 
 <section class="mps-gallery">
   <div class="container">
@@ -157,11 +181,11 @@
 <section class="mps-pulse-section">
   <style>
     .mps-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:28px;text-align:left}
-    .mps-preview-card{overflow:hidden;border:1px solid rgba(212,175,55,.35);border-radius:14px;background:linear-gradient(145deg,#171b24,#0b0e14);box-shadow:0 18px 45px rgba(0,0,0,.28)}
+    .mps-preview-card{overflow:hidden;border:1px solid rgba(39,223,255,.35);border-radius:14px;background:linear-gradient(145deg,#171b24,#0b0e14);box-shadow:0 18px 45px rgba(0,0,0,.28)}
     .mps-preview-card img{display:block;width:100%;height:220px;object-fit:cover}
     .mps-preview-copy{padding:22px}
-    .mps-preview-label{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(231,201,139,.4);border-radius:30px;padding:6px 11px;color:var(--gold2);font-size:10px;font-weight:800;letter-spacing:1.4px}
-    .mps-preview-copy h3{margin:13px 0 7px;color:#f0d58a;font-size:21px}
+    .mps-preview-label{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(39,223,255,.4);border-radius:30px;padding:6px 11px;color:var(--gold2);font-size:10px;font-weight:800;letter-spacing:1.4px}
+    .mps-preview-copy h3{margin:13px 0 7px;color:#ff4fd8;font-size:21px}
     .mps-preview-copy p{color:#a6abb7;line-height:1.7;font-size:13px;min-height:66px}
     .mps-preview-copy .btn{margin-top:8px}
     @media(max-width:680px){.mps-preview-grid{grid-template-columns:1fr}.mps-preview-card img{height:190px}.mps-preview-copy p{min-height:0}}
@@ -191,6 +215,15 @@
           <a href="education.html" class="btn btn-gold">Lihat Pratinjau Edukasi</a>
         </div>
       </article>
+      <article class="mps-preview-card mps-community-card">
+        <div class="mps-community-art" aria-hidden="true"><span>✦</span><b>MPS</b><i>COMMUNITY</i></div>
+        <div class="mps-preview-copy">
+          <span class="mps-preview-label">✦ RUANG BERTUMBUH</span>
+          <h3>Community</h3>
+          <p>Diskusi, berbagi pengalaman, dan saling menguatkan dalam membangun disiplin serta psikologi perdagangan yang lebih sehat.</p>
+          <a href="member-portal.html" class="btn btn-gold">Jelajahi Komunitas</a>
+        </div>
+      </article>
     </div>
   </div>
 </section>
@@ -198,9 +231,9 @@
 <section class="mps-final-cta">
   <div class="container text-center">
     <div class="eyebrow">PERJALANAN PERDAGANGAN TAK HARUS SENDIRIAN</div>
-    <h2>Jangan Berjalan Sendiri dalam Perjalanan Tradingmu.</h2>
+    <h2>Bersama MPS, Melangkah Lebih Pasti Menuju Kesuksesan Trading Anda.</h2>
     <p>Kalau kamu ingin belajar lebih terarah, bertukar sudut pandang, dan membangun disiplin bersama komunitas yang menghargai proses, kenali MPS lebih dekat.</p>
-    <div class="hero-btns"><a href="member-portal.html" class="btn btn-gold">Mulai dari Portal Anggota</a><a href="contact.html" class="btn btn-outline">Tanya Admin MPS</a></div>
+    <div class="hero-btns"><a href="join.html" class="btn btn-gold">Gabung Sekarang <span aria-hidden="true">→</span></a><a href="contact.html" class="btn btn-outline">Tanya Admin MPS</a></div>
     <p class="mps-source-note">Bergabung dengan komunitas tidak menjamin hasil perdagangan. Setiap keputusan dan risiko transaksi tetap menjadi tanggung jawab masing-masing pelaku perdagangan.</p>
   </div>
 </section>
@@ -217,7 +250,7 @@
 </footer>
 <div class="float-chat"><a href="mailto:ndhisolasi.music@gmail.com" aria-label="Hubungi MPS melalui Email">✉</a></div>
 <script src="config.js"></script>
-<script src="js/main.js"></script>
+<script src="js/main.js?v=mps-premium-dark-pro-home-20261118e"></script>
 <script src="js/announcements.js"></script>
 <script src="js/public-center.js"></script>
 
