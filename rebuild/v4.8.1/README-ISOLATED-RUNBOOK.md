@@ -51,12 +51,12 @@ This is an initial clean architecture baseline, not a production-ready release.
 - No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, or live Telegram test has been performed.
 - No deployment or production migration is authorized by this runbook.
 
-## Current hardening added in source
+## Google Authenticator setup (isolated project only)\n\n1. First configure both Admin and Super Admin password hash/salt properties.\n2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner.\n3. Add each returned `otpauth://` account to Google Authenticator on the corresponding device. The function refuses to overwrite existing secrets.\n4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.\n5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The current HTML login screen supports Admin; Super Admin login UI still needs to be added.\n\n## Current hardening added in source
 
 - Public registration: temporary limit of 3 attempts per Telegram username per hour.
 - Deposit submission: temporary limit of 3 attempts per Application Ref per hour.
 - Member login: temporary limit of 8 attempts per Member ID per 15 minutes.
-- Approved member PIN: Admin can issue/reset a six-digit PIN from the admin queue. Reset immediately invalidates the previous PIN. The PIN is returned once to the authenticated admin and is not written to Sheets or logs.
+- Approved member PIN: Admin can issue/reset a six-digit PIN from the admin queue. Reset immediately invalidates the previous PIN. The PIN is returned once to the authenticated admin and is not written to Sheets or logs.\n- Admin/Super Admin MFA: separate Google Authenticator TOTP secrets; API login requires six-digit code with ±1 time-step tolerance.
 - Admin login: temporary limit of 8 attempts per 15 minutes; Super Admin: 5 attempts per 15 minutes.
 - Cache keys contain a SHA-256 digest rather than raw usernames or member IDs.
 - Duplicate deposit submission for the same Application Ref is rejected before another proof file is created.
