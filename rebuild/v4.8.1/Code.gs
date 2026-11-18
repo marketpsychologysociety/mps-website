@@ -852,6 +852,41 @@ function handleTelegramChatMember_(event) {
   }
 }
 
+function apiAdminSystemHealth(session) {
+  requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const app=rows_(sheet_('applications')), queue=rows_(sheet_('queue')), journal=rows_(sheet_('journal'));
+  const activeMembers=legacySheet_().getLastRow()>1?legacySheet_().getLastRow()-1:0;
+  const count=(items,stateIndex,state)=>items.filter(r=>String(r[stateIndex])===state).length;
+  return {
+    version:MPS.VERSION,checkedAt:new Date().toISOString(),
+    applications:{total:app.length,pending:count(app,7,'Menunggu Pendaftaran')+count(app,7,'Deposit Dikirim')},
+    memberRows:activeMembers,
+    vipQueue:{pending:count(queue,7,'PENDING'),processing:count(queue,7,'PROCESSING'),retry:count(queue,7,'RETRY'),sent:count(queue,7,'SENT'),joined:count(queue,7,'JOINED')},
+    telegram:{failedUpdates:count(journal,3,'FAILED'),processingUpdates:count(journal,3,'PROCESSING')},
+    configuration:{telegramBot:!!prop_('MPS_TELEGRAM_BOT_TOKEN'),telegramAdminBackup:!!prop_('MPS_TELEGRAM_CHAT_ID'),telegramWebhook:!!prop_('MPS_TELEGRAM_WEBHOOK_SECRET'),vipGroup:!!prop_('MPS_VIP_GROUP_ID'),backupFolder:!!prop_('MPS_BACKUP_FOLDER_ID')},
+    note:'Health summary only; no secrets, IDs, proof links, or member personal details are returned.'
+  };
+}
+
+function apiAdminGetAudit(session) {
+  requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const all=rows_(sheet_('audit')).slice(-50).reverse();
+  return all.map(r=>({at:r[1] instanceof Date?r[1].toISOString():String(r[1]||''),role:String(r[2]),actor:String(r[3]),action:String(r[4]),target:String(r[5]),outcome:String(r[6]),details:clean_(r[7],240)}));
+}
+
+/** Owner-run manual snapshot. No automatic copies or retention deletion are performed. */
+function createMpsBackupSnapshot() {
+  requireOwnerContext_();
+  const props=PropertiesService.getScriptProperties(), dbId=prop_('MPS_SPREADSHEET_ID'), folderId=prop_('MPS_BACKUP_FOLDER_ID');
+  if(!dbId || !folderId) throw new Error('MPS_SPREADSHEET_ID dan MPS_BACKUP_FOLDER_ID wajib diatur.');
+  if(folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup tidak boleh sama dengan folder bukti deposit.');
+  const folder=DriveApp.getFolderById(folderId);
+  if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE) throw new Error('Folder backup harus memiliki akses PRIVATE.');
+  const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
+  const copy=DriveApp.getFileById(dbId).makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
+  return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup manual dibuat di folder privat. Tidak ada file lama yang dihapus.'};
+}
+
 function apiGetPublicVipTicker() {
   const events=rows_(sheet_('vip'));
   const latest=events.filter(r=>r[3]==='JOINED' && (r[6]===true || String(r[6]).toLowerCase()==='true') && (r[7]===true || String(r[7]).toLowerCase()==='true'))
