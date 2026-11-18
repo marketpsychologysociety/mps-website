@@ -3483,6 +3483,9 @@ const MPS_CONTENT = Object.freeze({
 
 /** Public endpoint: hanya konten yang telah dipublikasikan untuk umum. */
 function apiGetPublicCenter() {
+  // google.script.run can invoke global functions directly, bypassing doGet routing.
+  // Enforce the same default-deny feature flag at the API boundary as well.
+  if (!isMpsPublicCenterEnabled_()) throw new Error('Not Found');
   // Public content endpoint: throttle before even serving cached responses.
   consumeRateLimit_('mps_public_center_global',1200,60,'Terlalu banyak permintaan konten publik. Coba lagi sebentar.');
   const cache = CacheService.getScriptCache();
