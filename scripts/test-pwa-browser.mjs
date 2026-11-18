@@ -9,6 +9,7 @@ const mime = {
   '.css':'text/css; charset=utf-8',
   '.js':'text/javascript; charset=utf-8',
   '.svg':'image/svg+xml',
+  '.webp':'image/webp',
   '.png':'image/png',
   '.webmanifest':'application/manifest+json',
   '.woff':'font/woff',
@@ -52,6 +53,23 @@ try {
 
   const first = await page.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
   if (!first || first.status() !== 200) failures.push('Homepage did not return HTTP 200');
+  const homeDesignAssets = await page.evaluate(async () => {
+    const art = document.querySelector('.mps-premium-art');
+    const logo = document.querySelector('.mps-home-nav .nav-brand img');
+    if (!art || !logo) return { ok: false, reason: 'hero artwork or original navbar logo missing' };
+    try { await Promise.all([art.decode(), logo.decode()]); }
+    catch (error) { return { ok: false, reason: 'hero artwork or logo failed to decode: ' + error.message }; }
+    return {
+      ok: art.naturalWidth === 320 && art.naturalHeight === 249 && logo.naturalWidth > 0 && logo.naturalHeight > 0,
+      artWidth: art.naturalWidth, artHeight: art.naturalHeight,
+      artSource: art.getAttribute('src'), logoSource: logo.getAttribute('src'),
+      duplicateHeroLogo: !!document.querySelector('.mps-hero-identity'),
+      stylesheet: document.querySelector('link[rel="stylesheet"]')?.getAttribute('href') || ''
+    };
+  });
+  if (!homeDesignAssets.ok) failures.push('Approved Design 1 hero artwork/original logo failed browser decoding or dimensions: ' + JSON.stringify(homeDesignAssets));
+  if (homeDesignAssets.duplicateHeroLogo) failures.push('Duplicate logo lockup remains inside the homepage hero');
+  if (!homeDesignAssets.stylesheet.includes('mps-home-design1-20261118b')) failures.push('Homepage stylesheet cache version is not the current Design 1 version');
   await page.evaluate(() => navigator.serviceWorker.ready.then(registration => registration.scope));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 10000 })
@@ -233,6 +251,21 @@ try {
   if (!mobileMenu.open || mobileMenu.expanded !== 'true') failures.push('Mobile navigation menu did not open accessibly');
   if (!mobileMenu.installButton) failures.push('PWA install control missing in mobile navigation');
   if (mobileMenu.menuRight > mobileMenu.viewportWidth) failures.push('Mobile navigation extends beyond viewport');
+  const mobileMenuStyles = await mobilePage.evaluate(() => {
+    const join = document.querySelector('#navLinks > li > .nav-join');
+    const toggle = document.getElementById('navToggle');
+    if (!join || !toggle) return { ok: false };
+    const link = getComputedStyle(join), menu = getComputedStyle(toggle);
+    return {
+      ok: link.backgroundColor === 'rgba(0, 0, 0, 0)' && link.borderTopWidth === '0px' &&
+          link.borderRadius === '0px' && link.animationName === 'none' &&
+          menu.animationName === 'none' && menu.transform === 'none',
+      joinBackground: link.backgroundColor, joinBorder: link.borderTopWidth,
+      joinRadius: link.borderRadius, joinAnimation: link.animationName,
+      hamburgerAnimation: menu.animationName, hamburgerTransform: menu.transform
+    };
+  });
+  if (!mobileMenuStyles.ok) failures.push('Homepage hamburger menu must keep Daftar as plain text and the hamburger static: ' + JSON.stringify(mobileMenuStyles));
 
   await mobilePage.evaluate(() => {
     const event = new Event('beforeinstallprompt', { cancelable: true });
@@ -242,6 +275,14 @@ try {
   });
   const androidInstallButton = mobilePage.locator('#installMpsApp');
   if (!await androidInstallButton.isVisible()) failures.push('Android install button did not appear after beforeinstallprompt');
+  const installMenuStyle = await androidInstallButton.evaluate(el => {
+    const s = getComputedStyle(el);
+    return { background: s.backgroundColor, border: s.borderTopWidth, radius: s.borderRadius, animation: s.animationName };
+  });
+  if (installMenuStyle.background !== 'rgba(0, 0, 0, 0)' || installMenuStyle.border !== '0px' ||
+      installMenuStyle.radius !== '0px' || installMenuStyle.animation !== 'none') {
+    failures.push('Pasang Aplikasi MPS must be a plain text dropdown item: ' + JSON.stringify(installMenuStyle));
+  }
   await androidInstallButton.click();
   await mobilePage.waitForFunction(() => document.getElementById('installMpsApp')?.hidden === true);
   const androidPromptCalled = await mobilePage.evaluate(() => window.__mpsInstallPromptCalled === true);

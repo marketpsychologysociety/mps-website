@@ -2779,3 +2779,20 @@ section.mps-final-cta .hero-btns > a.btn:nth-of-type(2){animation-delay:6s!impor
   filter:none!important;
   transform:none!important;
 }
+
+
+/* MPS MOBILE DROPDOWN PLAIN LINKS v4.6 — keep Daftar and Install App text-only in the homepage hamburger menu. */
+@media(max-width:900px){
+ body:has(.mps-home-hero) .mps-home-nav .nav-links > li > .nav-join,
+ body:has(.mps-home-hero) .mps-home-nav .nav-links > li > .pwa-install-btn{
+  display:block!important;width:100%!important;max-width:none!important;
+  padding:10px 4px!important;border:0!important;border-radius:0!important;
+  background:transparent!important;color:#d5deed!important;box-shadow:none!important;
+  text-align:left!important;font-size:12px!important;font-weight:750!important;
+  animation:none!important;transform:none!important;filter:none!important;
+ }
+ body:has(.mps-home-hero) .mps-home-nav .nav-links > li > .nav-join:hover,
+ body:has(.mps-home-hero) .mps-home-nav .nav-links > li > .pwa-install-btn:hover{
+  background:transparent!important;color:#f4bd45!important;
+ }
+}
