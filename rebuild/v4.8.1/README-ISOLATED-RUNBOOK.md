@@ -26,6 +26,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 - `MPS_TELEGRAM_BOT_USERNAME`: bot username without `@`, used to build the post-deposit verification link.
 - Optional Telegram integration: `MPS_TELEGRAM_BOT_TOKEN`, `MPS_TELEGRAM_CHAT_ID` (private admin backup destination), `MPS_TELEGRAM_WEBHOOK_SECRET` (unguessable webhook path secret), and `MPS_VIP_GROUP_ID` (VIP group/channel chat ID).
 - Optional: `MPS_MARKET_PULSE_JSON` for synthetic Pulse payload.
+- Optional backup destination: `MPS_BACKUP_FOLDER_ID`, a separate private Drive folder used only by the owner-run manual snapshot function.
 
 Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into source files or chat.
 
@@ -57,6 +58,8 @@ This is an initial clean architecture baseline, not a production-ready release.
 - After approval, a VIP invitation task is queued. The Admin UI attempts to process it immediately: the bot creates a 48-hour invite link that requires a join request and sends it to the linked member. The webhook approves only the exact linked Telegram user ID; forwarded links are rejected for other accounts. Queue claims are protected against concurrent Admin clicks and stale processing can be retried. Failed deliveries remain in `RETRY`; Admin can run the VIP queue action again.
 - Bot must be an administrator of the VIP group with permission to create invite links. Configure `MPS_VIP_GROUP_ID` and Telegram webhook updates to include `chat_member` and `chat_join_request`. Confirmed `chat_member` joins are matched to an approved member by Telegram user ID; only then is the nickname published to the public VIP ticker. A verified leave removes the prior join from public display.
 - VIP invitation creation, owner-bound join-request approval, confirmed join/leave events, retryable invitation queue, and public nickname ticker are implemented in source. They still require isolated Bot API/group acceptance tests.
+- Admin health summary and the latest 50 audit events are available from the Admin panel. The summary omits secrets and member proof data.
+- `createMpsBackupSnapshot()` is an owner-only manual backup. It requires a separate private `MPS_BACKUP_FOLDER_ID`, refuses the proof folder, creates a timestamped spreadsheet copy, and never auto-deletes older backups. No automatic backup schedule is configured.
 - Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
 - Admin Learning/News publishing and scheduled Public/Member announcements are implemented in source. Actual premium materials and editorial news must still be supplied by Admin; no content has been fabricated. Member billing/QRIS lifecycle and Exness IB status/rebate integration are not implemented. Binance PAXGUSDT M5 fetch logic is implemented but has not been validated against the live API from Apps Script.
 - Proof file storage uses a private file setting, but folder ACL inheritance and direct-file access must be independently verified in the isolated Drive environment.
@@ -104,4 +107,4 @@ These are baseline abuse controls only. They have not been load-tested or verifi
 
 ## Release gate
 
-Do not deploy until all missing workflows are implemented, code is independently reviewed, isolated Apps Script/Sheets/Drive tests pass, Android checks pass, and the owner explicitly approves a deployment plan.
+Domain-copy monitoring, automated offsite backup scheduling/restore drills, QRIS billing lifecycle, Exness IB status/rebate integration, verified premium Learning/News editorial content, and production-grade edge protection remain release blockers. Do not deploy until these workflows are resolved, code is independently reviewed, isolated Apps Script/Sheets/Drive tests pass, Android checks pass, and the owner explicitly approves a deployment plan.
