@@ -633,7 +633,7 @@ function handleTelegramChatMember_(event) {
   if (!legacyRow || legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil') return;
   const events=sheet_('vip'), now=new Date();
   if (isActive) {
-    const already=rows_(events).some(r=>r[1]===memberId && r[3]==='JOINED' && String(r[6])==='true');
+    const already=rows_(events).some(r=>r[1]===memberId && r[3]==='JOINED' && String(r[6])==='true' && (r[7]===true || String(r[7]).toLowerCase()==='true'));
     if (!already) events.appendRow([randomHex_(16),memberId,app[2],'JOINED',userId,now,true,true]);
     const queue=sheet_('queue'), qrow=findRow_(queue,2,'VIP_INVITE:'+memberId);
     if (qrow) { queue.getRange(qrow,8).setValue('JOINED'); queue.getRange(qrow,14).setValue(now); }
