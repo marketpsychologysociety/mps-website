@@ -273,7 +273,7 @@ function totpCode_(base32Secret, counter) {
   const msg = [];
   let n = counter;
   for (let i=7;i>=0;i--) { msg[i]=n & 255; n=Math.floor(n/256); }
-  const hmac = Utilities.computeHmacSha1Signature(msg,key);
+  const hmac = Utilities.computeHmacSignature(Utilities.MacAlgorithm.HMAC_SHA_1,msg,key);
   const offset = hmac[hmac.length-1] & 15;
   const binary = ((hmac[offset]&127)<<24) | ((hmac[offset+1]&255)<<16) | ((hmac[offset+2]&255)<<8) | (hmac[offset+3]&255);
   return ('000000'+String(binary%1000000)).slice(-6);
