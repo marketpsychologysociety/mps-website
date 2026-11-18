@@ -6,7 +6,7 @@
  * - Build/test only in a NEW standalone Apps Script project.
  * - No automatic deployment, webhook registration, trigger creation, or production migration.
  * - The legacy Database Member sheet is never cleared, reordered, or rewritten by provisioning.
- * - Configure Script Properties before use; see docs/rebuild-v4.8.1-runbook.md.
+ * - Configure Script Properties before use; see README-ISOLATED-RUNBOOK.md.
  */
 
 const MPS = Object.freeze({
