@@ -2717,3 +2717,22 @@ section.mps-benefits-section .text-center.mt-3 > a.btn:nth-of-type(1){animation-
 section.mps-benefits-section .text-center.mt-3 > a.btn:nth-of-type(2){animation-delay:3.6s!important}
 section.mps-final-cta .hero-btns > a.btn:nth-of-type(1){animation-delay:4.8s!important}
 section.mps-final-cta .hero-btns > a.btn:nth-of-type(2){animation-delay:6s!important}
+
+
+/* MPS NAV MENU EXCLUSION v4.4 — hamburger trigger and dropdown items stay still. */
+.nav-toggle,
+.nav-links > li > a[href],
+.nav-menu > li > a[href]{
+  animation:none!important;
+  transform:none!important;
+  filter:none!important;
+  box-shadow:none!important;
+  will-change:auto!important;
+}
+.nav-toggle:hover,.nav-toggle:focus-visible,
+.nav-links > li > a[href]:hover,.nav-links > li > a[href]:focus-visible,
+.nav-menu > li > a[href]:hover,.nav-menu > li > a[href]:focus-visible{
+  animation:none!important;
+  transform:none!important;
+  will-change:auto!important;
+}
