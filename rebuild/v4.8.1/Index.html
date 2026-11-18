@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#091321">
+  <meta name="mps-version" content="4.8.1-rebuild">
+  <title>Market Psychology Society</title>
+  <style>
+    :root{--bg:#07111e;--navy:#0b1a2b;--panel:#11243a;--gold:#d8b45a;--gold2:#f1d994;--red:#b83b43;--text:#f4f1e8;--muted:#aab6c5;--line:rgba(216,180,90,.22)}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#1b3048 0,var(--bg) 45%);color:var(--text);font:15px Inter,system-ui,Arial,sans-serif}
+    a{color:var(--gold2)}button,input,select,textarea{font:inherit}button{cursor:pointer}
+    .wrap{width:min(1120px,calc(100% - 28px));margin:auto}.top{position:sticky;top:0;z-index:5;background:#07111eed;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+    .navrow{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:14px}.brand{font-weight:900;letter-spacing:1.5px}.brand span{display:block;color:var(--gold);font-size:10px;letter-spacing:3px;margin-top:4px}
+    nav{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}nav button{border:0;background:transparent;color:#d4dbe4;padding:9px 11px;border-radius:30px;font-size:12px}nav button:hover{background:#d8b45a18;color:var(--gold2)}
+    main{padding:26px 0 60px}.page{display:none}.page.active{display:block}.hero{padding:55px 0 38px;display:grid;grid-template-columns:1.2fr .8fr;gap:25px;align-items:center}
+    .eyebrow{color:var(--gold);font-size:11px;letter-spacing:3px;font-weight:800}.hero h1{font-size:clamp(38px,6vw,66px);line-height:1.02;margin:14px 0}.hero h1 em{color:var(--gold);font-style:normal}.hero p,.muted{color:var(--muted);line-height:1.75}
+    .seal{width:min(290px,70vw);aspect-ratio:1;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;margin:auto;box-shadow:0 0 65px #d8b45a20,inset 0 0 45px #d8b45a12;color:var(--gold2);font: bold 64px Georgia}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.btn{border:1px solid var(--gold);border-radius:99px;padding:12px 19px;background:linear-gradient(135deg,var(--gold2),#a97a2d);color:#101a27;font-size:12px;font-weight:900}.btn.secondary{background:transparent;color:var(--gold2)}.btn.red{background:linear-gradient(135deg,#e77b7f,var(--red));border-color:#e77b7f;color:white}.btn:disabled{opacity:.55}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}.card,.panel{background:linear-gradient(145deg,#142a42,#0d1d30);border:1px solid var(--line);border-radius:17px;padding:20px}.card h3{margin:0 0 8px;color:var(--gold2)}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.7}
+    h2{margin:0 0 8px}.panel{margin:14px 0}.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-top:16px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:#d9e0e9;font-weight:700}.field input,.field select,.field textarea{width:100%;background:#081624;border:1px solid #ffffff25;border-radius:10px;padding:12px;color:var(--text);min-width:0}.field textarea{min-height:90px}.field input:focus,.field select:focus,.field textarea:focus{outline:1px solid var(--gold)}
+    .notice{padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--gold2);background:#d8b45a10;font-size:12px;line-height:1.65;margin:12px 0}.notice.error{color:#ffc5c7;border-color:#b83b4380;background:#b83b4318}.notice.success{color:#b9f0d0;border-color:#72c69a80;background:#72c69a16}
+    .hidden{display:none!important}.result{overflow-wrap:anywhere;font-size:13px}.item{padding:14px 0;border-bottom:1px solid var(--line)}.item:last-child{border:0}.item small{color:var(--muted)}.item p{color:var(--muted);font-size:13px;line-height:1.6}.footer{border-top:1px solid var(--line);padding:25px 0;color:var(--muted);font-size:11px;text-align:center}
+    @media(max-width:760px){.navrow{align-items:flex-start;padding:12px 0;flex-direction:column}nav{justify-content:flex-start}nav button{padding:8px}.hero{grid-template-columns:1fr;padding:35px 0}.seal{width:190px}.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.field.full{grid-column:auto}}
+  </style>
+</head>
+<body>
+<header class="top"><div class="wrap navrow">
+  <div class="brand">MPS <span>MARKET PSYCHOLOGY SOCIETY</span></div>
+  <nav aria-label="Navigasi">
+    <button onclick="go('home')">Beranda</button><button onclick="go('register')">Daftar</button><button onclick="go('deposit')">Deposit</button><button onclick="go('member')">Member</button><button onclick="go('learning')">Learning</button><button onclick="go('pulse')">Market Pulse</button><button onclick="go('news')">News</button><button onclick="go('admin')">Admin</button>
+  </nav>
+</div></header>
+<main class="wrap">
+  <section id="home" class="page active">
+    <div class="hero"><div><div class="eyebrow">Discipline • Mindset • Community</div><h1>Trade with <em>discipline.</em><br>Grow with clarity.</h1>
+      <p>Komunitas pembelajaran psikologi trading, money management, dan disiplin. MPS tidak menjanjikan keuntungan dan tidak meminta password trading atau OTP.</p>
+      <div class="actions"><button class="btn" onclick="go('register')">GABUNG MPS</button><button class="btn secondary" onclick="go('member')">AREA MEMBER</button></div></div><div class="seal">MPS</div></div>
+    <div class="grid"><article class="card"><h3>Money Management</h3><p>Bangun kebiasaan mengelola risiko dan modal secara terukur.</p></article><article class="card"><h3>Trading Psychology</h3><p>Latih disiplin, kesabaran, dan pengambilan keputusan.</p></article><article class="card"><h3>Member Community</h3><p>Belajar dan berdiskusi bersama komunitas MPS.</p></article></div>
+    <div class="notice">Keanggotaan Regular: Rp100.000/bulan melalui QRIS. Active IB Member: tanpa iuran bulanan selama status Exness IB aktif dan syarat MPS terpenuhi. Deposit minimal awal Rp500.000 dilakukan ke akun Exness milik member melalui referral resmi MPS, bukan dibayarkan kepada MPS. Tidak tersedia free trial.</div>
+  </section>
+  <section id="register" class="page"><div class="panel"><div class="eyebrow">MEMBERSHIP</div><h2>Pendaftaran MPS</h2><p class="muted">Pendaftaran awal menghasilkan Application Ref. ID Member baru diterbitkan setelah deposit diverifikasi dan disetujui Admin.</p>
+    <form id="registerForm" class="form">
+      <div class="field"><label>Nama panggilan</label><input name="nickname" required maxlength="60"></div>
+      <div class="field"><label>Username Telegram (tanpa @)</label><input name="telegramUsername" required maxlength="40" placeholder="username"></div>
+      <div class="field"><label>Negara</label><input name="country" required value="Indonesia"></div>
+      <div class="field"><label>Tujuan bergabung</label><select name="goal" required><option value="">Pilih tujuan</option><option>Belajar money management</option><option>Membangun psikologi trading</option><option>Melatih disiplin trading</option><option>Belajar dan berdiskusi bersama</option></select></div>
+      <div class="field full"><label>Catatan (opsional)</label><textarea name="note" maxlength="1000"></textarea></div>
+      <div class="field full"><button class="btn" type="submit">KIRIM PENDAFTARAN</button></div>
+    </form><div id="registerResult" class="notice hidden result"></div>
+  </div></section>
+  <section id="deposit" class="page"><div class="panel"><div class="eyebrow">DEPOSIT VERIFICATION</div><h2>Form deposit</h2><p class="muted">Masukkan Application Ref dari pendaftaran. Bukti disimpan di folder Drive privat yang dikonfigurasi admin.</p>
+    <form id="depositForm" class="form">
+      <div class="field full"><label>Application Ref</label><input name="applicationRef" required placeholder="MPS-APP-..."></div>
+      <div class="field"><label>Nama sesuai akun</label><input name="accountName" required></div><div class="field"><label>Login MT5</label><input name="mt5Login" required></div>
+      <div class="field"><label>Jenis akun</label><select name="accountType" required><option value="">Pilih</option><option>Standard</option><option>Pro</option><option>Raw Spread</option><option>Lainnya</option></select></div>
+      <div class="field"><label>Deposit pertama (IDR)</label><input name="amount" type="number" min="500000" required></div>
+      <div class="field"><label>Tanggal deposit</label><input name="depositDate" type="date" required></div>
+      <div class="field"><label>Bukti deposit (JPG/PNG/WEBP, maks 5 MB)</label><input name="proof" type="file" accept="image/jpeg,image/png,image/webp" required></div>
+      <div class="field full"><button class="btn" type="submit">KIRIM DATA DEPOSIT</button></div>
+    </form><div id="depositResult" class="notice hidden result"></div>
+  </div></section>
+  <section id="member" class="page"><div class="panel"><div class="eyebrow">MEMBER ACCESS</div><h2>Masuk Member</h2>
+    <form id="memberLogin" class="form"><div class="field"><label>ID Member</label><input name="memberId" required></div><div class="field"><label>PIN 6 digit</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></div><div class="field full"><button class="btn">MASUK</button></div></form>
+    <div id="memberResult" class="notice hidden"></div><div id="memberTools" class="actions hidden"><button class="btn secondary" onclick="memberSection('dashboard')">Dashboard</button><button class="btn secondary" onclick="memberSection('learning')">Learning</button><button class="btn secondary" onclick="memberSection('pulse')">Market Pulse</button><button class="btn secondary" onclick="memberSection('news')">News</button><button class="btn red" onclick="logout()">Keluar</button></div><div id="memberContent" class="panel hidden"></div>
+  </div></section>
+  <section id="learning" class="page"><div class="panel"><div class="eyebrow">PREMIUM LEARNING</div><h2>Learning Center</h2><p class="muted">Materi pembelajaran tersedia setelah autentikasi member. Silakan masuk melalui Area Member.</p><button class="btn" onclick="go('member')">MASUK MEMBER</button></div></section>
+  <section id="pulse" class="page"><div class="panel"><div class="eyebrow">MEMBER ONLY</div><h2>MPS Market Pulse</h2><p class="muted">Preview publik. Data lengkap hanya untuk member aktif.</p><div class="notice">Sumber data yang direncanakan: Binance Spot PAXGUSDT sebagai proxy pasar emas, timeframe M5, zona WIB. Ini bukan feed XAUUSD broker Forex.</div><button class="btn" onclick="go('member')">AKSES MEMBER</button></div></section>
+  <section id="news" class="page"><div class="panel"><div class="eyebrow">MARKET INTELLIGENCE</div><h2>News & Review</h2><p class="muted">Analisis berita makroekonomi dan risiko pasar tersedia di area member. Tidak ada jaminan hasil trading.</p><button class="btn" onclick="go('member')">AKSES MEMBER</button></div></section>
+  <section id="admin" class="page"><div class="panel"><div class="eyebrow">CONTROL ROOM</div><h2>Admin MPS</h2><form id="adminLogin" class="form"><div class="field full"><label>Password Admin</label><input name="password" type="password" required autocomplete="current-password"></div><div class="field full"><button class="btn">MASUK ADMIN</button></div></form><div id="adminResult" class="notice hidden"></div><div id="adminQueue" class="hidden"></div></div></section>
+</main>
+<footer class="footer"><div class="wrap">MARKET PSYCHOLOGY SOCIETY • Trade responsibly. Learn continuously.</div></footer>
+<script>
+let adminSession='',memberSession='';
+function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));window.scrollTo({top:0,behavior:'smooth'});}
+function show(id,msg,type){const el=document.getElementById(id);el.className='notice '+(type||'')+' result';el.textContent=msg;el.classList.remove('hidden');}
+function runApi(name,args){return new Promise((resolve,reject)=>{if(!google||!google.script||!google.script.run){reject(new Error('Backend Apps Script belum terhubung.'));return;}google.script.run.withSuccessHandler(resolve).withFailureHandler(e=>reject(new Error(e.message||String(e))))[name](...args);});}
+document.getElementById('registerForm').addEventListener('submit',async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));try{const r=await runApi('apiRegister',[f]);show('registerResult','Pendaftaran tersimpan. Application Ref: '+r.applicationRef+'. Simpan kode ini untuk pengiriman deposit.','success');e.target.reset();}catch(x){show('registerResult',x.message,'error');}});
+document.getElementById('depositForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.target, file=f.elements.proof.files[0];if(!file){show('depositResult','Pilih bukti deposit.','error');return;}if(file.size>5*1024*1024){show('depositResult','Ukuran bukti maksimal 5 MB.','error');return;}try{const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});const data={applicationRef:f.elements.applicationRef.value,accountName:f.elements.accountName.value,mt5Login:f.elements.mt5Login.value,accountType:f.elements.accountType.value,amount:f.elements.amount.value,depositDate:f.elements.depositDate.value,proofMime:file.type,proofBase64:base64};const r=await runApi('apiSubmitDeposit',[data]);show('depositResult','Data deposit terkirim. Status: '+r.status+'.','success');f.reset();}catch(x){show('depositResult',x.message,'error');}});
+document.getElementById('memberLogin').addEventListener('submit',async e=>{e.preventDefault();const f=e.target;try{const r=await runApi('apiMemberLogin',[f.elements.memberId.value,f.elements.pin.value]);memberSession=r.session;document.getElementById('memberTools').classList.remove('hidden');show('memberResult','Login berhasil. Akses member aktif.','success');f.reset();}catch(x){show('memberResult',x.message,'error');}});
+async function memberSection(section){try{const r=await runApi('apiGetMemberContent',[memberSession,section]);const el=document.getElementById('memberContent');el.classList.remove('hidden');el.textContent=section==='pulse'?'Sumber: '+r.source+' | '+r.timeframe+' | '+r.timezone+(r.data?' • Data tersedia':' • Data belum dikonfigurasi'):'Konten '+section+' memerlukan materi yang sudah dipublikasikan oleh admin.';}catch(x){show('memberResult',x.message,'error');}}
+async function logout(){try{await runApi('apiLogout',[memberSession]);}catch(_){}memberSession='';document.getElementById('memberTools').classList.add('hidden');document.getElementById('memberContent').classList.add('hidden');show('memberResult','Sesi telah ditutup.','success');}
+document.getElementById('adminLogin').addEventListener('submit',async e=>{e.preventDefault();try{const r=await runApi('apiAdminLogin',[e.target.elements.password.value]);adminSession=r.session;show('adminResult','Login admin berhasil.','success');await loadAdmin();e.target.reset();}catch(x){show('adminResult',x.message,'error');}});
+async function loadAdmin(){try{const items=await runApi('apiAdminList',[adminSession]);const root=document.getElementById('adminQueue');root.classList.remove('hidden');root.innerHTML='';if(!items.length){root.textContent='Belum ada pengajuan.';return;}items.forEach(item=>{const box=document.createElement('div');box.className='item';const title=document.createElement('strong');title.textContent=item.nickname+' • '+item.applicationRef;const detail=document.createElement('p');detail.textContent='Telegram: @'+item.telegramUsername+' | Status: '+item.status+' | Deposit: '+item.amount;const note=document.createElement('input');note.placeholder='Catatan admin';note.style.cssText='width:100%;padding:10px;background:#081624;color:#fff;border:1px solid #ffffff33;border-radius:8px';const actions=document.createElement('div');actions.className='actions';[['Setujui','APPROVE'],['Tolak','REJECT']].forEach(([label,decision])=>{const b=document.createElement('button');b.className='btn '+(decision==='REJECT'?'red':'');b.textContent=label;b.onclick=async()=>{if(!confirm(label+' pengajuan '+item.applicationRef+'?'))return;try{const r=await runApi('apiAdminReview',[adminSession,item.applicationRef,decision,note.value]);alert('Status: '+r.status+(r.memberId?' • ID Member: '+r.memberId:''));await loadAdmin();}catch(x){alert(x.message);}};actions.appendChild(b);});box.append(title,detail,note,actions);root.appendChild(box);});}catch(x){show('adminResult',x.message,'error');}}
+</script>
+</body></html>
