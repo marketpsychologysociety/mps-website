@@ -984,3 +984,69 @@ Extended the existing child-process crash worker to exercise the P1.31 recovery-
 ## P1.33 — trust journal integrity failure containment (synthetic only)
 
 Removed automatic truncation of incomplete trailing trust-registry journal bytes. Startup now fails closed with `REGISTRY_INTEGRITY_ERROR` and preserves the original file unchanged for manual evidence review. Five new synthetic tests cover malformed complete JSON, hash-chain predecessor mismatch, sequence gap, incomplete tail, and unknown-field tampering; the prior partial-tail test now asserts preservation rather than automatic repair. CI includes the dedicated suite. No automatic repair/quarantine/deletion. Local filesystem and unanchored hash-chain limitations remain; no production or member data touched. Official draw remains **BLOCKED / NO-GO**; roulette remains **SIMULATION ONLY**. See `docs/MPS-P1.33-TRUST-JOURNAL-INTEGRITY-PRESERVATION.md`.
+
+
+## Owner-directed blueprint consolidation — 2026-11-18
+
+This section consolidates previously approved design requirements into the MPS v4.8 workbench plan. It is a planning/acceptance record only. A requirement being documented here does not mean it is implemented, connected to a live service, independently security-reviewed, or approved for production.
+
+### A. Security, anti-abuse, and account protection
+
+- [ ] Maintain the threat model and mandatory controls in `docs/MPS-v4.8-SECURITY-BLUEPRINT.md`: website cloning/phishing, authentication and session takeover, API/object authorization, database and migration safety, private Drive files/uploads, brute force/bots/service disruption, GitHub/hosting/domain takeover, Telegram/external integrations, privacy, monitoring, and incident response.
+- [ ] Complete controlled attack simulations against the isolated candidate: brute force/rate-limit bypass, session theft/replay/revocation, direct API/object-ID manipulation, unauthorized role escalation, malicious uploads, public/private data exposure, webhook spoofing, repository/deployment takeover paths, and abuse/availability limits.
+- [ ] Record each scenario as PASS / FAIL / NOT TESTED with evidence, severity, containment, and remediation. A source review or synthetic test is not a live penetration test.
+- [ ] Obtain an independent security review before release; production protections and provider-level controls remain unverified until checked in their actual environments.
+
+### B. Backup, integrity, and disaster recovery
+
+- [ ] Define backup coverage for member database/Sheets, private Drive files and proofs, Learning content, Pulse datasets, configuration, and required audit records.
+- [ ] Define backup frequency, retention, encryption/access controls, separate recovery access, RPO/RTO, restore ownership, and a documented rollback/reconciliation process.
+- [ ] Perform isolated restore drills and reconcile row counts, schema, file integrity, and application references. Preserve failed/corrupt evidence; never silently overwrite the source.
+- [ ] Distinguish local synthetic SQLite recovery tests from real Google Sheets/Drive backups and production disaster-recovery proof. Live backup coverage and restore remain NOT VERIFIED.
+
+### C. Monitoring, alerting, and incident response
+
+- [ ] Specify monitoring for public website availability, Apps Script execution/errors/quotas, API health, Sheets/Drive access failures, Telegram delivery, Exness sync, Market Pulse freshness/provenance, and unusual Admin/Super Admin activity.
+- [ ] Define alert thresholds, severity, operator ownership, escalation, evidence preservation, containment, credential/session revocation, recovery, and member communication decisions.
+- [ ] Provide a concise operational health summary and an auditable incident log while redacting secrets and minimizing personal data.
+- [ ] Do not mark monitoring as operational until the actual alert route, delivery, and response runbook have been exercised.
+
+### D. Member lifecycle and VIP administration
+
+- [ ] Preserve canonical member identity and historical records across registration, verification, deposit review, activation, suspension, recovery, VIP admission, inactivity review, removal, appeal/reconciliation, and rejoining.
+- [ ] Keep MT5/client-account mapping unique and verified; route missing, duplicate, changed, or disputed mappings to Admin review instead of fuzzy matching.
+- [ ] Include the approved account-recovery flow (forgot PIN / forgot Member ID) and the 60-day verified-trading-inactivity VIP policy, including day-45/day-55 notices, fail-safe handling when broker data is stale/unavailable, audited exceptions, and fresh VIP onboarding after revocation.
+- [ ] Define member-visible status history and a controlled appeal/review path without exposing other members' information.
+- [ ] VIP policy does not authorize automatic action on existing production members; rollout requires verified source data, notice, tests, and separate approval.
+
+### E. Android/iPhone PWA and device acceptance
+
+- [ ] Retain the PWA requirements in P4: manifest identity/scope/icons, service-worker privacy/cache allowlist, update lifecycle, offline fallback, responsive layout, and session continuity.
+- [ ] Test install and standalone launch on physical Android Chrome and iPhone Safari where available; record exact device/OS/browser evidence separately from desktop emulation or Chromium CI.
+- [ ] Test expired/revoked sessions, offline/online transitions, update recovery, safe-area/orientation, and local-data exposure. Physical-device acceptance remains outstanding until evidence is recorded.
+
+### F. Governance, privileged access, and operational change control
+
+- [ ] Maintain a role/access matrix for Admin and Super Admin, least privilege, MFA/step-up verification, credential custody, and separation of production versus preview permissions.
+- [ ] Use dual control for sensitive actions where designed, with actor, approver, reason, timestamp, target, outcome, and correlation/evidence reference in the audit journal.
+- [ ] Require documented review and explicit owner approval for production deployment, database/member-data changes, credential rotation, external API connection, payout-related operations, destructive changes, and irreversible retention settings.
+- [ ] Keep configuration/deployment SOPs, known-good rollback targets, release evidence, complaint/rebate dispute handling, and change/version approvals current.
+
+### G. Exness IB, referral, and member rebate
+
+- [ ] Follow the approved read-only Exness Partnership API design in the Security & Anti-Abuse Blueprint and the detailed member-recovery/Exness note. The API remains NOT CONNECTED / WAITING FOR PARTNER API ACCESS until eligibility, credentials, signing runtime, attribution, mapping, and reconciliation are verified.
+- [ ] Use only the owner-confirmed official MPS referral route and matching QR destination recorded in the Exness section of the blueprint. Referral attribution is not proof of API access or rebate entitlement.
+- [ ] Keep member-level Rebate Saya private and restricted to the authenticated member's own reconciled projection. Never fabricate amounts or equate partner reward with member rebate.
+- [ ] Keep batch, rebate-row, and payment statuses separate; ambiguous or incomplete reconciliation must remain pending/review-required.
+
+### H. Homepage mockup, logo, and visual revision — OPEN PR
+
+- [ ] **Outstanding PR:** revise the homepage visual implementation against the owner-approved **Design 1 — Premium Dark Pro** mockup, with controlled Modern Neon accents. The current homepage mockup/visual treatment is not accepted as final.
+- [ ] Revisit the homepage logo presentation and surrounding header/hero composition as part of that same visual revision. Preserve the approved original MPS logo asset; do not redraw, replace, distort, or add decorative symbols beside the logo without explicit approval.
+- [ ] Reconcile the hero artwork with the approved mockup (gold bull on the left, blue bear on the right, rising chart/arrow, curved globe), and ensure the VIP ticker, compact statistic/focus cards, feature cards, recent activity, CTA, and footer match the approved composition without fabricated member names, metrics, or activity.
+- [ ] Record the visual diff and review the desktop/mobile layouts before closing this PR item. The artwork/logo revision remains a design PR task; it is not marked complete by this documentation update.
+
+### Current external acceptance gates (not waived)
+
+- Live Apps Script/Sheets execution and locking; actual Drive ACL and private-file access; isolated Telegram test-bot delivery; Exness partner API access and account attribution; final replacement Market Pulse dataset verification; physical Android/iPhone testing; independent security review; real backup/restore drill; and explicit owner release approval remain separate gates.
+- PR #12 remains Draft / not merged. No production deployment, database/member-data mutation, live Apps Script change, credential change, Telegram configuration change, Exness API call, or payout action is authorized by this consolidation.
