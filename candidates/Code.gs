@@ -1472,7 +1472,8 @@ function apiAdminSaveLearningCatalog(session,payload) {
   return {ok:true,message:'Katalog materi Learning diperbarui.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 function apiAdminUploadLearningFile(session,payload) {
-  requireSuperAdmin_(session);payload=payload||{};
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_learning_upload_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),3,900,'Upload PDF Learning dibatasi 3 kali per 15 menit.');payload=payload||{};
   const name=clean_(payload.name,120).replace(/[\\/:*?"<>|]/g,'_');
   const title=clean_(payload.title||name.replace(/\.pdf$/i,''),140),category=clean_(payload.category||'Other',60),level=clean_(payload.level||'All Levels',40),description=cleanNewsText_(payload.description,700),status=String(payload.status||'Draft'),order=Number(payload.sortOrder||999);
   if(!/\.pdf$/i.test(name)||!title||!['Published','Draft','Hidden'].includes(status)||!Number.isFinite(order)||order<0)throw new Error('Nama file, judul, status, atau urutan PDF tidak valid.');
@@ -1505,7 +1506,8 @@ function apiAdminUploadLearningFile(session,payload) {
 }
 
 function apiAdminDeleteLearningFile(session,fileId) {
-  requireSuperAdmin_(session);
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_learning_delete_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),5,900,'Penghapusan PDF Learning dibatasi 5 kali per 15 menit.');
   const id=String(fileId||'').trim();if(!/^[A-Za-z0-9_-]{15,}$/.test(id))throw new Error('File ID tidak valid.');
   const folderId=getLearningFolderId_(),file=DriveApp.getFileById(id);
   if(file.isTrashed()||file.getMimeType()!==MimeType.PDF)throw new Error('File bukan PDF Learning aktif.');
@@ -1531,7 +1533,8 @@ function apiAdminValidateMarketPulseUpload(session,payload) {
 }
 
 function apiAdminUploadMarketPulse(session,payload) {
-  requireSuperAdmin_(session);
+  const admin=requireSuperAdmin_(session);
+  consumeRateLimit_('mps_admin_pulse_publish_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),3,900,'Publikasi Market Pulse dibatasi 3 kali per 15 menit.');
   const lock=LockService.getScriptLock();lock.waitLock(20000);
   try{return adminUploadMarketPulseCore_(session,payload);}finally{lock.releaseLock();}
 }
