@@ -110,6 +110,7 @@ function apiRegister(input) {
   const goal = clean_(input.goal,160);
   const note = clean_(input.note,1000);
   if (!nickname || !username || !country || !goal) throw new Error('Lengkapi nama panggilan, username Telegram, negara, dan tujuan.');
+  enforceRateLimit_('register', username, 3, 3600);
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     const sh = sheet_('applications');
@@ -126,6 +127,7 @@ function apiSubmitDeposit(input) {
   input = input || {};
   const ref = clean_(input.applicationRef,40).toUpperCase();
   if (!/^MPS-APP-[A-F0-9]{20}$/.test(ref)) throw new Error('Application Ref tidak valid.');
+  enforceRateLimit_('deposit', ref, 3, 3600);
   const account = clean_(input.accountName,100);
   const login = clean_(input.mt5Login,40);
   const type = clean_(input.accountType,40);
@@ -167,6 +169,7 @@ function apiAdminLogin(password) {
   const expected = prop_('MPS_REBUILD_ADMIN_PASSWORD_HASH');
   const salt = prop_('MPS_REBUILD_ADMIN_PASSWORD_SALT');
   if (!expected || !salt) throw new Error('Kredensial admin belum disiapkan di project test.');
+  enforceRateLimit_('admin-login', 'global', 8, 900);
   const actual = sha256_(salt + String(password || ''));
   if (!constantTimeEquals_(actual,expected)) {
     audit_('UNKNOWN','', 'ADMIN_LOGIN','', 'DENIED','Invalid credentials.');
@@ -179,6 +182,7 @@ function apiSuperAdminLogin(password) {
   const expected = prop_('MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH');
   const salt = prop_('MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT');
   if (!expected || !salt) throw new Error('Kredensial Super Admin belum disiapkan.');
+  enforceRateLimit_('super-login', 'global', 5, 900);
   if (!constantTimeEquals_(sha256_(salt + String(password || '')),expected))
     throw new Error('Password Super Admin tidak valid.');
   return createSession_('SUPER_ADMIN','super-admin');
@@ -228,6 +232,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
 
 function apiMemberLogin(memberId,pin) {
   const id = clean_(memberId,20).toUpperCase(), p = String(pin || '');
+  enforceRateLimit_('member-login', id || 'invalid', 8, 900);
   if (!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id) || !/^\d{6}$/.test(p))
     throw new Error('ID Member atau PIN tidak valid.');
   const sh = legacySheet_(), row = findRow_(sh,1,id);
@@ -321,6 +326,21 @@ function openDb_() {
   return SpreadsheetApp.openById(id);
 }
 function prop_(key) { return PropertiesService.getScriptProperties().getProperty(key) || ''; }
+
+/**
+ * Temporary per-identifier abuse throttle.
+ * Defense-in-depth only; it is not a substitute for edge/WAF controls.
+ */
+function enforceRateLimit_(scope, identifier, limit, windowSeconds) {
+  const cache = CacheService.getScriptCache();
+  const key = 'MPS_RL_' + sha256_(scope + '|' + String(identifier)).slice(0,32);
+  const current = Number(cache.get(key) || 0);
+  if (current >= limit) {
+    audit_('SYSTEM','', 'RATE_LIMIT_BLOCK',scope,'DENIED','Temporary request throttle triggered.');
+    throw new Error('Terlalu banyak percobaan. Tunggu beberapa saat lalu coba kembali.');
+  }
+  cache.put(key, String(current + 1), windowSeconds);
+}
 function findRow_(sh,col,value) {
   if (sh.getLastRow()<2) return 0;
   const found=sh.getRange(2,col,sh.getLastRow()-1,1).createTextFinder(String(value)).matchEntireCell(true).findNext();
