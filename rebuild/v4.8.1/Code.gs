@@ -435,6 +435,55 @@ function apiMemberLogin(memberId,pin) {
   return createSession_('MEMBER',id);
 }
 
+function apiGetAnnouncements(session) {
+  let audience='PUBLIC';
+  if (session) {
+    const actor=requireSession_(session,['MEMBER','ADMIN','SUPER_ADMIN']);
+    audience=actor.role==='MEMBER'?'MEMBER':'ADMIN';
+  }
+  const now=Date.now();
+  return rows_(sheet_('announcements')).filter(r=>{
+    const active=String(r[6]).toLowerCase()==='true' || r[6]===true;
+    const start=new Date(r[4]).getTime(), end=new Date(r[5]).getTime();
+    const visible=active && start<=now && end>=now;
+    const allowed=audience==='ADMIN' || r[3]==='PUBLIC' || (audience==='MEMBER' && r[3]==='MEMBER');
+    return visible && allowed;
+  }).sort((a,b)=>new Date(b[4]).getTime()-new Date(a[4]).getTime()).map(r=>({
+    id:String(r[0]),title:clean_(r[1],120),body:clean_(r[2],1200),audience:String(r[3]),
+    startAt:new Date(r[4]).toISOString(),endAt:new Date(r[5]).toISOString(),active:true
+  }));
+}
+
+function apiAdminListAnnouncements(session) {
+  requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  return rows_(sheet_('announcements')).map(r=>({
+    id:String(r[0]),title:String(r[1]),body:String(r[2]),audience:String(r[3]),
+    startAt:new Date(r[4]).toISOString(),endAt:new Date(r[5]).toISOString(),
+    active:String(r[6]).toLowerCase()==='true' || r[6]===true
+  })).reverse();
+}
+
+function apiAdminSaveAnnouncement(session,input) {
+  const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  input=input||{};
+  const id=clean_(input.id,40);
+  const title=clean_(input.title,120), body=clean_(input.body,1200);
+  const audience=String(input.audience||'PUBLIC').toUpperCase();
+  const start=new Date(String(input.startAt||'')), end=new Date(String(input.endAt||''));
+  const active=input.active===true || String(input.active).toLowerCase()==='true';
+  if (!title || !body || !['PUBLIC','MEMBER'].includes(audience) || isNaN(start.getTime()) || isNaN(end.getTime()) || end<=start)
+    throw new Error('Judul, isi, audiens, dan rentang jadwal pengumuman harus valid.');
+  const sh=sheet_('announcements'), now=new Date(), target=id||('MPS-ANN-'+randomHex_(12));
+  const row=findRow_(sh,1,target);
+  const values=[target,title,body,audience,start,end,active,now,now];
+  if (row) {
+    const created=sh.getRange(row,8).getValue()||now; values[7]=created;
+    sh.getRange(row,1,1,9).setValues([values]);
+  } else sh.appendRow(values);
+  audit_(actor.role,actor.actorId,'ANNOUNCEMENT_SAVED',target,'SUCCESS',audience+'; active='+active);
+  return {ok:true,id:target,active:active};
+}
+
 function apiGetMemberContent(session, section) {
   const actor = requireSession_(session,['MEMBER','ADMIN','SUPER_ADMIN']);
   const key = clean_(section,30).toLowerCase();
