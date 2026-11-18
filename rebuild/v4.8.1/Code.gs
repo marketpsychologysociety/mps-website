@@ -1021,9 +1021,16 @@ function openDb_() {
 }
 function requireOwnerContext_() {
   const expected = prop_('MPS_REBUILD_OWNER_EMAIL').trim().toLowerCase();
-  const actual = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
-  if (!expected || !actual || actual !== expected)
-    throw new Error('Operasi setup hanya boleh dijalankan pemilik project dari Apps Script Editor. Konfigurasikan MPS_REBUILD_OWNER_EMAIL terlebih dahulu.');
+  // In Apps Script editor executions, getActiveUser() may return an empty
+  // email for consumer accounts due to identity disclosure restrictions.
+  // getEffectiveUser() is the executing account for this owner-run setup.
+  const actual = String(Session.getEffectiveUser().getEmail() || '').trim().toLowerCase();
+  if (!expected)
+    throw new Error('MPS_REBUILD_OWNER_EMAIL belum diatur pada Script Properties project ini.');
+  if (!actual)
+    throw new Error('Email akun eksekutor tidak tersedia. Jalankan fungsi dari Apps Script Editor dengan akun pemilik project.');
+  if (actual !== expected)
+    throw new Error('Akun eksekutor tidak cocok dengan MPS_REBUILD_OWNER_EMAIL. Periksa akun Google yang aktif di Apps Script.');
 }
 function prop_(key) { return PropertiesService.getScriptProperties().getProperty(key) || ''; }
 
