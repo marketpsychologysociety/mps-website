@@ -554,7 +554,7 @@ function apiGetMemberContent(session, section) {
     return {section:key,source:'Binance Spot PAXGUSDT — gold-market proxy',timeframe:'M5',timezone:'WIB',disclaimer:'Proxy pasar emas; bukan feed XAUUSD broker Forex.',data:data};
   }
   if (key === 'learning' || key === 'news') {
-    const items=rows_(sheet_(key)).filter(r=>r[7]===true || String(r[key==='learning'?7:9]).toLowerCase()==='true');
+    const items=rows_(sheet_(key)).filter(r=>r[key==='learning'?7:9]===true || String(r[key==='learning'?7:9]).toLowerCase()==='true');
     return {section:key,items:items.map(r=>key==='learning'?{
       id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),resourceUrl:String(r[6]||'')
     }:{
