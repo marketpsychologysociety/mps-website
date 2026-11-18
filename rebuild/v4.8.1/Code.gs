@@ -20,6 +20,16 @@ const MPS = Object.freeze({
     'Link Bukti Deposit','Status Verifikasi Deposit','Catatan Admin',
     'Waktu Konfirmasi','Terakhir Diperbarui'
   ],
+  LEGACY_EXTENDED_HEADERS: [
+    'ID Member','Waktu Daftar','Nama Panggilan','Username Telegram','Negara',
+    'Tujuan Bergabung','Catatan Member','Status Pendaftaran','Nama Sesuai Akun',
+    'Login MT5','Jenis Akun','Deposit Pertama (IDR)','Tanggal Deposit',
+    'Link Bukti Deposit','Status Verifikasi Deposit','Catatan Admin',
+    'Waktu Konfirmasi','Terakhir Diperbarui','Telegram Chat ID',
+    'Telegram Link Token','Telegram Linked At','PIN Hash','PIN Updated At',
+    'Telegram Link Expires At','Application Ref','VIP Invite Link',
+    'VIP Invite Expires At','VIP Joined At','VIP User ID','VIP Status'
+  ],
   SHEETS: {
     applications: {name:'MPS Applications', headers:['Application Ref','Created At','Nickname','Telegram Username','Country','Goal','Note','Status','Member ID','Deposit Submitted At','Telegram Status','Telegram User ID','Telegram Chat ID','Admin Note','Updated At']},
     deposits: {name:'MPS Deposit Applications', headers:['Application Ref','Submitted At','Account Name','MT5 Login','Account Type','Deposit Amount IDR','Deposit Date','Proof File ID','Proof URL','Status','Telegram User ID','Telegram Chat ID','Admin Note','Updated At']},
@@ -91,18 +101,19 @@ function provisionMpsRebuildStorage() {
     sh.getRange(1,1,1,MPS.LEGACY_HEADERS.length).setValues([MPS.LEGACY_HEADERS]);
     sh.setFrozenRows(1);
   } else {
-    const actual = legacy.getRange(1,1,1,Math.max(legacy.getLastColumn(),MPS.LEGACY_HEADERS.length)).getDisplayValues()[0];
-    const first18 = actual.slice(0,MPS.LEGACY_HEADERS.length);
-    if (JSON.stringify(first18) !== JSON.stringify(MPS.LEGACY_HEADERS))
-      throw new Error('Header Database Member tidak cocok. Tidak ada perubahan dilakukan.');
-    if (legacy.getLastColumn() > MPS.LEGACY_HEADERS.length) {
-      const trailing = legacy.getRange(1,MPS.LEGACY_HEADERS.length+1,Math.max(1,legacy.getLastRow()),legacy.getLastColumn()-MPS.LEGACY_HEADERS.length).getDisplayValues();
-      if (trailing.some(r => r.some(v => v !== '')))
-        throw new Error('Kolom tambahan berisi data. Provisioning dihentikan tanpa perubahan.');
+    const width=legacy.getLastColumn();
+    const actual=legacy.getRange(1,1,1,Math.max(width,MPS.LEGACY_HEADERS.length)).getDisplayValues()[0];
+    const first18=actual.slice(0,MPS.LEGACY_HEADERS.length);
+    if (JSON.stringify(first18)!==JSON.stringify(MPS.LEGACY_HEADERS))
+      throw new Error('18 header inti Database Member tidak cocok. Tidak ada perubahan dilakukan.');
+    if (width>MPS.LEGACY_HEADERS.length) {
+      const exact30=width===MPS.LEGACY_EXTENDED_HEADERS.length &&
+        JSON.stringify(actual.slice(0,MPS.LEGACY_EXTENDED_HEADERS.length))===JSON.stringify(MPS.LEGACY_EXTENDED_HEADERS);
+      if (!exact30) throw new Error('Skema tambahan bukan 30 kolom v4.8 yang dikenali. Tidak ada kolom/data yang diubah.');
     }
   }
   Object.keys(MPS.SHEETS).forEach(k => ensureSheet_(ss,MPS.SHEETS[k]));
-  return {ok:true,version:MPS.VERSION,legacyHeaders:MPS.LEGACY_HEADERS.length,auxiliarySheets:Object.keys(MPS.SHEETS).length};
+  return {ok:true,version:MPS.VERSION,legacyHeaders:legacy.getLastColumn(),acceptedSchema:legacy.getLastColumn()===30?'v4.8-30':'legacy-18',auxiliarySheets:Object.keys(MPS.SHEETS).length};
 }
 
 /** Public API: initial application only creates Application Ref, never Member ID. */
