@@ -175,6 +175,8 @@ function apiSubmitDeposit(input) {
     const folderId = prop_('MPS_PROOF_FOLDER_ID');
     if (!folderId) throw new Error('Folder bukti belum dikonfigurasi.');
     const folder = DriveApp.getFolderById(folderId);
+    if (folder.getSharingAccess() !== DriveApp.Access.PRIVATE)
+      throw new Error('Folder bukti deposit harus privat. Periksa akses berbagi folder Drive.');
     const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : 'webp';
     const file = folder.createFile(Utilities.newBlob(bytes,mime,'MPS-PROOF-'+ref+'.'+ext));
     file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
