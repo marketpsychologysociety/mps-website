@@ -40,7 +40,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   if (p.health === '1') return json_({ok:true,service:'MPS Member Backend',version:MPS.VERSION,mode:'rebuild'});
   const page = String(p.page || 'home').toLowerCase();
-  const allowed = ['home','register','deposit','dashboard','learning','pulse','calculator','news','advertise','admin'];
+  const allowed = ['home','register','deposit','member','dashboard','learning','pulse','calculator','vip','news','advertise','admin'];
   const t = HtmlService.createTemplateFromFile('Index');
   t.initialPage = allowed.includes(page) ? page : 'home';
   t.mpsVersion = MPS.VERSION;
