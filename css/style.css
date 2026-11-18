@@ -2736,3 +2736,46 @@ section.mps-final-cta .hero-btns > a.btn:nth-of-type(2){animation-delay:6s!impor
   transform:none!important;
   will-change:auto!important;
 }
+
+
+/* MPS NAV CLEAN LINKS v4.5 — Daftar and Install App match ordinary dropdown items. */
+.nav-links > li > .nav-join,
+.nav-links > li > .pwa-install-btn,
+.nav-menu > li > .nav-join,
+.nav-menu > li > .pwa-install-btn{
+  display:block!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:10px 4px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  color:#d4dced!important;
+  -webkit-text-fill-color:#d4dced!important;
+  font:inherit!important;
+  font-size:12px!important;
+  font-weight:750!important;
+  line-height:1.5!important;
+  text-align:left!important;
+  text-shadow:none!important;
+  box-shadow:none!important;
+  filter:none!important;
+  transform:none!important;
+  animation:none!important;
+  outline:0!important;
+}
+.nav-links > li > .nav-join:hover,
+.nav-links > li > .pwa-install-btn:hover,
+.nav-menu > li > .nav-join:hover,
+.nav-menu > li > .pwa-install-btn:hover{
+  color:#f4bd45!important;
+  -webkit-text-fill-color:#f4bd45!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  filter:none!important;
+  transform:none!important;
+}
