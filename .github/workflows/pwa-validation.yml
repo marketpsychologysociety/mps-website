@@ -149,6 +149,8 @@ jobs:
         run: node --test tests/apps-script/api-contract.test.mjs
       - name: Run persistent rate-limit and durable request-idempotency security tests
         run: node --test tests/apps-script/request-security-hardening.test.mjs
+      - name: Run synthetic VIP inactivity policy evaluator (no enforcement)
+        run: node --test tests/apps-script/vip-inactivity-policy.test.mjs
       - name: Run Admin TOTP MFA security tests
         run: node --test tests/apps-script/admin-mfa.test.mjs
       - name: Run member PIN delivery ambiguity hardening tests

@@ -5109,3 +5109,77 @@ function apiAdminConfigureTradingSignalBot(session,botId,displayName,enabled,ins
   return {ok:true,botId:id,enabled:enabled===true};
 }
 
+
+
+/**
+ * Pure VIP inactivity policy evaluator.
+ * It only evaluates already-verified broker evidence; it never changes a member,
+ * Telegram group, session, or entitlement. Enforcement remains a separate approved
+ * operational action after live source/mapping verification and member notice.
+ *
+ * Input dates are calendar dates in Asia/Jakarta (WIB), formatted YYYY-MM-DD.
+ */
+function mpsEvaluateVipInactivityPolicy_(input) {
+  const policyVersion = 'VIP_INACTIVITY_60D_WIB_V1';
+  function unverified(reason) {
+    return {
+      policyVersion: policyVersion,
+      status: 'ACTIVITY_DATA_UNVERIFIED',
+      lastActivityWibDate: null,
+      daysInactive: null,
+      noticeDue: null,
+      automaticActionAllowed: false,
+      reason: reason
+    };
+  }
+  function parseWibDate(value) {
+    const text = String(value || '');
+    const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(text);
+    if (!match) return null;
+    const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+    const millis = Date.UTC(year, month - 1, day);
+    const date = new Date(millis);
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+    return millis;
+  }
+  if (!input || typeof input !== 'object') return unverified('INPUT_INVALID');
+  const nowMillis = parseWibDate(input.nowWibDate);
+  if (nowMillis === null) return unverified('WIB_DATE_INVALID');
+  if (!Array.isArray(input.accounts) || input.accounts.length < 1 || input.accounts.length > 20) {
+    return unverified('VERIFIED_ACCOUNT_SET_MISSING_OR_INVALID');
+  }
+  const activityDates = [];
+  for (let i = 0; i < input.accounts.length; i++) {
+    const account = input.accounts[i] || {};
+    if (account.mappingStatus !== 'VERIFIED_UNIQUE') return unverified('ACCOUNT_MAPPING_NOT_VERIFIED_UNIQUE');
+    if (account.sourceStatus !== 'FRESH_VERIFIED') return unverified('BROKER_ACTIVITY_SOURCE_NOT_FRESH_VERIFIED');
+    if (account.lastActivityType !== 'EXECUTED_TRADE') return unverified('QUALIFYING_ACTIVITY_TYPE_NOT_VERIFIED');
+    const tradeMillis = parseWibDate(account.lastExecutedTradeWibDate);
+    if (tradeMillis === null) return unverified('LAST_EXECUTED_TRADE_DATE_MISSING_OR_INVALID');
+    if (tradeMillis > nowMillis) return unverified('LAST_EXECUTED_TRADE_DATE_IN_FUTURE');
+    activityDates.push(tradeMillis);
+  }
+  const latestActivityMillis = Math.max.apply(null, activityDates);
+  const daysInactive = Math.floor((nowMillis - latestActivityMillis) / 86400000);
+  const latestActivityDate = new Date(latestActivityMillis).toISOString().slice(0, 10);
+  let status = 'ACTIVE';
+  let noticeDue = null;
+  if (daysInactive >= 60) {
+    status = 'REVOCATION_REVIEW_REQUIRED';
+  } else if (daysInactive >= 55) {
+    status = 'FINAL_REMINDER_55_DUE';
+    noticeDue = 'DAY_55';
+  } else if (daysInactive >= 45) {
+    status = 'REMINDER_45_DUE';
+    noticeDue = 'DAY_45';
+  }
+  return {
+    policyVersion: policyVersion,
+    status: status,
+    lastActivityWibDate: latestActivityDate,
+    daysInactive: daysInactive,
+    noticeDue: noticeDue,
+    automaticActionAllowed: false,
+    reason: daysInactive >= 60 ? 'VERIFIED_60_DAY_INACTIVITY_REQUIRES_SEPARATE_APPROVED_REVIEW' : 'VERIFIED_EXECUTED_TRADE_ACTIVITY'
+  };
+}
