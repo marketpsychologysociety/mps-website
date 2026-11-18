@@ -2820,3 +2820,22 @@ body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
   visibility:visible!important;
   opacity:1!important;
 }
+
+
+/* MPS MOBILE HOMEPAGE POLISH v4.9 — opaque compact dropdown and clear spacing below Design 1 artwork. */
+@media(max-width:900px){
+ body:has(.mps-home-hero) .mps-home-nav .nav-links{
+  background:#050914!important;opacity:1!important;backdrop-filter:none!important;
+  gap:2px!important;padding:12px 18px 16px!important;z-index:1001!important;
+ }
+ body:has(.mps-home-hero) .mps-home-nav .nav-links>li{
+  margin:0!important;padding:0!important;min-height:0!important;
+ }
+ body:has(.mps-home-hero) .mps-home-nav .nav-links>li>a{
+  line-height:1.35!important;min-height:0!important;padding:8px 4px!important;
+ }
+}
+@media(max-width:700px){
+ body:has(.mps-home-hero) .mps-premium-hero{padding-top:310px!important}
+ body:has(.mps-home-hero) .mps-premium-art-wrap{height:300px!important;max-height:300px!important}
+}
