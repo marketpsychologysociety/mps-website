@@ -79,6 +79,7 @@ function validateMpsRebuildConfig() {
     telegramChatConfigured: !!p.getProperty('MPS_TELEGRAM_CHAT_ID'),
     webhookSecretConfigured: !!p.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET'),
     vipGroupConfigured: !!p.getProperty('MPS_VIP_GROUP_ID'),
+    backupFolderConfigured: !!p.getProperty('MPS_BACKUP_FOLDER_ID'),
     telegramBotUsernameConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_USERNAME'),
     note: 'Read-only validation. No sheets, properties, triggers, or webhooks changed.'
   };
@@ -877,13 +878,14 @@ function apiAdminGetAudit(session) {
 /** Owner-run manual snapshot. No automatic copies or retention deletion are performed. */
 function createMpsBackupSnapshot() {
   requireOwnerContext_();
-  const props=PropertiesService.getScriptProperties(), dbId=prop_('MPS_SPREADSHEET_ID'), folderId=prop_('MPS_BACKUP_FOLDER_ID');
+  const dbId=prop_('MPS_SPREADSHEET_ID'), folderId=prop_('MPS_BACKUP_FOLDER_ID');
   if(!dbId || !folderId) throw new Error('MPS_SPREADSHEET_ID dan MPS_BACKUP_FOLDER_ID wajib diatur.');
   if(folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup tidak boleh sama dengan folder bukti deposit.');
   const folder=DriveApp.getFolderById(folderId);
   if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE) throw new Error('Folder backup harus memiliki akses PRIVATE.');
   const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
   const copy=DriveApp.getFileById(dbId).makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
+  copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
   return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup manual dibuat di folder privat. Tidak ada file lama yang dihapus.'};
 }
 
