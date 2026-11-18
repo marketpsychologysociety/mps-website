@@ -375,6 +375,19 @@ function apiAdminReview(session, applicationRef, decision, note) {
       throw new Error('Verifikasi Telegram harus berhasil sebelum pengajuan dapat disetujui.');
     if (decision === 'APPROVE' && (Number(dep[5]) < 500000 || !dep[7] || dep[9] !== 'Menunggu Validasi'))
       throw new Error('Deposit belum memenuhi nominal minimum, bukti tidak tersedia, atau status deposit tidak valid.');
+    if (decision === 'APPROVE') {
+      if (!app[11] || !app[12] || String(dep[10]||'')!==String(app[11]) || String(dep[11]||'')!==String(app[12]))
+        throw new Error('Ikatan Telegram pada aplikasi dan data deposit tidak cocok. Pengajuan tidak dapat disetujui.');
+      const proof=DriveApp.getFileById(String(dep[7]));
+      if (proof.isTrashed() || proof.getSharingAccess()!==DriveApp.Access.PRIVATE)
+        throw new Error('File bukti deposit tidak tersedia atau tidak privat.');
+      const proofFolder=prop_('MPS_PROOF_FOLDER_ID');
+      if (!proofFolder || !proof.getParents().hasNext())
+        throw new Error('Lokasi file bukti deposit tidak dapat diverifikasi.');
+      const parents=proof.getParents(); let inExpectedFolder=false;
+      while(parents.hasNext()) if(parents.next().getId()===proofFolder) inExpectedFolder=true;
+      if(!inExpectedFolder) throw new Error('Bukti deposit tidak berada di folder bukti resmi MPS.');
+    }
     if (decision === 'REJECT') {
       apps.getRange(ar,8).setValue('Ditolak'); apps.getRange(ar,14).setValue(adminNote);
       deps.getRange(dr,10).setValue('Ditolak'); deps.getRange(dr,13).setValue(adminNote);
