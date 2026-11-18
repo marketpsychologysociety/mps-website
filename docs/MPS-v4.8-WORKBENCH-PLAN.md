@@ -1050,3 +1050,13 @@ This section consolidates previously approved design requirements into the MPS v
 
 - Live Apps Script/Sheets execution and locking; actual Drive ACL and private-file access; isolated Telegram test-bot delivery; Exness partner API access and account attribution; final replacement Market Pulse dataset verification; physical Android/iPhone testing; independent security review; real backup/restore drill; and explicit owner release approval remain separate gates.
 - PR #12 remains Draft / not merged. No production deployment, database/member-data mutation, live Apps Script change, credential change, Telegram configuration change, Exness API call, or payout action is authorized by this consolidation.
+
+
+### VIP inactivity evaluator implementation checkpoint — 2026-11-18
+
+- Added pure candidate function `mpsEvaluateVipInactivityPolicy_` for WIB calendar-date evaluation across up to 20 uniquely verified linked accounts.
+- It accepts only fresh verified broker-source evidence explicitly classified as executed trades; missing, stale, ambiguous, malformed, unsupported, or future-dated evidence returns `ACTIVITY_DATA_UNVERIFIED` and pauses the decision.
+- It calculates the latest verified executed-trade date across linked accounts; emits day-45 reminder, day-55 final-reminder, or day-60 revocation-review states.
+- **Safety fence:** the evaluator always returns `automaticActionAllowed: false`. It does not remove a member, revoke a session, change Telegram groups, or mutate member data. Actual enforcement remains blocked until Exness/broker data, account mapping, notification delivery, member notice, operational review, and separate approval are verified.
+- Synthetic test evidence: **11/11 passed** in workbench run #2857, including threshold boundaries, multiple accounts, stale/ambiguous source, invalid/future dates, and proof that no evaluated state permits automatic removal. Full PWA validation and Chromium checks also passed: https://github.com/marketpsychologysociety/mps-website/actions/runs/44209096887
+- This is policy evaluation logic only; it is not a live broker integration or an end-to-end VIP removal test.
