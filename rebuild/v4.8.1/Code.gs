@@ -924,8 +924,32 @@ function apiAdminGetAudit(session) {
 }
 
 /** Owner-run manual snapshot. No automatic copies or retention deletion are performed. */
-function createMpsBackupSnapshot() {
+function requireEffectiveOwnerContext_() {
+  const expected=prop_('MPS_REBUILD_OWNER_EMAIL').trim().toLowerCase();
+  const actual=String(Session.getEffectiveUser().getEmail()||'').trim().toLowerCase();
+  if(!expected || !actual || actual!==expected)
+    throw new Error('Scheduled backup must execute under the configured isolated-project owner account.');
+}
+
+function createMpsScheduledBackup_() {
+  requireEffectiveOwnerContext_();
+  return createMpsBackupSnapshotCore_();
+}
+
+function installMpsWeeklyBackupTrigger() {
   requireOwnerContext_();
+  const folderId=prop_('MPS_BACKUP_FOLDER_ID');
+  if(!folderId || folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup privat yang terpisah wajib dikonfigurasi.');
+  const folder=DriveApp.getFolderById(folderId);
+  if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE) throw new Error('Folder backup harus PRIVATE.');
+  const existing=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='createMpsScheduledBackup_');
+  if(existing.length) return {ok:true,installed:false,message:'Trigger backup mingguan sudah ada.',count:existing.length};
+  ScriptApp.newTrigger('createMpsScheduledBackup_').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(3).create();
+  audit_('OWNER','OWNER','WEEKLY_BACKUP_TRIGGER_INSTALLED','', 'SUCCESS','Weekly backup Sunday around 03:00 project timezone.');
+  return {ok:true,installed:true,message:'Backup mingguan dijadwalkan hari Minggu sekitar pukul 03.00 zona waktu project.'};
+}
+
+function createMpsBackupSnapshotCore_() {
   const dbId=prop_('MPS_SPREADSHEET_ID'), folderId=prop_('MPS_BACKUP_FOLDER_ID');
   if(!dbId || !folderId) throw new Error('MPS_SPREADSHEET_ID dan MPS_BACKUP_FOLDER_ID wajib diatur.');
   if(folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup tidak boleh sama dengan folder bukti deposit.');
@@ -934,8 +958,12 @@ function createMpsBackupSnapshot() {
   const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
   const copy=DriveApp.getFileById(dbId).makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
   copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
-  audit_('OWNER',Session.getActiveUser().getEmail(),'DATABASE_BACKUP_CREATED',copy.getId(),'SUCCESS',copy.getName());
-  return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup manual dibuat di folder privat. Tidak ada file lama yang dihapus.'};
+  return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup dibuat di folder privat. Tidak ada file lama yang dihapus.'};
+}
+
+function createMpsBackupSnapshot() {
+  requireOwnerContext_();
+  return createMpsBackupSnapshotCore_();
 }
 
 function apiGetPublicVipTicker() {
