@@ -172,11 +172,14 @@ function apiAdminLogin(password, totpCode) {
   const salt = prop_('MPS_REBUILD_ADMIN_PASSWORD_SALT');
   if (!expected || !salt) throw new Error('Kredensial admin belum disiapkan di project test.');
   enforceRateLimit_('admin-login', 'global', 8, 900);
-  if (!verifyMpsTotp_('MPS_REBUILD_ADMIN_TOTP_SECRET',totpCode)) throw new Error('Kode Google Authenticator Admin tidak valid.');
   const actual = sha256_(salt + String(password || ''));
   if (!constantTimeEquals_(actual,expected)) {
-    audit_('UNKNOWN','', 'ADMIN_LOGIN','', 'DENIED','Invalid credentials.');
+    audit_('UNKNOWN','', 'ADMIN_LOGIN','', 'DENIED','Invalid password.');
     throw new Error('Password admin tidak valid.');
+  }
+  if (!verifyMpsTotp_('MPS_REBUILD_ADMIN_TOTP_SECRET',totpCode)) {
+    audit_('UNKNOWN','', 'ADMIN_LOGIN','', 'DENIED','Invalid or replayed TOTP.');
+    throw new Error('Kode Google Authenticator Admin tidak valid atau sudah digunakan.');
   }
   return createSession_('ADMIN','admin');
 }
@@ -186,9 +189,14 @@ function apiSuperAdminLogin(password, totpCode) {
   const salt = prop_('MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT');
   if (!expected || !salt) throw new Error('Kredensial Super Admin belum disiapkan.');
   enforceRateLimit_('super-login', 'global', 5, 900);
-  if (!verifyMpsTotp_('MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET',totpCode)) throw new Error('Kode Google Authenticator Super Admin tidak valid.');
-  if (!constantTimeEquals_(sha256_(salt + String(password || '')),expected))
+  if (!constantTimeEquals_(sha256_(salt + String(password || '')),expected)) {
+    audit_('UNKNOWN','', 'SUPER_ADMIN_LOGIN','', 'DENIED','Invalid password.');
     throw new Error('Password Super Admin tidak valid.');
+  }
+  if (!verifyMpsTotp_('MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET',totpCode)) {
+    audit_('UNKNOWN','', 'SUPER_ADMIN_LOGIN','', 'DENIED','Invalid or replayed TOTP.');
+    throw new Error('Kode Google Authenticator Super Admin tidak valid atau sudah digunakan.');
+  }
   return createSession_('SUPER_ADMIN','super-admin');
 }
 
@@ -216,13 +224,27 @@ function initializeMpsTotpSecrets() {
 
 function verifyMpsTotp_(propertyKey, code) {
   const secret = prop_(propertyKey);
-  const value = String(code || '').replace(/\\s/g,'');
-  if (!secret || !/^\\d{6}$/.test(value)) return false;
-  const now = Math.floor(Date.now()/1000/30);
-  for (let drift=-1;drift<=1;drift++) {
-    if (constantTimeEquals_(totpCode_(secret,now+drift),value)) return true;
+  const value = String(code || '').replace(/\s/g,'');
+  if (!secret || !/^\d{6}$/.test(value)) return false;
+  const roleKey = propertyKey === 'MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET' ? 'SUPER_ADMIN' : 'ADMIN';
+  const lastStepKey = 'MPS_REBUILD_' + roleKey + '_TOTP_LAST_STEP';
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const now = Math.floor(Date.now()/1000/30);
+    const lastAccepted = Number(prop_(lastStepKey) || -1);
+    for (let drift=-1;drift<=1;drift++) {
+      const step = now + drift;
+      if (step <= lastAccepted) continue;
+      if (constantTimeEquals_(totpCode_(secret,step),value)) {
+        PropertiesService.getScriptProperties().setProperty(lastStepKey,String(step));
+        return true;
+      }
+    }
+    return false;
+  } finally {
+    lock.releaseLock();
   }
-  return false;
 }
 
 function totpCode_(base32Secret, counter) {
