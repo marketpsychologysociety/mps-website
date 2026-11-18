@@ -192,7 +192,7 @@ function apiSubmitDeposit(input) {
         'Deposit: Rp'+amount.toLocaleString('id-ID'),
         'Tanggal deposit: '+date,
         'Status: Menunggu Validasi Admin'
-      ].join('\\n');
+      ].join('\n');
       try { adminBackupSent = sendTelegramMessage_(adminChat,backupText); }
       catch (notifyError) { audit_('SYSTEM','', 'DEPOSIT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.'); }
     }
