@@ -45,11 +45,22 @@ This is an initial clean architecture baseline, not a production-ready release.
 - Initial PIN creation and secure member PIN enrollment/recovery are not implemented.
 - Telegram linking-token issue/consume flow, Telegram bot command handling, webhook replay processing, and notification delivery are not implemented; the webhook currently journals inbound updates only.
 - VIP invitation creation, join verification, follow-up worker, and public ticker publication are not implemented; the queue/event sheets are schema foundations only.
-- Admin MFA/TOTP, super-admin privilege separation beyond credential/session role, lockout/rate limiting, CSRF protections, and comprehensive authorization tests remain to be implemented.
+- Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, admin MFA/TOTP, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
 - Learning/news content management, announcement management, member billing/QRIS lifecycle, Exness IB status verification/rebate integration, and real Pulse feed validation are not implemented.
 - Proof file storage uses a private file setting, but folder ACL inheritance and direct-file access must be independently verified in the isolated Drive environment.
 - No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, or live Telegram test has been performed.
 - No deployment or production migration is authorized by this runbook.
+
+## Current hardening added in source
+
+- Public registration: temporary limit of 3 attempts per Telegram username per hour.
+- Deposit submission: temporary limit of 3 attempts per Application Ref per hour.
+- Member login: temporary limit of 8 attempts per Member ID per 15 minutes.
+- Admin login: temporary limit of 8 attempts per 15 minutes; Super Admin: 5 attempts per 15 minutes.
+- Cache keys contain a SHA-256 digest rather than raw usernames or member IDs.
+- Duplicate deposit submission for the same Application Ref is rejected before another proof file is created.
+
+These are baseline abuse controls only. They have not been load-tested or verified in the Apps Script runtime.
 
 ## Release gate
 
