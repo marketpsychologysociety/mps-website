@@ -279,6 +279,24 @@ function totpCode_(base32Secret, counter) {
   return ('000000'+String(binary%1000000)).slice(-6);
 }
 
+/** Manual deterministic checks for pure crypto helpers; safe to run in the isolated Apps Script project. */
+function runMpsCryptoSelfTests() {
+  const checks = [];
+  checks.push({name:'SHA-256 known vector',ok:sha256_('abc')==='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'});
+  const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+  const vectors = [
+    [59, '287082'],
+    [1111111109, '081804'],
+    [1111111111, '050471'],
+    [1234567890, '005924'],
+    [2000000000, '279037'],
+    [20000000000, '353130']
+  ];
+  vectors.forEach(v=>checks.push({name:'RFC 6238 SHA-1 vector '+v[0],ok:totpCode_(secret,Math.floor(v[0]/30))===v[1]}));
+  checks.push({name:'Base32 decode byte count',ok:base32Decode_(secret).length===20});
+  return {ok:checks.every(x=>x.ok),checks:checks};
+}
+
 function base32Encode_(input) {
   const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   let bits='',out='';
