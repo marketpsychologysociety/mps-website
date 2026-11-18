@@ -578,7 +578,7 @@ function apiAdminProcessVipQueue(session) {
     if (!['PENDING','RETRY'].includes(String(r[7]))) continue;
     const row = i+2;
     try {
-      const invite = createVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),String(r[4]||''));
+      const invite = String(r[5]||'') || createVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),String(r[4]||''));
       queue.getRange(row,6).setValue(invite);
       const appRow = findRow_(sheet_('applications'),9,String(r[1]||'').replace('VIP_INVITE:',''));
       const chatId = appRow ? String(sheet_('applications').getRange(appRow,13).getDisplayValue()||'') : '';
