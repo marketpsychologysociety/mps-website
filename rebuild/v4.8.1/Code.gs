@@ -27,7 +27,7 @@ const MPS = Object.freeze({
     sessions: {name:'MPS Sessions', headers:['Session Hash','Role','Actor ID','Created At','Expires At','Last Seen At','Revoked At']},
     audit: {name:'MPS Audit Logs', headers:['Event ID','At','Actor Role','Actor ID','Action','Target Ref','Outcome','Details']},
     ledger: {name:'MPS Request Ledger', headers:['Request ID','Fingerprint','Status','Started At','Completed At','Action','Application Ref','Member ID','Result Status']},
-    journal: {name:'MPS Telegram Update Journal', headers:['Update ID','Update Type','Payload SHA-256','State','First Seen At','Last Attempt At','Attempt Count','Lease Expires At','Claim Token','Completed At','Effect Keys JSON','Last Error Code']},
+    journal: {name:'MPS Telegram Update Journal', headers:['Update ID','Update Type','Payload SHA-256','State','First Seen At','Last Attempt At','Attempt Count','Lease Expires At','Claim Token','Completed At','Effect Keys JSON','Last Error Code','Payload JSON']},
     queue: {name:'MPS Telegram VIP Follow-up Queue', headers:['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At']},
     vip: {name:'MPS VIP Events', headers:['Event ID','Member ID','Nickname','Event Type','Telegram User ID','Occurred At','Verified','Public Display']},
     announcements: {name:'MPS Announcements', headers:['Announcement ID','Title','Body','Audience','Start At','End At','Active','Created At','Updated At']},
@@ -56,7 +56,7 @@ function doPost(e) {
   try { update = JSON.parse(e && e.postData && e.postData.contents || '{}'); }
   catch (_) { return text_('Bad Request'); }
   try { processTelegramUpdate_(update); return text_('OK'); }
-  catch (err) { console.error('TELEGRAM_UPDATE_FAILED '+String(err && err.message || err)); return text_('Retry'); }
+  catch (err) { console.error('TELEGRAM_UPDATE_FAILED '+String(err && err.message || err)); return text_('OK'); }
 }
 function validateMpsRebuildConfig() {
   const p = PropertiesService.getScriptProperties();
@@ -603,7 +603,7 @@ function processTelegramUpdate_(update) {
       sh.getRange(row,7).setValue(Number(sh.getRange(row,7).getValue() || 0)+1);
     } else {
       const type = update.message ? 'message' : update.chat_member ? 'chat_member' : 'other';
-      sh.appendRow([id,type,sha256_(JSON.stringify(update)),'PROCESSING',new Date(),new Date(),1,'','','','[]','']);
+      sh.appendRow([id,type,sha256_(JSON.stringify(update)),'PROCESSING',new Date(),new Date(),1,'','','','[]','',JSON.stringify(update)]);
       row = sh.getLastRow();
     }
   } finally { lock.releaseLock(); }
@@ -620,6 +620,28 @@ function processTelegramUpdate_(update) {
 }
 
 /** Issue a 24-hour single-use Telegram deep link; only its hash is stored. */
+/** Admin retry tool for failed/stale Telegram updates; payloads remain in the isolated journal. */
+function apiAdminRetryTelegramFailures(session) {
+  const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const sh=sheet_('journal'), all=rows_(sh), results=[];
+  const now=Date.now();
+  for(let i=0;i<all.length && results.length<10;i++) {
+    const r=all[i], state=String(r[3]||'');
+    const stale=state==='PROCESSING' && new Date(r[5]).getTime()<now-10*60*1000;
+    if(state!=='FAILED' && !stale) continue;
+    const raw=String(r[12]||'');
+    if(!raw) { sh.getRange(i+2,12).setValue('PAYLOAD_MISSING'); continue; }
+    try {
+      processTelegramUpdate_(JSON.parse(raw));
+      results.push({updateId:String(r[0]),status:'COMPLETED'});
+    } catch(err) {
+      results.push({updateId:String(r[0]),status:'FAILED'});
+    }
+  }
+  audit_(actor.role,actor.actorId,'TELEGRAM_RETRY_BATCH','', 'SUCCESS','Processed '+results.length+' failed/stale updates.');
+  return {ok:true,processed:results.length,results:results};
+}
+
 function createTelegramLink_(applicationRef, expectedUsername) {
   const bot = String(prop_('MPS_TELEGRAM_BOT_USERNAME') || '').replace(/^@/,'').trim();
   if (!/^[A-Za-z0-9_]{5,32}$/.test(bot)) return {url:'',expiresAt:''};
