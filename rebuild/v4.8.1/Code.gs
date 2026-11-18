@@ -555,6 +555,7 @@ function apiGetMemberContent(session, section) {
   }
   if (key === 'learning' || key === 'news') {
     const items=rows_(sheet_(key)).filter(r=>r[key==='learning'?7:9]===true || String(r[key==='learning'?7:9]).toLowerCase()==='true');
+    items.sort((a,b)=>key==='learning'?Number(a[8]||0)-Number(b[8]||0):new Date(b[8]).getTime()-new Date(a[8]).getTime());
     return {section:key,items:items.map(r=>key==='learning'?{
       id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),resourceUrl:String(r[6]||'')
     }:{
