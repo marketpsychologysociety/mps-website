@@ -699,7 +699,7 @@ function handleTelegramStart_(message) {
   }
   const userId = String(message.from && message.from.id || '');
   if (!userId || !chatId) throw new Error('Telegram user/chat identifier missing.');
-  const otherLinked=rows_(apps).some((r,i)=>i+2!==appRow && String(r[11]||'')===userId && ['Terhubung','Disetujui'].includes(String(r[10]||'')));
+  const otherLinked=rows_(apps).some((r,i)=>i+2!==appRow && String(r[11]||'')===userId && r[7]!=='Ditolak' && ['Terhubung','Disetujui'].includes(String(r[10]||'')));
   if(otherLinked) {
     sendTelegramMessage_(chatId,'Akun Telegram ini sudah terhubung dengan pengajuan atau keanggotaan MPS lain. Hubungi Admin jika Anda perlu pemulihan akun.');
     audit_('TELEGRAM',userId,'TELEGRAM_ACCOUNT_ALREADY_LINKED',values[5],'DENIED','');
