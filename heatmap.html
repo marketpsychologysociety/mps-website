@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Preview MPS Market Pulse. Akses data lengkap hanya untuk member resmi Market Psychology Society.">
+  <meta name="description" content="Pratinjau MPS Market Pulse. Akses data lengkap hanya untuk anggota resmi Market Psychology Society.">
   <meta name="theme-color" content="#070a10">
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="mobile-web-app-capable" content="yes">
@@ -12,67 +12,78 @@
   <meta name="apple-mobile-web-app-title" content="MPS">
   <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
   <meta name="robots" content="index,follow">
-  <title>Market Pulse · Member Only | MPS</title>
+  <title>Market Pulse · Khusus Anggota | MPS</title>
   <link rel="icon" href="assets/favicon.svg?v=20261104-2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=mps-neon-20261116">
+  <link rel="stylesheet" href="css/style.css?v=mps-home-design1-20261118e">
   <style>
     :root{color-scheme:dark}
-    body{background:#091321;color:#edf2f8}
+    body{background:#07080c;color:var(--text)}
     .pulse-preview-wrap{width:min(100% - 32px,920px);margin:42px auto 70px}
-    .pulse-preview-card{position:relative;overflow:hidden;border:1px solid rgba(220,190,125,.25);border-radius:22px;background:linear-gradient(145deg,#14243a,#0b1727 65%,#101d2c);padding:clamp(20px,4vw,38px);box-shadow:0 24px 70px rgba(0,0,0,.3)}
+    .pulse-preview-card{position:relative;overflow:hidden;border:1px solid rgba(220,190,125,.25);border-radius:22px;background:linear-gradient(145deg,#171b24,#0b0e14 65%,#101218);padding:clamp(20px,4vw,38px);box-shadow:0 24px 70px rgba(0,0,0,.3)}
     .pulse-preview-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-    .pulse-tag{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(231,201,139,.38);border-radius:99px;color:#e7c98b;font-size:11px;font-weight:800;letter-spacing:.12em}
+    .pulse-tag{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid rgba(231,201,139,.38);border-radius:99px;color:var(--gold2);font-size:11px;font-weight:800;letter-spacing:.12em}
     .pulse-lock{display:grid;place-items:center;width:56px;height:56px;border-radius:16px;background:rgba(231,201,139,.12);border:1px solid rgba(231,201,139,.28);font-size:26px}
-    .pulse-preview-card h1{font-size:clamp(30px,6vw,52px);line-height:1.06;margin:20px 0 12px;color:#f4e7c9}
-    .pulse-preview-card .lead{max-width:650px;color:#b8c6d7;line-height:1.7}
+    .pulse-preview-card h1{font-size:clamp(30px,6vw,52px);line-height:1.06;margin:20px 0 12px;color:var(--gold2)}
+    .pulse-preview-card .lead{max-width:650px;color:#b3bac7;line-height:1.7}
     .chart-window{position:relative;margin:28px 0 24px;padding:18px;border-radius:16px;background:rgba(4,12,22,.78);border:1px solid rgba(154,174,199,.18);overflow:hidden}
     .chart-head{display:flex;justify-content:space-between;gap:12px;color:#aebbd0;font-size:12px;margin-bottom:16px}
     .chart-grid{display:grid;grid-template-columns:48px repeat(3,minmax(0,1fr));gap:7px;filter:blur(2.2px);opacity:.78;user-select:none;pointer-events:none}
     .chart-grid span{min-height:42px;border-radius:7px;background:#24364a;display:grid;place-items:center;color:#c8d3df;font-size:11px;font-weight:700}
     .chart-grid span:nth-child(4n+2),.chart-grid span:nth-child(4n+3){background:#183c32;color:#9bd7b4}
     .chart-grid span:nth-child(4n+4){background:#48292e;color:#efb4b4}
-    .chart-overlay{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:min(90%,330px);padding:18px;border:1px solid rgba(231,201,139,.4);border-radius:14px;background:rgba(8,19,33,.92);text-align:center;box-shadow:0 10px 35px rgba(0,0,0,.35)}
-    .chart-overlay strong{color:#f0d69e;letter-spacing:.08em;font-size:13px}
-    .chart-overlay small{color:#b9c5d3;line-height:1.5}
+    .chart-overlay{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:min(90%,330px);padding:18px;border:1px solid rgba(231,201,139,.4);border-radius:14px;background:rgba(7,8,12,.94);text-align:center;box-shadow:0 10px 35px rgba(0,0,0,.35)}
+    .chart-overlay strong{color:var(--gold2);letter-spacing:.08em;font-size:13px}
+    .chart-overlay small{color:#a6abb7;line-height:1.5}
     .pulse-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
     .pulse-actions a{min-width:190px;text-align:center}
-    .pulse-note{font-size:12px;line-height:1.65;color:#9cabbc;margin-top:18px}
+    .pulse-note{font-size:12px;line-height:1.65;color:#9299a8;margin-top:18px}
     @media(max-width:560px){.pulse-preview-wrap{margin:22px auto 44px}.chart-window{padding:12px}.chart-grid{grid-template-columns:35px repeat(3,minmax(0,1fr));gap:5px}.chart-grid span{min-height:34px;font-size:9px}.pulse-actions a{width:100%}}
   </style>
 </head>
 <body>
 <nav class="navbar" aria-label="Navigasi utama">
-  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt=""><span><strong>Market Psychology Society</strong><small>MPS · TRADE WITH DISCIPLINE</small></span></a>
+  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=20261104-2" alt=""><span><strong>Market Psychology Society</strong><small>MPS · DISIPLIN DI ATAS IMPULS</small></span></a>
   <a class="btn btn-outline" href="index.html">Kembali ke Website</a>
-  <button class="btn btn-outline pwa-install-btn" id="installMpsApp" type="button" hidden>Install MPS App</button>
+  <button class="btn btn-outline pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button>
 </nav>
+<div class="mps-ticker demo-ticker" data-mps-demo-ticker aria-label="Contoh teks berjalan pengumuman, data demonstrasi">
+  <span class="ticker-live"><i></i> CONTOH</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>CONTOH: Pengumuman penting MPS akan ditampilkan di sini</span><b>✦</b>
+    <span>CONTOH: Informasi pemeliharaan resmi akan ditampilkan setelah dipublikasikan</span><b>✦</b>
+    <span>CONTOH: Pengumuman pemenang hanya setelah hasil diverifikasi</span>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
 <main class="pulse-preview-wrap">
   <section class="pulse-preview-card" aria-labelledby="pulseTitle">
-    <div class="pulse-preview-top"><span class="pulse-tag">✦ MEMBER ONLY · DATA PRIVAT</span><span class="pulse-lock" aria-hidden="true">🔒</span></div>
-    <h1 id="pulseTitle">MPS Market Pulse</h1>
+    <div class="pulse-preview-top"><span class="pulse-tag">✦ KHUSUS ANGGOTA · DATA PRIVAT</span><span class="pulse-lock" aria-hidden="true">🔒</span></div>
+    <h1 id="pulseTitle">MPS MARKET PULSE</h1>
     <img src="assets/market-pulse-preview.svg?v=20261106-1" alt="Ilustrasi Market Pulse MPS: grafik candlestick dan globe digital, bukan data pasar aktual" loading="lazy" style="display:block;width:100%;max-height:310px;object-fit:cover;border:1px solid rgba(220,190,125,.28);border-radius:16px;margin:20px 0 24px;box-shadow:0 16px 42px rgba(0,0,0,.32)">
-    <p class="lead">Fasilitas observasi pola historis XAUUSD dan EURUSD untuk membantu member mengevaluasi waktu, konsistensi, dan perilaku market. Halaman publik ini hanya menampilkan ilustrasi preview—bukan data Market Pulse yang sebenarnya.</p>
-    <div class="chart-window" aria-label="Ilustrasi preview terkunci, bukan data pasar">
-      <div class="chart-head"><span>MARKET OBSERVATION · PREVIEW</span><span>ACCESS RESTRICTED</span></div>
+    <p class="lead">Market Pulse menampilkan ringkasan historis pergerakan harga emas dengan label XAUUSD agar mudah dikenali. Sumber data: Binance Spot PAXGUSDT sebagai proksi pasar emas, kerangka waktu M5, zona WIB (UTC+7). Data ini bukan sumber data XAUUSD dari broker forex. Halaman publik ini hanya menampilkan ilustrasi pratinjau—bukan data Market Pulse yang sebenarnya.</p>
+    <div class="chart-window" aria-label="Ilustrasi pratinjau terkunci, bukan data pasar">
+      <div class="chart-head"><span>XAUUSD* · M5 · WIB (UTC+7)</span><span>1 / 2 / 4 BULAN · KHUSUS ANGGOTA</span></div>
       <div class="chart-grid" aria-hidden="true">
-        <span>TIME</span><span>PERIOD 1</span><span>PERIOD 2</span><span>PERIOD 3</span>
-        <span>00:00</span><span>UP · --</span><span>DOWN · --</span><span>UP · --</span>
-        <span>01:00</span><span>DOWN · --</span><span>UP · --</span><span>DOWN · --</span>
-        <span>02:00</span><span>UP · --</span><span>UP · --</span><span>DOWN · --</span>
-        <span>03:00</span><span>DOWN · --</span><span>DOWN · --</span><span>UP · --</span>
-        <span>04:00</span><span>UP · --</span><span>DOWN · --</span><span>UP · --</span>
+        <span>JAM</span><span>1 BULAN</span><span>2 BULAN</span><span>4 BULAN</span>
+        <span>00:00</span><span>•••</span><span>•••</span><span>•••</span>
+        <span>00:05</span><span>•••</span><span>•••</span><span>•••</span>
+        <span>00:10</span><span>•••</span><span>•••</span><span>•••</span>
+        <span>00:15</span><span>•••</span><span>•••</span><span>•••</span>
+        <span>00:20</span><span>•••</span><span>•••</span><span>•••</span>
       </div>
-      <div class="chart-overlay"><strong>🔒 DATA KHUSUS MEMBER</strong><small>Preview ilustratif. Statistik, persentase, dan histori aktual tidak ditampilkan di website publik.</small></div>
+      <div class="chart-overlay"><strong>🔒 DATA KHUSUS ANGGOTA</strong><small>*Label XAUUSD menggunakan data Binance Spot PAXGUSDT sebagai proksi pasar emas, bukan sumber data XAUUSD broker forex. Pratinjau ini tidak menampilkan statistik atau histori aktual.</small></div>
     </div>
-    <div class="pulse-tag">AKSES MEMERLUKAN VERIFIKASI MEMBER</div>
+    <div class="pulse-tag">AKSES MEMERLUKAN VERIFIKASI ANGGOTA</div>
+    <div class="notice mps-preview-notice"><strong>PRATINJAU STATIS</strong><p>Akses Market Pulse belum diaktifkan pada tahap audit ini. Data aktual tidak dimuat dan tidak ada permintaan ke sistem produksi.</p></div>
     <div class="pulse-actions">
-      <a class="btn btn-gold" href="https://script.google.com/macros/s/AKfycbxhIqXGOr9iUy_oqbwu1iCNW0OKbFQ1nkYNR3mwa2O7tjSSuYYlmPvXAm6dyMFO1lUvGQ/exec?page=pulse" target="_blank" rel="noopener noreferrer">Masuk ke Market Pulse</a>
-      <a class="btn btn-outline" href="member-portal.html">Portal Member</a>
+      <a class="btn btn-gold" href="#" data-preview-disabled="true" aria-disabled="true" target="_blank" rel="noopener noreferrer">Masuk ke Market Pulse</a>
+      <a class="btn btn-outline" href="member-portal.html">Portal Anggota</a>
     </div>
-    <p class="pulse-note">Akses data lengkap hanya diberikan kepada member dengan status Berhasil dan sesi yang valid. URL langsung maupun permintaan API tetap diperiksa oleh backend MPS. Data historis bukan sinyal transaksi, prediksi, atau jaminan hasil trading.</p>
+    <p class="pulse-note">Akses data lengkap hanya diberikan kepada anggota dengan status Berhasil dan sesi yang valid. URL langsung maupun permintaan API tetap diperiksa oleh sistem sisi server MPS. Data historis bukan sinyal transaksi, prediksi, atau jaminan hasil trading.</p>
   </section>
 </main>
-<footer class="footer"><div class="footer-brand">Market Psychology Society</div><div class="footer-tag">TRADE WITH DISCIPLINE.</div><div class="footer-copy">© 2026 Market Psychology Society. All Rights Reserved.</div></footer>
+<footer class="footer"><div class="footer-brand">Market Psychology Society</div><div class="footer-tag">DISIPLIN DI ATAS IMPULS</div><div class="footer-copy">© 2026 Market Psychology Society. Hak cipta dilindungi.</div></footer>
 
 <script>
 (()=>{
@@ -84,11 +95,11 @@
   let installPrompt=null;
   const ua=navigator.userAgent||'';
   const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Share/Bagikan.\n3. Pilih “Add to Home Screen” / “Tambahkan ke Layar Utama”.\n4. Tekan Add / Tambahkan.'));}
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Bagikan.\n3. Pilih “Tambahkan ke Layar Utama”.\n4. Tekan “Tambahkan”.'));}
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
   btn.addEventListener('click',async()=>{
     if(isAppleMobile)return;
-    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Install app” atau “Tambahkan ke layar utama”.');return;}
+    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Pasang aplikasi” atau “Tambahkan ke layar utama”.');return;}
     installPrompt.prompt();
     try{const choice=await installPrompt.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}
     installPrompt=null;
@@ -96,5 +107,8 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+<script src="config.js"></script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
 </body>
 </html>

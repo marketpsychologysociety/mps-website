@@ -9,6 +9,7 @@ const mime = {
   '.css':'text/css; charset=utf-8',
   '.js':'text/javascript; charset=utf-8',
   '.svg':'image/svg+xml',
+  '.webp':'image/webp',
   '.png':'image/png',
   '.webmanifest':'application/manifest+json',
   '.woff':'font/woff',
@@ -32,7 +33,7 @@ const server = http.createServer((req, res) => {
 });
 
 const pages = [
-  'index.html','about.html','contact.html','education.html','heatmap.html',
+  'index.html','about.html','announcements.html','contact.html','education.html','heatmap.html',
   'join.html','deposit-confirmation.html','member-portal.html','membership.html',
   'privacy.html','rebate.html','rewards.html','system.html','terms.html'
 ];
@@ -52,6 +53,59 @@ try {
 
   const first = await page.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
   if (!first || first.status() !== 200) failures.push('Homepage did not return HTTP 200');
+  const heroArtworkVisibility = await page.evaluate(() => {
+    const wrap = document.querySelector('.mps-premium-art-wrap');
+    const art = document.querySelector('.mps-premium-art');
+    if (!wrap || !art) return { ok: false, reason: 'artwork element missing' };
+    const box = art.getBoundingClientRect();
+    const wrapStyle = getComputedStyle(wrap), artStyle = getComputedStyle(art);
+    return {
+      ok: box.width > 200 && box.height > 100 &&
+          wrapStyle.zIndex === '0' && artStyle.visibility === 'visible' &&
+          Number(artStyle.opacity) > 0,
+      width: box.width, height: box.height,
+      wrapperZ: wrapStyle.zIndex, visibility: artStyle.visibility,
+      opacity: artStyle.opacity
+    };
+  });
+  if (!heroArtworkVisibility.ok) failures.push('Approved Design 1 hero artwork must be visibly layered above the background: ' + JSON.stringify(heroArtworkVisibility));
+  const homeDesignAssets = await page.evaluate(async () => {
+    const art = document.querySelector('.mps-premium-art');
+    const logo = document.querySelector('.mps-home-nav .nav-brand img');
+    if (!art || !logo) return { ok: false, reason: 'hero artwork or original navbar logo missing' };
+    try { await Promise.all([art.decode(), logo.decode()]); }
+    catch (error) { return { ok: false, reason: 'hero artwork or logo failed to decode: ' + error.message }; }
+    return {
+      ok: art.naturalWidth === 320 && art.naturalHeight === 249 && logo.naturalWidth > 0 && logo.naturalHeight > 0,
+      artWidth: art.naturalWidth, artHeight: art.naturalHeight,
+      artSource: art.getAttribute('src'), logoSource: logo.getAttribute('src'),
+      duplicateHeroLogo: !!document.querySelector('.mps-hero-identity'),
+      stylesheet: document.querySelector('link[rel="stylesheet"]')?.getAttribute('href') || ''
+    };
+  });
+  if (!homeDesignAssets.ok) failures.push('Approved Design 1 hero artwork/original logo failed browser decoding or dimensions: ' + JSON.stringify(homeDesignAssets));
+  if (homeDesignAssets.duplicateHeroLogo) failures.push('Duplicate logo lockup remains inside the homepage hero');
+  const homepageCtaSequence = await page.evaluate(() => {
+    const groups = [
+      '.mps-exness-section .text-center.mt-3 > a.btn',
+      '.mps-benefits-section .text-center.mt-3 > a.btn',
+      '.mps-final-cta .hero-btns > a.btn'
+    ];
+    return groups.flatMap(selector => [...document.querySelectorAll(selector)].map(el => {
+      const style = getComputedStyle(el);
+      return { label: el.textContent.trim(), animation: style.animationName,
+        duration: style.animationDuration, delay: style.animationDelay };
+    }));
+  });
+  const expectedCtaDelays = ['0s', '1.2s', '2.4s', '3.6s', '4.8s', '6s'];
+  if (homepageCtaSequence.length !== 6 ||
+      homepageCtaSequence.some((item, index) => item.animation !== 'mps-important-auto-tap-v4' ||
+        item.duration !== '7.2s' || item.delay !== expectedCtaDelays[index])) {
+    failures.push('Six primary homepage CTA buttons must take turns in the approved 1.2-second sequence: ' + JSON.stringify(homepageCtaSequence));
+  }
+  fs.mkdirSync(path.join(root, 'test-artifacts'), { recursive: true });
+  await page.screenshot({ path: path.join(root, 'test-artifacts/homepage-desktop-full.png'), fullPage: true, animations: 'disabled' });
+  if (!homeDesignAssets.stylesheet.includes('mps-home-design1-20261118e')) failures.push('Homepage stylesheet cache version is not the current Design 1 version');
   await page.evaluate(() => navigator.serviceWorker.ready.then(registration => registration.scope));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 10000 })
@@ -86,13 +140,13 @@ try {
   const versionedCssStatus = await page.evaluate(async () => (await fetch('/css/style.css?v=mps-test-version')).status);
   if (versionedCssStatus !== 200) failures.push('Versioned CSS request failed online');
   const versionedCssCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     return (await cache.keys()).some(request => request.url.includes('/css/style.css?v=mps-test-version'));
   });
   if (!versionedCssCached) failures.push('Realistic versioned CSS URL was not cached');
 
   const cachedCss = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/css/style.css'));
   });
@@ -102,21 +156,21 @@ try {
   const jsOnline = await page.evaluate(async () => (await fetch('/js/main.js')).status);
   if (jsOnline !== 200) failures.push('JavaScript network-first request failed online');
   const cachedJs = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/js/main.js'));
   });
   if (!cachedJs) failures.push('JavaScript was not cached after successful network-first request');
   const arbitraryScriptStatus = await page.evaluate(async () => (await fetch('/admin.js')).status);
   const arbitraryScriptCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     return (await cache.keys()).some(request => new URL(request.url).pathname === '/admin.js');
   });
   if (arbitraryScriptCached) failures.push('Non-allowlisted same-origin JavaScript was cached');
 
   const parameterizedAssetStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?cache-bust=1')).status);
   const parameterizedAssetCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     return (await cache.keys()).some(request => request.url.includes('cache-bust=1'));
   });
   if (parameterizedAssetStatus !== 200) failures.push('Parameterized asset request failed');
@@ -131,13 +185,13 @@ try {
   const otherQueryStatus = await page.evaluate(async () => (await fetch('/assets/mps-app-icon.svg?other=not-allowed')).status);
   if (otherQueryStatus !== 200) failures.push('Other-query asset test request failed');
   const otherQueryCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     return (await cache.keys()).some(request => request.url.includes('other=not-allowed'));
   });
   if (otherQueryCached) failures.push('Non-version query URL was incorrectly cached');
 
   const tokenWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('session=browser-test-secret'));
   });
@@ -163,13 +217,13 @@ try {
 
   const apiStatus = await page.evaluate(async () => (await fetch('/api/member?token=browser-test-secret')).status);
   const apiWasCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => request.url.includes('/api/member') || request.url.includes('token=browser-test-secret'));
   });
   if (apiWasCached) failures.push('API/member URL was incorrectly cached');
   const htmlPagesCached = await page.evaluate(async () => {
-    const cache = await caches.open('mps-public-shell-v5');
+    const cache = await caches.open('mps-public-shell-v7');
     const keys = await cache.keys();
     return keys.some(request => {
       const pathname = new URL(request.url).pathname;
@@ -207,7 +261,7 @@ try {
   } catch (error) {
     failures.push('Offline navigation threw: ' + error.message);
   }
-  if (!offlineBody.includes('MPS sedang offline')) failures.push('Offline PWA start_url navigation did not show the privacy-safe offline page');
+  if (!offlineBody.includes('MPS sedang tidak terhubung')) failures.push('Offline PWA start_url navigation did not show the privacy-safe offline page');
 
   await context.setOffline(false);
 
@@ -233,6 +287,25 @@ try {
   if (!mobileMenu.open || mobileMenu.expanded !== 'true') failures.push('Mobile navigation menu did not open accessibly');
   if (!mobileMenu.installButton) failures.push('PWA install control missing in mobile navigation');
   if (mobileMenu.menuRight > mobileMenu.viewportWidth) failures.push('Mobile navigation extends beyond viewport');
+  const mobileMenuStyles = await mobilePage.evaluate(() => {
+    const join = document.querySelector('#navLinks > li > .nav-join');
+    const toggle = document.getElementById('navToggle');
+    if (!join || !toggle) return { ok: false };
+    const link = getComputedStyle(join), menu = getComputedStyle(toggle);
+    return {
+      ok: link.backgroundColor === 'rgba(0, 0, 0, 0)' && link.borderTopWidth === '0px' &&
+          link.borderRadius === '0px' && link.animationName === 'none' &&
+          menu.animationName === 'none' && menu.transform === 'none',
+      joinBackground: link.backgroundColor, joinBorder: link.borderTopWidth,
+      joinRadius: link.borderRadius, joinAnimation: link.animationName,
+      hamburgerAnimation: menu.animationName, hamburgerTransform: menu.transform
+    };
+  });
+  if (!mobileMenuStyles.ok) failures.push('Homepage hamburger menu must keep Daftar as plain text and the hamburger static: ' + JSON.stringify(mobileMenuStyles));
+  await mobilePage.screenshot({ path: path.join(root, 'test-artifacts/homepage-mobile-menu.png'), fullPage: false, animations: 'disabled' });
+  await mobilePage.locator('#navToggle').click();
+  await mobilePage.screenshot({ path: path.join(root, 'test-artifacts/homepage-mobile-hero.png'), fullPage: false, animations: 'disabled' });
+  await mobilePage.locator('#navToggle').click();
 
   await mobilePage.evaluate(() => {
     const event = new Event('beforeinstallprompt', { cancelable: true });
@@ -242,6 +315,14 @@ try {
   });
   const androidInstallButton = mobilePage.locator('#installMpsApp');
   if (!await androidInstallButton.isVisible()) failures.push('Android install button did not appear after beforeinstallprompt');
+  const installMenuStyle = await androidInstallButton.evaluate(el => {
+    const s = getComputedStyle(el);
+    return { background: s.backgroundColor, border: s.borderTopWidth, radius: s.borderRadius, animation: s.animationName };
+  });
+  if (installMenuStyle.background !== 'rgba(0, 0, 0, 0)' || installMenuStyle.border !== '0px' ||
+      installMenuStyle.radius !== '0px' || installMenuStyle.animation !== 'none') {
+    failures.push('Pasang Aplikasi MPS must be a plain text dropdown item: ' + JSON.stringify(installMenuStyle));
+  }
   await androidInstallButton.click();
   await mobilePage.waitForFunction(() => document.getElementById('installMpsApp')?.hidden === true);
   const androidPromptCalled = await mobilePage.evaluate(() => window.__mpsInstallPromptCalled === true);
@@ -284,6 +365,101 @@ try {
     }
   }
 
+  // Public Market Pulse must remain a static preview; no actual dataset or API payload is public.
+  const heatmapResponse = await page.goto(base + '/heatmap.html', { waitUntil: 'domcontentloaded' });
+  if (!heatmapResponse || heatmapResponse.status() !== 200) failures.push('Public Market Pulse preview did not return HTTP 200');
+  const publicPulseState = await page.evaluate(() => ({
+    memberOnly: document.body.innerText.includes('KHUSUS ANGGOTA · DATA PRIVAT'),
+    previewDisclosure: document.body.innerText.includes('bukan data Market Pulse yang sebenarnya'),
+    demoTicker: !!document.querySelector('[data-mps-demo-ticker]'),
+    actualDatasetInline: [...document.scripts].some(script => /const\s+D\s*=/.test(script.textContent || '')),
+    datasetScript: [...document.scripts].some(script => /market.?pulse.?data|pulse.?dataset/i.test(script.src || ''))
+  }));
+  if (!publicPulseState.memberOnly || !publicPulseState.previewDisclosure || !publicPulseState.demoTicker) {
+    failures.push('Public Market Pulse page must show Member Only, static-preview disclosure, and demo ticker');
+  }
+  if (publicPulseState.actualDatasetInline || publicPulseState.datasetScript) {
+    failures.push('Public Market Pulse page contains an actual dataset or dataset script');
+  }
+
+  // Exercise the Pusat Pengumuman prototype: ticker controls, category filter,
+  // and the presentation-only roulette. No real member or draw data is loaded.
+  const announcementResponse = await page.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
+  if (!announcementResponse || announcementResponse.status() !== 200) failures.push('Pusat Pengumuman did not return HTTP 200');
+  const announcementTitle = await page.title();
+  const publicCenterSafety = await page.evaluate(() => ({
+    enabled: window.MPS_CONFIG?.publicCenter?.enabled,
+    remoteScripts: [...document.scripts].filter(script => {
+      if (!script.src) return false;
+      try { return new URL(script.src).hostname === 'script.google.com'; } catch { return false; }
+    }).length
+  }));
+  if (publicCenterSafety.enabled !== false) failures.push('Public Center feature flag must remain disabled in the static prototype');
+  if (publicCenterSafety.remoteScripts !== 0) failures.push('Public Center injected a remote Apps Script executable into the page');
+  if (!announcementTitle.includes('Pusat Pengumuman')) failures.push('Pusat Pengumuman title is missing');
+  const tickerButton = page.locator('.ticker-toggle');
+  await tickerButton.click();
+  const tickerPaused = await page.locator('.ticker-track').evaluate(el => el.classList.contains('is-paused'));
+  if (!tickerPaused || await tickerButton.getAttribute('aria-pressed') !== 'true') failures.push('Announcement ticker pause control failed');
+  await page.locator('[data-filter="community"]').click();
+  const visibleCategories = await page.locator('.announce-card:not([hidden])').evaluateAll(nodes => nodes.map(el => el.dataset.category));
+  if (visibleCategories.length !== 1 || visibleCategories[0] !== 'community') failures.push('Announcement category filter did not isolate community cards');
+  await page.locator('[data-filter="all"]').click();
+  await page.locator('#demoSpin').click();
+  await page.waitForFunction(() => document.getElementById('rouletteResult')?.textContent.includes('Simulasi selesai'), null, { timeout: 7000 });
+  const rouletteText = await page.locator('#rouletteResult').innerText();
+  if (!rouletteText.includes('Tidak ada pemenang')) failures.push('Demo roulette implied a winner or failed to disclose simulation-only behavior');
+
+  // Exercise the data-only public-center transport with a mocked CORS endpoint.
+  // The response is text that resembles JavaScript assignment syntax, but must only
+  // be parsed as JSON; appended executable code must never run in the page origin.
+  const feedContext = await browser.newContext({ serviceWorkers: 'block' });
+  const testEndpoint = 'https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec';
+  const originalConfig = fs.readFileSync(path.join(root, 'config.js'), 'utf8');
+  const testConfig = originalConfig
+    .replace('enabled: false', 'enabled: true')
+    .replace('webApp: { endpoint: "" }', 'webApp: { endpoint: "' + testEndpoint + '" }');
+  await feedContext.route('https://**/*', route => route.abort());
+  await feedContext.route('**/config.js', route => route.fulfill({
+    status: 200, contentType: 'text/javascript; charset=utf-8', body: testConfig
+  }));
+  let feedMode = 'valid';
+  await feedContext.route('https://script.google.com/macros/s/TEST_PUBLIC_CENTER/exec**', route => {
+    const validEnvelope = 'window.MPS_PUBLIC_CENTER_DATA={"ok":true,"announcements":[{"ID":"ANN-TEST","Title":"<img src=x onerror=window.__mpsXssExecuted=true>","Category":"important","Body":"<svg onload=window.__mpsXssExecuted=true>Data-only feed test"}],"activity":[],"tickerSettings":{"enabled":false,"speed":34,"theme":"Neon"}};';
+    const body = feedMode === 'valid'
+      ? validEnvelope
+      : validEnvelope + 'window.__mpsRemoteCodeExecuted=true;';
+    return route.fulfill({
+      status: 200,
+      headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' },
+      contentType: 'application/javascript; charset=utf-8',
+      body
+    });
+  });
+  const feedPage = await feedContext.newPage();
+  await feedPage.goto(base + '/announcements.html', { waitUntil: 'domcontentloaded' });
+  await feedPage.waitForFunction(() => document.documentElement.dataset.mpsPublicCenter === 'connected', null, { timeout: 5000 })
+    .catch(() => failures.push('Data-only public-center JSON feed did not connect in mocked CORS test'));
+  const safeFeedRendered = await feedPage.locator('[data-public-announcements]').innerText();
+  if (!safeFeedRendered.includes('<img src=x')) failures.push('Data-only public-center JSON feed did not preserve HTML-like title as inert text');
+  const feedXssSafety = await feedPage.evaluate(() => ({
+    titleText: document.querySelector('[data-public-announcements] h3')?.textContent || '',
+    injectedImage: !!document.querySelector('[data-public-announcements] img'),
+    executed: window.__mpsXssExecuted === true
+  }));
+  if (!feedXssSafety.titleText.includes('<img')) failures.push('Public-center announcement text was not preserved as inert text');
+  if (feedXssSafety.injectedImage || feedXssSafety.executed) failures.push('Public-center announcement content executed HTML instead of rendering as text');
+  const feedRemoteScripts = await feedPage.locator('script[src*="script.google.com"]').count();
+  if (feedRemoteScripts !== 0) failures.push('Data-only public-center feed injected a remote executable script');
+
+  feedMode = 'malicious';
+  await feedPage.goto(base + '/announcements.html?malicious-envelope-test=1', { waitUntil: 'domcontentloaded' });
+  await feedPage.waitForFunction(() => document.documentElement.dataset.mpsPublicCenter === 'demo-fallback', null, { timeout: 5000 })
+    .catch(() => failures.push('Malformed executable feed envelope did not fail closed to demo fallback'));
+  const remoteCodeExecuted = await feedPage.evaluate(() => window.__mpsRemoteCodeExecuted === true);
+  if (remoteCodeExecuted) failures.push('Public-center loader executed appended remote JavaScript instead of rejecting the response');
+  await feedContext.close();
+
   if (mobileErrors.length) failures.push('Mobile browser page errors: ' + mobileErrors.join(' | '));
   await mobileContext.close();
 
@@ -299,14 +475,14 @@ try {
   await iosPage.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
   await iosPage.locator('#navToggle').click();
   const iosInstallButton = iosPage.locator('#installMpsApp');
-  if (!await iosInstallButton.isVisible()) failures.push('iOS Add to Home Screen helper button did not appear');
+  if (!await iosInstallButton.isVisible()) failures.push('iOS Tambahkan ke Layar Utama helper button did not appear');
   let iosInstructions = '';
   iosPage.once('dialog', async dialog => {
     iosInstructions = dialog.message();
     await dialog.accept();
   });
   await iosInstallButton.click();
-  if (!iosInstructions.includes('Safari') || !iosInstructions.includes('Add to Home Screen')) failures.push('iOS install instructions are incomplete');
+  if (!iosInstructions.includes('Safari') || !iosInstructions.includes('Tambahkan ke Layar Utama')) failures.push('iOS install instructions are incomplete');
   await iosContext.close();
 
   if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
@@ -324,4 +500,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('MPS PWA browser test PASSED');
-console.log('Chromium passed 14 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, and iOS Add to Home Screen guidance.');
+console.log('Chromium passed 15 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, iOS Tambahkan ke Layar Utama guidance, public Market Pulse static-preview isolation, and data-only public-center CORS, malformed-payload, and inert-HTML/XSS checks.');

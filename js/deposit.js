@@ -7,13 +7,13 @@
   notice.className = "notice";
   notice.setAttribute("role", "status");
   var title = document.createElement("strong");
-  title.textContent = "Konfirmasi deposit MPS kini melalui sistem resmi v4.1.";
+  title.textContent = "Konfirmasi deposit MPS dilakukan melalui Portal Anggota MPS v4.8.";
   var copy = document.createElement("p");
-  copy.textContent = "Masuk melalui portal dan gunakan ID Member dari pendaftaran. Backend mencocokkan ID Member dan username Telegram sebelum menyimpan pengajuan serta bukti deposit.";
+  copy.textContent = "Masuk melalui portal dan gunakan Application Ref dari pengajuan. Nomor login MT5 hanya untuk identifikasi akun, bukan kata sandi. MPS tidak pernah meminta password, OTP, PIN, atau akses jarak jauh.";
   var link = document.createElement("a");
   link.className = "btn btn-gold";
   link.href = "member-portal.html";
-  link.textContent = "Buka Portal Deposit MPS";
+  link.textContent = "Buka Portal Konfirmasi Deposit";
   notice.append(title, copy, link);
   form.parentNode.insertBefore(notice, form);
 })();
