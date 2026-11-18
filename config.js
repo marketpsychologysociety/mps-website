@@ -13,12 +13,12 @@ window.MPS_CONFIG = {
     telegram: "https://t.me/Ndhisolasi",
     joinTelegram: "https://t.me/Ndhisolasi",
     email: "mailto:ndhisolasi.music@gmail.com",
-    exnessReferral: "https://one.exnessonelink.com/a/bdthbxwb2q"
+    exnessReferral: "https://one.toexness.com/a/bdthbxwb2q?platform=mobile"
   },
   partner: {
     broker: "Exness",
     ibCode: "bdthbxwb2q",
-    referralUrl: "https://one.exnessonelink.com/a/bdthbxwb2q"
+    referralUrl: "https://one.toexness.com/a/bdthbxwb2q?platform=mobile"
   },
   previewMode: true,
   webApp: { endpoint: "" },
