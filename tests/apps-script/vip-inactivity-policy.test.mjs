@@ -4,10 +4,10 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
 const source = readFileSync(new URL("../../candidates/Code.gs", import.meta.url), "utf8");
-const match = source.match(/function mpsEvaluateVipInactivityPolicy_\\(input\\)\\s*\\{[\\s\\S]*?\\n\\}/);
+const match = source.match(/function mpsEvaluateVipInactivityPolicy_\(input\)\s*\{[\s\S]*?\n\}/);
 assert.ok(match, "candidate Code.gs must contain the pure inactivity policy evaluator");
 const sandbox = {};
-vm.runInNewContext(match[0] + "\\nthis.evaluate = mpsEvaluateVipInactivityPolicy_;", sandbox);
+vm.runInNewContext(match[0] + "\nthis.evaluate = mpsEvaluateVipInactivityPolicy_;", sandbox);
 const evaluate = sandbox.evaluate;
 const NOW = "2026-11-18";
 function daysAgo(days) {

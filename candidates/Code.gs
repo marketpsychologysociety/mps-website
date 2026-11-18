@@ -5134,7 +5134,7 @@ function mpsEvaluateVipInactivityPolicy_(input) {
   }
   function parseWibDate(value) {
     const text = String(value || '');
-    const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(text);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
     if (!match) return null;
     const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
     const millis = Date.UTC(year, month - 1, day);
