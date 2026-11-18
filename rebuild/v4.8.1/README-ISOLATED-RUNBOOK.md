@@ -52,20 +52,21 @@ This is an initial clean architecture baseline, not a production-ready release.
 - After a deposit, the configured private admin chat receives a backup summary of registration and deposit data. No admin Telegram message is sent at initial registration. Configure and verify the admin chat ID carefully because this message contains personal and account-related information.
 - Approval is blocked until Telegram username verification is complete. If bot username is not configured, no link is issued and approval cannot proceed until the configuration is corrected.
 - Admin can reissue a missing/expired Telegram link without asking the member to resubmit proof.
+- Admin can retry failed/stale Telegram webhook updates from the control panel; the journal stores payload JSON for retry and must remain private.
 - Telegram update journal retains the inbound update JSON to support controlled Admin retries; restrict spreadsheet access because these payloads contain Telegram account metadata. Reissue expires older pending links.
 - After approval, a VIP invitation task is queued. The Admin UI attempts to process it immediately: the bot creates a 48-hour, one-use invite link and sends it to the linked member. Failed deliveries remain in `RETRY`; Admin can run the VIP queue action again.
-- Bot must be an administrator of the VIP group with permission to create invite links. Configure `MPS_VIP_GROUP_ID` and Telegram webhook updates to include `chat_member`. Confirmed `chat_member` joins are matched to an approved member by Telegram user ID; only then is the nickname published to the public VIP ticker. A verified leave removes the prior join from public display.
-- VIP invitation creation, join verification, follow-up worker, and public ticker publication are not implemented; the queue/event sheets are schema foundations only.
+- Bot must be an administrator of the VIP group with permission to create invite links. Configure `MPS_VIP_GROUP_ID` and Telegram webhook updates to include `chat_member` and `chat_join_request`. Confirmed `chat_member` joins are matched to an approved member by Telegram user ID; only then is the nickname published to the public VIP ticker. A verified leave removes the prior join from public display.
+- VIP invitation creation, owner-bound join-request approval, confirmed join/leave events, retryable invitation queue, and public nickname ticker are implemented in source. They still require isolated Bot API/group acceptance tests.
 - Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
-- Learning/news content management, announcement management, member billing/QRIS lifecycle, Exness IB status verification/rebate integration, and real Pulse feed validation are not implemented.
+- Admin Learning/News publishing and scheduled Public/Member announcements are implemented in source. Actual premium materials and editorial news must still be supplied by Admin; no content has been fabricated. Member billing/QRIS lifecycle and Exness IB status/rebate integration are not implemented. Binance PAXGUSDT M5 fetch logic is implemented but has not been validated against the live API from Apps Script.
 - Proof file storage uses a private file setting, but folder ACL inheritance and direct-file access must be independently verified in the isolated Drive environment.
-- No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, live Telegram webhook test, live Bot API delivery test, actual VIP-group join/leave test, or real announcement/content publishing test has been performed.
+- No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, live Telegram webhook test, live Bot API delivery test, actual VIP-group join/leave test, real announcement/content publishing test, or live Binance feed test has been performed.
 - No deployment or production migration is authorized by this runbook.
 
 ## Google Authenticator setup (isolated project only)
 
 1. First configure both Admin and Super Admin password hash/salt properties.
-2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner.
+2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner. Setup functions compare `Session.getActiveUser().getEmail()` with `MPS_REBUILD_OWNER_EMAIL` and reject anonymous web-app calls.
 3. Add each returned `otpauth://` account to Google Authenticator on the corresponding device. The function refuses to overwrite existing secrets.
 4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.
 5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The HTML login screen provides separate Admin and Super Admin forms; both use separate passwords and authenticator secrets. Super Admin currently has the same review permissions as Admin; privileged Super Admin-only management actions remain to be defined.
