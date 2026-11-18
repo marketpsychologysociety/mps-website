@@ -52,3 +52,15 @@ For each meaningful change:
 The trial-and-error principle is not permission for careless changes. Protect member privacy and live data, preserve backups, use least privilege, keep default-deny controls, and honor explicit NO-GO states. Do not bypass a security, financial, privacy, or operational safeguard merely to make progress appear faster.
 
 **Working maxim:** Move forward safely, learn quickly, correct continuously. Do not wait for perfection when a controlled next step is ready.
+
+
+## 9. Owner-assisted execution when direct access is unavailable
+
+- If a task requires access the assistant does not have (for example, the owner's Google Apps Script, Google account, Drive, hosting console, or device), do not stall, silently skip it, or imply it was completed.
+- Convert the blocked task into a precise owner-assisted procedure. The assistant prepares the code/configuration, exact menu navigation, values to enter, deployment settings, expected results, verification steps, and rollback instructions.
+- Ask the owner to perform only the steps that require their authenticated access or physical device. Keep each handoff small, ordered, and easy to follow, especially on Android.
+- Never ask the owner to expose passwords, PINs, private keys, bot tokens, OAuth secrets, session cookies, or other credentials in chat. Use secure secret-entry interfaces and ask only for non-sensitive confirmation or redacted output.
+- After each owner action, request the minimum useful evidence (for example, deployment version, redacted execution log, health-check response, or screenshot with sensitive data hidden). Independently inspect the evidence, cross-check it against the expected state, and provide the next exact step.
+- If an error occurs, diagnose it, prepare a correction, and repeat the controlled test-and-fix cycle. Do not ask the owner to guess at technical settings.
+- Clearly label each step as assistant-completed, owner-action-required, verified, blocked, or not yet tested. Never claim the whole task is complete until the final acceptance checks pass.
+- Owner-assisted execution does not authorize production deployment, destructive data changes, permission changes, or external side effects beyond the scope the owner explicitly approved.
