@@ -81,8 +81,53 @@ function validateMpsRebuildConfig() {
     vipGroupConfigured: !!p.getProperty('MPS_VIP_GROUP_ID'),
     backupFolderConfigured: !!p.getProperty('MPS_BACKUP_FOLDER_ID'),
     telegramBotUsernameConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_USERNAME'),
-    note: 'Read-only validation. No sheets, properties, triggers, or webhooks changed.'
+    spreadsheetReadable: false,
+    legacySheetPresent: false,
+    legacySchema: 'NOT_CHECKED',
+    auxiliarySheetsPresent: 0,
+    auxiliarySheetsExpected: Object.keys(MPS.SHEETS).length,
+    proofFolderReadable: false,
+    errors: [],
+    note: 'Read-only validation. No sheets, rows, properties, triggers, or webhooks changed.'
   };
+  try {
+    const id = p.getProperty('MPS_SPREADSHEET_ID');
+    if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
+    const ss = SpreadsheetApp.openById(id);
+    result.spreadsheetReadable = true;
+    const sh = ss.getSheetByName(MPS.LEGACY_SHEET);
+    result.legacySheetPresent = !!sh;
+    if (sh) {
+      const width = sh.getLastColumn();
+      const headers = sh.getRange(1,1,1,Math.max(width,MPS.LEGACY_HEADERS.length)).getDisplayValues()[0];
+      if (JSON.stringify(headers.slice(0,MPS.LEGACY_HEADERS.length)) !== JSON.stringify(MPS.LEGACY_HEADERS)) {
+        result.legacySchema = 'MISMATCH';
+      } else if (width === MPS.LEGACY_HEADERS.length) {
+        result.legacySchema = 'legacy-18';
+      } else if (width === MPS.LEGACY_EXTENDED_HEADERS.length &&
+          JSON.stringify(headers.slice(0,MPS.LEGACY_EXTENDED_HEADERS.length)) === JSON.stringify(MPS.LEGACY_EXTENDED_HEADERS)) {
+        result.legacySchema = 'v4.8-30';
+      } else {
+        result.legacySchema = 'MISMATCH';
+      }
+    } else {
+      result.legacySchema = 'MISSING';
+    }
+    result.auxiliarySheetsPresent = Object.keys(MPS.SHEETS).filter(k => !!ss.getSheetByName(MPS.SHEETS[k].name)).length;
+  } catch (e) {
+    result.errors.push('Spreadsheet: ' + String(e && e.message || e));
+  }
+  try {
+    const folderId = p.getProperty('MPS_PROOF_FOLDER_ID');
+    if (!folderId) throw new Error('MPS_PROOF_FOLDER_ID belum diatur.');
+    DriveApp.getFolderById(folderId).getName();
+    result.proofFolderReadable = true;
+  } catch (e) {
+    result.errors.push('Proof folder: ' + String(e && e.message || e));
+  }
+  const output = JSON.stringify(result);
+  Logger.log('MPS_REBUILD_VALIDATION ' + output);
+  console.log('MPS_REBUILD_VALIDATION ' + output);
   return result;
 }
 
@@ -114,7 +159,10 @@ function provisionMpsRebuildStorage() {
     }
   }
   Object.keys(MPS.SHEETS).forEach(k => ensureSheet_(ss,MPS.SHEETS[k]));
-  return {ok:true,version:MPS.VERSION,legacyHeaders:legacy.getLastColumn(),acceptedSchema:legacy.getLastColumn()===30?'v4.8-30':'legacy-18',auxiliarySheets:Object.keys(MPS.SHEETS).length};
+  const result = {ok:true,version:MPS.VERSION,legacyHeaders:legacy.getLastColumn(),acceptedSchema:legacy.getLastColumn()===30?'v4.8-30':'legacy-18',auxiliarySheets:Object.keys(MPS.SHEETS).length};
+  Logger.log('MPS_REBUILD_PROVISION ' + JSON.stringify(result));
+  console.log('MPS_REBUILD_PROVISION ' + JSON.stringify(result));
+  return result;
 }
 
 /** Public API: initial application only creates Application Ref, never Member ID. */
