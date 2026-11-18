@@ -348,6 +348,26 @@ function apiAdminReview(session, applicationRef, decision, note) {
  * PIN is returned only in this authenticated admin response and is never stored in plaintext.
  * Admin must deliver it through a separately verified private channel; Telegram delivery is not yet integrated.
  */
+/** Admin can reissue an expired/missing Telegram link without resubmitting deposit proof. */
+function apiAdminReissueTelegramLink(session, applicationRef) {
+  const actor = requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const ref = clean_(applicationRef,40).toUpperCase();
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const apps = sheet_('applications'), row = findRow_(apps,1,ref);
+    if (!row) throw new Error('Application Ref tidak ditemukan.');
+    const status = apps.getRange(row,8).getDisplayValue();
+    if (['Disetujui','Ditolak'].includes(status)) throw new Error('Pengajuan yang sudah diputuskan tidak dapat menerima link baru.');
+    if (!findRow_(sheet_('deposits'),1,ref)) throw new Error('Deposit belum dikirim.');
+    const link = createTelegramLink_(ref,apps.getRange(row,4).getDisplayValue());
+    if (!link.url) throw new Error('MPS_TELEGRAM_BOT_USERNAME belum dikonfigurasi dengan benar.');
+    apps.getRange(row,11).setValue('Menunggu Verifikasi Telegram');
+    apps.getRange(row,15).setValue(new Date());
+    audit_(actor.role,actor.actorId,'TELEGRAM_LINK_REISSUED',ref,'SUCCESS','Previous pending links expired.');
+    return {ok:true,telegramLink:link.url,expiresAt:link.expiresAt};
+  } finally { lock.releaseLock(); }
+}
+
 function apiAdminIssuePin(session, memberId) {
   const actor = requireSession_(session,['ADMIN','SUPER_ADMIN']);
   const id = clean_(memberId,20).toUpperCase();
@@ -456,7 +476,10 @@ function createTelegramLink_(applicationRef, expectedUsername) {
   const bot = String(prop_('MPS_TELEGRAM_BOT_USERNAME') || '').replace(/^@/,'').trim();
   if (!/^[A-Za-z0-9_]{5,32}$/.test(bot)) return {url:'',expiresAt:''};
   const token = randomHex_(32), now = new Date(), expires = new Date(now.getTime()+24*60*60*1000);
-  sheet_('links').appendRow([sha256_(token),now,expires,'PENDING','',applicationRef,'','','','','']);
+  const links = sheet_('links');
+  const existing = rows_(links);
+  existing.forEach((r,i)=>{ if (r[5] === applicationRef && r[3] === 'PENDING') links.getRange(i+2,4).setValue('EXPIRED'); });
+  links.appendRow([sha256_(token),now,expires,'PENDING','',applicationRef,'','','','','']);
   return {url:'https://t.me/'+bot+'?start='+token,expiresAt:expires.toISOString()};
 }
 
