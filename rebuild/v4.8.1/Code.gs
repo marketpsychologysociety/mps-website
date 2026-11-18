@@ -110,7 +110,9 @@ function apiRegister(input) {
   const country = clean_(input.country,60);
   const goal = clean_(input.goal,160);
   const note = clean_(input.note,1000);
-  if (!nickname || !username || !country || !goal) throw new Error('Lengkapi nama panggilan, username Telegram, negara, dan tujuan.');
+  if (!nickname || !country || !goal) throw new Error('Lengkapi nama panggilan, negara, dan tujuan.');
+  if (!/^[a-z][a-z0-9_]{4,31}$/.test(username)) throw new Error('Username Telegram harus 5–32 karakter, diawali huruf, dan hanya berisi huruf, angka, atau underscore.');
+  if (!['Belajar money management','Membangun psikologi trading','Melatih disiplin trading','Belajar dan berdiskusi bersama'].includes(goal)) throw new Error('Tujuan bergabung tidak valid.');
   enforceRateLimit_('register', username, 3, 3600);
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
@@ -134,14 +136,18 @@ function apiSubmitDeposit(input) {
   const type = clean_(input.accountType,40);
   const amount = Number(input.amount);
   const date = clean_(input.depositDate,20);
-  if (!account || !login || !type || !Number.isFinite(amount) || amount < 500000 || !date)
-    throw new Error('Data deposit belum lengkap atau nominal di bawah Rp500.000.');
+  if (!account || !login || !type || !Number.isFinite(amount) || amount < 500000 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date))
+    throw new Error('Data deposit belum lengkap, tanggal tidak valid, atau nominal di bawah Rp500.000.');
+  const depositDate = new Date(date+'T00:00:00+07:00');
+  if (isNaN(depositDate.getTime()) || depositDate.getTime() > Date.now()+24*60*60*1000)
+    throw new Error('Tanggal deposit tidak valid atau berada di masa depan.');
   const mime = String(input.proofMime || '');
   if (!['image/jpeg','image/png','image/webp'].includes(mime)) throw new Error('Bukti harus JPG, PNG, atau WEBP.');
   const raw = String(input.proofBase64 || '').replace(/^data:[^,]+,/,'');
   if (!raw || raw.length > 7 * 1024 * 1024) throw new Error('Ukuran bukti maksimal 5 MB.');
   const bytes = Utilities.base64Decode(raw);
   if (bytes.length > 5 * 1024 * 1024) throw new Error('Ukuran bukti maksimal 5 MB.');
+  if (!isAllowedImageBytes_(bytes,mime)) throw new Error('Isi file tidak sesuai dengan format gambar yang dipilih.');
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     const apps = sheet_('applications'), row = findRow_(apps,1,ref);
@@ -159,7 +165,9 @@ function apiSubmitDeposit(input) {
     file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     const now = new Date();
     sheet_('deposits').appendRow([ref,now,account,login,type,amount,date,file.getId(),'','Menunggu Validasi','','','','']);
-    const linkInfo = createTelegramLink_(ref,apps.getRange(row,4).getDisplayValue());
+    let linkInfo = {url:'',expiresAt:''};
+    try { linkInfo = createTelegramLink_(ref,apps.getRange(row,4).getDisplayValue()); }
+    catch (linkError) { audit_('SYSTEM','', 'TELEGRAM_LINK_CREATE_FAILED',ref,'WARNING',''); }
     apps.getRange(row,8).setValue('Deposit Dikirim');
     apps.getRange(row,10).setValue(now);
     apps.getRange(row,11).setValue('Menunggu Verifikasi Telegram');
@@ -393,17 +401,18 @@ function apiAdminIssuePin(session, memberId) {
   const actor = requireSession_(session,['ADMIN','SUPER_ADMIN']);
   const id = clean_(memberId,20).toUpperCase();
   if (!/^MPS-[A-F0-9]{10}$/.test(id)) throw new Error('ID Member tidak valid.');
-  const sh = legacySheet_(), row = findRow_(sh,1,id);
-  if (!row || sh.getRange(row,8).getDisplayValue() !== 'Berhasil')
-    throw new Error('PIN hanya dapat dibuat untuk member yang sudah aktif.');
-  const pin = randomPin_(), salt = randomHex_(32);
-  const props = PropertiesService.getScriptProperties();
-  props.setProperty('MPS_PIN_SALT_'+id,salt);
-  props.setProperty('MPS_PIN_HASH_'+id,sha256_(salt+pin));
-  audit_(actor.role,actor.actorId,'MEMBER_PIN_ISSUED',id,'SUCCESS','One-time PIN shown to authenticated admin only.');
-  return {ok:true,memberId:id,pin:pin,delivery:'Admin must send privately after verifying the member identity.'};
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const sh = legacySheet_(), row = findRow_(sh,1,id);
+    if (!row || sh.getRange(row,8).getDisplayValue() !== 'Berhasil')
+      throw new Error('PIN hanya dapat dibuat untuk member yang sudah aktif.');
+    const pin = randomPin_(), salt = randomHex_(32), props = PropertiesService.getScriptProperties();
+    props.setProperty('MPS_PIN_SALT_'+id,salt);
+    props.setProperty('MPS_PIN_HASH_'+id,sha256_(salt+pin));
+    audit_(actor.role,actor.actorId,'MEMBER_PIN_ISSUED',id,'SUCCESS','One-time PIN shown to authenticated admin only.');
+    return {ok:true,memberId:id,pin:pin,delivery:'Admin must send privately after verifying the member identity.'};
+  } finally { lock.releaseLock(); }
 }
-
 function randomPin_() {
   const raw = Utilities.getUuid().replace(/-/g,'').toUpperCase();
   let out = '';
@@ -624,6 +633,13 @@ function rows_(sh) { return sh.getLastRow()<2 ? [] : sh.getRange(2,1,sh.getLastR
 function audit_(role,actor,action,target,outcome,details) {
   try { sheet_('audit').appendRow([randomHex_(16),new Date(),role,actor,action,target,outcome,clean_(details,500)]); }
   catch (e) { console.error('AUDIT_WRITE_FAILED '+String(e.message||e)); }
+}
+function isAllowedImageBytes_(bytes,mime) {
+  const u=i=>(bytes[i]||0)&255;
+  if (mime==='image/jpeg') return bytes.length>=3 && u(0)===0xFF && u(1)===0xD8 && u(2)===0xFF;
+  if (mime==='image/png') return bytes.length>=8 && [0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A].every((v,i)=>u(i)===v);
+  if (mime==='image/webp') return bytes.length>=12 && String.fromCharCode(u(0),u(1),u(2),u(3))==='RIFF' && String.fromCharCode(u(8),u(9),u(10),u(11))==='WEBP';
+  return false;
 }
 function clean_(v,max) { return String(v == null ? '' : v).replace(/[<>]/g,'').trim().slice(0,max); }
 function cleanUsername_(v) { return clean_(v,40).replace(/^@/,'').toLowerCase().replace(/[^a-z0-9_]/g,''); }
