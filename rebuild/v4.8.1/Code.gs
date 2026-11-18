@@ -47,7 +47,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  const path = String(e && e.pathInfo || '').replace(/^\\/+|\\/+$/g,'');
+  const path = String(e && e.pathInfo || '').replace(/^\/+|\/+$/g,'');
   const secret = prop_('MPS_TELEGRAM_WEBHOOK_SECRET');
   if (!secret || !constantTimeEquals_(path,secret)) return text_('Not Found');
   let update;
@@ -463,10 +463,10 @@ function createTelegramLink_(applicationRef, expectedUsername) {
 /** /start token is accepted only from the username recorded during registration. */
 function handleTelegramStart_(message) {
   const textValue = String(message.text || '').trim();
-  const match = textValue.match(/^\\/start(?:@\\w+)?\\s+([A-Fa-f0-9]{32})$/);
+  const match = textValue.match(/^\/start(?:@\w+)?\s+([A-Fa-f0-9]{32})$/);
   const chatId = String(message.chat && message.chat.id || '');
   if (!match) {
-    if (/^\\/start(?:@\\w+)?$/.test(textValue)) sendTelegramMessage_(chatId,'Untuk menghubungkan akun, gunakan tombol/link verifikasi yang diberikan setelah pengiriman deposit.');
+    if (/^\/start(?:@\w+)?$/.test(textValue)) sendTelegramMessage_(chatId,'Untuk menghubungkan akun, gunakan tombol/link verifikasi yang diberikan setelah pengiriman deposit.');
     return;
   }
   const tokenHash = sha256_(match[1].toUpperCase()), links = sheet_('links'), row = findRow_(links,1,tokenHash);
