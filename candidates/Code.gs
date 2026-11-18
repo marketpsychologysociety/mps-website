@@ -1017,7 +1017,7 @@ function adminVerifyLegacy_(session, memberId, decision, adminNote) {
     if(action==='approve'&&String(appSheet.getRange(appRow,11).getDisplayValue()||'')!=='Terverifikasi')throw new Error('Verifikasi Telegram belum tercatat pada aplikasi ini.');
     appCurrent=appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
     const amount=Number(current[MPS_COL.amount-1]||0);
-    if(action==='approve'&&(!Number.isSafeInteger(amount)||amount<MPS.minDeposit))throw new Error('Deposit tidak memenuhi minimum Rp1.000.000.');
+    if(action==='approve'&&(!Number.isSafeInteger(amount)||amount<MPS.minDeposit))throw new Error('Deposit tidak memenuhi minimum Rp500.000.');
     enqueueMpsAdminDecisionIntent_(memberKey,memberKey,action,memberChatId);
     const now=new Date(),block=current.slice(MPS_COL.registrationStatus-1,MPS_COL.updatedAt);
     block[0]=action==='approve'?'Menunggu Aktivasi':'Ditolak';block[7]=action==='approve'?'Disetujui':'Ditolak';block[8]=sheetText_(note);block[9]=now;block[10]=now;
@@ -1100,7 +1100,7 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       if(String(app[10]||'')!=='Terverifikasi')throw new Error('Telegram pendaftar belum terverifikasi.');
       if(!dep[10]||!dep[11]||String(dep[10])!==String(dep[11])||String(app[11]||'')!==String(dep[10])||String(app[12]||'')!==String(dep[11]))throw new Error('Identitas Telegram belum cocok dengan catatan aplikasi dan chat pribadi bot.');
       const proofCheck=validateProofFileForApproval_(dep[8]);if(!dep[7]||String(proofCheck.fileId)!==String(dep[7]))throw new Error('File bukti deposit tidak cocok dengan ID file yang tersimpan pada pengajuan.');
-      const amount=Number(dep[5]||0);if(!Number.isSafeInteger(amount)||amount<MPS.minDeposit)throw new Error('Deposit tidak memenuhi minimum Rp1.000.000.');
+      const amount=Number(dep[5]||0);if(!Number.isSafeInteger(amount)||amount<MPS.minDeposit)throw new Error('Deposit tidak memenuhi minimum Rp500.000.');
       db=getMemberSheet_();ensureUniqueMt5_(db,String(dep[3]||''),0);
       memberId='MPS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();if(findMemberById_(db,memberId))throw new Error('Terjadi benturan ID Member. Ulangi persetujuan.');
       decisionIntentAttempted=true;enqueueMpsAdminDecisionIntent_(applicationRef,memberId,action,String(dep[11]||''));
