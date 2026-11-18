@@ -136,7 +136,7 @@ function apiSubmitDeposit(input) {
   const type = clean_(input.accountType,40);
   const amount = Number(input.amount);
   const date = clean_(input.depositDate,20);
-  if (!account || !login || !type || !Number.isFinite(amount) || amount < 500000 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date))
+  if (!account || !login || !type || !Number.isFinite(amount) || amount < 500000 || !/^\d{4}-\d{2}-\d{2}$/.test(date))
     throw new Error('Data deposit belum lengkap, tanggal tidak valid, atau nominal di bawah Rp500.000.');
   const depositDate = new Date(date+'T00:00:00+07:00');
   if (isNaN(depositDate.getTime()) || Utilities.formatDate(depositDate,MPS.TZ,'yyyy-MM-dd') !== date || depositDate.getTime() > Date.now()+24*60*60*1000)
