@@ -9,6 +9,25 @@
       link.title = "Belum aktif dalam pratinjau statis";
     });
   }
+
+  // Portal routes remain closed unless an explicit production Web App URL is configured.
+  const webAppEndpoint = String((cfg.webApp && cfg.webApp.endpoint) || "").trim();
+  const validWebAppEndpoint = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec\/?$/.test(webAppEndpoint);
+  document.querySelectorAll("a[data-portal-route]").forEach(link => {
+    const page = String(link.dataset.portalRoute || "").toLowerCase();
+    const allowedPages = ["register", "learning", "dashboard", "pulse", "admin"];
+    if (cfg.previewMode !== true && validWebAppEndpoint && allowedPages.includes(page)) {
+      link.href = webAppEndpoint.replace(/\/$/, "") + "?page=" + encodeURIComponent(page);
+      link.removeAttribute("aria-disabled");
+      link.classList.remove("mps-preview-disabled");
+      link.removeAttribute("title");
+    } else {
+      link.removeAttribute("href");
+      link.setAttribute("aria-disabled", "true");
+      link.classList.add("mps-preview-disabled");
+      link.title = "Portal belum diaktifkan: konfigurasi URL Apps Script dan mode produksi terlebih dahulu";
+    }
+  });
   const toggle = document.getElementById("navToggle");
   const nav = document.getElementById("navLinks");
 
