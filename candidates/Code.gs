@@ -157,7 +157,7 @@ function doPost(e) {
 
 /** Buat tautan verifikasi Telegram sekali pakai untuk pendaftaran publik. */
 function apiCreateTelegramLink(session, applicationRef) {
-  requireAdmin_(session);
+  const admin=requireAdmin_(session); // REV: sesi diambil sekali; dipakai untuk audit setelah commit
   const key=clean_(applicationRef,40).toUpperCase();
   consumeRateLimit_('mps_tg_link_create_'+sha256_(key).slice(0,20),3,900,'Tautan Telegram terlalu sering dibuat. Coba lagi 15 menit.');
   const lock=LockService.getScriptLock();lock.waitLock(15000);
@@ -165,13 +165,13 @@ function apiCreateTelegramLink(session, applicationRef) {
     if(/^MPS-APP-[A-F0-9]{20}$/.test(key)){
       const apps=getMpsApplicationsSheet_(),ar=findMpsApplicationRow_(apps,key);if(!ar)throw new Error('Application Ref tidak ditemukan.');
       const app=apps.getRange(ar,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];if(!['Deposit Dikirim','Menunggu Validasi Admin'].includes(String(app[7]||'')))throw new Error('Tautan hanya dapat dibuat untuk pengajuan deposit yang menunggu verifikasi.');
-      const link=createMemberTelegramLink_('',key);expireOtherApplicationLinks_(key,link.row);recordMpsAudit_(adminRole_(session),adminActorRef_(session),'TELEGRAM_LINK_RENEWED',key,'SUCCESS','Tautan Telegram pendaftaran diterbitkan ulang.');return link;
+      const link=createMemberTelegramLink_('',key);expireOtherApplicationLinks_(key,link.row);const auditWritten=recordMpsAudit_(admin.role,admin.actorId,'TELEGRAM_LINK_RENEWED',key,'SUCCESS','Tautan Telegram pendaftaran diterbitkan ulang.');if(!auditWritten)link.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';return link;
     }
     const id=key;if(!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id))throw new Error('ID Member atau Application Ref tidak valid.');
     const sheet=getMemberSheet_(),row=findMemberById_(sheet,id);if(!row)throw new Error('Member tidak ditemukan.');
     const status=sheet.getRange(row,MPS_COL.registrationStatus,1,8).getDisplayValues()[0];if(status[0]==='Berhasil'||status[7]==='Disetujui')throw new Error('Member ini sudah aktif.');
     const appSheet=getMpsApplicationsSheet_(),appRow=findMpsApplicationRowByMember_(appSheet,id),appRef=appRow?String(appSheet.getRange(appRow,1).getDisplayValue()||''):'';
-    const link=createMemberTelegramLink_(id,appRef);expireOtherMemberLinks_(id,link.row);recordMpsAudit_(adminRole_(session),adminActorRef_(session),'TELEGRAM_LINK_RENEWED',id,'SUCCESS','Tautan Telegram sekali pakai diterbitkan ulang.');return link;
+    const link=createMemberTelegramLink_(id,appRef);expireOtherMemberLinks_(id,link.row);if(appRef)expireOtherApplicationLinks_(appRef,link.row);const auditWritten=recordMpsAudit_(admin.role,admin.actorId,'TELEGRAM_LINK_RENEWED',id,'SUCCESS','Tautan Telegram sekali pakai diterbitkan ulang.');if(!auditWritten)link.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';return link;
   }finally{lock.releaseLock();}
 }
 
@@ -839,14 +839,23 @@ function apiAdminGetDepositProof(session,applicationRefOrMemberId) {
 }
 
 function apiAdminTelegramSetup(session) {
-  requireSuperAdmin_(session);
+  const admin = requireSuperAdmin_(session);
+  // REV: batasi frekuensi dan serialisasi agar tidak ada rotasi secret/setWebhook bersamaan.
+  consumeRateLimit_('mps_admin_tg_setup_' + sha256_(String(admin.actorId || admin.role)).slice(0, 20), 3, 300, 'Setup Telegram terlalu sering. Coba lagi beberapa menit.');
+  const setupLock = LockService.getScriptLock();
+  setupLock.waitLock(10000);
   try {
-    const result = setupTelegram_();
+    const result = setupTelegram_(admin);
     return { ok: true, message: result.message || 'Telegram berhasil terhubung.' };
   } catch (err) {
     const detail = String(err && err.message || err || '');
+    console.error('Telegram setup gagal: ' + safeErrorMessage_(err)); // REV: jangan log detail mentah (bisa memuat URL+token)
     let message = safeErrorMessage_(err);
-    if (/MPS_TELEGRAM_BOT_TOKEN|Token bot/i.test(detail)) {
+    if (/pesan uji admin gagal/i.test(detail)) {
+      message = 'Webhook sudah aktif, tetapi pesan uji ke admin gagal. Periksa Chat ID admin dan pastikan admin sudah menekan /start pada bot.';
+    } else if (/MPS_TELEGRAM_CHAT_ID/.test(detail)) {
+      message = 'Chat ID admin belum diisi pada Script Properties (MPS_TELEGRAM_CHAT_ID).';
+    } else if (/MPS_TELEGRAM_BOT_TOKEN|Token bot/i.test(detail)) {
       message = 'Token bot belum tersimpan dengan benar. Periksa Script Properties; jangan bagikan token kepada siapa pun.';
     } else if (/webhook|Conflict/i.test(detail)) {
       message = 'Webhook Telegram belum dapat diaktifkan. Periksa URL Web App dan konfigurasi Telegram.';
@@ -854,10 +863,11 @@ function apiAdminTelegramSetup(session) {
       message = 'Chat ID belum ditemukan. Buka bot MPS, kirim /start, lalu coba hubungkan kembali.';
     }
     return { ok: false, message: message };
+  } finally {
+    setupLock.releaseLock();
   }
 }
 
-/** Tampilkan kandidat grup Telegram; kandidat belum dipercaya sebelum dikonfirmasi admin. */
 function apiAdminGetTelegramCandidate(session) {
   requireSuperAdmin_(session);
   const props = PropertiesService.getScriptProperties();
@@ -871,7 +881,12 @@ function apiAdminGetTelegramCandidate(session) {
 
 /** Hanya admin yang dapat mengaktifkan kandidat; ID harus sama dengan kandidat webhook terbaru. */
 function apiAdminConfirmVipChat(session, candidateId) {
-  requireSuperAdmin_(session);
+  const admin=requireSuperAdmin_(session); // REV: sesi diambil sekali; dipakai untuk audit setelah commit
+  const schema=apiAdminInspectMemberSchemaV480(session);
+  if(!schema||schema.ok!==true||schema.state!=='READY_30'||schema.provisioningReady!==true)
+    throw new Error('Storage Database Member dan VIP Transition belum siap. Jalankan Initialize Content Storage, lalu Prepare VIP Transition Storage dan preflight ulang sebelum mengaktifkan grup.');
+  getMpsSheetStrict_('VIP Access',['ID Member','Telegram User ID','Chat ID','Username','Nama Depan','Terhubung','Status VIP','Invite Link','Invite Expiry','Joined At','Error Terakhir']);
+  getMpsSheetStrict_('Telegram Links',['Token Hash','Dibuat','Kedaluwarsa','Status','Telegram User ID','Chat ID','Username','Nama Depan','Dikonsumsi']);
   const id = String(candidateId || '').trim();
   if (!/^-?\d+$/.test(id)) throw new Error('ID grup kandidat tidak valid.');
   const props = PropertiesService.getScriptProperties();
@@ -897,19 +912,22 @@ function apiAdminConfirmVipChat(session, candidateId) {
   if (botStatus !== 'administrator' && botStatus !== 'creator') throw new Error('Bot harus menjadi admin atau pemilik grup VIP.');
   const lock = LockService.getScriptLock();
   lock.waitLock(5000);
+  let previousVipChat = '';
   try {
     const latestCandidate = String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_ID') || '');
     const latestTitle = String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_TITLE') || '').trim().toLowerCase();
     if (latestCandidate !== id || latestTitle !== 'mps vip community') throw new Error('Kandidat grup berubah saat konfirmasi. Periksa ulang dari panel admin.');
+    previousVipChat = String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_ID') || '');
     props.setProperty('MPS_TELEGRAM_VIP_CHAT_ID', id);
     props.deleteProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_ID');
     props.deleteProperty('MPS_TELEGRAM_VIP_CHAT_CANDIDATE_TITLE');
   } finally { lock.releaseLock(); }
-  recordMpsAudit_(adminRole_(session),adminActorRef_(session),'VIP_GROUP_CONFIGURED',id,'SUCCESS','Grup VIP dikonfirmasi dan izin bot diperiksa.');
-  return { ok: true, message: 'ID grup VIP dikonfirmasi dan diaktifkan.' };
+  const auditWritten=recordMpsAudit_(admin.role,admin.actorId,'VIP_GROUP_CONFIGURED',id,'SUCCESS','Grup VIP dikonfirmasi dan izin bot diperiksa.'+(previousVipChat&&previousVipChat!==id?' ID sebelumnya: '+previousVipChat+'.':''));
+  const confirmResult = { ok: true, message: 'ID grup VIP dikonfirmasi dan diaktifkan.' };
+  if (!auditWritten) confirmResult.auditWarning = 'Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
+  return confirmResult;
 }
 
-/** Kirim ulang notifikasi pendaftaran yang sebelumnya gagal, tanpa membuat baris member baru. */
 function apiAdminResendRegistrationNotice(session, memberId) {
   requireAdmin_(session);
   const memberKey = clean_(memberId, 40).toUpperCase();
@@ -1921,7 +1939,9 @@ function apiAdminGetHeatmap(session) {
 }
 
 /** Telegram setup/testing functions are restricted to the script owner/admin flow. */
-function setupTelegram_() {
+function setupTelegram_(actor) {
+  // REV: actor opsional ({role,actorId}); tanpa argumen perilaku lama dipertahankan.
+  const auditActor = actor && actor.role ? actor : { role: 'ADMIN', actorId: 'TELEGRAM_SETUP' };
   const props = PropertiesService.getScriptProperties();
   const token = props.getProperty('MPS_TELEGRAM_BOT_TOKEN');
   if (!token || token.indexOf(':') < 1) throw new Error('MPS_TELEGRAM_BOT_TOKEN belum ada atau tidak valid.');
@@ -1929,10 +1949,11 @@ function setupTelegram_() {
   const vipChatId = String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_ID') || '').trim();
   if (!/^-?\d+$/.test(adminChatId)) throw new Error('MPS_TELEGRAM_CHAT_ID admin wajib diisi manual dengan chat ID admin yang sudah diverifikasi.');
   if (vipChatId && !/^-?\d+$/.test(vipChatId)) throw new Error('MPS_TELEGRAM_VIP_CHAT_ID tidak valid.');
-  let webhookSecret = props.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET');
-  if (!webhookSecret || webhookSecret.length < 32) {
-    webhookSecret = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
-    props.setProperty('MPS_TELEGRAM_WEBHOOK_SECRET', webhookSecret);
+  const previousWebhookSecret=String(props.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET')||'');
+  let webhookSecret=previousWebhookSecret;
+  const rotateWebhookSecret=!/^[a-f0-9]{64}$/i.test(webhookSecret);
+  if(rotateWebhookSecret){
+    webhookSecret=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,'');
   }
   const base = 'https://api.telegram.org/bot' + token + '/';
   const meResp=UrlFetchApp.fetch(base+'getMe',{muteHttpExceptions:true}),meData=parseTelegramResponse_(meResp);
@@ -1946,21 +1967,30 @@ function setupTelegram_() {
   // Apps Script doPost tidak mengekspos header request Telegram.
   // Gunakan pathInfo berisi secret acak; hindari query string agar tidak bocor lewat log query.
   const webhookUrl = webAppUrl.replace(/\/+$/, '') + '/' + encodeURIComponent(webhookSecret);
-  const setResp = UrlFetchApp.fetch(base + 'setWebhook', {
-    method: 'post',
-    payload: {
-      url: webhookUrl,
-      secret_token: webhookSecret,
-      max_connections: 1,
-      allowed_updates: JSON.stringify(['message', 'chat_member', 'my_chat_member', 'chat_join_request'])
-    },
-    muteHttpExceptions: true
-  });
-  const setResult = parseTelegramResponse_(setResp);
-  if (!setResult.ok) throw new Error('Telegram menolak pemasangan webhook: ' + (setResult.description || 'kesalahan tidak diketahui'));
+  if(rotateWebhookSecret)props.setProperty('MPS_TELEGRAM_WEBHOOK_SECRET',webhookSecret);
+  let setResult=null;
+  try{
+    const setResp=UrlFetchApp.fetch(base+'setWebhook',{
+      method:'post',
+      payload:{url:webhookUrl,secret_token:webhookSecret,max_connections:1,
+        allowed_updates:JSON.stringify(['message','chat_member','my_chat_member','chat_join_request'])},
+      muteHttpExceptions:true
+    });
+    setResult=parseTelegramResponse_(setResp);
+    if(!setResult.ok)throw new Error('Telegram menolak pemasangan webhook: '+(setResult.description||'kesalahan tidak diketahui'));
+  }catch(webhookErr){
+    // If Telegram did not accept the new endpoint, restore the secret expected by
+    // the currently active webhook so incoming updates are not stranded.
+    if(rotateWebhookSecret){
+      try{if(previousWebhookSecret)props.setProperty('MPS_TELEGRAM_WEBHOOK_SECRET',previousWebhookSecret);else props.deleteProperty('MPS_TELEGRAM_WEBHOOK_SECRET');}
+      catch(restoreErr){console.error('Webhook secret rollback failed; rerun setupTelegram_ before relying on Telegram delivery.');}
+    }
+    throw webhookErr;
+  }
+  // REV: audit ditulis segera setelah webhook berubah, sebelum pesan uji yang dapat gagal.
+  recordMpsAudit_(auditActor.role,auditActor.actorId,'TELEGRAM_WEBHOOK_CONFIGURED','BOT','SUCCESS','Webhook Telegram diperbarui; URL dan token webhook tidak dicatat.');
   const test = sendTelegram_('✅ Koneksi webhook Telegram MPS v4.8.0 berhasil.');
   if (!test.ok) throw new Error('Webhook aktif, tetapi pesan uji admin gagal: ' + test.error);
-  recordMpsAudit_('ADMIN','TELEGRAM_SETUP','TELEGRAM_WEBHOOK_CONFIGURED','BOT','SUCCESS','Webhook Telegram diperbarui; URL dan token webhook tidak dicatat.');
   return { ok: true, message: vipChatId
     ? 'Webhook aktif. Chat ID admin dan grup VIP sudah terkonfigurasi.'
     : 'Webhook aktif. Kirim /start@'+botUsername+' di grup VIP resmi, lalu periksa dan konfirmasi kandidat grup dari panel admin.' };
