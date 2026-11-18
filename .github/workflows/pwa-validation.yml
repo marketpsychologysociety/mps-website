@@ -155,6 +155,8 @@ jobs:
         run: node --test tests/apps-script/vip-inactivity-policy.test.mjs
       - name: Run Admin TOTP MFA security tests
         run: node --test tests/apps-script/admin-mfa.test.mjs
+      - name: Run owner-only Admin bootstrap security tests
+        run: node --test tests/apps-script/owner-admin-bootstrap.test.mjs
       - name: Run member PIN delivery ambiguity hardening tests
         run: node --test tests/apps-script/admin-pin-delivery-hardening.test.mjs
       - name: Run Apps Script calculator template security tests
