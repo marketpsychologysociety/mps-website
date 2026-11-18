@@ -896,6 +896,7 @@ function createMpsBackupSnapshot() {
   const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
   const copy=DriveApp.getFileById(dbId).makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
   copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+  audit_('OWNER',Session.getActiveUser().getEmail(),'DATABASE_BACKUP_CREATED',copy.getId(),'SUCCESS',copy.getName());
   return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup manual dibuat di folder privat. Tidak ada file lama yang dihapus.'};
 }
 
