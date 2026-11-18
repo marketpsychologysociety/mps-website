@@ -59,6 +59,7 @@ function doPost(e) {
 function validateMpsRebuildConfig() {
   const p = PropertiesService.getScriptProperties();
   const result = {
+    ownerEmailConfigured: !!p.getProperty('MPS_REBUILD_OWNER_EMAIL'),
     spreadsheetConfigured: !!p.getProperty('MPS_SPREADSHEET_ID'),
     proofFolderConfigured: !!p.getProperty('MPS_PROOF_FOLDER_ID'),
     adminCredentialConfigured: !!p.getProperty('MPS_REBUILD_ADMIN_PASSWORD_HASH'),
