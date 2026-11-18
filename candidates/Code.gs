@@ -610,7 +610,7 @@ function activateMemberAfterPin_(memberId) {
  * created before Script Properties are written; all new properties are rolled
  * back if setup fails. A completion marker prevents accidental reruns.
  */
-function initializeMPSAdmin_() {
+function initializeMPSAdmin() {
   const props=PropertiesService.getScriptProperties();
   const scriptId=ScriptApp.getScriptId();
   const scriptFile=DriveApp.getFileById(scriptId);
