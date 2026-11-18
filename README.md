@@ -1,6 +1,6 @@
 # Market Psychology Society (MPS) — Website Publik
 
-Website publik MPS menggunakan HTML, CSS, dan JavaScript statis serta dipublikasikan melalui GitHub Pages. Portal pendaftaran, layanan member, dan administrasi berjalan pada Google Apps Script Web App yang terpisah.
+Website publik MPS menggunakan HTML, CSS, dan JavaScript statis serta dipublikasikan melalui GitHub Pages. Signal Bot Telegram, signal, dan analisa pasar diposisikan sebagai materi edukasi dan referensi, bukan ajakan atau saran investasi. Portal pendaftaran, layanan member, dan administrasi berjalan pada Google Apps Script Web App yang terpisah.
 
 ## URL resmi aktif
 
@@ -25,7 +25,7 @@ Website publik MPS menggunakan HTML, CSS, dan JavaScript statis serta dipublikas
 5. Admin memeriksa data dan dapat menyetujui atau menolak pengajuan.
 6. Member ID diterbitkan setelah persetujuan admin. Status member menjadi Berhasil setelah proses pengiriman dan penyimpanan PIN terkonfirmasi.
 
-Minimum deposit yang ditampilkan saat ini adalah Rp1.000.000. Nominal lebih besar diperbolehkan. Deposit merupakan dana di akun trading milik calon anggota pada broker, bukan biaya pendaftaran atau pembayaran kepada MPS.
+Keanggotaan memiliki dua jalur: Reguler Rp100.000 per bulan melalui QRIS MPS; atau Active IB Exness tanpa iuran bulanan selama status IB aktif dan memenuhi ketentuan MPS. Jalur Active IB mensyaratkan deposit pertama minimal Rp500.000 ke akun Exness milik anggota. Deposit bukan biaya atau pembayaran kepada MPS. Tidak ada trial gratis; pengunjung memperoleh preview publik.
 
 ## Integrasi portal
 

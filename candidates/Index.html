@@ -99,14 +99,14 @@
     </section>
 
     <section class="page" id="page-deposit">
-      <div class="section-head"><div><div class="eyebrow">Member verification</div><h2>Konfirmasi deposit</h2></div><p>Minimum Rp1.000.000</p></div>
+      <div class="section-head"><div><div class="eyebrow">Member verification</div><h2>Konfirmasi deposit</h2></div><p>Minimum Rp500.000</p></div>
       <div class="notice">Setelah deposit dikirim, Application Ref dan tautan bot Telegram akan muncul. Hubungkan Telegram agar admin dapat memverifikasi identitas. Member ID baru diterbitkan setelah admin menyetujui pengajuan.</div>
       <div class="panel"><form id="depositForm"><div class="form-grid">
         <div class="field full"><label>Application Ref *</label><input name="applicationRef" required placeholder="MPS-APP-XXXXXXXXXXXXXXXXXXXX"></div>
         <div class="field"><label>Nama sesuai akun broker *</label><input name="memberName" maxlength="80" required></div>
         <div class="field"><label>Login MT5 *</label><input name="mt5Login" inputmode="numeric" maxlength="20" pattern="[0-9]{4,20}" required placeholder="Nomor login MT5"></div>
         <div class="field"><label>Jenis akun *</label><select name="accountType" required><option value="">Pilih jenis akun</option><option>Standard</option><option>Pro</option><option>Raw Spread</option><option>Zero</option><option>Lainnya</option></select></div>
-        <div class="field"><label>Nominal deposit (IDR) *</label><input name="depositAmount" type="number" min="1000000" step="1" required placeholder="1000000"></div>
+        <div class="field"><label>Nominal deposit (IDR) *</label><input name="depositAmount" type="number" min="500000" step="1" required placeholder="500000"></div>
         <div class="field"><label>Tanggal deposit *</label><input name="depositDate" type="date" required></div>
         <div class="field full"><label>Bukti deposit (JPG / PNG / WEBP, maks. 5 MB) *</label><input id="proofFile" type="file" accept="image/jpeg,image/png,image/webp" required><div class="hint">Pastikan nominal, tanggal, dan identitas akun terlihat jelas.</div><img id="proofPreview" class="hidden" alt="Pratinjau bukti" style="max-width:220px;max-height:180px;object-fit:contain;border:1px solid var(--line);border-radius:10px;padding:5px"></div>
       </div><div class="actions"><button class="btn" type="submit" id="depositSubmit">KIRIM KONFIRMASI</button></div></form><div id="depositResult" class="notice hidden"></div></div>
