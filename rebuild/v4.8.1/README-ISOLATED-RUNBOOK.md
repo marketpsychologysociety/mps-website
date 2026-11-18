@@ -21,6 +21,9 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 - `MPS_REBUILD_ALLOW_PROVISION`: exact string `true`, only while provisioning the synthetic spreadsheet.
 - `MPS_REBUILD_ADMIN_PASSWORD_SALT` and `MPS_REBUILD_ADMIN_PASSWORD_HASH`: salted SHA-256 admin credential.
 - `MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT` and `MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH`: salted SHA-256 super-admin credential.
+- `MPS_REBUILD_ADMIN_TOTP_SECRET` and `MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET`: created once by the isolated TOTP initializer.
+- `MPS_TELEGRAM_BOT_USERNAME`: bot username without `@`, used to build the post-deposit verification link.
+- Optional Telegram integration: `MPS_TELEGRAM_BOT_TOKEN`, `MPS_TELEGRAM_CHAT_ID` (private admin backup destination), and `MPS_TELEGRAM_WEBHOOK_SECRET` (unguessable webhook path secret).
 - Optional: `MPS_MARKET_PULSE_JSON` for synthetic Pulse payload.
 
 Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into source files or chat.
@@ -43,12 +46,14 @@ Provisioning creates the legacy 18-column sheet only if absent and creates auxil
 This is an initial clean architecture baseline, not a production-ready release.
 
 - Admin-only initial PIN issue/reset is now implemented: it generates a six-digit PIN, stores only salted SHA-256 hash + salt in Script Properties, and displays the PIN once in the authenticated admin UI. Admin must verify member identity and deliver it privately. Automated verified-Telegram delivery and member self-service recovery are not implemented.
-- Telegram linking-token issue/consume flow, Telegram bot command handling, webhook replay processing, and notification delivery are not implemented; the webhook currently journals inbound updates only.
+- Telegram linking now issues a 32-hex-character, 24-hour single-use deep link after deposit; only the SHA-256 token hash is stored. `/start` validates that the Telegram username exactly matches the registration username before storing Telegram user/chat IDs. Webhook updates are journaled and completed updates are deduplicated; failed updates remain retryable. The webhook is not registered automatically.
+- After a deposit, the configured private admin chat receives a backup summary of registration and deposit data. No admin Telegram message is sent at initial registration. Configure and verify the admin chat ID carefully because this message contains personal and account-related information.
+- Approval is blocked until Telegram username verification is complete. If bot username is not configured, no link is issued and approval cannot proceed until the configuration is corrected.
 - VIP invitation creation, join verification, follow-up worker, and public ticker publication are not implemented; the queue/event sheets are schema foundations only.
 - Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
 - Learning/news content management, announcement management, member billing/QRIS lifecycle, Exness IB status verification/rebate integration, and real Pulse feed validation are not implemented.
 - Proof file storage uses a private file setting, but folder ACL inheritance and direct-file access must be independently verified in the isolated Drive environment.
-- No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, or live Telegram test has been performed.
+- No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, live Telegram webhook test, or live Bot API delivery test has been performed.
 - No deployment or production migration is authorized by this runbook.
 
 ## Google Authenticator setup (isolated project only)
@@ -57,7 +62,7 @@ This is an initial clean architecture baseline, not a production-ready release.
 2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner.
 3. Add each returned `otpauth://` account to Google Authenticator on the corresponding device. The function refuses to overwrite existing secrets.
 4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.
-5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The current HTML login screen supports Admin; Super Admin login UI still needs to be added.
+5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The HTML login screen provides separate Admin and Super Admin forms; both use separate passwords and authenticator secrets. Super Admin currently has the same review permissions as Admin; privileged Super Admin-only management actions remain to be defined.
 
 ## Current hardening added in source
 
@@ -65,7 +70,7 @@ This is an initial clean architecture baseline, not a production-ready release.
 - Deposit submission: temporary limit of 3 attempts per Application Ref per hour.
 - Member login: temporary limit of 8 attempts per Member ID per 15 minutes.
 - Approved member PIN: Admin can issue/reset a six-digit PIN from the admin queue. Reset immediately invalidates the previous PIN. The PIN is returned once to the authenticated admin and is not written to Sheets or logs.
-- Admin/Super Admin MFA: separate Google Authenticator TOTP secrets; API login requires six-digit code with ±1 time-step tolerance.
+- Admin/Super Admin MFA: separate Google Authenticator TOTP secrets; API login requires password plus six-digit code with ±1 time-step tolerance. Each TOTP time step is accepted only once per role to block simple replay.
 - Admin login: temporary limit of 8 attempts per 15 minutes; Super Admin: 5 attempts per 15 minutes.
 - Cache keys contain a SHA-256 digest rather than raw usernames or member IDs.
 - Duplicate deposit submission for the same Application Ref is rejected before another proof file is created.
