@@ -357,6 +357,8 @@ function apiAdminReview(session, applicationRef, decision, note) {
     const now = new Date(), adminNote = clean_(note,500);
     if (decision === 'APPROVE' && apps.getRange(ar,11).getDisplayValue() !== 'Terhubung')
       throw new Error('Verifikasi Telegram harus berhasil sebelum pengajuan dapat disetujui.');
+    if (decision === 'APPROVE' && (Number(dep[5]) < 500000 || !dep[7] || dep[9] !== 'Menunggu Validasi'))
+      throw new Error('Deposit belum memenuhi nominal minimum, bukti tidak tersedia, atau status deposit tidak valid.');
     if (decision === 'REJECT') {
       apps.getRange(ar,8).setValue('Ditolak'); apps.getRange(ar,14).setValue(adminNote);
       deps.getRange(dr,10).setValue('Ditolak'); deps.getRange(dr,13).setValue(adminNote);
@@ -796,8 +798,8 @@ function handleTelegramChatMember_(event) {
   const member = event.new_chat_member || {}, oldMember = event.old_chat_member || {};
   const userId = String(member.user && member.user.id || '');
   if (!userId) return;
-  const isActive = ['member','administrator','creator'].includes(String(member.status||''));
-  const wasActive = ['member','administrator','creator'].includes(String(oldMember.status||''));
+  const isActive = ['member','administrator','creator'].includes(String(member.status||'')) || (String(member.status||'')==='restricted' && member.is_member===true);
+  const wasActive = ['member','administrator','creator'].includes(String(oldMember.status||'')) || (String(oldMember.status||'')==='restricted' && oldMember.is_member===true);
   if (isActive === wasActive) return;
   const apps = sheet_('applications'), all = rows_(apps);
   const index = all.findIndex(r=>String(r[11]||'')===userId);
@@ -823,7 +825,7 @@ function handleTelegramChatMember_(event) {
 
 function apiGetPublicVipTicker() {
   const events=rows_(sheet_('vip'));
-  const latest=events.filter(r=>r[3]==='JOINED' && (r[7]===true || String(r[7]).toLowerCase()==='true'))
+  const latest=events.filter(r=>r[3]==='JOINED' && (r[6]===true || String(r[6]).toLowerCase()==='true') && (r[7]===true || String(r[7]).toLowerCase()==='true'))
     .slice(-20).reverse().slice(0,8)
     .map(r=>({nickname:clean_(r[2],60),joinedAt:r[5] instanceof Date?r[5].toISOString():String(r[5]||'')}));
   return latest;
