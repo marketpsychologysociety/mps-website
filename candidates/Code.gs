@@ -3724,6 +3724,9 @@ function apiAdminGetMemberIntelligence(session) {
 /** Admin: buat semua sheet tambahan tanpa menyentuh Database Member. */
 function apiAdminInitializeContent(session) {
   requireSuperAdmin_(session);
+  // Refuse content provisioning until the existing member sheet has the exact v4.8 schema.
+  // This is read-only and prevents a misleading success message on legacy/mismatched storage.
+  getMemberSheet_();
   const definitions=[];
   Object.keys(MPS_CONTENT).forEach(function(k) {
     if (!/Headers$/.test(k)) definitions.push({name:MPS_CONTENT[k],headers:MPS_CONTENT[k.replace('Sheet','Headers')]});
