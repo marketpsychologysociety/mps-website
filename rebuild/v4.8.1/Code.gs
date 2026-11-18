@@ -77,6 +77,7 @@ function validateMpsRebuildConfig() {
  * Existing legacy member data is not edited. Exact schema mismatch stops provisioning.
  */
 function provisionMpsRebuildStorage() {
+  requireOwnerContext_();
   if (prop_('MPS_REBUILD_ALLOW_PROVISION') !== 'true')
     throw new Error('Provisioning terkunci. Aktifkan hanya pada spreadsheet sintetis di project test baru.');
   const ss = openDb_();
@@ -228,6 +229,7 @@ function apiSuperAdminLogin(password, totpCode) {
  * Never expose this function through a public web endpoint or share its return value.
  */
 function initializeMpsTotpSecrets() {
+  requireOwnerContext_();
   const props = PropertiesService.getScriptProperties();
   const adminKey = 'MPS_REBUILD_ADMIN_TOTP_SECRET';
   const superKey = 'MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET';
@@ -589,6 +591,12 @@ function openDb_() {
   const id = prop_('MPS_SPREADSHEET_ID');
   if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
   return SpreadsheetApp.openById(id);
+}
+function requireOwnerContext_() {
+  const expected = prop_('MPS_REBUILD_OWNER_EMAIL').trim().toLowerCase();
+  const actual = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
+  if (!expected || !actual || actual !== expected)
+    throw new Error('Operasi setup hanya boleh dijalankan pemilik project dari Apps Script Editor. Konfigurasikan MPS_REBUILD_OWNER_EMAIL terlebih dahulu.');
 }
 function prop_(key) { return PropertiesService.getScriptProperties().getProperty(key) || ''; }
 
