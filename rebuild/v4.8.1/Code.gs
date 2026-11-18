@@ -146,8 +146,10 @@ function apiSubmitDeposit(input) {
     const apps = sheet_('applications'), row = findRow_(apps,1,ref);
     if (!row) throw new Error('Application Ref tidak ditemukan.');
     const state = String(apps.getRange(row,8).getDisplayValue());
-    if (!['Menunggu Pendaftaran','Menunggu Deposit','Deposit Dikirim'].includes(state))
+    if (!['Menunggu Pendaftaran','Menunggu Deposit'].includes(state))
       throw new Error('Pengajuan tidak berada pada tahap pengiriman deposit.');
+    if (findRow_(sheet_('deposits'),1,ref))
+      throw new Error('Bukti deposit untuk pengajuan ini sudah diterima. Hubungi admin jika perlu koreksi.');
     const folderId = prop_('MPS_PROOF_FOLDER_ID');
     if (!folderId) throw new Error('Folder bukti belum dikonfigurasi.');
     const folder = DriveApp.getFolderById(folderId);
