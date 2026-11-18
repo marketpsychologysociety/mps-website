@@ -167,11 +167,12 @@ function apiSubmitDeposit(input) {
 }
 
 /** Admin login uses a salted SHA-256 hash in Script Properties; plaintext password is never stored. */
-function apiAdminLogin(password) {
+function apiAdminLogin(password, totpCode) {
   const expected = prop_('MPS_REBUILD_ADMIN_PASSWORD_HASH');
   const salt = prop_('MPS_REBUILD_ADMIN_PASSWORD_SALT');
   if (!expected || !salt) throw new Error('Kredensial admin belum disiapkan di project test.');
   enforceRateLimit_('admin-login', 'global', 8, 900);
+  if (!verifyMpsTotp_('MPS_REBUILD_ADMIN_TOTP_SECRET',totpCode)) throw new Error('Kode Google Authenticator Admin tidak valid.');
   const actual = sha256_(salt + String(password || ''));
   if (!constantTimeEquals_(actual,expected)) {
     audit_('UNKNOWN','', 'ADMIN_LOGIN','', 'DENIED','Invalid credentials.');
@@ -180,14 +181,78 @@ function apiAdminLogin(password) {
   return createSession_('ADMIN','admin');
 }
 
-function apiSuperAdminLogin(password) {
+function apiSuperAdminLogin(password, totpCode) {
   const expected = prop_('MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH');
   const salt = prop_('MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT');
   if (!expected || !salt) throw new Error('Kredensial Super Admin belum disiapkan.');
   enforceRateLimit_('super-login', 'global', 5, 900);
+  if (!verifyMpsTotp_('MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET',totpCode)) throw new Error('Kode Google Authenticator Super Admin tidak valid.');
   if (!constantTimeEquals_(sha256_(salt + String(password || '')),expected))
     throw new Error('Password Super Admin tidak valid.');
   return createSession_('SUPER_ADMIN','super-admin');
+}
+
+
+/**
+ * Run manually from the Apps Script editor by the project owner in the isolated project.
+ * Creates Google Authenticator secrets once and returns provisioning URIs to the editor.
+ * Never expose this function through a public web endpoint or share its return value.
+ */
+function initializeMpsTotpSecrets() {
+  const props = PropertiesService.getScriptProperties();
+  const adminKey = 'MPS_REBUILD_ADMIN_TOTP_SECRET';
+  const superKey = 'MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET';
+  if (props.getProperty(adminKey) || props.getProperty(superKey))
+    throw new Error('TOTP sudah pernah diinisialisasi. Tidak ada secret yang dirotasi.');
+  const adminSecret = base32Encode_(Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,''));
+  const superSecret = base32Encode_(Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,''));
+  props.setProperties({[adminKey]:adminSecret,[superKey]:superSecret},false);
+  return {
+    adminOtpAuthUri: 'otpauth://totp/MPS%20Admin?secret='+adminSecret+'&issuer=MPS&algorithm=SHA1&digits=6&period=30',
+    superAdminOtpAuthUri: 'otpauth://totp/MPS%20Super%20Admin?secret='+superSecret+'&issuer=MPS&algorithm=SHA1&digits=6&period=30',
+    warning: 'Tambahkan kedua akun di Google Authenticator. Simpan backup secara offline. URI ini hanya ditampilkan sekali oleh fungsi inisialisasi.'
+  };
+}
+
+function verifyMpsTotp_(propertyKey, code) {
+  const secret = prop_(propertyKey);
+  const value = String(code || '').replace(/\\s/g,'');
+  if (!secret || !/^\\d{6}$/.test(value)) return false;
+  const now = Math.floor(Date.now()/1000/30);
+  for (let drift=-1;drift<=1;drift++) {
+    if (constantTimeEquals_(totpCode_(secret,now+drift),value)) return true;
+  }
+  return false;
+}
+
+function totpCode_(base32Secret, counter) {
+  const key = base32Decode_(base32Secret);
+  const msg = [];
+  let n = counter;
+  for (let i=7;i>=0;i--) { msg[i]=n & 255; n=Math.floor(n/256); }
+  const hmac = Utilities.computeHmacSha1Signature(msg,key);
+  const offset = hmac[hmac.length-1] & 15;
+  const binary = ((hmac[offset]&127)<<24) | ((hmac[offset+1]&255)<<16) | ((hmac[offset+2]&255)<<8) | (hmac[offset+3]&255);
+  return ('000000'+String(binary%1000000)).slice(-6);
+}
+
+function base32Encode_(input) {
+  const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits='',out='';
+  for (let i=0;i<input.length;i++) bits+=('00000000'+input.charCodeAt(i).toString(2)).slice(-8);
+  for (let i=0;i<bits.length;i+=5) out+=alphabet[parseInt((bits.slice(i,i+5)+'0000').slice(0,5),2)];
+  return out;
+}
+function base32Decode_(input) {
+  const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits='',out=[];
+  String(input).replace(/=+$/,'').split('').forEach(ch=>{
+    const n=alphabet.indexOf(ch);
+    if(n<0) throw new Error('TOTP secret format invalid.');
+    bits+=('00000'+n.toString(2)).slice(-5);
+  });
+  for(let i=0;i+8<=bits.length;i+=8) out.push(parseInt(bits.slice(i,i+8),2));
+  return out;
 }
 
 function apiAdminList(session) {
