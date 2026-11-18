@@ -2,153 +2,131 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const source = fs.readFileSync(path.join(here, 'fixtures/candidate-handler-callsite-snapshot.gs'), 'utf8');
-const EXPECTED_SHA256 = '70a2fb84ecef7e01eb86dcd95f1481ca3857e7953c6fbae2362b3314dcb64441';
-const actualSha256 = crypto.createHash('sha256').update(source).digest('hex');
-assert.equal(actualSha256, EXPECTED_SHA256, 'normalized fixture digest changed; re-extract and re-audit before updating pin');
+// Always characterize the current candidate source; never silently test a stale copied snapshot.
+const source = fs.readFileSync(path.join(here, '../../candidates/Code.gs'), 'utf8');
 
 function extractFunction(name, nextName) {
   const start = source.indexOf('function ' + name + '(');
-  assert.notEqual(start, -1, 'missing function ' + name);
+  assert.notEqual(start, -1, 'missing candidate function ' + name);
   const end = source.indexOf('function ' + nextName + '(', start);
   assert.notEqual(end, -1, 'missing boundary function ' + nextName);
   return source.slice(start, end);
 }
+
+const ingressSource = extractFunction('processTelegramUpdate_', 'mpsTelegramUpdateErrorCode_');
 const coreSource = extractFunction('processTelegramUpdateCore_', 'processVipJoinRequest_');
-const joinRequestSource = extractFunction('processVipJoinRequest_', 'verifyTelegramLinkFromUpdate_');
-const statusSource = extractFunction('updateVipJoinStatus_', 'kickMpsUnauthorizedUser_');
-const auditSource = extractFunction('recordMpsAudit_', 'apiAdminCheckSystemConfiguration');
+const joinRequestSource = extractFunction('processVipJoinRequest_', 'enqueueMpsVipJoinRequestNotice_');
+const memberEventSource = extractFunction('processMpsVipChatMemberEvent_', 'inspectMpsVipTransitionStorageSchemas_');
 
-function makeJoinContext(fetchImpl) {
-  const calls = [], memberId = 'MPS-ABCDEF12', userId = '987654321';
-  const accessRow = [memberId, userId, userId], memberRow = [];
-  const MPS_COL = { registrationStatus: 1, depositStatus: 2, accountName: 3, nickname: 4 };
-  memberRow[0] = 'Berhasil'; memberRow[1] = 'Disetujui'; memberRow[2] = 'Test Member';
-  const accessSheet = { getRange: () => ({ getValues: () => [accessRow] }) };
-  const memberSheet = { getRange: () => ({ getValues: () => [memberRow] }) };
+function makeIngressContext({ claim = { outcome: 'CLAIMED', row: { claimToken: 'claim-1', updateType: 'MESSAGE', attemptCount: 1 } }, coreError = null } = {}) {
+  const calls = [];
+  const journal = {
+    claim: (update, now) => { calls.push({ type: 'claim', update, now }); return claim; },
+    finish: (...args) => calls.push({ type: 'finish', args }),
+    retry: (...args) => calls.push({ type: 'retry', args }),
+    review: (...args) => calls.push({ type: 'review', args })
+  };
   const context = {
-    console,
-    MPS: { headers: Array(30).fill('x') }, MPS_COL,
-    PropertiesService: { getScriptProperties: () => ({ getProperty: key => ({
-      MPS_TELEGRAM_VIP_CHAT_ID: '-1001234567890',
-      MPS_TELEGRAM_BOT_TOKEN: '123456:TEST_TOKEN_NOT_REAL'
-    })[key] || '' }) },
-    getTelegramAccessSheet_: () => accessSheet,
-    findTelegramAccessByUserId_: () => 2,
-    getMemberSheet_: () => memberSheet,
-    findMemberById_: () => 2,
-    UrlFetchApp: { fetch: (...args) => { calls.push({ type: 'fetch', args }); return fetchImpl(...args); } },
-    parseTelegramResponse_: response => response,
-    updateVipJoinStatus_: (...args) => calls.push({ type: 'status', args }),
-    telegramSendToChat_: (...args) => { calls.push({ type: 'dm', args }); return { ok: true }; },
-    recordMpsAudit_: (...args) => calls.push({ type: 'audit', args }),
-    clean_: value => String(value),
-    ...{}
+    Date,
+    MPS_TELEGRAM_UPDATE_JOURNAL: { sheet: 'MPS Telegram Update Journal' },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: key => key === 'MPS_SPREADSHEET_ID' ? 'isolated-sheet-id' : '' }) },
+    createMpsTelegramGasJournal_: config => {
+      calls.push({ type: 'journal-create', config });
+      return journal;
+    },
+    processTelegramUpdateCore_: update => {
+      calls.push({ type: 'core', update });
+      if (coreError) throw coreError;
+    },
+    mpsTelegramUpdateErrorCode_: () => 'HANDLER_FAILED',
+    enqueueMpsTelegramUpdateReview_: (...args) => calls.push({ type: 'review-alert', args })
   };
   vm.createContext(context);
-  vm.runInContext(coreSource + '\n' + joinRequestSource, context, { timeout: 1000 });
-  return { context, calls, memberId, userId };
+  vm.runInContext(ingressSource, context, { timeout: 1000 });
+  return { context, calls };
 }
-const request = () => ({ chat: { id: '-1001234567890' }, from: { id: 987654321, is_bot: false }, user_chat_id: 987654321, date: 1760000000 });
-const response = (status, ok = true) => ({ ok, result: { status, is_member: status === 'member' }, description: ok ? '' : 'temporary failure' });
-const statusCalls = calls => calls.filter(x => x.type === 'status');
 
-test('actual processTelegramUpdateCore_ chat_member branch omits update_id and event date', () => {
-  const { context, calls } = makeJoinContext(() => response('left'));
-  context.processTelegramUpdateCore_({ update_id: 123456, chat_member: {
-    date: 1760000000, chat: { id: '-1001234567890' },
-    new_chat_member: { user: { id: 987654321 }, status: 'member', is_member: true }
-  }});
-  assert.equal(statusCalls(calls).length, 1);
-  assert.deepEqual(statusCalls(calls)[0].args, ['987654321', 'member', true]);
+test('current webhook ingress claims the durable journal before the core handler and completes afterward', () => {
+  const { context, calls } = makeIngressContext();
+  const update = { update_id: '12345678901234567890', message: { text: 'hello' } };
+  context.processTelegramUpdate_(update);
+  assert.deepEqual(calls.map(x => x.type), ['journal-create', 'claim', 'core', 'finish']);
+  assert.equal(calls[1].update.update_id, update.update_id);
+  assert.equal(calls[2].update.update_id, update.update_id);
+  assert.equal(calls[3].args[0], update.update_id);
+  assert.equal(calls[3].args[1], 'claim-1');
 });
 
-test('actual processVipJoinRequest_ pre-approval reconciliation omits update_id and request date', () => {
-  const { context, calls } = makeJoinContext(() => response('member'));
-  context.processVipJoinRequest_(request());
-  assert.deepEqual(statusCalls(calls)[0].args, ['987654321', 'member', true]);
+test('completed duplicate updates never re-enter the core handler', () => {
+  const { context, calls } = makeIngressContext({ claim: { outcome: 'DUPLICATE_DONE' } });
+  context.processTelegramUpdate_({ update_id: 77, message: { text: 'hello' } });
+  assert.deepEqual(calls.map(x => x.type), ['journal-create', 'claim']);
 });
 
-test('actual processVipJoinRequest_ failed-approval retry reconciliation omits update_id and request date', () => {
-  let n = 0;
-  const { context, calls } = makeJoinContext(() => (++n === 1 ? response('left') : n === 2 ? response('', false) : response('member')));
-  context.processVipJoinRequest_(request());
-  assert.deepEqual(statusCalls(calls)[0].args, ['987654321', 'member', true]);
+test('retryable handler failure releases the journal claim as RETRYABLE and propagates the error', () => {
+  const error = new Error('temporary handler failure');
+  const { context, calls } = makeIngressContext({ coreError: error });
+  assert.throws(() => context.processTelegramUpdate_({ update_id: 78, message: { text: 'hello' } }), /temporary handler failure/);
+  const retry = calls.find(x => x.type === 'retry');
+  assert.ok(retry);
+  assert.equal(retry.args[0], 78);
+  assert.equal(retry.args[1], 'claim-1');
+  assert.equal(retry.args[3], 'HANDLER_FAILED');
+  assert.equal(calls.some(x => x.type === 'finish'), false);
 });
 
-test('actual processVipJoinRequest_ successful approval omits update_id and request date', () => {
-  let n = 0;
-  const { context, calls } = makeJoinContext(() => (++n === 1 ? response('left') : { ok: true, result: true }));
-  context.processVipJoinRequest_(request());
-  assert.deepEqual(statusCalls(calls)[0].args, ['987654321', 'member', true]);
+test('ambiguous external outcome is quarantined and raises a durable review alert instead of retrying', () => {
+  const error = new Error('telegram response lost');
+  error.ambiguousExternalOutcome = true;
+  const { context, calls } = makeIngressContext({ coreError: error });
+  context.processTelegramUpdate_({ update_id: 79, message: { text: 'hello' } });
+  assert.ok(calls.some(x => x.type === 'review' && x.args[0] === 79 && x.args[3] === 'AMBIGUOUS_EXTERNAL_OUTCOME'));
+  assert.ok(calls.some(x => x.type === 'review-alert' && x.args[1] === 'AMBIGUOUS_EXTERNAL_OUTCOME'));
+  assert.equal(calls.some(x => x.type === 'retry'), false);
+  assert.equal(calls.some(x => x.type === 'finish'), false);
 });
 
-test('actual updateVipJoinStatus_ mutates member/access sheets before ticker and audit while owning one ScriptLock', () => {
-  const events = [], lock = { held: false, acquisitions: 0, releases: 0 };
-  const accessRow = ['MPS-ABCDEF12', '987654321', '987654321'];
-  const memberRow = ['Berhasil', 'Disetujui', 'Test Member'];
-  const accessSheet = { getRange: (...args) => ({
-    getValues: () => [accessRow],
-    getDisplayValue: () => '',
-    setValue: value => events.push({ type: 'access-write', value, held: lock.held })
-  })};
-  const memberSheet = { getRange: (...args) => ({
-    getValues: () => [memberRow],
-    setValues: values => events.push({ type: 'member-write', values, held: lock.held })
-  })};
+test('current core handler forwards the complete update to both join-request and chat_member handlers', () => {
+  const calls = [];
   const context = {
-    console, MPS: { headers: Array(30).fill('x') },
-    MPS_COL: { registrationStatus: 1, depositStatus: 2, accountName: 3, nickname: 4 },
-    PropertiesService: { getScriptProperties: () => ({ getProperty: () => '-1001234567890' }) },
-    LockService: { getScriptLock: () => ({
-      waitLock: () => { lock.acquisitions++; lock.held = true; },
-      releaseLock: () => { lock.releases++; lock.held = false; }
-    })},
-    getTelegramAccessSheet_: () => accessSheet,
-    findTelegramAccessByUserId_: () => 2,
-    getMemberSheet_: () => memberSheet,
-    findMemberById_: () => 2,
-    recordMpsVipTickerEvent_: (...args) => events.push({ type: 'ticker', args, held: lock.held }),
-    recordMpsAudit_: (...args) => events.push({ type: 'audit', args, held: lock.held }),
-    clean_: value => String(value),
-    ...{}
+    PropertiesService: { getScriptProperties: () => ({ getProperty: key => key === 'MPS_TELEGRAM_VIP_CHAT_ID' ? '-1001234567890' : '' }) },
+    processVipJoinRequest_: (request, update) => calls.push({ type: 'join-request', request, update }),
+    processMpsVipChatMemberEvent_: (update, memberUpdate) => calls.push({ type: 'chat-member', update, memberUpdate })
   };
   vm.createContext(context);
-  vm.runInContext(statusSource, context, { timeout: 1000 });
-  context.updateVipJoinStatus_('987654321', 'member', true);
-  assert.equal(lock.acquisitions, 1);
-  assert.equal(lock.releases, 1);
-  const types = events.map(x => x.type);
-  assert.ok(types.indexOf('access-write') < types.indexOf('ticker'));
-  assert.ok(types.indexOf('member-write') < types.indexOf('ticker'));
-  assert.ok(types.indexOf('ticker') < types.indexOf('audit'));
-  assert.ok(events.every(x => x.held === true), 'all local writes/effects are invoked while the status lock is held');
+  vm.runInContext(coreSource, context, { timeout: 1000 });
+  const joinRequest = { chat: { id: '-1001234567890' }, from: { id: 987654321 }, date: 1760000000 };
+  const memberUpdate = { chat: { id: '-1001234567890' }, date: 1760000001, new_chat_member: { user: { id: 987654321 }, status: 'member' } };
+  const update = { update_id: 123, chat_join_request: joinRequest, chat_member: memberUpdate };
+  context.processTelegramUpdateCore_(update);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].type, 'join-request');
+  assert.equal(calls[0].request.date, joinRequest.date);
+  assert.equal(calls[0].update.update_id, update.update_id);
+  assert.equal(calls[1].type, 'chat-member');
+  assert.equal(calls[1].update.update_id, update.update_id);
+  assert.equal(calls[1].memberUpdate.date, memberUpdate.date);
 });
 
-test('actual recordMpsAudit_ swallows persistence failures instead of propagating them', () => {
-  const logged = [];
-  const context = {
-    console: { error: value => logged.push(String(value)) },
-    getMpsContentSheet_: () => { throw new Error('SHEET_WRITE_FAILED'); },
-    clean_: value => String(value),
-    sheetText_: value => value,
-    cleanNewsText_: value => value,
-    safeErrorMessage_: error => String(error && error.message || error)
-  };
-  vm.createContext(context);
-  vm.runInContext(auditSource, context, { timeout: 1000 });
-  assert.doesNotThrow(() => context.recordMpsAudit_('TELEGRAM', 'MPS-ABCDEF12', 'VIP_JOIN_APPROVED', 'MPS-ABCDEF12', 'SUCCESS', 'test'));
-  assert.equal(logged.length, 1);
-  assert.match(logged[0], /MPS audit log write failed/);
+test('join-request notices derive their durable identity from the original request or update', () => {
+  assert.match(joinRequestSource, /function processVipJoinRequest_\(request,update\)/);
+  assert.match(joinRequestSource, /enqueueMpsVipJoinRequestNotice_\(request,update,true\)/);
+  assert.match(joinRequestSource, /enqueueMpsVipJoinRequestNotice_\(request,update,false\)/);
+  assert.match(joinRequestSource, /VIP_JOIN_NOTICE_QUEUE_FAILED/);
 });
 
-test('fixture provenance remains pinned to exact candidate Code.gs SHA-256', () => {
-  assert.equal(actualSha256, EXPECTED_SHA256);
-  assert.match(source, /function updateVipJoinStatus_\(userId,status,isMember\)/);
-  assert.match(source, /function recordMpsAudit_\(role,actorRef,action,targetRef,result,details\)/);
+test('VIP chat_member processing uses the complete Telegram update and the durable transition orchestrator', () => {
+  assert.match(memberEventSource, /function processMpsVipChatMemberEvent_\(update,memberUpdate\)/);
+  assert.match(memberEventSource, /createMpsGasVipTransitionOrchestrator_/);
+  assert.match(memberEventSource, /handler\.process\(update\)/);
+  assert.match(memberEventSource, /afterTransition:/);
+});
+
+test('obsolete pre-journal status writer and non-keyed ticker writer are absent from the candidate', () => {
+  assert.doesNotMatch(source, /function updateVipJoinStatus_\(/);
+  assert.doesNotMatch(source, /function recordMpsVipTickerEvent_\(/);
 });
