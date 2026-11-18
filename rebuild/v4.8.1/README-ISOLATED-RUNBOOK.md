@@ -45,18 +45,27 @@ This is an initial clean architecture baseline, not a production-ready release.
 - Admin-only initial PIN issue/reset is now implemented: it generates a six-digit PIN, stores only salted SHA-256 hash + salt in Script Properties, and displays the PIN once in the authenticated admin UI. Admin must verify member identity and deliver it privately. Automated verified-Telegram delivery and member self-service recovery are not implemented.
 - Telegram linking-token issue/consume flow, Telegram bot command handling, webhook replay processing, and notification delivery are not implemented; the webhook currently journals inbound updates only.
 - VIP invitation creation, join verification, follow-up worker, and public ticker publication are not implemented; the queue/event sheets are schema foundations only.
-- Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, admin MFA/TOTP, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
+- Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
 - Learning/news content management, announcement management, member billing/QRIS lifecycle, Exness IB status verification/rebate integration, and real Pulse feed validation are not implemented.
 - Proof file storage uses a private file setting, but folder ACL inheritance and direct-file access must be independently verified in the isolated Drive environment.
 - No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, or live Telegram test has been performed.
 - No deployment or production migration is authorized by this runbook.
 
-## Google Authenticator setup (isolated project only)\n\n1. First configure both Admin and Super Admin password hash/salt properties.\n2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner.\n3. Add each returned `otpauth://` account to Google Authenticator on the corresponding device. The function refuses to overwrite existing secrets.\n4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.\n5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The current HTML login screen supports Admin; Super Admin login UI still needs to be added.\n\n## Current hardening added in source
+## Google Authenticator setup (isolated project only)
+
+1. First configure both Admin and Super Admin password hash/salt properties.
+2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner.
+3. Add each returned `otpauth://` account to Google Authenticator on the corresponding device. The function refuses to overwrite existing secrets.
+4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.
+5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The current HTML login screen supports Admin; Super Admin login UI still needs to be added.
+
+## Current hardening added in source
 
 - Public registration: temporary limit of 3 attempts per Telegram username per hour.
 - Deposit submission: temporary limit of 3 attempts per Application Ref per hour.
 - Member login: temporary limit of 8 attempts per Member ID per 15 minutes.
-- Approved member PIN: Admin can issue/reset a six-digit PIN from the admin queue. Reset immediately invalidates the previous PIN. The PIN is returned once to the authenticated admin and is not written to Sheets or logs.\n- Admin/Super Admin MFA: separate Google Authenticator TOTP secrets; API login requires six-digit code with ±1 time-step tolerance.
+- Approved member PIN: Admin can issue/reset a six-digit PIN from the admin queue. Reset immediately invalidates the previous PIN. The PIN is returned once to the authenticated admin and is not written to Sheets or logs.
+- Admin/Super Admin MFA: separate Google Authenticator TOTP secrets; API login requires six-digit code with ±1 time-step tolerance.
 - Admin login: temporary limit of 8 attempts per 15 minutes; Super Admin: 5 attempts per 15 minutes.
 - Cache keys contain a SHA-256 digest rather than raw usernames or member IDs.
 - Duplicate deposit submission for the same Application Ref is rejected before another proof file is created.
