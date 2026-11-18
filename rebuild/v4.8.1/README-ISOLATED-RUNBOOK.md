@@ -2,7 +2,7 @@
 
 ## Scope and safety
 
-This rebuild lives on branch `rebuild/v4.8-clean-architecture` under `rebuild/v4.8.1/`.
+This rebuild source is stored under `rebuild/v4.8.1/` on the repository's `main` branch.
 It is not deployed and is not connected to a production spreadsheet, Drive folder, bot, or webhook.
 
 Use only a brand-new standalone Apps Script project and synthetic spreadsheet/folder.
@@ -16,7 +16,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 
 ## Required Script Properties for isolated tests
 
-- `MPS_REBUILD_OWNER_EMAIL`: exact Google account email of the project owner. Provisioning and TOTP initialization verify the active editor account against this value and reject anonymous web-app calls.
+- `MPS_REBUILD_OWNER_EMAIL`: exact Google account email of the project owner. Provisioning and TOTP initialization verify `Session.getEffectiveUser().getEmail()` against this value and reject calls where the effective account is unavailable or does not match.
 - `MPS_SPREADSHEET_ID`: ID of a synthetic test spreadsheet only.
 - `MPS_PROOF_FOLDER_ID`: ID of a private synthetic Drive folder only.
 - `MPS_REBUILD_ALLOW_PROVISION`: exact string `true`, only while provisioning the synthetic spreadsheet.
@@ -70,7 +70,7 @@ This is an initial clean architecture baseline, not a production-ready release.
 ## Google Authenticator setup (isolated project only)
 
 1. First configure both Admin and Super Admin password hash/salt properties.
-2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner. Setup functions compare `Session.getActiveUser().getEmail()` with `MPS_REBUILD_OWNER_EMAIL` and reject anonymous web-app calls.
+2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner. Setup functions compare `Session.getEffectiveUser().getEmail()` with `MPS_REBUILD_OWNER_EMAIL` and reject calls where the effective account is unavailable or does not match.
 3. Add each returned `otpauth://` account to Google Authenticator on the corresponding device. The function refuses to overwrite existing secrets.
 4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.
 5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The HTML login screen provides separate Admin and Super Admin forms; both use separate passwords and authenticator secrets. Super Admin currently has the same review permissions as Admin; privileged Super Admin-only management actions remain to be defined.
