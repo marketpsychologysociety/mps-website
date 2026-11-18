@@ -633,6 +633,13 @@ function requireSession_(token,roles) {
   return {role:v[1],actorId:v[2]};
 }
 
+function sanitizeTelegramUpdateForJournal_(update) {
+  const copy=JSON.parse(JSON.stringify(update||{}));
+  if(copy.message && typeof copy.message.text==='string')
+    copy.message.text=copy.message.text.replace(/^(\/start(?:@\\w+)?\\s+)[A-Fa-f0-9]{32}$/,'$1[REDACTED]');
+  return copy;
+}
+
 function processTelegramUpdate_(update) {
   const id = String(update && update.update_id || '');
   if (!/^\d+$/.test(id)) throw new Error('Telegram update_id invalid.');
@@ -647,7 +654,7 @@ function processTelegramUpdate_(update) {
       sh.getRange(row,7).setValue(Number(sh.getRange(row,7).getValue() || 0)+1);
     } else {
       const type = update.message ? 'message' : update.chat_member ? 'chat_member' : 'other';
-      sh.appendRow([id,type,sha256_(JSON.stringify(update)),'PROCESSING',new Date(),new Date(),1,'','','','[]','',JSON.stringify(update)]);
+      sh.appendRow([id,type,sha256_(JSON.stringify(update)),'PROCESSING',new Date(),new Date(),1,'','','','[]','',JSON.stringify(sanitizeTelegramUpdateForJournal_(update))]);
       row = sh.getLastRow();
     }
   } finally { lock.releaseLock(); }
@@ -675,6 +682,12 @@ function apiAdminRetryTelegramFailures(session) {
     if(state!=='FAILED' && !stale) continue;
     const raw=String(r[12]||'');
     if(!raw) { sh.getRange(i+2,12).setValue('PAYLOAD_MISSING'); continue; }
+    if (/\\/start(?:@\\w+)?\\s+\\[REDACTED\\]/.test(String((()=>{try{return JSON.parse(raw).message?.text||''}catch(_){return ''}})()))) {
+      sh.getRange(i+2,4).setValue('NOT_RETRYABLE');
+      sh.getRange(i+2,12).setValue('TOKEN_REDACTED_REISSUE_LINK');
+      results.push({updateId:String(r[0]),status:'NOT_RETRYABLE'});
+      continue;
+    }
     try {
       processTelegramUpdate_(JSON.parse(raw));
       results.push({updateId:String(r[0]),status:'COMPLETED'});
