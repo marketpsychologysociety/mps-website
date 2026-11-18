@@ -760,11 +760,16 @@ function handleTelegramJoinRequest_(request) {
   const queue=sheet_('queue'), row=findRow_(queue,6,invite);
   const userId=String(request.from && request.from.id || '');
   if (!row) { telegramJoinRequestAction_('declineChatJoinRequest',groupId,userId); return; }
+  const intent=String(queue.getRange(row,2).getValue()||'');
+  const memberId=intent.replace(/^VIP_INVITE:/,'');
   const expected=String(queue.getRange(row,5).getDisplayValue()||'');
-  if (!userId || userId!==expected) {
+  const appRow=findRow_(sheet_('applications'),9,memberId);
+  const app=appRow?sheet_('applications').getRange(appRow,1,1,15).getValues()[0]:null;
+  const valid=!!(userId && userId===expected && app && app[7]==='Disetujui' && String(app[11]||'')===userId);
+  if (!valid) {
     telegramJoinRequestAction_('declineChatJoinRequest',groupId,userId);
-    if (userId) sendTelegramMessage_(userId,'Permintaan masuk VIP ditolak karena tautan undangan ini terikat pada akun Telegram member lain.');
-    audit_('TELEGRAM',userId,'VIP_JOIN_REQUEST_DENIED',String(queue.getRange(row,2).getValue()),'DENIED','Telegram user ID did not match invite owner.');
+    if (userId) sendTelegramMessage_(userId,'Permintaan masuk VIP ditolak karena undangan tidak cocok dengan akun member MPS yang aktif.');
+    audit_('TELEGRAM',userId,'VIP_JOIN_REQUEST_DENIED',intent,'DENIED','Invite owner/member status verification failed.');
     return;
   }
   telegramJoinRequestAction_('approveChatJoinRequest',groupId,userId);
