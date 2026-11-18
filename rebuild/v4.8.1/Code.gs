@@ -304,7 +304,7 @@ function apiAdminList(session) {
   const a = rows_(apps), d = rows_(deps);
   return a.map(r => {
     const dep = d.find(x => x[0] === r[0]) || [];
-    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],memberId:r[8]||'',accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
+    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],telegramStatus:r[10]||'Belum Terhubung',memberId:r[8]||'',accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
   }).reverse();
 }
 
