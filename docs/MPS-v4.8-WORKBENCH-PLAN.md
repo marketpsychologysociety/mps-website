@@ -1041,10 +1041,10 @@ This section consolidates previously approved design requirements into the MPS v
 
 ### H. Homepage mockup, logo, and visual revision — OPEN PR
 
-- [ ] **Outstanding PR:** revise the homepage visual implementation against the owner-approved **Design 1 — Premium Dark Pro** mockup, with controlled Modern Neon accents. The current homepage mockup/visual treatment is not accepted as final.
-- [ ] Revisit the homepage logo presentation and surrounding header/hero composition as part of that same visual revision. Preserve the approved original MPS logo asset; do not redraw, replace, distort, or add decorative symbols beside the logo without explicit approval.
-- [ ] Reconcile the hero artwork with the approved mockup (gold bull on the left, blue bear on the right, rising chart/arrow, curved globe), and ensure the VIP ticker, compact statistic/focus cards, feature cards, recent activity, CTA, and footer match the approved composition without fabricated member names, metrics, or activity.
-- [ ] Record the visual diff and review the desktop/mobile layouts before closing this PR item. The artwork/logo revision remains a design PR task; it is not marked complete by this documentation update.
+- [x] **Homepage visual implementation staged in PR #12 and isolated preview:** revised against the owner-approved **Design 1 — Premium Dark Pro** mockup, with controlled Modern Neon accents. Final owner visual acceptance remains open.
+- [x] Revisited the homepage logo presentation and header/hero composition. Restored the approved original MPS logo asset and removed the duplicate hero logo lockup. Do not redraw, replace, distort, or add decorative symbols beside the logo without explicit approval.
+- [x] Reconciled the hero artwork with the approved mockup by extracting the original Design 1 bull/bear/chart/globe artwork and installing it as a WebP asset. Retained neutral structural counters and an empty verified-activity state; no fabricated member names, deposit amounts, success rates, or activity.
+- [ ] Record a visual diff and complete desktop/mobile visual review before closing this PR item. Automated PWA validation and Chromium checks passed on the workbench; visual acceptance is still pending.
 
 ### Current external acceptance gates (not waived)
 
