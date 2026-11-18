@@ -56,7 +56,9 @@ test('candidate source files contain no common hard-coded API or bot credential 
 function uploadContext(){
   const context={
     MPS:{maxLearningFileBytes:8*1024*1024},
-    requireSuperAdmin_:()=>({role:'SUPER_ADMIN'}),
+    requireSuperAdmin_:()=>({role:'SUPER_ADMIN',actorId:'SYNTHETIC-SUPER-ADMIN'}),
+    consumeRateLimit_:()=>{},
+    sha256_:()=> 'a'.repeat(64),
     clean_:v=>String(v||''),
     cleanNewsText_:v=>String(v||''),
     Utilities:{base64Decode:v=>Array.from(Buffer.from(v,'base64'))},
