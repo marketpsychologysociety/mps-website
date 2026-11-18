@@ -636,7 +636,7 @@ function requireSession_(token,roles) {
 function sanitizeTelegramUpdateForJournal_(update) {
   const copy=JSON.parse(JSON.stringify(update||{}));
   if(copy.message && typeof copy.message.text==='string')
-    copy.message.text=copy.message.text.replace(/^(\/start(?:@\\w+)?\\s+)[A-Fa-f0-9]{32}$/,'$1[REDACTED]');
+    copy.message.text=copy.message.text.replace(/^(\/start(?:@\w+)?\s+)[A-Fa-f0-9]{32}$/,'$1[REDACTED]');
   return copy;
 }
 
@@ -682,7 +682,7 @@ function apiAdminRetryTelegramFailures(session) {
     if(state!=='FAILED' && !stale) continue;
     const raw=String(r[12]||'');
     if(!raw) { sh.getRange(i+2,12).setValue('PAYLOAD_MISSING'); continue; }
-    if (/\\/start(?:@\\w+)?\\s+\\[REDACTED\\]/.test(String((()=>{try{return JSON.parse(raw).message?.text||''}catch(_){return ''}})()))) {
+    if (/^\/start(?:@\w+)?\s+\[REDACTED\]$/.test(String((()=>{try{return JSON.parse(raw).message?.text||''}catch(_){return ''}})()))) {
       sh.getRange(i+2,4).setValue('NOT_RETRYABLE');
       sh.getRange(i+2,12).setValue('TOKEN_REDACTED_REISSUE_LINK');
       results.push({updateId:String(r[0]),status:'NOT_RETRYABLE'});
