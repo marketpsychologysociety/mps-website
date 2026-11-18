@@ -908,11 +908,11 @@ function apiAdminSystemHealth(session) {
   const count=(items,stateIndex,state)=>items.filter(r=>String(r[stateIndex])===state).length;
   return {
     version:MPS.VERSION,checkedAt:new Date().toISOString(),
-    applications:{total:app.length,pending:count(app,7,'Menunggu Pendaftaran')+count(app,7,'Deposit Dikirim')},
+    applications:{total:app.length,pending:count(app,7,'Menunggu Pendaftaran')+count(app,7,'Deposit Dikirim')+count(app,7,'Menunggu Deposit')},
     memberRows:activeMembers,
     vipQueue:{pending:count(queue,7,'PENDING'),processing:count(queue,7,'PROCESSING'),retry:count(queue,7,'RETRY'),sent:count(queue,7,'SENT'),joined:count(queue,7,'JOINED')},
     telegram:{failedUpdates:count(journal,3,'FAILED'),processingUpdates:count(journal,3,'PROCESSING')},
-    configuration:{telegramBot:!!prop_('MPS_TELEGRAM_BOT_TOKEN'),telegramAdminBackup:!!prop_('MPS_TELEGRAM_CHAT_ID'),telegramWebhook:!!prop_('MPS_TELEGRAM_WEBHOOK_SECRET'),vipGroup:!!prop_('MPS_VIP_GROUP_ID'),backupFolder:!!prop_('MPS_BACKUP_FOLDER_ID')},
+    configuration:{telegramBot:!!prop_('MPS_TELEGRAM_BOT_TOKEN'),telegramBotUsername:!!prop_('MPS_TELEGRAM_BOT_USERNAME'),telegramAdminBackup:!!prop_('MPS_TELEGRAM_CHAT_ID'),telegramWebhook:!!prop_('MPS_TELEGRAM_WEBHOOK_SECRET'),vipGroup:!!prop_('MPS_VIP_GROUP_ID'),backupFolder:!!prop_('MPS_BACKUP_FOLDER_ID'),weeklyBackupTrigger:ScriptApp.getProjectTriggers().some(t=>t.getHandlerFunction()==='createMpsScheduledBackup_')},
     note:'Health summary only; no secrets, IDs, proof links, or member personal details are returned.'
   };
 }
