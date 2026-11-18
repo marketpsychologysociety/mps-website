@@ -26,7 +26,7 @@ const MPS = Object.freeze({
     'Telegram Link Expires At', 'Application Ref', 'VIP Invite Link', 'VIP Invite Expires At',
     'VIP Joined At', 'VIP User ID', 'VIP Status'
   ],
-  minDeposit: 1000000,
+  minDeposit: 500000,
   maxProofBytes: 5 * 1024 * 1024,
   maxLearningFileBytes: 8 * 1024 * 1024,
   maxPulseDataBytes: 1024 * 1024,
