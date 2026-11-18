@@ -105,7 +105,7 @@ try {
   }
   fs.mkdirSync(path.join(root, 'test-artifacts'), { recursive: true });
   await page.screenshot({ path: path.join(root, 'test-artifacts/homepage-desktop-full.png'), fullPage: true, animations: 'disabled' });
-  if (!homeDesignAssets.stylesheet.includes('mps-home-design1-20261118c')) failures.push('Homepage stylesheet cache version is not the current Design 1 version');
+  if (!homeDesignAssets.stylesheet.includes('mps-home-design1-20261118d')) failures.push('Homepage stylesheet cache version is not the current Design 1 version');
   await page.evaluate(() => navigator.serviceWorker.ready.then(registration => registration.scope));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 10000 })
