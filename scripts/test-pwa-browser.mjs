@@ -53,6 +53,22 @@ try {
 
   const first = await page.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
   if (!first || first.status() !== 200) failures.push('Homepage did not return HTTP 200');
+  const heroArtworkVisibility = await page.evaluate(() => {
+    const wrap = document.querySelector('.mps-premium-art-wrap');
+    const art = document.querySelector('.mps-premium-art');
+    if (!wrap || !art) return { ok: false, reason: 'artwork element missing' };
+    const box = art.getBoundingClientRect();
+    const wrapStyle = getComputedStyle(wrap), artStyle = getComputedStyle(art);
+    return {
+      ok: box.width > 200 && box.height > 100 &&
+          wrapStyle.zIndex === '0' && artStyle.visibility === 'visible' &&
+          Number(artStyle.opacity) > 0,
+      width: box.width, height: box.height,
+      wrapperZ: wrapStyle.zIndex, visibility: artStyle.visibility,
+      opacity: artStyle.opacity
+    };
+  });
+  if (!heroArtworkVisibility.ok) failures.push('Approved Design 1 hero artwork must be visibly layered above the background: ' + JSON.stringify(heroArtworkVisibility));
   const homeDesignAssets = await page.evaluate(async () => {
     const art = document.querySelector('.mps-premium-art');
     const logo = document.querySelector('.mps-home-nav .nav-brand img');
