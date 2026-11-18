@@ -16,6 +16,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 
 ## Required Script Properties for isolated tests
 
+- `MPS_REBUILD_OWNER_EMAIL`: exact Google account email of the project owner. Provisioning and TOTP initialization verify the active editor account against this value and reject anonymous web-app calls.
 - `MPS_SPREADSHEET_ID`: ID of a synthetic test spreadsheet only.
 - `MPS_PROOF_FOLDER_ID`: ID of a private synthetic Drive folder only.
 - `MPS_REBUILD_ALLOW_PROVISION`: exact string `true`, only while provisioning the synthetic spreadsheet.
@@ -32,12 +33,13 @@ Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into sourc
 
 1. Create a new standalone Apps Script project.
 2. Add `Code.gs` and `Index.html` from this folder.
-3. Create a new empty synthetic spreadsheet and a new private synthetic Drive folder.
-4. Set the spreadsheet and folder properties to those synthetic resources.
-5. Set `MPS_REBUILD_ALLOW_PROVISION=true`.
-6. Run `provisionMpsRebuildStorage()` manually once.
-7. Run `validateMpsRebuildConfig()` and inspect the returned booleans.
-8. Remove or set `MPS_REBUILD_ALLOW_PROVISION` to anything other than `true` after provisioning.
+3. Set `MPS_REBUILD_OWNER_EMAIL` to the Google account that owns the isolated Apps Script project.
+4. Create a new empty synthetic spreadsheet and a new private synthetic Drive folder.
+5. Set the spreadsheet and folder properties to those synthetic resources.
+6. Set `MPS_REBUILD_ALLOW_PROVISION=true`.
+7. Run `provisionMpsRebuildStorage()` manually once from the owner account.
+8. Run `validateMpsRebuildConfig()` and inspect the returned booleans.
+9. Remove or set `MPS_REBUILD_ALLOW_PROVISION` to anything other than `true` after provisioning.
 
 Provisioning creates the legacy 18-column sheet only if absent and creates auxiliary sheets only when absent. It rejects mismatched headers. It does not clear or rewrite existing member rows.
 
@@ -64,12 +66,17 @@ This is an initial clean architecture baseline, not a production-ready release.
 4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.
 5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The HTML login screen provides separate Admin and Super Admin forms; both use separate passwords and authenticator secrets. Super Admin currently has the same review permissions as Admin; privileged Super Admin-only management actions remain to be defined.
 
+## Deterministic crypto self-test
+
+Run `runMpsCryptoSelfTests()` manually in the isolated Apps Script editor. It checks SHA-256 against a known vector and six RFC 6238 HMAC-SHA1 TOTP vectors, plus Base32 decoding. This test is included in source but has not been executed in the Apps Script runtime by this audit.
+
 ## Current hardening added in source
 
 - Public registration: temporary limit of 3 attempts per Telegram username per hour.
 - Deposit submission: temporary limit of 3 attempts per Application Ref per hour.
 - Member login: temporary limit of 8 attempts per Member ID per 15 minutes.
 - Approved member PIN: Admin can issue/reset a six-digit PIN from the admin queue. Reset immediately invalidates the previous PIN. The PIN is returned once to the authenticated admin and is not written to Sheets or logs.
+- Setup-only functions `provisionMpsRebuildStorage()` and `initializeMpsTotpSecrets()` verify `MPS_REBUILD_OWNER_EMAIL` against the active Google account; anonymous browser calls are rejected.
 - Admin/Super Admin MFA: separate Google Authenticator TOTP secrets; API login requires password plus six-digit code with ±1 time-step tolerance. Each TOTP time step is accepted only once per role to block simple replay.
 - Admin login: temporary limit of 8 attempts per 15 minutes; Super Admin: 5 attempts per 15 minutes.
 - Cache keys contain a SHA-256 digest rather than raw usernames or member IDs.
