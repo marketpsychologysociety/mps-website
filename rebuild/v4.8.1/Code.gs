@@ -722,32 +722,50 @@ function enqueueVipInvite_(memberId,applicationRef,telegramUserId,chatId) {
 
 /** Admin-triggered worker; safe to retry because an intent is unique per member. */
 function apiAdminProcessVipQueue(session) {
-  const actor = requireSession_(session,['ADMIN','SUPER_ADMIN']);
-  const queue = sheet_('queue'), results = [];
-  const all = rows_(queue);
-  for (let i=0;i<all.length && results.length<5;i++) {
-    const r = all[i];
-    if (!['PENDING','RETRY'].includes(String(r[7]))) continue;
-    const row = i+2;
+  const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const queue=sheet_('queue'), results=[], all=rows_(queue), now=Date.now();
+  for(let i=0;i<all.length && results.length<5;i++) {
+    const r=all[i], row=i+2, state=String(r[7]||'');
+    const staleProcessing=state==='PROCESSING' && new Date(r[13]).getTime()<now-10*60*1000;
+    if(!['PENDING','RETRY'].includes(state) && !staleProcessing) continue;
+    const lock=LockService.getScriptLock();
+    lock.waitLock(10000);
+    let claimed=false, current;
     try {
-      const invite = String(r[5]||'') || createVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),String(r[4]||''));
+      current=String(queue.getRange(row,8).getDisplayValue()||'');
+      const updated=queue.getRange(row,14).getValue();
+      const stale=current==='PROCESSING' && new Date(updated).getTime()<Date.now()-10*60*1000;
+      if(current==='PENDING' || current==='RETRY' || stale) {
+        queue.getRange(row,8).setValue('PROCESSING');
+        queue.getRange(row,14).setValue(new Date());
+        claimed=true;
+      }
+    } finally { lock.releaseLock(); }
+    if(!claimed) continue;
+    try {
+      const invite=String(queue.getRange(row,6).getDisplayValue()||'') ||
+        createVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),String(r[4]||''));
       queue.getRange(row,6).setValue(invite);
-      const appRow = findRow_(sheet_('applications'),9,String(r[1]||'').replace('VIP_INVITE:',''));
-      const chatId = appRow ? String(sheet_('applications').getRange(appRow,13).getDisplayValue()||'') : '';
-      if (!chatId) throw new Error('MEMBER_CHAT_NOT_FOUND');
-      sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, satu kali penggunaan): '+invite);
+      const memberId=String(r[1]||'').replace('VIP_INVITE:','');
+      const appRow=findRow_(sheet_('applications'),9,memberId);
+      const app=appRow?sheet_('applications').getRange(appRow,1,1,15).getValues()[0]:null;
+      const chatId=app?String(app[12]||''):'';
+      if(!app || app[7]!=='Disetujui' || !app[8] || !chatId || String(app[11]||'')!==String(r[4]||''))
+        throw new Error('APPROVED_MEMBER_TELEGRAM_BINDING_NOT_VALID');
+      sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, memerlukan persetujuan bot): '+invite);
       queue.getRange(row,8).setValue('SENT');
-      queue.getRange(row,9).setValue(Number(r[8]||0)+1);
+      queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
       queue.getRange(row,12).setValue('');
       queue.getRange(row,14).setValue(new Date());
       results.push({intent:r[1],status:'SENT'});
       audit_(actor.role,actor.actorId,'VIP_INVITE_SENT',r[1],'SUCCESS','');
-    } catch (err) {
+    } catch(err) {
       queue.getRange(row,8).setValue('RETRY');
-      queue.getRange(row,9).setValue(Number(r[8]||0)+1);
+      queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
       queue.getRange(row,12).setValue(String(err.message||'VIP_DELIVERY_FAILED').slice(0,80));
       queue.getRange(row,14).setValue(new Date());
       results.push({intent:r[1],status:'RETRY'});
+      audit_(actor.role,actor.actorId,'VIP_INVITE_FAILED',r[1],'WARNING',String(err.message||'').slice(0,160));
     }
   }
   return {ok:true,processed:results.length,results:results};
