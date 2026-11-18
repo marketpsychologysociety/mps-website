@@ -30,7 +30,9 @@ const MPS = Object.freeze({
     journal: {name:'MPS Telegram Update Journal', headers:['Update ID','Update Type','Payload SHA-256','State','First Seen At','Last Attempt At','Attempt Count','Lease Expires At','Claim Token','Completed At','Effect Keys JSON','Last Error Code']},
     queue: {name:'MPS Telegram VIP Follow-up Queue', headers:['Task Key','Intent Key','Action','Group ID','Telegram User ID','Invite Link','Alert Text','State','Attempts','Next Attempt At','Lease Until','Last Error Code','Created At','Updated At']},
     vip: {name:'MPS VIP Events', headers:['Event ID','Member ID','Nickname','Event Type','Telegram User ID','Occurred At','Verified','Public Display']},
-    announcements: {name:'MPS Announcements', headers:['Announcement ID','Title','Body','Audience','Start At','End At','Active','Created At','Updated At']}
+    announcements: {name:'MPS Announcements', headers:['Announcement ID','Title','Body','Audience','Start At','End At','Active','Created At','Updated At']},
+    learning: {name:'MPS Learning Content', headers:['Content ID','Created At','Updated At','Title','Category','Body','Resource URL','Published','Sort Order']},
+    news: {name:'MPS News Content', headers:['Content ID','Created At','Updated At','Title','Topic','Body','Source Name','Source URL','Published At','Published']}
   }
 });
 
@@ -454,6 +456,58 @@ function apiGetAnnouncements(session) {
   }));
 }
 
+function apiAdminListContent(session,section) {
+  requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const key=String(section||'').toLowerCase();
+  if (!['learning','news'].includes(key)) throw new Error('Bagian konten tidak valid.');
+  return rows_(sheet_(key)).map(r=>key==='learning'?{
+    id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),resourceUrl:String(r[6]||''),published:r[7]===true||String(r[7]).toLowerCase()==='true',sortOrder:Number(r[8]||0)
+  }:{
+    id:String(r[0]),title:String(r[3]),topic:String(r[4]),body:String(r[5]),sourceName:String(r[6]||''),sourceUrl:String(r[7]||''),publishedAt:r[8] instanceof Date?r[8].toISOString():String(r[8]||''),published:r[9]===true||String(r[9]).toLowerCase()==='true'
+  }).reverse();
+}
+
+function apiAdminSaveContent(session,section,input) {
+  const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const key=String(section||'').toLowerCase(), data=input||{};
+  if (!['learning','news'].includes(key)) throw new Error('Bagian konten tidak valid.');
+  const id=clean_(data.id,40), title=clean_(data.title,160), body=clean_(data.body,6000);
+  const published=data.published===true || String(data.published).toLowerCase()==='true';
+  if (!title || !body) throw new Error('Judul dan isi konten wajib diisi.');
+  const sh=sheet_(key), now=new Date(), target=id||('MPS-'+(key==='learning'?'LEARN':'NEWS')+'-'+randomHex_(12));
+  const row=findRow_(sh,1,target);
+  if (key==='learning') {
+    const category=clean_(data.category,80), resource=clean_(data.resourceUrl,500);
+    if (resource && !/^https:\/\//i.test(resource)) throw new Error('Tautan materi harus menggunakan HTTPS.');
+    const created=row?sh.getRange(row,2).getValue():now;
+    const values=[target,created,now,title,category,body,resource,published,Number(data.sortOrder||0)];
+    if(row)sh.getRange(row,1,1,9).setValues([values]);else sh.appendRow(values);
+  } else {
+    const topic=clean_(data.topic,80), sourceName=clean_(data.sourceName,120), sourceUrl=clean_(data.sourceUrl,500);
+    const publishedAt=new Date(String(data.publishedAt||now.toISOString()));
+    if (sourceUrl && !/^https:\/\//i.test(sourceUrl)) throw new Error('URL sumber berita harus menggunakan HTTPS.');
+    if (isNaN(publishedAt.getTime())) throw new Error('Tanggal publikasi berita tidak valid.');
+    const created=row?sh.getRange(row,2).getValue():now;
+    const values=[target,created,now,title,topic,body,sourceName,sourceUrl,publishedAt,published];
+    if(row)sh.getRange(row,1,1,10).setValues([values]);else sh.appendRow(values);
+  }
+  audit_(actor.role,actor.actorId,'CONTENT_SAVED',target,'SUCCESS',key+'; published='+published);
+  return {ok:true,id:target,published:published};
+}
+
+function fetchBinancePaxgM5_() {
+  const cache=CacheService.getScriptCache(), cached=cache.get('MPS_PAXG_M5_CACHE');
+  if(cached) return JSON.parse(cached);
+  const url='https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=5m&limit=100';
+  const response=UrlFetchApp.fetch(url,{muteHttpExceptions:true});
+  if(response.getResponseCode()<200 || response.getResponseCode()>=300) throw new Error('BINANCE_HTTP_ERROR');
+  const raw=JSON.parse(response.getContentText()||'[]');
+  if(!Array.isArray(raw) || !raw.length) throw new Error('BINANCE_EMPTY_RESPONSE');
+  const data=raw.map(k=>({time:new Date(Number(k[0])).toISOString(),open:Number(k[1]),high:Number(k[2]),low:Number(k[3]),close:Number(k[4]),volume:Number(k[5])}));
+  cache.put('MPS_PAXG_M5_CACHE',JSON.stringify(data),60);
+  return data;
+}
+
 function apiAdminListAnnouncements(session) {
   requireSession_(session,['ADMIN','SUPER_ADMIN']);
   return rows_(sheet_('announcements')).map(r=>({
@@ -494,7 +548,18 @@ function apiGetMemberContent(session, section) {
   }
   if (key === 'pulse') {
     const raw = prop_('MPS_MARKET_PULSE_JSON');
-    return {section:key,source:'Binance Spot PAXGUSDT — gold-market proxy',timeframe:'M5',timezone:'WIB',data:raw ? JSON.parse(raw) : null};
+    let data = null;
+    if (raw) { try { data=JSON.parse(raw); } catch (_) { throw new Error('Konfigurasi Market Pulse JSON tidak valid.'); } }
+    else { try { data=fetchBinancePaxgM5_(); } catch (err) { return {section:key,source:'Binance Spot PAXGUSDT — gold-market proxy',timeframe:'M5',timezone:'WIB',data:null,error:'Feed belum dapat diambil. Coba kembali beberapa saat lagi.'}; } }
+    return {section:key,source:'Binance Spot PAXGUSDT — gold-market proxy',timeframe:'M5',timezone:'WIB',disclaimer:'Proxy pasar emas; bukan feed XAUUSD broker Forex.',data:data};
+  }
+  if (key === 'learning' || key === 'news') {
+    const items=rows_(sheet_(key)).filter(r=>r[7]===true || String(r[key==='learning'?7:9]).toLowerCase()==='true');
+    return {section:key,items:items.map(r=>key==='learning'?{
+      id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),resourceUrl:String(r[6]||'')
+    }:{
+      id:String(r[0]),title:String(r[3]),topic:String(r[4]),body:String(r[5]),sourceName:String(r[6]||''),sourceUrl:String(r[7]||''),publishedAt:r[8] instanceof Date?r[8].toISOString():String(r[8]||'')
+    })};
   }
   return {section:key,content:[]};
 }
