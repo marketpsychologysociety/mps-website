@@ -518,3 +518,22 @@ Use the current official API reference for exact request parameters and response
 - This is a policy and implementation requirement only. It does not authorize immediate removal of any existing VIP member, changes to live Telegram groups, member records, access entitlements, or production deployment. Enforcement requires a separately approved rollout after the activity source, member notice, backend revocation paths, audit trail, and test evidence are verified.
 
 **Default rule adopted for the MPS workbench design:** 60 consecutive days without verified executed trading activity; notice on approximately days 45 and 55; VIP group and VIP-only website access revoked at day 60; rejoining requires fresh VIP onboarding and approval.
+
+
+## 2.15 Owner-approved Exness IB referral route and QR destination
+
+The MPS owner confirmed these official referral assets for MPS member registration:
+
+- **Official registration link (mobile):** https://one.toexness.com/a/bdthbxwb2q?platform=mobile
+- **Official QR destination:** https://one.toexness.com/a/bdthbxwb2q?method=qrcode
+- **Referral code:** `bdthbxwb2q`
+
+Both routes use the same referral code and differ only by entry method. The direct link is the registration CTA destination; the QR code must resolve to the exact QR destination above. Do not substitute another referral URL or infer attribution from a click.
+
+**Security and transparency requirements**
+- Present the referral route consistently for MPS member registrations and disclose that it is an Exness IB/referral route.
+- Do not describe a registration as successfully attributed until confirmed by authorized Exness partner data.
+- Referral registration does not itself establish partner API eligibility, client-account attribution, trading activity, rebate entitlement, or payment.
+- Keep the Rebate Dashboard in **NOT CONNECTED / WAITING FOR PARTNER API ACCESS** until the separate 2.13 gates are satisfied.
+- Never expose partner API keys, Ed25519 signing material, or privileged partner account data in the browser, public repository, chat, or member-facing responses.
+- The referral link/QR decision is documentation and routing approval only. It does not authorize live API calls, account changes, rebate configuration changes, payout actions, or production deployment.
