@@ -431,8 +431,19 @@ function apiAdminIssuePin(session, memberId) {
     const pin = randomPin_(), salt = randomHex_(32), props = PropertiesService.getScriptProperties();
     props.setProperty('MPS_PIN_SALT_'+id,salt);
     props.setProperty('MPS_PIN_HASH_'+id,sha256_(salt+pin));
-    audit_(actor.role,actor.actorId,'MEMBER_PIN_ISSUED',id,'SUCCESS','One-time PIN shown to authenticated admin only.');
-    return {ok:true,memberId:id,pin:pin,delivery:'Admin must send privately after verifying the member identity.'};
+    const apps=sheet_('applications'), appRow=findRow_(apps,9,id);
+    const chatId=appRow?String(apps.getRange(appRow,13).getDisplayValue()||''):'';
+    if(appRow && chatId && apps.getRange(appRow,11).getDisplayValue()==='Terhubung') {
+      try {
+        sendTelegramMessage_(chatId,'PIN akses MPS Anda: '+pin+'\\nJangan bagikan PIN ini kepada siapa pun. MPS tidak akan meminta PIN atau OTP Anda.');
+        audit_(actor.role,actor.actorId,'MEMBER_PIN_ISSUED',id,'SUCCESS','PIN delivered to verified Telegram chat.');
+        return {ok:true,memberId:id,pinDelivered:true,delivery:'Telegram terverifikasi'};
+      } catch(sendError) {
+        audit_(actor.role,actor.actorId,'MEMBER_PIN_DELIVERY_FAILED',id,'WARNING','Admin fallback required.');
+      }
+    }
+    audit_(actor.role,actor.actorId,'MEMBER_PIN_ISSUED',id,'SUCCESS','One-time PIN shown to authenticated admin for private manual delivery.');
+    return {ok:true,memberId:id,pin:pin,pinDelivered:false,delivery:'Kirim secara pribadi setelah verifikasi identitas.'};
   } finally { lock.releaseLock(); }
 }
 function randomPin_() {
