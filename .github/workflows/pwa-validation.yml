@@ -171,6 +171,13 @@ jobs:
           npx playwright install chromium
       - name: Run Chromium browser checks
         run: node scripts/test-pwa-browser.mjs
+      - name: Upload homepage visual QA screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: mps-v4.8-homepage-visual-qa
+          path: test-artifacts/*.png
+          if-no-files-found: error
+          retention-days: 7
       - name: Package private static website preview
         uses: actions/upload-artifact@v4
         with:

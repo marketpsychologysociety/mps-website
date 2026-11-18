@@ -69,6 +69,8 @@ try {
   });
   if (!homeDesignAssets.ok) failures.push('Approved Design 1 hero artwork/original logo failed browser decoding or dimensions: ' + JSON.stringify(homeDesignAssets));
   if (homeDesignAssets.duplicateHeroLogo) failures.push('Duplicate logo lockup remains inside the homepage hero');
+  fs.mkdirSync(path.join(root, 'test-artifacts'), { recursive: true });
+  await page.screenshot({ path: path.join(root, 'test-artifacts/homepage-desktop-full.png'), fullPage: true, animations: 'disabled' });
   if (!homeDesignAssets.stylesheet.includes('mps-home-design1-20261118b')) failures.push('Homepage stylesheet cache version is not the current Design 1 version');
   await page.evaluate(() => navigator.serviceWorker.ready.then(registration => registration.scope));
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -266,6 +268,9 @@ try {
     };
   });
   if (!mobileMenuStyles.ok) failures.push('Homepage hamburger menu must keep Daftar as plain text and the hamburger static: ' + JSON.stringify(mobileMenuStyles));
+  await mobilePage.screenshot({ path: path.join(root, 'test-artifacts/homepage-mobile-menu.png'), fullPage: false, animations: 'disabled' });
+  await mobilePage.locator('#navToggle').click();
+  await mobilePage.screenshot({ path: path.join(root, 'test-artifacts/homepage-mobile-hero.png'), fullPage: false, animations: 'disabled' });
 
   await mobilePage.evaluate(() => {
     const event = new Event('beforeinstallprompt', { cancelable: true });
