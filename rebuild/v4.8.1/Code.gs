@@ -47,17 +47,15 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  const path = String(e && e.pathInfo || '').replace(/^\/+|\/+$/g,'');
+  const path = String(e && e.pathInfo || '').replace(/^\\/+|\\/+$/g,'');
   const secret = prop_('MPS_TELEGRAM_WEBHOOK_SECRET');
   if (!secret || !constantTimeEquals_(path,secret)) return text_('Not Found');
   let update;
-  try { update = JSON.parse(e.postData.contents || '{}'); }
+  try { update = JSON.parse(e && e.postData && e.postData.contents || '{}'); }
   catch (_) { return text_('Bad Request'); }
-  journalTelegramUpdate_(update);
-  return text_('OK');
+  try { processTelegramUpdate_(update); return text_('OK'); }
+  catch (err) { console.error('TELEGRAM_UPDATE_FAILED '+String(err && err.message || err)); return text_('Retry'); }
 }
-
-/** Validate configuration only. No storage mutation. */
 function validateMpsRebuildConfig() {
   const p = PropertiesService.getScriptProperties();
   const result = {
@@ -158,11 +156,13 @@ function apiSubmitDeposit(input) {
     file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     const now = new Date();
     sheet_('deposits').appendRow([ref,now,account,login,type,amount,date,file.getId(),'','Menunggu Validasi','','','','']);
+    const linkInfo = createTelegramLink_(ref,apps.getRange(row,4).getDisplayValue());
     apps.getRange(row,8).setValue('Deposit Dikirim');
     apps.getRange(row,10).setValue(now);
+    apps.getRange(row,11).setValue('Menunggu Verifikasi Telegram');
     apps.getRange(row,15).setValue(now);
-    audit_('PUBLIC','', 'DEPOSIT_SUBMITTED',ref,'SUCCESS','Proof saved to configured private folder.');
-    return {ok:true,applicationRef:ref,status:'Menunggu Validasi Admin'};
+    audit_('PUBLIC','', 'DEPOSIT_SUBMITTED',ref,'SUCCESS','Proof saved privately; one-time Telegram link issued.');
+    return {ok:true,applicationRef:ref,status:'Menunggu Validasi Admin',telegramLink:linkInfo.url,telegramLinkExpiresAt:linkInfo.expiresAt,telegramLinkAvailable:!!linkInfo.url};
   } finally { lock.releaseLock(); }
 }
 
@@ -400,15 +400,99 @@ function requireSession_(token,roles) {
   return {role:v[1],actorId:v[2]};
 }
 
-function journalTelegramUpdate_(update) {
-  const id = String(update.update_id || '');
-  if (!/^\d+$/.test(id)) throw new Error('Telegram update_id invalid.');
-  const sh = sheet_('journal');
-  if (findRow_(sh,1,id)) return;
-  const type = update.message ? 'message' : update.chat_member ? 'chat_member' : 'other';
-  sh.appendRow([id,type,sha256_(JSON.stringify(update)),'RECEIVED',new Date(),new Date(),1,'','','','[]','']);
+function processTelegramUpdate_(update) {
+  const id = String(update && update.update_id || '');
+  if (!/^\\d+$/.test(id)) throw new Error('Telegram update_id invalid.');
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  let row;
+  try {
+    const sh = sheet_('journal'); row = findRow_(sh,1,id);
+    if (row) {
+      if (sh.getRange(row,4).getDisplayValue() === 'COMPLETED') return;
+      sh.getRange(row,4).setValue('PROCESSING');
+      sh.getRange(row,6).setValue(new Date());
+      sh.getRange(row,7).setValue(Number(sh.getRange(row,7).getValue() || 0)+1);
+    } else {
+      const type = update.message ? 'message' : update.chat_member ? 'chat_member' : 'other';
+      sh.appendRow([id,type,sha256_(JSON.stringify(update)),'PROCESSING',new Date(),new Date(),1,'','','','[]','']);
+      row = sh.getLastRow();
+    }
+  } finally { lock.releaseLock(); }
+  try {
+    if (update.message) handleTelegramStart_(update.message);
+    const sh = sheet_('journal'); sh.getRange(row,4).setValue('COMPLETED');
+    sh.getRange(row,10).setValue(new Date()); sh.getRange(row,12).setValue('');
+  } catch (err) {
+    const sh = sheet_('journal'); sh.getRange(row,4).setValue('FAILED');
+    sh.getRange(row,12).setValue('PROCESSING_ERROR'); throw err;
+  }
 }
 
+/** Issue a 24-hour single-use Telegram deep link; only its hash is stored. */
+function createTelegramLink_(applicationRef, expectedUsername) {
+  const bot = String(prop_('MPS_TELEGRAM_BOT_USERNAME') || '').replace(/^@/,'').trim();
+  if (!/^[A-Za-z0-9_]{5,32}$/.test(bot)) return {url:'',expiresAt:''};
+  const token = randomHex_(32), now = new Date(), expires = new Date(now.getTime()+24*60*60*1000);
+  sheet_('links').appendRow([sha256_(token),now,expires,'PENDING','',applicationRef,'','','','','']);
+  return {url:'https://t.me/'+bot+'?start='+token,expiresAt:expires.toISOString()};
+}
+
+/** /start token is accepted only from the username recorded during registration. */
+function handleTelegramStart_(message) {
+  const textValue = String(message.text || '').trim();
+  const match = textValue.match(/^\\/start(?:@\\w+)?\\s+([A-Fa-f0-9]{32})$/);
+  const chatId = String(message.chat && message.chat.id || '');
+  if (!match) {
+    if (/^\\/start(?:@\\w+)?$/.test(textValue)) sendTelegramMessage_(chatId,'Untuk menghubungkan akun, gunakan tombol/link verifikasi yang diberikan setelah pengiriman deposit.');
+    return;
+  }
+  const tokenHash = sha256_(match[1].toUpperCase()), links = sheet_('links'), row = findRow_(links,1,tokenHash);
+  if (!row) { sendTelegramMessage_(chatId,'Link MPS tidak valid atau sudah tidak tersedia. Silakan minta tautan baru kepada Admin.'); return; }
+  const values = links.getRange(row,1,11).getValues()[0];
+  if (values[3] === 'VERIFIED') { sendTelegramMessage_(chatId,'Akun Telegram Anda sudah terhubung ke MPS.'); return; }
+  if (values[3] !== 'PENDING' || new Date(values[2]).getTime() < Date.now()) {
+    links.getRange(row,4).setValue('EXPIRED');
+    sendTelegramMessage_(chatId,'Link verifikasi MPS sudah kedaluwarsa. Silakan hubungi Admin.'); return;
+  }
+  const apps = sheet_('applications'), appRow = findRow_(apps,1,values[5]);
+  if (!appRow) throw new Error('Application Ref for Telegram link not found.');
+  const expected = cleanUsername_(apps.getRange(appRow,4).getDisplayValue());
+  const actual = cleanUsername_(message.from && message.from.username || '');
+  if (!expected || !actual || expected !== actual) {
+    sendTelegramMessage_(chatId,'Username Telegram tidak cocok dengan data pendaftaran. Gunakan akun Telegram dengan username yang sama seperti saat mendaftar.');
+    audit_('TELEGRAM','', 'TELEGRAM_LINK_USERNAME_MISMATCH',values[5],'DENIED',''); return;
+  }
+  const userId = String(message.from && message.from.id || '');
+  if (!userId || !chatId) throw new Error('Telegram user/chat identifier missing.');
+  const lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    if (links.getRange(row,4).getDisplayValue() !== 'PENDING') return;
+    links.getRange(row,4).setValue('VERIFIED');
+    links.getRange(row,7).setValue(userId); links.getRange(row,8).setValue(chatId);
+    links.getRange(row,9).setValue(actual); links.getRange(row,10).setValue(clean_(message.from.first_name || '',80));
+    links.getRange(row,11).setValue(new Date());
+    apps.getRange(appRow,11).setValue('Terhubung'); apps.getRange(appRow,12).setValue(userId);
+    apps.getRange(appRow,13).setValue(chatId); apps.getRange(appRow,15).setValue(new Date());
+    const deps = sheet_('deposits'), depRow = findRow_(deps,1,values[5]);
+    if (depRow) { deps.getRange(depRow,11).setValue(userId); deps.getRange(depRow,12).setValue(chatId); }
+    audit_('TELEGRAM',userId,'TELEGRAM_LINK_VERIFIED',values[5],'SUCCESS','Username matched registration.');
+  } finally { lock.releaseLock(); }
+  sendTelegramMessage_(chatId,'Akun Telegram berhasil diverifikasi dan terhubung dengan pendaftaran MPS. Status deposit tetap menunggu pemeriksaan Admin.');
+}
+
+/** Outbound Telegram is invoked only while processing an inbound webhook update. */
+function sendTelegramMessage_(chatId, messageText) {
+  const token = prop_('MPS_TELEGRAM_BOT_TOKEN');
+  if (!token || !chatId) return false;
+  const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
+    method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:chatId,text:String(messageText).slice(0,3500)}),
+    muteHttpExceptions:true
+  });
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) throw new Error('Telegram sendMessage HTTP failure.');
+  const result = JSON.parse(response.getContentText() || '{}');
+  if (!result.ok) throw new Error('Telegram Bot API rejected sendMessage.');
+  return true;
+}
 function ensureSheet_(ss, spec) {
   let sh = ss.getSheetByName(spec.name);
   if (!sh) sh = ss.insertSheet(spec.name);
