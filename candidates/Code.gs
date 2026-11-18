@@ -601,6 +601,124 @@ function activateMemberAfterPin_(memberId) {
   }finally{lock.releaseLock();}
 }
 
+/**
+ * One-time owner-only bootstrap for the first MPS v4.8 administrator credentials.
+ * Run manually from the Apps Script editor. The trailing underscore prevents
+ * invocation through google.script.run. Never publish this as a web API.
+ *
+ * Existing MPS_ADMIN_TOKEN is preserved. A private Drive handoff file is
+ * created before Script Properties are written; all new properties are rolled
+ * back if setup fails. A completion marker prevents accidental reruns.
+ */
+function initializeMPSAdmin_() {
+  const props=PropertiesService.getScriptProperties();
+  const scriptId=ScriptApp.getScriptId();
+  const scriptFile=DriveApp.getFileById(scriptId);
+  const owner=scriptFile&&scriptFile.getOwner();
+  const ownerEmail=owner&&owner.getEmail?String(owner.getEmail()||'').trim().toLowerCase():'';
+  const actorEmail=String(Session.getEffectiveUser().getEmail()||'').trim().toLowerCase();
+  if(!ownerEmail||!actorEmail||ownerEmail!==actorEmail)
+    throw new Error('Bootstrap hanya boleh dijalankan oleh pemilik file Apps Script dari editor. Akses owner tidak dapat diverifikasi.');
+
+  const adminToken=String(props.getProperty('MPS_ADMIN_TOKEN')||'');
+  let classes=0;
+  if(/[a-z]/.test(adminToken))classes++;
+  if(/[A-Z]/.test(adminToken))classes++;
+  if(/[0-9]/.test(adminToken))classes++;
+  if(/[^A-Za-z0-9]/.test(adminToken))classes++;
+  if(adminToken.length<32||classes<3)
+    throw new Error('MPS_ADMIN_TOKEN yang sudah ada belum memenuhi syarat minimal 32 karakter dan 3 kelompok karakter. Bootstrap dibatalkan tanpa perubahan.');
+
+  const protectedKeys=[
+    'MPS_SUPER_ADMIN_TOKEN','MPS_ADMIN_TOTP_SECRET','MPS_SUPER_ADMIN_TOTP_SECRET',
+    'MPS_ADMIN_TOTP_LAST_STEP','MPS_SUPER_ADMIN_TOTP_LAST_STEP',
+    'MPS_OWNER_BOOTSTRAP_STATE','MPS_OWNER_BOOTSTRAP_COMPLETED_AT','MPS_OWNER_BOOTSTRAP_FILE_ID'
+  ];
+  const alreadyConfigured=protectedKeys.filter(function(key){return props.getProperty(key)!==null;});
+  if(alreadyConfigured.length)
+    throw new Error('Bootstrap tidak dijalankan: konfigurasi Admin/MFA atau penanda bootstrap sudah ada. Tidak ada properti yang ditimpa.');
+
+  function randomHex(uuidCount) {
+    let out='';
+    for(let i=0;i<uuidCount;i++)out+=Utilities.getUuid().replace(/-/g,'').toLowerCase();
+    if(!/^[a-f0-9]+$/.test(out))throw new Error('Sumber acak tidak valid.');
+    return out;
+  }
+  function toBase32(hex) {
+    const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let buffer=0,bits=0,out='';
+    for(let i=0;i<hex.length;i+=2){
+      buffer=(buffer<<8)|parseInt(hex.substr(i,2),16);
+      bits+=8;
+      while(bits>=5){bits-=5;out+=alphabet.charAt((buffer>>bits)&31);}
+    }
+    if(bits>0)out+=alphabet.charAt((buffer<<(5-bits))&31);
+    return out;
+  }
+  const superAdminToken='MPS-'+randomHex(3)+'!';
+  const adminTotpSecret=toBase32(randomHex(2).slice(0,40));
+  const superTotpSecret=toBase32(randomHex(2).slice(0,40));
+  if(superAdminToken===adminToken||adminTotpSecret===superTotpSecret||
+     !isValidTotpSecret_(adminTotpSecret)||!isValidTotpSecret_(superTotpSecret))
+    throw new Error('Pembuatan kredensial awal gagal pada pemeriksaan internal. Tidak ada perubahan dilakukan.');
+
+  const createdAt=new Date().toISOString();
+  const fileName='MPS-ADMIN-BOOTSTRAP-ONE-TIME-'+createdAt.replace(/[:.]/g,'-')+'.txt';
+  const handoff=[
+    'MARKET PSYCHOLOGY SOCIETY — ONE-TIME ADMIN CREDENTIAL HANDOFF',
+    'Dibuat: '+createdAt,
+    '',
+    'SIMPAN kredensial ini di tempat aman. Jangan kirim melalui chat, email, atau grup.',
+    'Setelah berhasil login dan mencatat secret MFA di aplikasi Authenticator, hapus file ini dari Drive.',
+    '',
+    'ADMIN PASSWORD: (tidak dibuat ulang; gunakan MPS_ADMIN_TOKEN yang sudah tersimpan)',
+    '',
+    'SUPER ADMIN PASSWORD:',
+    superAdminToken,
+    '',
+    'ADMIN MFA — masukkan secret Base32 ini ke aplikasi Authenticator:',
+    adminTotpSecret,
+    '',
+    'SUPER ADMIN MFA — masukkan secret Base32 ini ke aplikasi Authenticator:',
+    superTotpSecret,
+    '',
+    'Akun Admin dan Super Admin menggunakan password dan secret MFA yang berbeda.',
+    'Jangan bagikan akses ke file ini. Jika file tidak dapat dibuka sebagai PRIVATE, bootstrap seharusnya dibatalkan.'
+  ].join('\n');
+
+  let handoffFile=null;
+  try {
+    props.setProperty('MPS_OWNER_BOOTSTRAP_STATE','PREPARING');
+    handoffFile=DriveApp.createFile(fileName,handoff,MimeType.PLAIN_TEXT);
+    handoffFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+    if(String(handoffFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+      throw new Error('File serah-terima kredensial tidak dapat dipastikan PRIVATE.');
+
+    props.setProperty('MPS_SUPER_ADMIN_TOKEN',superAdminToken);
+    props.setProperty('MPS_ADMIN_TOTP_SECRET',adminTotpSecret);
+    props.setProperty('MPS_SUPER_ADMIN_TOTP_SECRET',superTotpSecret);
+    props.setProperty('MPS_OWNER_BOOTSTRAP_FILE_ID',handoffFile.getId());
+    props.setProperty('MPS_OWNER_BOOTSTRAP_COMPLETED_AT',createdAt);
+    props.deleteProperty('MPS_OWNER_BOOTSTRAP_STATE');
+
+    const url=handoffFile.getUrl();
+    Logger.log('MPS Admin bootstrap selesai. Buka file kredensial privat milik owner: '+url);
+    return {ok:true,message:'Bootstrap selesai. Buka file Drive privat yang dibuat untuk owner; URL juga tersedia di Execution log.',fileUrl:url};
+  } catch(err) {
+    const cleanupErrors=[];
+    [
+      'MPS_SUPER_ADMIN_TOKEN','MPS_ADMIN_TOTP_SECRET','MPS_SUPER_ADMIN_TOTP_SECRET',
+      'MPS_OWNER_BOOTSTRAP_FILE_ID','MPS_OWNER_BOOTSTRAP_COMPLETED_AT','MPS_OWNER_BOOTSTRAP_STATE'
+    ].forEach(function(key){
+      try{props.deleteProperty(key);}catch(cleanErr){cleanupErrors.push(key);}
+    });
+    if(handoffFile)try{handoffFile.setTrashed(true);}catch(fileErr){cleanupErrors.push('private handoff file');}
+    if(cleanupErrors.length)
+      throw new Error('Bootstrap gagal dan pembersihan tidak lengkap: '+cleanupErrors.join(', ')+'. Hentikan percobaan ulang dan audit Script Properties serta Drive secara manual.');
+    throw new Error('Bootstrap gagal; perubahan baru telah dibersihkan. '+String(err&&err.message||err));
+  }
+}
+
 function apiAdminLogin(roleOrPassword, maybePassword, maybeOtp) {
   const role = maybePassword === undefined ? 'ADMIN' : String(roleOrPassword || '').toUpperCase();
   const supplied = String(maybePassword === undefined ? roleOrPassword : maybePassword || '');
