@@ -106,7 +106,7 @@ function provisionMpsRebuildStorage() {
 function apiRegister(input) {
   input = input || {};
   const nickname = clean_(input.nickname,60);
-  const username = cleanUsername_(input.telegramUsername);
+  const username = String(input.telegramUsername || '').trim().replace(/^@/,'').toLowerCase();
   const country = clean_(input.country,60);
   const goal = clean_(input.goal,160);
   const note = clean_(input.note,1000);
@@ -139,7 +139,7 @@ function apiSubmitDeposit(input) {
   if (!account || !login || !type || !Number.isFinite(amount) || amount < 500000 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date))
     throw new Error('Data deposit belum lengkap, tanggal tidak valid, atau nominal di bawah Rp500.000.');
   const depositDate = new Date(date+'T00:00:00+07:00');
-  if (isNaN(depositDate.getTime()) || depositDate.getTime() > Date.now()+24*60*60*1000)
+  if (isNaN(depositDate.getTime()) || Utilities.formatDate(depositDate,MPS.TZ,'yyyy-MM-dd') !== date || depositDate.getTime() > Date.now()+24*60*60*1000)
     throw new Error('Tanggal deposit tidak valid atau berada di masa depan.');
   const mime = String(input.proofMime || '');
   if (!['image/jpeg','image/png','image/webp'].includes(mime)) throw new Error('Bukti harus JPG, PNG, atau WEBP.');
