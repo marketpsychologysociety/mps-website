@@ -196,7 +196,7 @@ function apiAdminList(session) {
   const a = rows_(apps), d = rows_(deps);
   return a.map(r => {
     const dep = d.find(x => x[0] === r[0]) || [];
-    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
+    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],memberId:r[8]||'',accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
   }).reverse();
 }
 
@@ -230,6 +230,34 @@ function apiAdminReview(session, applicationRef, decision, note) {
     audit_(actor.role,actor.actorId,'APPLICATION_APPROVED',ref,'SUCCESS','Member ID issued after approval.');
     return {ok:true,status:'Disetujui',memberId:memberId,pinSetupRequired:true};
   } finally { lock.releaseLock(); }
+}
+
+
+/**
+ * Admin-only one-time PIN enrollment/rotation.
+ * PIN is returned only in this authenticated admin response and is never stored in plaintext.
+ * Admin must deliver it through a separately verified private channel; Telegram delivery is not yet integrated.
+ */
+function apiAdminIssuePin(session, memberId) {
+  const actor = requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const id = clean_(memberId,20).toUpperCase();
+  if (!/^MPS-[A-F0-9]{10}$/.test(id)) throw new Error('ID Member tidak valid.');
+  const sh = legacySheet_(), row = findRow_(sh,1,id);
+  if (!row || sh.getRange(row,8).getDisplayValue() !== 'Berhasil')
+    throw new Error('PIN hanya dapat dibuat untuk member yang sudah aktif.');
+  const pin = randomPin_(), salt = randomHex_(32);
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('MPS_PIN_SALT_'+id,salt);
+  props.setProperty('MPS_PIN_HASH_'+id,sha256_(salt+pin));
+  audit_(actor.role,actor.actorId,'MEMBER_PIN_ISSUED',id,'SUCCESS','One-time PIN shown to authenticated admin only.');
+  return {ok:true,memberId:id,pin:pin,delivery:'Admin must send privately after verifying the member identity.'};
+}
+
+function randomPin_() {
+  const raw = Utilities.getUuid().replace(/-/g,'').toUpperCase();
+  let out = '';
+  for (let i=0;i<6;i++) out += String(parseInt(raw.charAt(i),16)%10);
+  return out;
 }
 
 function apiMemberLogin(memberId,pin) {
