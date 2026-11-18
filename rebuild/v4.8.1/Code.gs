@@ -66,6 +66,7 @@ function validateMpsRebuildConfig() {
     telegramBotConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_TOKEN'),
     telegramChatConfigured: !!p.getProperty('MPS_TELEGRAM_CHAT_ID'),
     webhookSecretConfigured: !!p.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET'),
+    vipGroupConfigured: !!p.getProperty('MPS_VIP_GROUP_ID'),
     telegramBotUsernameConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_USERNAME'),
     note: 'Read-only validation. No sheets, properties, triggers, or webhooks changed.'
   };
@@ -495,6 +496,7 @@ function processTelegramUpdate_(update) {
   try {
     if (update.message) handleTelegramStart_(update.message);
     if (update.chat_member) handleTelegramChatMember_(update.chat_member);
+    if (update.chat_join_request) handleTelegramJoinRequest_(update.chat_join_request);
     const sh = sheet_('journal'); sh.getRange(row,4).setValue('COMPLETED');
     sh.getRange(row,10).setValue(new Date()); sh.getRange(row,12).setValue('');
   } catch (err) {
@@ -604,7 +606,7 @@ function apiAdminProcessVipQueue(session) {
 function createVipInvite_(groupId,userId) {
   const token = prop_('MPS_TELEGRAM_BOT_TOKEN');
   if (!token || !groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
-  const payload = {chat_id:groupId,member_limit:1,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
+  const payload = {chat_id:groupId,creates_join_request:true,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
   const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
     method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
   });
@@ -612,6 +614,37 @@ function createVipInvite_(groupId,userId) {
   if (response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok || !result.result || !result.result.invite_link)
     throw new Error('VIP_INVITE_CREATE_FAILED');
   return result.result.invite_link;
+}
+
+/** Approve join requests only when the Telegram user ID matches the linked member. */
+function handleTelegramJoinRequest_(request) {
+  const groupId=prop_('MPS_VIP_GROUP_ID');
+  if (!groupId || String(request.chat && request.chat.id || '')!==String(groupId)) return;
+  const invite=String(request.invite_link && request.invite_link.invite_link || '');
+  const queue=sheet_('queue'), row=findRow_(queue,6,invite);
+  const userId=String(request.from && request.from.id || '');
+  if (!row) { telegramJoinRequestAction_('declineChatJoinRequest',groupId,userId); return; }
+  const expected=String(queue.getRange(row,5).getDisplayValue()||'');
+  if (!userId || userId!==expected) {
+    telegramJoinRequestAction_('declineChatJoinRequest',groupId,userId);
+    if (userId) sendTelegramMessage_(userId,'Permintaan masuk VIP ditolak karena tautan undangan ini terikat pada akun Telegram member lain.');
+    audit_('TELEGRAM',userId,'VIP_JOIN_REQUEST_DENIED',String(queue.getRange(row,2).getValue()),'DENIED','Telegram user ID did not match invite owner.');
+    return;
+  }
+  telegramJoinRequestAction_('approveChatJoinRequest',groupId,userId);
+  audit_('TELEGRAM',userId,'VIP_JOIN_REQUEST_APPROVED',String(queue.getRange(row,2).getValue()),'SUCCESS','Invite owner matched linked Telegram user ID.');
+}
+
+function telegramJoinRequestAction_(method,groupId,userId) {
+  const token=prop_('MPS_TELEGRAM_BOT_TOKEN');
+  if (!token) throw new Error('TELEGRAM_BOT_TOKEN_NOT_CONFIGURED');
+  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/'+method,{
+    method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
+  });
+  const result=JSON.parse(response.getContentText()||'{}');
+  if (response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok)
+    throw new Error('TELEGRAM_'+method.toUpperCase()+'_FAILED');
+  return true;
 }
 
 /** Only confirmed joins of approved members are published to the public ticker. */
