@@ -81,7 +81,7 @@ jobs:
         run: node --test tests/telegram-webhook/durable-effect-outbox.test.mjs
       - name: Run Telegram handler reconciliation contract tests (synthetic only)
         run: node --test tests/telegram-webhook/handler-reconciliation.test.mjs
-      - name: Characterize actual candidate Code.gs Telegram handler call sites (pinned snapshot)
+      - name: Test current candidate Code.gs Telegram handler call sites
         run: node --test tests/telegram-webhook/candidate-handler-callsite-characterization.test.mjs
       - name: Run Telegram ingress epoch allocation contract tests
         run: node --test tests/telegram-webhook/update-epoch.test.mjs
