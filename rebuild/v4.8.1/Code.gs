@@ -366,8 +366,9 @@ function apiAdminReview(session, applicationRef, decision, note) {
     memberSheet.appendRow(row);
     apps.getRange(ar,8).setValue('Disetujui'); apps.getRange(ar,9).setValue(memberId); apps.getRange(ar,14).setValue(adminNote); apps.getRange(ar,15).setValue(now);
     deps.getRange(dr,10).setValue('Disetujui'); deps.getRange(dr,13).setValue(adminNote); deps.getRange(dr,14).setValue(now);
-    audit_(actor.role,actor.actorId,'APPLICATION_APPROVED',ref,'SUCCESS','Member ID issued after approval.');
-    return {ok:true,status:'Disetujui',memberId:memberId,pinSetupRequired:true};
+    enqueueVipInvite_(memberId,ref,String(apps.getRange(ar,12).getDisplayValue()||''),String(apps.getRange(ar,13).getDisplayValue()||''));
+    audit_(actor.role,actor.actorId,'APPLICATION_APPROVED',ref,'SUCCESS','Member ID issued after approval; VIP invite queued.');
+    return {ok:true,status:'Disetujui',memberId:memberId,pinSetupRequired:true,vipInviteQueued:true};
   } finally { lock.releaseLock(); }
 }
 
@@ -493,6 +494,7 @@ function processTelegramUpdate_(update) {
   } finally { lock.releaseLock(); }
   try {
     if (update.message) handleTelegramStart_(update.message);
+    if (update.chat_member) handleTelegramChatMember_(update.chat_member);
     const sh = sheet_('journal'); sh.getRange(row,4).setValue('COMPLETED');
     sh.getRange(row,10).setValue(new Date()); sh.getRange(row,12).setValue('');
   } catch (err) {
@@ -557,6 +559,101 @@ function handleTelegramStart_(message) {
 }
 
 /** Outbound Telegram is invoked only while processing an inbound webhook update. */
+/** Queue the VIP invite after Admin approval; delivery happens after the approval call. */
+function enqueueVipInvite_(memberId,applicationRef,telegramUserId,chatId) {
+  const queue = sheet_('queue'), intent = 'VIP_INVITE:'+memberId;
+  if (findRow_(queue,2,intent)) return;
+  const now = new Date(), groupId = prop_('MPS_VIP_GROUP_ID');
+  queue.appendRow([randomHex_(16),intent,'CREATE_AND_SEND_INVITE',groupId,telegramUserId,'','',
+    'PENDING',0,now,'','',now,now]);
+}
+
+/** Admin-triggered worker; safe to retry because an intent is unique per member. */
+function apiAdminProcessVipQueue(session) {
+  const actor = requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const queue = sheet_('queue'), results = [];
+  const all = rows_(queue);
+  for (let i=0;i<all.length && results.length<5;i++) {
+    const r = all[i];
+    if (!['PENDING','RETRY'].includes(String(r[7]))) continue;
+    const row = i+2;
+    try {
+      const invite = createVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),String(r[4]||''));
+      queue.getRange(row,6).setValue(invite);
+      const appRow = findRow_(sheet_('applications'),9,String(r[1]||'').replace('VIP_INVITE:',''));
+      const chatId = appRow ? String(sheet_('applications').getRange(appRow,13).getDisplayValue()||'') : '';
+      if (!chatId) throw new Error('MEMBER_CHAT_NOT_FOUND');
+      sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, satu kali penggunaan): '+invite);
+      queue.getRange(row,8).setValue('SENT');
+      queue.getRange(row,9).setValue(Number(r[8]||0)+1);
+      queue.getRange(row,12).setValue('');
+      queue.getRange(row,14).setValue(new Date());
+      results.push({intent:r[1],status:'SENT'});
+      audit_(actor.role,actor.actorId,'VIP_INVITE_SENT',r[1],'SUCCESS','');
+    } catch (err) {
+      queue.getRange(row,8).setValue('RETRY');
+      queue.getRange(row,9).setValue(Number(r[8]||0)+1);
+      queue.getRange(row,12).setValue(String(err.message||'VIP_DELIVERY_FAILED').slice(0,80));
+      queue.getRange(row,14).setValue(new Date());
+      results.push({intent:r[1],status:'RETRY'});
+    }
+  }
+  return {ok:true,processed:results.length,results:results};
+}
+
+function createVipInvite_(groupId,userId) {
+  const token = prop_('MPS_TELEGRAM_BOT_TOKEN');
+  if (!token || !groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
+  const payload = {chat_id:groupId,member_limit:1,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
+  const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
+    method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
+  });
+  const result = JSON.parse(response.getContentText()||'{}');
+  if (response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok || !result.result || !result.result.invite_link)
+    throw new Error('VIP_INVITE_CREATE_FAILED');
+  return result.result.invite_link;
+}
+
+/** Only confirmed joins of approved members are published to the public ticker. */
+function handleTelegramChatMember_(event) {
+  const groupId = prop_('MPS_VIP_GROUP_ID');
+  if (!groupId || String(event.chat && event.chat.id || '') !== String(groupId)) return;
+  const member = event.new_chat_member || {}, oldMember = event.old_chat_member || {};
+  const userId = String(member.user && member.user.id || '');
+  if (!userId) return;
+  const isActive = ['member','administrator','creator'].includes(String(member.status||''));
+  const wasActive = ['member','administrator','creator'].includes(String(oldMember.status||''));
+  if (isActive === wasActive) return;
+  const apps = sheet_('applications'), all = rows_(apps);
+  const index = all.findIndex(r=>String(r[11]||'')===userId);
+  if (index<0) return;
+  const app = all[index], appRow=index+2, memberId=String(app[8]||'');
+  if (app[7] !== 'Disetujui' || !memberId) return;
+  const legacy=legacySheet_(), legacyRow=findRow_(legacy,1,memberId);
+  if (!legacyRow || legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil') return;
+  const events=sheet_('vip'), now=new Date();
+  if (isActive) {
+    const already=rows_(events).some(r=>r[1]===memberId && r[3]==='JOINED' && String(r[6])==='true');
+    if (!already) events.appendRow([randomHex_(16),memberId,app[2],'JOINED',userId,now,true,true]);
+    const queue=sheet_('queue'), qrow=findRow_(queue,2,'VIP_INVITE:'+memberId);
+    if (qrow) { queue.getRange(qrow,8).setValue('JOINED'); queue.getRange(qrow,14).setValue(now); }
+    audit_('TELEGRAM',userId,'VIP_MEMBER_JOINED',memberId,'SUCCESS','Telegram chat_member update verified.');
+  } else {
+    const existing=rows_(events);
+    existing.forEach((r,i)=>{if(r[1]===memberId && r[3]==='JOINED' && String(r[6])==='true') events.getRange(i+2,8).setValue(false);});
+    events.appendRow([randomHex_(16),memberId,app[2],'LEFT',userId,now,true,false]);
+    audit_('TELEGRAM',userId,'VIP_MEMBER_LEFT',memberId,'SUCCESS','Public ticker entry disabled.');
+  }
+}
+
+function apiGetPublicVipTicker() {
+  const events=rows_(sheet_('vip'));
+  const latest=events.filter(r=>r[3]==='JOINED' && (r[7]===true || String(r[7]).toLowerCase()==='true'))
+    .slice(-20).reverse().slice(0,8)
+    .map(r=>({nickname:clean_(r[2],60),joinedAt:r[5] instanceof Date?r[5].toISOString():String(r[5]||'')}));
+  return latest;
+}
+
 function sendTelegramMessage_(chatId, messageText) {
   const token = prop_('MPS_TELEGRAM_BOT_TOKEN');
   if (!token || !chatId) return false;
