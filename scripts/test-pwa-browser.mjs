@@ -69,6 +69,24 @@ try {
   });
   if (!homeDesignAssets.ok) failures.push('Approved Design 1 hero artwork/original logo failed browser decoding or dimensions: ' + JSON.stringify(homeDesignAssets));
   if (homeDesignAssets.duplicateHeroLogo) failures.push('Duplicate logo lockup remains inside the homepage hero');
+  const homepageCtaSequence = await page.evaluate(() => {
+    const groups = [
+      '.mps-exness-section .text-center.mt-3 > a.btn',
+      '.mps-benefits-section .text-center.mt-3 > a.btn',
+      '.mps-final-cta .hero-btns > a.btn'
+    ];
+    return groups.flatMap(selector => [...document.querySelectorAll(selector)].map(el => {
+      const style = getComputedStyle(el);
+      return { label: el.textContent.trim(), animation: style.animationName,
+        duration: style.animationDuration, delay: style.animationDelay };
+    }));
+  });
+  const expectedCtaDelays = ['0s', '1.2s', '2.4s', '3.6s', '4.8s', '6s'];
+  if (homepageCtaSequence.length !== 6 ||
+      homepageCtaSequence.some((item, index) => item.animation !== 'mps-important-auto-tap-v4' ||
+        item.duration !== '7.2s' || item.delay !== expectedCtaDelays[index])) {
+    failures.push('Six primary homepage CTA buttons must take turns in the approved 1.2-second sequence: ' + JSON.stringify(homepageCtaSequence));
+  }
   fs.mkdirSync(path.join(root, 'test-artifacts'), { recursive: true });
   await page.screenshot({ path: path.join(root, 'test-artifacts/homepage-desktop-full.png'), fullPage: true, animations: 'disabled' });
   if (!homeDesignAssets.stylesheet.includes('mps-home-design1-20261118b')) failures.push('Homepage stylesheet cache version is not the current Design 1 version');
