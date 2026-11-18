@@ -132,6 +132,8 @@ function apiRegister(input) {
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     const sh = sheet_('applications');
+    const duplicate=rows_(sh).some(r=>String(r[3]||'').toLowerCase()===username && !['Ditolak'].includes(String(r[7]||'')));
+    if(duplicate) throw new Error('Username Telegram ini sudah memiliki pengajuan aktif atau keanggotaan MPS. Gunakan Application Ref yang sudah ada atau hubungi Admin.');
     const ref = 'MPS-APP-' + randomHex_(20);
     const now = new Date();
     sh.appendRow([ref,now,nickname,username,country,goal,note,'Menunggu Pendaftaran','','','Belum Terhubung','','','',''+now]);
@@ -697,6 +699,12 @@ function handleTelegramStart_(message) {
   }
   const userId = String(message.from && message.from.id || '');
   if (!userId || !chatId) throw new Error('Telegram user/chat identifier missing.');
+  const otherLinked=rows_(apps).some((r,i)=>i+2!==appRow && String(r[11]||'')===userId && ['Terhubung','Disetujui'].includes(String(r[10]||'')));
+  if(otherLinked) {
+    sendTelegramMessage_(chatId,'Akun Telegram ini sudah terhubung dengan pengajuan atau keanggotaan MPS lain. Hubungi Admin jika Anda perlu pemulihan akun.');
+    audit_('TELEGRAM',userId,'TELEGRAM_ACCOUNT_ALREADY_LINKED',values[5],'DENIED','');
+    return;
+  }
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     if (links.getRange(row,4).getDisplayValue() !== 'PENDING') return;
