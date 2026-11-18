@@ -591,7 +591,7 @@ function requireSession_(token,roles) {
 
 function processTelegramUpdate_(update) {
   const id = String(update && update.update_id || '');
-  if (!/^\\d+$/.test(id)) throw new Error('Telegram update_id invalid.');
+  if (!/^\d+$/.test(id)) throw new Error('Telegram update_id invalid.');
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
   let row;
   try {
