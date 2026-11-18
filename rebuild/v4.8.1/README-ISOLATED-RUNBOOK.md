@@ -24,7 +24,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 - `MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT` and `MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH`: salted SHA-256 super-admin credential.
 - `MPS_REBUILD_ADMIN_TOTP_SECRET` and `MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET`: created once by the isolated TOTP initializer.
 - `MPS_TELEGRAM_BOT_USERNAME`: bot username without `@`, used to build the post-deposit verification link.
-- Optional Telegram integration: `MPS_TELEGRAM_BOT_TOKEN`, `MPS_TELEGRAM_CHAT_ID` (private admin backup destination), and `MPS_TELEGRAM_WEBHOOK_SECRET` (unguessable webhook path secret).
+- Optional Telegram integration: `MPS_TELEGRAM_BOT_TOKEN`, `MPS_TELEGRAM_CHAT_ID` (private admin backup destination), `MPS_TELEGRAM_WEBHOOK_SECRET` (unguessable webhook path secret), and `MPS_VIP_GROUP_ID` (VIP group/channel chat ID).
 - Optional: `MPS_MARKET_PULSE_JSON` for synthetic Pulse payload.
 
 Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into source files or chat.
@@ -51,11 +51,14 @@ This is an initial clean architecture baseline, not a production-ready release.
 - Telegram linking now issues a 32-hex-character, 24-hour single-use deep link after deposit; only the SHA-256 token hash is stored. `/start` validates that the Telegram username exactly matches the registration username before storing Telegram user/chat IDs. Webhook updates are journaled and completed updates are deduplicated; failed updates remain retryable. The webhook is not registered automatically.
 - After a deposit, the configured private admin chat receives a backup summary of registration and deposit data. No admin Telegram message is sent at initial registration. Configure and verify the admin chat ID carefully because this message contains personal and account-related information.
 - Approval is blocked until Telegram username verification is complete. If bot username is not configured, no link is issued and approval cannot proceed until the configuration is corrected.
+- Admin can reissue a missing/expired Telegram link without asking the member to resubmit proof. Reissue expires older pending links.
+- After approval, a VIP invitation task is queued. The Admin UI attempts to process it immediately: the bot creates a 48-hour, one-use invite link and sends it to the linked member. Failed deliveries remain in `RETRY`; Admin can run the VIP queue action again.
+- Bot must be an administrator of the VIP group with permission to create invite links. Configure `MPS_VIP_GROUP_ID` and Telegram webhook updates to include `chat_member`. Confirmed `chat_member` joins are matched to an approved member by Telegram user ID; only then is the nickname published to the public VIP ticker. A verified leave removes the prior join from public display.
 - VIP invitation creation, join verification, follow-up worker, and public ticker publication are not implemented; the queue/event sheets are schema foundations only.
 - Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
 - Learning/news content management, announcement management, member billing/QRIS lifecycle, Exness IB status verification/rebate integration, and real Pulse feed validation are not implemented.
 - Proof file storage uses a private file setting, but folder ACL inheritance and direct-file access must be independently verified in the isolated Drive environment.
-- No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, live Telegram webhook test, or live Bot API delivery test has been performed.
+- No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, live Telegram webhook test, live Bot API delivery test, or actual VIP-group join/leave test has been performed.
 - No deployment or production migration is authorized by this runbook.
 
 ## Google Authenticator setup (isolated project only)
@@ -65,6 +68,14 @@ This is an initial clean architecture baseline, not a production-ready release.
 3. Add each returned `otpauth://` account to Google Authenticator on the corresponding device. The function refuses to overwrite existing secrets.
 4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.
 5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The HTML login screen provides separate Admin and Super Admin forms; both use separate passwords and authenticator secrets. Super Admin currently has the same review permissions as Admin; privileged Super Admin-only management actions remain to be defined.
+
+## Telegram setup checklist (manual, isolated bot/group only)
+
+1. Configure the bot token, bot username, private admin chat ID, webhook secret, and synthetic VIP group ID as Script Properties.
+2. Add the bot to the synthetic VIP group as an administrator with invite-link permissions.
+3. Deploy only the isolated project after review; set the Telegram webhook URL to the deployed `/exec/<MPS_TELEGRAM_WEBHOOK_SECRET>` path and subscribe to `message` and `chat_member` updates. Do not run `setWebhook` from this source; the owner must do this explicitly.
+4. Test registration, deposit, matching and mismatching Telegram usernames, link expiry/reissue, approval, invite delivery, actual join, and leave using synthetic accounts only.
+5. Never use the production MPS bot/group for these acceptance tests.
 
 ## Deterministic crypto self-test
 
@@ -81,6 +92,7 @@ Run `runMpsCryptoSelfTests()` manually in the isolated Apps Script editor. It ch
 - Admin login: temporary limit of 8 attempts per 15 minutes; Super Admin: 5 attempts per 15 minutes.
 - Cache keys contain a SHA-256 digest rather than raw usernames or member IDs.
 - Duplicate deposit submission for the same Application Ref is rejected before another proof file is created.
+- Registration validates Telegram username format and allowed membership goals. Deposit dates must be valid ISO dates and not future-dated. Uploaded proof bytes must match the claimed JPEG/PNG/WEBP signature.
 
 These are baseline abuse controls only. They have not been load-tested or verified in the Apps Script runtime.
 
