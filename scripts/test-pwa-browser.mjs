@@ -289,6 +289,7 @@ try {
   await mobilePage.screenshot({ path: path.join(root, 'test-artifacts/homepage-mobile-menu.png'), fullPage: false, animations: 'disabled' });
   await mobilePage.locator('#navToggle').click();
   await mobilePage.screenshot({ path: path.join(root, 'test-artifacts/homepage-mobile-hero.png'), fullPage: false, animations: 'disabled' });
+  await mobilePage.locator('#navToggle').click();
 
   await mobilePage.evaluate(() => {
     const event = new Event('beforeinstallprompt', { cancelable: true });
