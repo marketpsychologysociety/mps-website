@@ -65,6 +65,7 @@ function validateMpsRebuildConfig() {
     telegramBotConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_TOKEN'),
     telegramChatConfigured: !!p.getProperty('MPS_TELEGRAM_CHAT_ID'),
     webhookSecretConfigured: !!p.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET'),
+    telegramBotUsernameConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_USERNAME'),
     note: 'Read-only validation. No sheets, properties, triggers, or webhooks changed.'
   };
   return result;
@@ -162,7 +163,27 @@ function apiSubmitDeposit(input) {
     apps.getRange(row,11).setValue('Menunggu Verifikasi Telegram');
     apps.getRange(row,15).setValue(now);
     audit_('PUBLIC','', 'DEPOSIT_SUBMITTED',ref,'SUCCESS','Proof saved privately; one-time Telegram link issued.');
-    return {ok:true,applicationRef:ref,status:'Menunggu Validasi Admin',telegramLink:linkInfo.url,telegramLinkExpiresAt:linkInfo.expiresAt,telegramLinkAvailable:!!linkInfo.url};
+    let adminBackupSent = false;
+    const adminChat = prop_('MPS_TELEGRAM_CHAT_ID');
+    if (adminChat) {
+      const backupText = [
+        'MPS — DATA PENDAFTARAN & DEPOSIT BARU',
+        'Application Ref: '+ref,
+        'Nama: '+clean_(apps.getRange(row,3).getDisplayValue(),60),
+        'Telegram: @'+cleanUsername_(apps.getRange(row,4).getDisplayValue()),
+        'Negara: '+clean_(apps.getRange(row,5).getDisplayValue(),60),
+        'Tujuan: '+clean_(apps.getRange(row,6).getDisplayValue(),160),
+        'Nama akun: '+account,
+        'Login MT5: '+login,
+        'Jenis akun: '+type,
+        'Deposit: Rp'+amount.toLocaleString('id-ID'),
+        'Tanggal deposit: '+date,
+        'Status: Menunggu Validasi Admin'
+      ].join('\\n');
+      try { adminBackupSent = sendTelegramMessage_(adminChat,backupText); }
+      catch (notifyError) { audit_('SYSTEM','', 'DEPOSIT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.'); }
+    }
+    return {ok:true,applicationRef:ref,status:'Menunggu Validasi Admin',telegramLink:linkInfo.url,telegramLinkExpiresAt:linkInfo.expiresAt,telegramLinkAvailable:!!linkInfo.url,adminBackupSent:adminBackupSent};
   } finally { lock.releaseLock(); }
 }
 
@@ -302,6 +323,8 @@ function apiAdminReview(session, applicationRef, decision, note) {
     if (app[7] === 'Disetujui' || app[7] === 'Ditolak') throw new Error('Pengajuan sudah diputuskan.');
     const dep = deps.getRange(dr,1,14).getValues()[0];
     const now = new Date(), adminNote = clean_(note,500);
+    if (decision === 'APPROVE' && apps.getRange(ar,11).getDisplayValue() !== 'Terhubung')
+      throw new Error('Verifikasi Telegram harus berhasil sebelum pengajuan dapat disetujui.');
     if (decision === 'REJECT') {
       apps.getRange(ar,8).setValue('Ditolak'); apps.getRange(ar,14).setValue(adminNote);
       deps.getRange(dr,10).setValue('Ditolak'); deps.getRange(dr,13).setValue(adminNote);
