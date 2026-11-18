@@ -417,7 +417,7 @@ function registerMember_(sheet, data, onCommitStarted) {
 
 function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted) {
   const applicationRef=clean_(data.applicationRef,40).toUpperCase(),accountName=clean_(data.memberName,80),mt5=clean_(data.mt5Login,20),accountType=clean_(data.accountType,40),amount=Number(data.depositAmount),dateText=clean_(data.depositDate,10);
-  if(!/^MPS-APP-[A-F0-9]{20}$/.test(applicationRef)||!accountName||!/^[0-9]{4,20}$/.test(mt5)||!accountType||!Number.isSafeInteger(amount)||amount<MPS.minDeposit||!validDate_(dateText))throw new Error('Data konfirmasi tidak valid. Periksa Application Ref, nama akun, login MT5, jenis akun, tanggal, dan minimum deposit Rp1.000.000.');
+  if(!/^MPS-APP-[A-F0-9]{20}$/.test(applicationRef)||!accountName||!/^[0-9]{4,20}$/.test(mt5)||!accountType||!Number.isSafeInteger(amount)||amount<MPS.minDeposit||!validDate_(dateText))throw new Error('Data konfirmasi tidak valid. Periksa Application Ref, nama akun, login MT5, jenis akun, tanggal, dan minimum deposit Rp500.000.');
   const today=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyy-MM-dd');if(dateText>today)throw new Error('Tanggal deposit tidak boleh berada di masa depan.');
   const apps=getMpsApplicationsSheet_(),appRow=findMpsApplicationRow_(apps,applicationRef);if(!appRow)throw new Error('Application Ref tidak ditemukan. Periksa kembali pendaftaran MPS.');
   const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0],appStatus=String(app[7]||'');
@@ -610,7 +610,7 @@ function activateMemberAfterPin_(memberId) {
  * created before Script Properties are written; all new properties are rolled
  * back if setup fails. A completion marker prevents accidental reruns.
  */
-function initializeMPSAdmin_() {
+function initializeMPSAdmin() {
   const props=PropertiesService.getScriptProperties();
   const scriptId=ScriptApp.getScriptId();
   const scriptFile=DriveApp.getFileById(scriptId);
@@ -3724,6 +3724,9 @@ function apiAdminGetMemberIntelligence(session) {
 /** Admin: buat semua sheet tambahan tanpa menyentuh Database Member. */
 function apiAdminInitializeContent(session) {
   requireSuperAdmin_(session);
+  // Refuse content provisioning until the existing member sheet has the exact v4.8 schema.
+  // This is read-only and prevents a misleading success message on legacy/mismatched storage.
+  getMemberSheet_();
   const definitions=[];
   Object.keys(MPS_CONTENT).forEach(function(k) {
     if (!/Headers$/.test(k)) definitions.push({name:MPS_CONTENT[k],headers:MPS_CONTENT[k.replace('Sheet','Headers')]});
