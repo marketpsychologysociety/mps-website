@@ -146,5 +146,6 @@ async function loadAdmin(){try{const items=await runApi('apiAdminList',[adminSes
  const pinBtn=document.createElement('button');pinBtn.className='btn secondary';pinBtn.textContent='Buat / Reset PIN';pinBtn.onclick=async()=>{if(!confirm('Buat PIN baru untuk '+item.memberId+'? PIN lama langsung tidak berlaku.'))return;try{const pr=await runApi('apiAdminIssuePin',[adminSession,item.memberId]);alert('PIN sementara untuk '+pr.memberId+': '+pr.pin+'\n\nKirim secara pribadi setelah verifikasi identitas. PIN hanya ditampilkan sekali.');}catch(x){alert(x.message);}};actions.appendChild(pinBtn);
  }
  box.append(title,detail,note,actions);root.appendChild(box);});}catch(x){show('adminResult',x.message,'error');}}
+const serverInitialPage='<?= initialPage ?>';if(document.getElementById(serverInitialPage))go(serverInitialPage);
 </script>
 </body></html>
