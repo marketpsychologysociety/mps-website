@@ -42,7 +42,7 @@ Provisioning creates the legacy 18-column sheet only if absent and creates auxil
 
 This is an initial clean architecture baseline, not a production-ready release.
 
-- Initial PIN creation and secure member PIN enrollment/recovery are not implemented.
+- Admin-only initial PIN issue/reset is now implemented: it generates a six-digit PIN, stores only salted SHA-256 hash + salt in Script Properties, and displays the PIN once in the authenticated admin UI. Admin must verify member identity and deliver it privately. Automated verified-Telegram delivery and member self-service recovery are not implemented.
 - Telegram linking-token issue/consume flow, Telegram bot command handling, webhook replay processing, and notification delivery are not implemented; the webhook currently journals inbound updates only.
 - VIP invitation creation, join verification, follow-up worker, and public ticker publication are not implemented; the queue/event sheets are schema foundations only.
 - Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, admin MFA/TOTP, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
@@ -56,6 +56,7 @@ This is an initial clean architecture baseline, not a production-ready release.
 - Public registration: temporary limit of 3 attempts per Telegram username per hour.
 - Deposit submission: temporary limit of 3 attempts per Application Ref per hour.
 - Member login: temporary limit of 8 attempts per Member ID per 15 minutes.
+- Approved member PIN: Admin can issue/reset a six-digit PIN from the admin queue. Reset immediately invalidates the previous PIN. The PIN is returned once to the authenticated admin and is not written to Sheets or logs.
 - Admin login: temporary limit of 8 attempts per 15 minutes; Super Admin: 5 attempts per 15 minutes.
 - Cache keys contain a SHA-256 digest rather than raw usernames or member IDs.
 - Duplicate deposit submission for the same Application Ref is rejected before another proof file is created.
