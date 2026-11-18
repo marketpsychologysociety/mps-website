@@ -504,6 +504,7 @@ function apiAdminSaveContent(session,section,input) {
     const topic=clean_(data.topic,80), sourceName=clean_(data.sourceName,120), sourceUrl=clean_(data.sourceUrl,500);
     const publishedAt=new Date(String(data.publishedAt||now.toISOString()));
     if (sourceUrl && !/^https:\/\//i.test(sourceUrl)) throw new Error('URL sumber berita harus menggunakan HTTPS.');
+    if (published && (!sourceName || !sourceUrl)) throw new Error('Berita yang diterbitkan wajib mencantumkan nama dan URL sumber yang dapat diverifikasi.');
     if (isNaN(publishedAt.getTime())) throw new Error('Tanggal publikasi berita tidak valid.');
     const created=row?sh.getRange(row,2).getValue():now;
     const values=[target,created,now,title,topic,body,sourceName,sourceUrl,publishedAt,published];
