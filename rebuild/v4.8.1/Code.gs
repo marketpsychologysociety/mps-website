@@ -444,6 +444,24 @@ function apiAdminList(session) {
   }).reverse();
 }
 
+/** Admin records manual evidence-based Exness IB verification. */
+function apiAdminSetIbVerification(session, applicationRef, decision, note) {
+  const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const ref=clean_(applicationRef,40).toUpperCase();
+  if(!['VERIFY','UNVERIFY'].includes(decision)) throw new Error('Keputusan verifikasi IB tidak valid.');
+  const lock=LockService.getScriptLock();lock.waitLock(12000);
+  try {
+    const sh=sheet_('membershipPlans'),row=findRow_(sh,1,ref);
+    if(!row) throw new Error('Data paket keanggotaan tidak ditemukan.');
+    if(sh.getRange(row,2).getDisplayValue()!=='ACTIVE_IB') throw new Error('Pengajuan ini bukan Active IB Member.');
+    const status=decision==='VERIFY'?'Terverifikasi':'Tidak Terverifikasi';
+    sh.getRange(row,5).setValue(status);sh.getRange(row,6).setValue(actor.actorId);sh.getRange(row,7).setValue(new Date());
+    sh.getRange(row,8).setValue(decision==='VERIFY'?'Menunggu Persetujuan Admin':'Perlu Pemeriksaan Ulang');
+    audit_(actor.role,actor.actorId,'IB_STATUS_'+decision,ref,'SUCCESS',clean_(note,400));
+    return {ok:true,status:status};
+  } finally {lock.releaseLock();}
+}
+
 /** Approval creates the member ID only after explicit admin approval. */
 function apiAdminReview(session, applicationRef, decision, note) {
   const actor = requireSession_(session,['ADMIN','SUPER_ADMIN']);
@@ -460,6 +478,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
     const regularSheet=sheet_('regularPayments'), regularRow=findRow_(regularSheet,1,ref);
     const regular=regularRow?regularSheet.getRange(regularRow,1,8).getValues()[0]:[];
     const deps = sheet_('deposits'), dr = findRow_(deps,1,ref);
+    if (decision==='APPROVE' && planType==='ACTIVE_IB' && String(plan[4]||'')!=='Terverifikasi') throw new Error('Status Exness IB harus diverifikasi Admin terlebih dahulu.');
     if (planType==='REGULAR' && decision==='APPROVE') {
       if(!regularRow || Number(regular[2])!==100000 || regular[5]!=='Menunggu Validasi') throw new Error('Bukti QRIS Regular belum tersedia atau belum menunggu validasi.');
       if(apps.getRange(ar,11).getDisplayValue()!=='Terhubung') throw new Error('Verifikasi Telegram harus berhasil sebelum disetujui.');
