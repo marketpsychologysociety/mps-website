@@ -769,48 +769,66 @@ function assertMembershipEntitlement_(memberId) {
   return true;
 }
 
-function apiLogout(session) {
-  const hash = sha256_(String(session || ''));
-  const sh = sheet_('sessions'), row = findRow_(sh,1,hash);
-  if (row) sh.getRange(row,7).setValue(Date.now());
-  return {ok:true};
-}
-
-/** Session timestamps use epoch milliseconds to avoid Sheets timezone coercion. */
 function sessionTimeMs_(value) {
   if (value instanceof Date) return value.getTime();
   if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string' && /^\\d{10,13}$/.test(value.trim())) return Number(value.trim());
-  return new Date(value).getTime();
+  const raw=String(value==null?'':value).trim();
+  if (/^\d{10,13}$/.test(raw)) return Number(raw);
+  const parsed=new Date(raw).getTime();
+  return Number.isFinite(parsed)?parsed:NaN;
+}
+
+/** Write timestamp values as text so Sheets never interprets them in spreadsheet timezone. */
+function writeSessionTime_(sh,row,col,value) {
+  const cell=sh.getRange(row,col);
+  cell.setNumberFormat('@');
+  cell.setValue(String(value));
 }
 
 function createSession_(role,actorId) {
-  const token = randomHex_(48), nowMs = Date.now(), expiresMs = nowMs+8*60*60*1000;
-  sheet_('sessions').appendRow([sha256_(token),role,actorId,nowMs,expiresMs,nowMs,'']);
+  const lock=LockService.getScriptLock();
+  lock.waitLock(10000);
+  const token=randomHex_(48), nowMs=Date.now(), expiresMs=nowMs+8*60*60*1000;
+  try {
+    const sh=sheet_('sessions'), row=sh.getLastRow()+1;
+    sh.getRange(row,1,1,7).setValues([[sha256_(token),role,actorId,'','','','']]);
+    writeSessionTime_(sh,row,4,nowMs);
+    writeSessionTime_(sh,row,5,expiresMs);
+    writeSessionTime_(sh,row,6,nowMs);
+  } finally {
+    lock.releaseLock();
+  }
   audit_(role,actorId,'SESSION_CREATED','', 'SUCCESS','');
   return {ok:true,session:token,role:role,expiresAt:new Date(expiresMs).toISOString()};
 }
 
 function requireSession_(token,roles) {
   if (!token) throw new Error('Sesi tidak valid. Silakan masuk kembali.');
-  const sh = sheet_('sessions'), row = findRow_(sh,1,sha256_(String(token)));
+  const sh=sheet_('sessions'), row=findRow_(sh,1,sha256_(String(token)));
   if (!row) throw new Error('Sesi tidak ditemukan.');
-  const v = sh.getRange(row,1,1,7).getValues()[0], nowMs = Date.now();
-  const expiresAt = sessionTimeMs_(v[4]);
-  const lastSeenAt = sessionTimeMs_(v[5]);
-  let reason = '';
-  if (v[6]) reason = 'REVOKED';
-  else if (!Number.isFinite(expiresAt) || !Number.isFinite(lastSeenAt)) reason = 'INVALID_SESSION_TIME';
-  else if (expiresAt < nowMs) reason = 'SESSION_EXPIRED';
-  else if (nowMs-lastSeenAt > 30*60*1000) reason = 'IDLE_TIMEOUT';
-  else if (!roles.includes(String(v[1]))) reason = 'ROLE_NOT_ALLOWED';
-  if (reason) {
-    if (!v[6]) sh.getRange(row,7).setValue(nowMs);
+  const v=sh.getRange(row,1,1,7).getValues()[0];
+  const times=sh.getRange(row,4,1,4).getDisplayValues()[0];
+  const nowMs=Date.now(), expiresAt=sessionTimeMs_(times[1]), lastSeenAt=sessionTimeMs_(times[2]);
+  let reason='';
+  if(times[3]) reason='REVOKED';
+  else if(!Number.isFinite(expiresAt)||!Number.isFinite(lastSeenAt)) reason='INVALID_SESSION_TIME';
+  else if(expiresAt<nowMs) reason='SESSION_EXPIRED';
+  else if(nowMs-lastSeenAt>30*60*1000) reason='IDLE_TIMEOUT';
+  else if(!roles.includes(String(v[1]))) reason='ROLE_NOT_ALLOWED';
+  if(reason) {
+    if(!times[3]) writeSessionTime_(sh,row,7,nowMs);
     console.warn('MPS_SESSION_REJECTED reason='+reason+' row='+row+' role='+String(v[1]));
     throw new Error('Sesi ditolak ('+reason+'). Silakan masuk kembali.');
   }
-  sh.getRange(row,6).setValue(nowMs);
+  writeSessionTime_(sh,row,6,nowMs);
   return {role:String(v[1]),actorId:String(v[2])};
+}
+
+function apiLogout(session) {
+  const hash=sha256_(String(session||''));
+  const sh=sheet_('sessions'), row=findRow_(sh,1,hash);
+  if(row) writeSessionTime_(sh,row,7,Date.now());
+  return {ok:true};
 }
 
 /**
@@ -819,30 +837,32 @@ function requireSession_(token,roles) {
  * Run manually from the TEST Apps Script editor; does not alter member records.
  */
 function testMpsSessionRoundTrip() {
-  const sh = sheet_('sessions');
-  const token = randomHex_(48);
-  const now = new Date();
-  const expires = new Date(now.getTime()+5*60*1000);
-  const hash = sha256_(token);
-  let row = 0;
+  const sh=sheet_('sessions'), token=randomHex_(48), nowMs=Date.now(), expiresMs=nowMs+5*60*1000;
+  const hash=sha256_(token);
+  let row=0;
+  const lock=LockService.getScriptLock(); lock.waitLock(10000);
   try {
-    sh.appendRow([hash,'ADMIN','SESSION-SELF-TEST',now.getTime(),expires.getTime(),now.getTime(),'']);
-    row = sh.getLastRow();
-    const foundRow = findRow_(sh,1,hash);
-    if (foundRow !== row) throw new Error('SESSION_ROW_LOOKUP_MISMATCH');
-    const stored = sh.getRange(row,1,1,7).getValues()[0];
-    const storedExpiry = sessionTimeMs_(stored[4]);
-    const storedLastSeen = sessionTimeMs_(stored[5]);
-    console.log('MPS_SESSION_SELF_TEST_TIME now='+now.toISOString()+' expires='+expires.toISOString()+' storedExpires='+(Number.isFinite(storedExpiry)?new Date(storedExpiry).toISOString():String(stored[4]))+' storedLastSeen='+(Number.isFinite(storedLastSeen)?new Date(storedLastSeen).toISOString():String(stored[5]))+' deltaMs='+(storedExpiry-now.getTime()));
-    const actor = requireSession_(token,['ADMIN','SUPER_ADMIN']);
-    if (actor.role !== 'ADMIN' || actor.actorId !== 'SESSION-SELF-TEST')
-      throw new Error('SESSION_ACTOR_MISMATCH');
-    return {ok:true,check:'SESSION_ROUND_TRIP',row:row,role:actor.role,storage:'read-write',cleanup:'revoked'};
-  } catch (err) {
-    console.error('MPS_SESSION_SELF_TEST_FAILED '+String(err && err.message || err));
-    return {ok:false,check:'SESSION_ROUND_TRIP',row:row,error:String(err && err.message || err),cleanup:'revoked'};
+    row=sh.getLastRow()+1;
+    sh.getRange(row,1,1,7).setValues([[hash,'ADMIN','SESSION-SELF-TEST','','','','']]);
+    writeSessionTime_(sh,row,4,nowMs);
+    writeSessionTime_(sh,row,5,expiresMs);
+    writeSessionTime_(sh,row,6,nowMs);
+  } finally { lock.releaseLock(); }
+  try {
+    const foundRow=findRow_(sh,1,hash);
+    if(foundRow!==row) throw new Error('SESSION_ROW_LOOKUP_MISMATCH');
+    const stored=sh.getRange(row,4,1,4).getDisplayValues()[0];
+    const storedExpiry=sessionTimeMs_(stored[1]), storedLastSeen=sessionTimeMs_(stored[2]);
+    console.log('MPS_SESSION_SELF_TEST_TIME nowMs='+nowMs+' expiresMs='+expiresMs+' storedExpires='+stored[1]+' storedLastSeen='+stored[2]+' deltaMs='+(storedExpiry-nowMs));
+    if(storedExpiry!==expiresMs||storedLastSeen!==nowMs) throw new Error('SESSION_STORAGE_ROUND_TRIP_MISMATCH');
+    const actor=requireSession_(token,['ADMIN','SUPER_ADMIN']);
+    if(actor.role!=='ADMIN'||actor.actorId!=='SESSION-SELF-TEST') throw new Error('SESSION_ACTOR_MISMATCH');
+    return {ok:true,check:'SESSION_ROUND_TRIP',row:row,role:actor.role,storage:'text-epoch-ms',cleanup:'revoked'};
+  } catch(err) {
+    console.error('MPS_SESSION_SELF_TEST_FAILED '+String(err&&err.message||err));
+    return {ok:false,check:'SESSION_ROUND_TRIP',row:row,error:String(err&&err.message||err),cleanup:'revoked'};
   } finally {
-    if (row) sh.getRange(row,7).setValue(Date.now());
+    if(row) writeSessionTime_(sh,row,7,Date.now());
   }
 }
 
