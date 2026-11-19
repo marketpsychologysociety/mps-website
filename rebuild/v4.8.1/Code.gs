@@ -226,6 +226,9 @@ function apiSubmitDeposit(input) {
   try {
     const apps = sheet_('applications'), row = findRow_(apps,1,ref);
     if (!row) throw new Error('Application Ref tidak ditemukan.');
+    const planSheet=sheet_('membershipPlans'), planRow=findRow_(planSheet,1,ref);
+    if (!planRow || planSheet.getRange(planRow,2).getDisplayValue()!=='ACTIVE_IB')
+      throw new Error('Form deposit Exness hanya untuk Active IB Member. Regular Member menggunakan pembayaran QRIS.');
     const state = String(apps.getRange(row,8).getDisplayValue());
     if (!['Menunggu Pendaftaran','Menunggu Deposit'].includes(state))
       throw new Error('Pengajuan tidak berada pada tahap pengiriman deposit.');
