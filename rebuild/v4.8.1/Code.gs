@@ -78,6 +78,9 @@ function validateMpsRebuildConfig() {
     spreadsheetConfigured: !!p.getProperty('MPS_SPREADSHEET_ID'),
     proofFolderConfigured: !!p.getProperty('MPS_PROOF_FOLDER_ID'),
     adminCredentialConfigured: !!p.getProperty('MPS_REBUILD_ADMIN_PASSWORD_HASH'),
+    superAdminCredentialConfigured: !!p.getProperty('MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH'),
+    adminTotpConfigured: !!p.getProperty('MPS_REBUILD_ADMIN_TOTP_SECRET'),
+    superAdminTotpConfigured: !!p.getProperty('MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET'),
     telegramBotConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_TOKEN'),
     telegramChatConfigured: !!p.getProperty('MPS_TELEGRAM_CHAT_ID'),
     webhookSecretConfigured: !!p.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET'),
@@ -302,7 +305,7 @@ function apiSubmitRegularPayment(input) {
     let link={url:'',expiresAt:''};try{link=createTelegramLink_(ref,apps.getRange(appRow,4).getDisplayValue());}catch(e){audit_('SYSTEM','','TELEGRAM_LINK_CREATE_FAILED',ref,'WARNING','');}
     if(link.url)apps.getRange(appRow,11).setValue('Menunggu Verifikasi Telegram');
     let adminBackupSent=false;const adminChat=prop_('MPS_TELEGRAM_CHAT_ID');
-    if(adminChat){const app=apps.getRange(appRow,1,1,15).getValues()[0];const backupText=['MPS — PENDAFTARAN & PEMBAYARAN REGULAR BARU','Application Ref: '+ref,'Nama: '+clean_(app[2],60),'Telegram: @'+cleanUsername_(app[3]),'Negara: '+clean_(app[4],60),'Tujuan: '+clean_(app[5],160),'Paket: Regular Member','Pembayaran: Rp100.000','Tanggal pembayaran: '+date,'Status: Menunggu Validasi Admin'].join('\\n');try{adminBackupSent=sendTelegramMessage_(adminChat,backupText);}catch(notifyError){audit_('SYSTEM','','REGULAR_PAYMENT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.');}}
+    if(adminChat){const app=apps.getRange(appRow,1,1,15).getValues()[0];const backupText=['MPS — PENDAFTARAN & PEMBAYARAN REGULAR BARU','Application Ref: '+ref,'Nama: '+clean_(app[2],60),'Telegram: @'+cleanUsername_(app[3]),'Negara: '+clean_(app[4],60),'Tujuan: '+clean_(app[5],160),'Paket: Regular Member','Pembayaran: Rp100.000','Tanggal pembayaran: '+date,'Status: Menunggu Validasi Admin'].join('\n');try{adminBackupSent=sendTelegramMessage_(adminChat,backupText);}catch(notifyError){audit_('SYSTEM','','REGULAR_PAYMENT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.');}}
     audit_('PUBLIC','', 'REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Fixed fee Rp100000; proof saved privately.');
     return {ok:true,status:'Menunggu Validasi Pembayaran',telegramLink:link.url,telegramLinkAvailable:!!link.url,adminBackupSent:adminBackupSent};
   } finally {lock.releaseLock();}
@@ -416,7 +419,10 @@ function runMpsCryptoSelfTests() {
   ];
   vectors.forEach(v=>checks.push({name:'RFC 6238 SHA-1 vector '+v[0],ok:totpCode_(secret,Math.floor(v[0]/30))===v[1]}));
   checks.push({name:'Base32 decode byte count',ok:base32Decode_(secret).length===20});
-  return {ok:checks.every(x=>x.ok),checks:checks};
+  const result={ok:checks.every(x=>x.ok),total:checks.length,passed:checks.filter(x=>x.ok).length,failed:checks.filter(x=>!x.ok).length,checks:checks};
+  Logger.log('MPS CRYPTO SELF TEST: '+JSON.stringify(result));
+  console.log('MPS CRYPTO SELF TEST: '+JSON.stringify(result));
+  return result;
 }
 
 function base32Encode_(input) {
@@ -484,6 +490,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
     const regularSheet=sheet_('regularPayments'), regularRow=findRow_(regularSheet,1,ref);
     const regular=regularRow?regularSheet.getRange(regularRow,1,1,8).getValues()[0]:[];
     const deps = sheet_('deposits'), dr = findRow_(deps,1,ref);
+    if (decision==='APPROVE' && !['REGULAR','ACTIVE_IB'].includes(planType)) throw new Error('Jenis keanggotaan tidak valid. Pengajuan tidak dapat disetujui.');
     if (decision==='APPROVE' && planType==='ACTIVE_IB' && String(plan[4]||'')!=='Terverifikasi') throw new Error('Status Exness IB harus diverifikasi Admin terlebih dahulu.');
     if (planType==='REGULAR' && decision==='APPROVE') {
       if(!regularRow || Number(regular[2])!==100000 || regular[5]!=='Menunggu Validasi') throw new Error('Bukti QRIS Regular belum tersedia atau belum menunggu validasi.');
@@ -499,6 +506,8 @@ function apiAdminReview(session, applicationRef, decision, note) {
     const now = new Date(), adminNote = clean_(note,500);
     if (decision === 'APPROVE' && apps.getRange(ar,11).getDisplayValue() !== 'Terhubung')
       throw new Error('Verifikasi Telegram harus berhasil sebelum pengajuan dapat disetujui.');
+    if (decision === 'APPROVE' && (!app[11] || !app[12]))
+      throw new Error('Identitas Telegram belum terikat lengkap pada pengajuan.');
     if (decision === 'APPROVE' && planType!=='REGULAR' && (Number(dep[5]) < 500000 || !dep[7] || dep[9] !== 'Menunggu Validasi'))
       throw new Error('Deposit belum memenuhi nominal minimum, bukti tidak tersedia, atau status deposit tidak valid.');
     if (decision === 'APPROVE' && planType!=='REGULAR') {
@@ -574,9 +583,11 @@ function apiAdminIssuePin(session, memberId) {
     const chatId=appRow?String(apps.getRange(appRow,13).getDisplayValue()||''):'';
     if(appRow && chatId && apps.getRange(appRow,11).getDisplayValue()==='Terhubung') {
       try {
-        sendTelegramMessage_(chatId,'PIN akses MPS Anda: '+pin+'\\nJangan bagikan PIN ini kepada siapa pun. MPS tidak akan meminta PIN atau OTP Anda.');
-        audit_(actor.role,actor.actorId,'MEMBER_PIN_ISSUED',id,'SUCCESS','PIN delivered to verified Telegram chat.');
-        return {ok:true,memberId:id,pinDelivered:true,delivery:'Telegram terverifikasi'};
+        const delivered=sendTelegramMessage_(chatId,'PIN akses MPS Anda: '+pin+'\nJangan bagikan PIN ini kepada siapa pun. MPS tidak akan meminta PIN atau OTP Anda.');
+        if (delivered) {
+          audit_(actor.role,actor.actorId,'MEMBER_PIN_ISSUED',id,'SUCCESS','PIN delivered to verified Telegram chat.');
+          return {ok:true,memberId:id,pinDelivered:true,delivery:'Telegram terverifikasi'};
+        }
       } catch(sendError) {
         audit_(actor.role,actor.actorId,'MEMBER_PIN_DELIVERY_FAILED',id,'WARNING','Admin fallback required.');
       }
@@ -588,7 +599,9 @@ function apiAdminIssuePin(session, memberId) {
 function randomPin_() {
   const raw = Utilities.getUuid().replace(/-/g,'').toUpperCase();
   let out = '';
-  for (let i=0;i<6;i++) out += String(parseInt(raw.charAt(i),16)%10);
+  let digits=raw.replace(/[a-f]/gi,'');
+  while(digits.length<6) digits+=Utilities.getUuid().replace(/-/g,'').replace(/[a-f]/gi,'');
+  for (let i=0;i<6;i++) out += digits.charAt(i);
   return out;
 }
 
@@ -772,8 +785,14 @@ function requireSession_(token,roles) {
   const sh = sheet_('sessions'), row = findRow_(sh,1,sha256_(String(token)));
   if (!row) throw new Error('Sesi tidak ditemukan.');
   const v = sh.getRange(row,1,1,7).getValues()[0], now = new Date();
-  if (v[6] || new Date(v[4]).getTime() < now.getTime() || !roles.includes(v[1]))
-    throw new Error('Sesi berakhir atau tidak memiliki izin.');
+  const expiresAt = new Date(v[4]).getTime();
+  const lastSeenAt = new Date(v[5]).getTime();
+  const invalidTime = !Number.isFinite(expiresAt) || !Number.isFinite(lastSeenAt);
+  const idleExpired = !invalidTime && now.getTime()-lastSeenAt > 30*60*1000;
+  if (v[6] || invalidTime || expiresAt < now.getTime() || idleExpired || !roles.includes(v[1])) {
+    if (!v[6]) sh.getRange(row,7).setValue(now);
+    throw new Error('Sesi berakhir atau tidak memiliki izin. Silakan masuk kembali.');
+  }
   sh.getRange(row,6).setValue(now);
   return {role:v[1],actorId:v[2]};
 }
@@ -946,7 +965,8 @@ function apiAdminProcessVipQueue(session) {
       const chatId=app?String(app[12]||''):'';
       if(!app || app[7]!=='Disetujui' || !app[8] || !chatId || String(app[11]||'')!==String(r[4]||''))
         throw new Error('APPROVED_MEMBER_TELEGRAM_BINDING_NOT_VALID');
-      sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, memerlukan persetujuan bot): '+invite);
+      const delivered=sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, memerlukan persetujuan bot): '+invite);
+      if (!delivered) throw new Error('VIP_TELEGRAM_DELIVERY_NOT_CONFIGURED');
       queue.getRange(row,8).setValue('SENT');
       queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
       queue.getRange(row,12).setValue('');
@@ -1186,12 +1206,18 @@ function prop_(key) { return PropertiesService.getScriptProperties().getProperty
 function enforceRateLimit_(scope, identifier, limit, windowSeconds) {
   const cache = CacheService.getScriptCache();
   const key = 'MPS_RL_' + sha256_(scope + '|' + String(identifier)).slice(0,32);
-  const current = Number(cache.get(key) || 0);
-  if (current >= limit) {
-    audit_('SYSTEM','', 'RATE_LIMIT_BLOCK',scope,'DENIED','Temporary request throttle triggered.');
-    throw new Error('Terlalu banyak percobaan. Tunggu beberapa saat lalu coba kembali.');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(5000);
+  try {
+    const current = Number(cache.get(key) || 0);
+    if (current >= limit) {
+      audit_('SYSTEM','', 'RATE_LIMIT_BLOCK',scope,'DENIED','Temporary request throttle triggered.');
+      throw new Error('Terlalu banyak percobaan. Tunggu beberapa saat lalu coba kembali.');
+    }
+    cache.put(key, String(current + 1), windowSeconds);
+  } finally {
+    lock.releaseLock();
   }
-  cache.put(key, String(current + 1), windowSeconds);
 }
 function findRow_(sh,col,value) {
   if (sh.getLastRow()<2) return 0;
