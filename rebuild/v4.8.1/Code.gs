@@ -475,12 +475,12 @@ function apiAdminReview(session, applicationRef, decision, note) {
   try {
     const apps = sheet_('applications'), ar = findRow_(apps,1,ref);
     if (!ar) throw new Error('Application Ref tidak ditemukan.');
-    const app = apps.getRange(ar,1,15).getValues()[0];
+    const app = apps.getRange(ar,1,1,15).getValues()[0];
     const planSheet=sheet_('membershipPlans'), planRow=findRow_(planSheet,1,ref);
-    const plan=planRow?planSheet.getRange(planRow,1,8).getValues()[0]:[];
+    const plan=planRow?planSheet.getRange(planRow,1,1,8).getValues()[0]:[];
     const planType=String(plan[1]||'');
     const regularSheet=sheet_('regularPayments'), regularRow=findRow_(regularSheet,1,ref);
-    const regular=regularRow?regularSheet.getRange(regularRow,1,8).getValues()[0]:[];
+    const regular=regularRow?regularSheet.getRange(regularRow,1,1,8).getValues()[0]:[];
     const deps = sheet_('deposits'), dr = findRow_(deps,1,ref);
     if (decision==='APPROVE' && planType==='ACTIVE_IB' && String(plan[4]||'')!=='Terverifikasi') throw new Error('Status Exness IB harus diverifikasi Admin terlebih dahulu.');
     if (planType==='REGULAR' && decision==='APPROVE') {
@@ -493,7 +493,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
     }
     if (planType!=='REGULAR' && !dr) throw new Error('Data deposit Exness belum tersedia.');
     if (app[7] === 'Disetujui' || app[7] === 'Ditolak') throw new Error('Pengajuan sudah diputuskan.');
-    const dep = dr ? deps.getRange(dr,1,14).getValues()[0] : [];
+    const dep = dr ? deps.getRange(dr,1,1,14).getValues()[0] : [];
     const now = new Date(), adminNote = clean_(note,500);
     if (decision === 'APPROVE' && apps.getRange(ar,11).getDisplayValue() !== 'Terhubung')
       throw new Error('Verifikasi Telegram harus berhasil sebelum pengajuan dapat disetujui.');
@@ -738,7 +738,7 @@ function apiGetMemberContent(session, section) {
 function assertMembershipEntitlement_(memberId) {
   const sh=sheet_('membershipLedger'), row=findRow_(sh,1,memberId);
   if(!row) throw new Error('Masa aktif keanggotaan belum tercatat. Hubungi Admin MPS.');
-  const v=sh.getRange(row,1,8).getValues()[0];
+  const v=sh.getRange(row,1,1,8).getValues()[0];
   if(String(v[3])!=='Aktif') throw new Error('Keanggotaan MPS tidak aktif.');
   const plan=String(v[2]||'');
   if(plan==='REGULAR') {
@@ -769,7 +769,7 @@ function requireSession_(token,roles) {
   if (!token) throw new Error('Sesi tidak valid. Silakan masuk kembali.');
   const sh = sheet_('sessions'), row = findRow_(sh,1,sha256_(String(token)));
   if (!row) throw new Error('Sesi tidak ditemukan.');
-  const v = sh.getRange(row,1,7).getValues()[0], now = new Date();
+  const v = sh.getRange(row,1,1,7).getValues()[0], now = new Date();
   if (v[6] || new Date(v[4]).getTime() < now.getTime() || !roles.includes(v[1]))
     throw new Error('Sesi berakhir atau tidak memiliki izin.');
   sh.getRange(row,6).setValue(now);
@@ -864,7 +864,7 @@ function handleTelegramStart_(message) {
   }
   const tokenHash = sha256_(match[1].toUpperCase()), links = sheet_('links'), row = findRow_(links,1,tokenHash);
   if (!row) { sendTelegramMessage_(chatId,'Link MPS tidak valid atau sudah tidak tersedia. Silakan minta tautan baru kepada Admin.'); return; }
-  const values = links.getRange(row,1,11).getValues()[0];
+  const values = links.getRange(row,1,1,11).getValues()[0];
   if (values[3] === 'VERIFIED') { sendTelegramMessage_(chatId,'Akun Telegram Anda sudah terhubung ke MPS.'); return; }
   if (values[3] !== 'PENDING' || new Date(values[2]).getTime() < Date.now()) {
     links.getRange(row,4).setValue('EXPIRED');
