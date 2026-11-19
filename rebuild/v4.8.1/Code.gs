@@ -192,7 +192,7 @@ function apiRegister(input) {
     sh.appendRow([ref,now,nickname,username,country,goal,note,'Menunggu Pendaftaran','','','Belum Terhubung','','','',''+now]);
     sheet_('membershipPlans').appendRow([ref,plan,now,plan==='REGULAR'?100000:0,plan==='ACTIVE_IB'?'Menunggu Verifikasi Manual':'TIDAK BERLAKU','','','Menunggu Pembayaran / Verifikasi']);
     audit_('PUBLIC','', 'APPLICATION_CREATED',ref,'SUCCESS','Plan='+plan+'; initial application only; no member ID issued.');
-    return {ok:true,applicationRef:ref,status:'Menunggu Pendaftaran'};
+    return {ok:true,applicationRef:ref,status:'Menunggu Pendaftaran',plan:plan};
   } finally { lock.releaseLock(); }
 }
 
@@ -268,6 +268,38 @@ function apiSubmitDeposit(input) {
     }
     return {ok:true,applicationRef:ref,status:'Menunggu Validasi Admin',telegramLink:linkInfo.url,telegramLinkExpiresAt:linkInfo.expiresAt,telegramLinkAvailable:!!linkInfo.url,adminBackupSent:adminBackupSent};
   } finally { lock.releaseLock(); }
+}
+
+/** Regular membership QRIS proof: fixed Rp100,000, only for REGULAR applications. */
+function apiSubmitRegularPayment(input) {
+  input=input||{}; const ref=clean_(input.applicationRef,40).toUpperCase();
+  if(!/^MPS-APP-[A-F0-9]{20}$/.test(ref)) throw new Error('Application Ref tidak valid.');
+  enforceRateLimit_('regular-payment',ref,3,3600);
+  const date=clean_(input.paymentDate,20),amount=Number(input.amount);
+  if(amount!==100000 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) throw new Error('Pembayaran Regular harus tepat Rp100.000 dan tanggal harus valid.');
+  const dt=new Date(date+'T00:00:00+07:00');
+  if(isNaN(dt.getTime()) || Utilities.formatDate(dt,MPS.TZ,'yyyy-MM-dd')!==date || dt.getTime()>Date.now()+86400000) throw new Error('Tanggal pembayaran tidak valid.');
+  const mime=String(input.proofMime||'');
+  if(!['image/jpeg','image/png','image/webp'].includes(mime)) throw new Error('Bukti harus JPG, PNG, atau WEBP.');
+  const raw=String(input.proofBase64||'').replace(/^data:[^,]+,/,'');
+  if(!raw || raw.length>7*1024*1024) throw new Error('Ukuran bukti maksimal 5 MB.');
+  const bytes=Utilities.base64Decode(raw);
+  if(bytes.length>5*1024*1024 || !isAllowedImageBytes_(bytes,mime)) throw new Error('Bukti tidak valid atau melebihi 5 MB.');
+  const lock=LockService.getScriptLock();lock.waitLock(15000);
+  try {
+    if(!findRow_(sheet_('applications'),1,ref)) throw new Error('Application Ref tidak ditemukan.');
+    const ps=sheet_('membershipPlans'),pr=findRow_(ps,1,ref);
+    if(!pr || ps.getRange(pr,2).getDisplayValue()!=='REGULAR') throw new Error('QRIS hanya untuk pendaftar Regular Member.');
+    if(findRow_(sheet_('regularPayments'),1,ref)) throw new Error('Bukti pembayaran sudah diterima. Hubungi Admin untuk koreksi.');
+    const folderId=prop_('MPS_PROOF_FOLDER_ID');if(!folderId)throw new Error('Folder bukti privat belum dikonfigurasi.');
+    const folder=DriveApp.getFolderById(folderId);if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE)throw new Error('Folder bukti harus privat.');
+    const ext=mime==='image/jpeg'?'jpg':mime==='image/png'?'png':'webp';
+    const file=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-QRIS-'+ref+'.'+ext));file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+    sheet_('regularPayments').appendRow([ref,new Date(),100000,date,file.getId(),'Menunggu Validasi','','']);
+    ps.getRange(pr,8).setValue('Menunggu Validasi Pembayaran');
+    audit_('PUBLIC','', 'REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Fixed fee Rp100000; proof saved privately.');
+    return {ok:true,status:'Menunggu Validasi Pembayaran'};
+  } finally {lock.releaseLock();}
 }
 
 /** Admin login uses a salted SHA-256 hash in Script Properties; plaintext password is never stored. */
@@ -402,12 +434,13 @@ function base32Decode_(input) {
 
 function apiAdminList(session) {
   requireSession_(session,['ADMIN','SUPER_ADMIN']);
-  const apps = sheet_('applications'), deps = sheet_('deposits'), plans = rows_(sheet_('membershipPlans'));
+  const apps = sheet_('applications'), deps = sheet_('deposits'), plans = rows_(sheet_('membershipPlans')), payments = rows_(sheet_('regularPayments'));
   const a = rows_(apps), d = rows_(deps);
   return a.map(r => {
     const dep = d.find(x => x[0] === r[0]) || [];
     const plan = plans.find(x => x[0] === r[0]) || [];
-    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],telegramStatus:r[10]||'Belum Terhubung',memberId:r[8]||'',plan:plan[1]||'BELUM DIPILIH',monthlyFee:plan[3]||0,ibVerificationStatus:plan[4]||'',accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
+    const payment = payments.find(x => x[0] === r[0]) || [];
+    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],telegramStatus:r[10]||'Belum Terhubung',memberId:r[8]||'',plan:plan[1]||'BELUM DIPILIH',monthlyFee:plan[3]||0,ibVerificationStatus:plan[4]||'',regularPaymentStatus:payment[5]||'',regularPaymentProofId:payment[4]||'',regularPaymentAmount:payment[2]||0,accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
   }).reverse();
 }
 
@@ -421,16 +454,29 @@ function apiAdminReview(session, applicationRef, decision, note) {
     const apps = sheet_('applications'), ar = findRow_(apps,1,ref);
     if (!ar) throw new Error('Application Ref tidak ditemukan.');
     const app = apps.getRange(ar,1,15).getValues()[0];
+    const planSheet=sheet_('membershipPlans'), planRow=findRow_(planSheet,1,ref);
+    const plan=planRow?planSheet.getRange(planRow,1,8).getValues()[0]:[];
+    const planType=String(plan[1]||'');
+    const regularSheet=sheet_('regularPayments'), regularRow=findRow_(regularSheet,1,ref);
+    const regular=regularRow?regularSheet.getRange(regularRow,1,8).getValues()[0]:[];
     const deps = sheet_('deposits'), dr = findRow_(deps,1,ref);
-    if (!dr) throw new Error('Data deposit belum tersedia.');
+    if (planType==='REGULAR' && decision==='APPROVE') {
+      if(!regularRow || Number(regular[2])!==100000 || regular[5]!=='Menunggu Validasi') throw new Error('Bukti QRIS Regular belum tersedia atau belum menunggu validasi.');
+      if(apps.getRange(ar,11).getDisplayValue()!=='Terhubung') throw new Error('Verifikasi Telegram harus berhasil sebelum disetujui.');
+      const qrFile=DriveApp.getFileById(String(regular[4]));
+      if(qrFile.isTrashed() || qrFile.getSharingAccess()!==DriveApp.Access.PRIVATE) throw new Error('Bukti QRIS tidak tersedia atau tidak privat.');
+      const expectedFolder=prop_('MPS_PROOF_FOLDER_ID');let okFolder=false;const parents=qrFile.getParents();while(parents.hasNext())if(parents.next().getId()===expectedFolder)okFolder=true;
+      if(!expectedFolder || !okFolder)throw new Error('Bukti QRIS bukan dari folder bukti resmi.');
+    }
+    if (planType!=='REGULAR' && !dr) throw new Error('Data deposit Exness belum tersedia.');
     if (app[7] === 'Disetujui' || app[7] === 'Ditolak') throw new Error('Pengajuan sudah diputuskan.');
-    const dep = deps.getRange(dr,1,14).getValues()[0];
+    const dep = dr ? deps.getRange(dr,1,14).getValues()[0] : [];
     const now = new Date(), adminNote = clean_(note,500);
     if (decision === 'APPROVE' && apps.getRange(ar,11).getDisplayValue() !== 'Terhubung')
       throw new Error('Verifikasi Telegram harus berhasil sebelum pengajuan dapat disetujui.');
-    if (decision === 'APPROVE' && (Number(dep[5]) < 500000 || !dep[7] || dep[9] !== 'Menunggu Validasi'))
+    if (decision === 'APPROVE' && planType!=='REGULAR' && (Number(dep[5]) < 500000 || !dep[7] || dep[9] !== 'Menunggu Validasi'))
       throw new Error('Deposit belum memenuhi nominal minimum, bukti tidak tersedia, atau status deposit tidak valid.');
-    if (decision === 'APPROVE') {
+    if (decision === 'APPROVE' && planType!=='REGULAR') {
       if (!app[11] || !app[12] || String(dep[10]||'')!==String(app[11]) || String(dep[11]||'')!==String(app[12]))
         throw new Error('Ikatan Telegram pada aplikasi dan data deposit tidak cocok. Pengajuan tidak dapat disetujui.');
       const proof=DriveApp.getFileById(String(dep[7]));
@@ -445,16 +491,16 @@ function apiAdminReview(session, applicationRef, decision, note) {
     }
     if (decision === 'REJECT') {
       apps.getRange(ar,8).setValue('Ditolak'); apps.getRange(ar,14).setValue(adminNote);
-      deps.getRange(dr,10).setValue('Ditolak'); deps.getRange(dr,13).setValue(adminNote);
+      if(dr){deps.getRange(dr,10).setValue('Ditolak');deps.getRange(dr,13).setValue(adminNote);} if(regularRow){regularSheet.getRange(regularRow,6).setValue('Ditolak');regularSheet.getRange(regularRow,7).setValue(adminNote);}
       audit_(actor.role,actor.actorId,'APPLICATION_REJECTED',ref,'SUCCESS','');
       return {ok:true,status:'Ditolak'};
     }
     const memberId = 'MPS-' + randomHex_(10);
     const memberSheet = legacySheet_();
-    const row = [memberId,app[1],app[2],app[3],app[4],app[5],app[6],'Berhasil',dep[2],dep[3],dep[4],dep[5],dep[6],'', 'Disetujui',adminNote,now,now];
+    const row = [memberId,app[1],app[2],app[3],app[4],app[5],app[6],'Berhasil',planType==='REGULAR'?'Pembayaran QRIS MPS':dep[2]||'',planType==='REGULAR'?'N/A':dep[3]||'',planType==='REGULAR'?'N/A':dep[4]||'',planType==='REGULAR'?100000:dep[5],planType==='REGULAR'?Utilities.formatDate(now,MPS.TZ,'yyyy-MM-dd'):dep[6]||'','', 'Disetujui',adminNote,now,now];
     memberSheet.appendRow(row);
     apps.getRange(ar,8).setValue('Disetujui'); apps.getRange(ar,9).setValue(memberId); apps.getRange(ar,14).setValue(adminNote); apps.getRange(ar,15).setValue(now);
-    deps.getRange(dr,10).setValue('Disetujui'); deps.getRange(dr,13).setValue(adminNote); deps.getRange(dr,14).setValue(now);
+    if(dr){deps.getRange(dr,10).setValue('Disetujui');deps.getRange(dr,13).setValue(adminNote);deps.getRange(dr,14).setValue(now);} if(regularRow){regularSheet.getRange(regularRow,6).setValue('Disetujui');regularSheet.getRange(regularRow,7).setValue(adminNote);regularSheet.getRange(regularRow,8).setValue(now);} if(planRow){planSheet.getRange(planRow,8).setValue('Aktif');planSheet.getRange(planRow,6).setValue(actor.actorId);planSheet.getRange(planRow,7).setValue(now);sheet_('membershipLedger').appendRow([memberId,ref,planType,'Aktif',now,planType==='REGULAR'?new Date(now.getTime()+30*86400000):'',now,'Admin approved']);}
     enqueueVipInvite_(memberId,ref,String(apps.getRange(ar,12).getDisplayValue()||''),String(apps.getRange(ar,13).getDisplayValue()||''));
     audit_(actor.role,actor.actorId,'APPLICATION_APPROVED',ref,'SUCCESS','Member ID issued after approval; VIP invite queued.');
     return {ok:true,status:'Disetujui',memberId:memberId,pinSetupRequired:true,vipInviteQueued:true};
