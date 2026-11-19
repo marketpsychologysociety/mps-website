@@ -297,8 +297,12 @@ function apiSubmitRegularPayment(input) {
     const file=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-QRIS-'+ref+'.'+ext));file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     sheet_('regularPayments').appendRow([ref,new Date(),100000,date,file.getId(),'Menunggu Validasi','','']);
     ps.getRange(pr,8).setValue('Menunggu Validasi Pembayaran');
+    const apps=sheet_('applications'),appRow=findRow_(apps,1,ref);
+    apps.getRange(appRow,8).setValue('Pembayaran Dikirim');apps.getRange(appRow,15).setValue(new Date());
+    let link={url:'',expiresAt:''};try{link=createTelegramLink_(ref,apps.getRange(appRow,4).getDisplayValue());}catch(e){audit_('SYSTEM','','TELEGRAM_LINK_CREATE_FAILED',ref,'WARNING','');}
+    if(link.url)apps.getRange(appRow,11).setValue('Menunggu Verifikasi Telegram');
     audit_('PUBLIC','', 'REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Fixed fee Rp100000; proof saved privately.');
-    return {ok:true,status:'Menunggu Validasi Pembayaran'};
+    return {ok:true,status:'Menunggu Validasi Pembayaran',telegramLink:link.url,telegramLinkAvailable:!!link.url};
   } finally {lock.releaseLock();}
 }
 
