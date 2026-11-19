@@ -176,6 +176,8 @@ function apiRegister(input) {
   const country = clean_(input.country,60);
   const goal = clean_(input.goal,160);
   const note = clean_(input.note,1000);
+  const plan = String(input.plan || '').trim().toUpperCase();
+  if (!['REGULAR','ACTIVE_IB'].includes(plan)) throw new Error('Pilih jenis keanggotaan MPS.');
   if (!nickname || !country || !goal) throw new Error('Lengkapi nama panggilan, negara, dan tujuan.');
   if (!/^[a-z][a-z0-9_]{4,31}$/.test(username)) throw new Error('Username Telegram harus 5–32 karakter, diawali huruf, dan hanya berisi huruf, angka, atau underscore.');
   if (!['Belajar money management','Membangun psikologi trading','Melatih disiplin trading','Belajar dan berdiskusi bersama'].includes(goal)) throw new Error('Tujuan bergabung tidak valid.');
@@ -188,7 +190,8 @@ function apiRegister(input) {
     const ref = 'MPS-APP-' + randomHex_(20);
     const now = new Date();
     sh.appendRow([ref,now,nickname,username,country,goal,note,'Menunggu Pendaftaran','','','Belum Terhubung','','','',''+now]);
-    audit_('PUBLIC','', 'APPLICATION_CREATED',ref,'SUCCESS','Initial application only; no member ID issued.');
+    sheet_('membershipPlans').appendRow([ref,plan,now,plan==='REGULAR'?100000:0,plan==='ACTIVE_IB'?'Menunggu Verifikasi Manual':'TIDAK BERLAKU','','','Menunggu Pembayaran / Verifikasi']);
+    audit_('PUBLIC','', 'APPLICATION_CREATED',ref,'SUCCESS','Plan='+plan+'; initial application only; no member ID issued.');
     return {ok:true,applicationRef:ref,status:'Menunggu Pendaftaran'};
   } finally { lock.releaseLock(); }
 }
@@ -399,11 +402,12 @@ function base32Decode_(input) {
 
 function apiAdminList(session) {
   requireSession_(session,['ADMIN','SUPER_ADMIN']);
-  const apps = sheet_('applications'), deps = sheet_('deposits');
+  const apps = sheet_('applications'), deps = sheet_('deposits'), plans = rows_(sheet_('membershipPlans'));
   const a = rows_(apps), d = rows_(deps);
   return a.map(r => {
     const dep = d.find(x => x[0] === r[0]) || [];
-    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],telegramStatus:r[10]||'Belum Terhubung',memberId:r[8]||'',accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
+    const plan = plans.find(x => x[0] === r[0]) || [];
+    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],telegramStatus:r[10]||'Belum Terhubung',memberId:r[8]||'',plan:plan[1]||'BELUM DIPILIH',monthlyFee:plan[3]||0,ibVerificationStatus:plan[4]||'',accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
   }).reverse();
 }
 
