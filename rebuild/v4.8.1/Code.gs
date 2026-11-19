@@ -788,16 +788,50 @@ function requireSession_(token,roles) {
   const sh = sheet_('sessions'), row = findRow_(sh,1,sha256_(String(token)));
   if (!row) throw new Error('Sesi tidak ditemukan.');
   const v = sh.getRange(row,1,1,7).getValues()[0], now = new Date();
-  const expiresAt = new Date(v[4]).getTime();
-  const lastSeenAt = new Date(v[5]).getTime();
-  const invalidTime = !Number.isFinite(expiresAt) || !Number.isFinite(lastSeenAt);
-  const idleExpired = !invalidTime && now.getTime()-lastSeenAt > 30*60*1000;
-  if (v[6] || invalidTime || expiresAt < now.getTime() || idleExpired || !roles.includes(v[1])) {
+  const expiresAt = v[4] instanceof Date ? v[4].getTime() : new Date(v[4]).getTime();
+  const lastSeenAt = v[5] instanceof Date ? v[5].getTime() : new Date(v[5]).getTime();
+  let reason = '';
+  if (v[6]) reason = 'REVOKED';
+  else if (!Number.isFinite(expiresAt) || !Number.isFinite(lastSeenAt)) reason = 'INVALID_SESSION_TIME';
+  else if (expiresAt < now.getTime()) reason = 'SESSION_EXPIRED';
+  else if (now.getTime()-lastSeenAt > 30*60*1000) reason = 'IDLE_TIMEOUT';
+  else if (!roles.includes(String(v[1]))) reason = 'ROLE_NOT_ALLOWED';
+  if (reason) {
     if (!v[6]) sh.getRange(row,7).setValue(now);
-    throw new Error('Sesi berakhir atau tidak memiliki izin. Silakan masuk kembali.');
+    console.warn('MPS_SESSION_REJECTED reason='+reason+' row='+row+' role='+String(v[1]));
+    throw new Error('Sesi ditolak ('+reason+'). Silakan masuk kembali.');
   }
   sh.getRange(row,6).setValue(now);
-  return {role:v[1],actorId:v[2]};
+  return {role:String(v[1]),actorId:String(v[2])};
+}
+
+/**
+ * Isolated diagnostic: creates a short-lived test session, validates it through
+ * the same session gate used by Admin APIs, then revokes it automatically.
+ * Run manually from the TEST Apps Script editor; does not alter member records.
+ */
+function testMpsSessionRoundTrip() {
+  const sh = sheet_('sessions');
+  const token = randomHex_(48);
+  const now = new Date();
+  const expires = new Date(now.getTime()+5*60*1000);
+  const hash = sha256_(token);
+  let row = 0;
+  try {
+    sh.appendRow([hash,'ADMIN','SESSION-SELF-TEST',now,expires,now,'']);
+    row = sh.getLastRow();
+    const foundRow = findRow_(sh,1,hash);
+    if (foundRow !== row) throw new Error('SESSION_ROW_LOOKUP_MISMATCH');
+    const actor = requireSession_(token,['ADMIN','SUPER_ADMIN']);
+    if (actor.role !== 'ADMIN' || actor.actorId !== 'SESSION-SELF-TEST')
+      throw new Error('SESSION_ACTOR_MISMATCH');
+    return {ok:true,check:'SESSION_ROUND_TRIP',row:row,role:actor.role,storage:'read-write',cleanup:'revoked'};
+  } catch (err) {
+    console.error('MPS_SESSION_SELF_TEST_FAILED '+String(err && err.message || err));
+    return {ok:false,check:'SESSION_ROUND_TRIP',row:row,error:String(err && err.message || err),cleanup:'revoked'};
+  } finally {
+    if (row) sh.getRange(row,7).setValue(new Date());
+  }
 }
 
 function sanitizeTelegramUpdateForJournal_(update) {
