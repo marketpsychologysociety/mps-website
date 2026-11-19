@@ -772,13 +772,13 @@ function assertMembershipEntitlement_(memberId) {
 function apiLogout(session) {
   const hash = sha256_(String(session || ''));
   const sh = sheet_('sessions'), row = findRow_(sh,1,hash);
-  if (row) sh.getRange(row,7).setValue(new Date());
+  if (row) sh.getRange(row,7).setValue("'"+new Date().toISOString());
   return {ok:true};
 }
 
 function createSession_(role,actorId) {
   const token = randomHex_(48), now = new Date(), expires = new Date(now.getTime()+8*60*60*1000);
-  sheet_('sessions').appendRow([sha256_(token),role,actorId,now,expires,now,'']);
+  sheet_('sessions').appendRow([sha256_(token),role,actorId,"'"+now.toISOString(),"'"+expires.toISOString(),"'"+now.toISOString(),'']);
   audit_(role,actorId,'SESSION_CREATED','', 'SUCCESS','');
   return {ok:true,session:token,role:role,expiresAt:expires.toISOString()};
 }
@@ -801,7 +801,7 @@ function requireSession_(token,roles) {
     console.warn('MPS_SESSION_REJECTED reason='+reason+' row='+row+' role='+String(v[1]));
     throw new Error('Sesi ditolak ('+reason+'). Silakan masuk kembali.');
   }
-  sh.getRange(row,6).setValue(now);
+  sh.getRange(row,6).setValue("'"+now.toISOString());
   return {role:String(v[1]),actorId:String(v[2])};
 }
 
@@ -818,7 +818,7 @@ function testMpsSessionRoundTrip() {
   const hash = sha256_(token);
   let row = 0;
   try {
-    sh.appendRow([hash,'ADMIN','SESSION-SELF-TEST',now,expires,now,'']);
+    sh.appendRow([hash,'ADMIN','SESSION-SELF-TEST',"'"+now.toISOString(),"'"+expires.toISOString(),"'"+now.toISOString(),'']);
     row = sh.getLastRow();
     const foundRow = findRow_(sh,1,hash);
     if (foundRow !== row) throw new Error('SESSION_ROW_LOOKUP_MISMATCH');
@@ -834,7 +834,7 @@ function testMpsSessionRoundTrip() {
     console.error('MPS_SESSION_SELF_TEST_FAILED '+String(err && err.message || err));
     return {ok:false,check:'SESSION_ROUND_TRIP',row:row,error:String(err && err.message || err),cleanup:'revoked'};
   } finally {
-    if (row) sh.getRange(row,7).setValue(new Date());
+    if (row) sh.getRange(row,7).setValue("'"+new Date().toISOString());
   }
 }
 
