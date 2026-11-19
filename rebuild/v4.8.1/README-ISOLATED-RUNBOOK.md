@@ -13,7 +13,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 
 - `Code.gs`: backend source.
 - `Index.html`: responsive frontend source.
-- `assets/qris-regular.png`: QRIS statis merchant Toko serba ada (NMID `ID1026540347758`), supplied and explicitly approved by the MPS owner for the Regular Member fee. It is an image asset only; it is not yet wired into the registration/payment flow.
+- `assets/qris-regular.png`: QRIS statis merchant Toko serba ada (NMID `ID1026540347758`), supplied and explicitly approved by the MPS owner for the Regular Member fee. The frontend displays it only after a visitor registers as Regular Member; the Active IB path does not show the MPS QRIS panel.
 
 ## Required Script Properties for isolated tests
 
@@ -45,7 +45,7 @@ Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into sourc
 
 Provisioning creates the legacy 18-column sheet only if absent and creates auxiliary sheets only when absent. It accepts either the exact 18-column legacy header or the exact recognized 30-column v4.8 header (18 core + 12 technical columns). It rejects any other header layout. It does not clear, delete, or rewrite existing member rows or technical-column values; new member rows write only the 18 core values.
 
-## Owner-approved Regular Member QRIS asset (integration pending)
+## Owner-approved Regular Member QRIS flow (source implemented; acceptance pending)
 
 The owner explicitly approved the supplied static QRIS image for MPS Regular Member subscription payments:
 - Merchant label on QR: **Toko serba ada**
@@ -56,14 +56,14 @@ The owner explicitly approved the supplied static QRIS image for MPS Regular Mem
 
 The asset was decoded from the owner's supplied image and re-encoded as a small PNG. This approval authorizes using the QR image for the stated Regular Member fee; it does not establish that any payment was received or verified.
 
-Required implementation before acceptance:
-1. Registration must persist a membership plan: `REGULAR` or `ACTIVE_IB`.
-2. Regular applicants must receive a separate QRIS payment workflow with a fixed expected amount of Rp100,000, payment date/reference, private proof upload, and an Admin-only manual reconciliation/approval state. The UI must warn that the QR is static and the payer must enter Rp100,000 in their payment app.
-3. Active IB applicants must use the Exness first-deposit evidence workflow (minimum Rp500,000 into their own Exness account through the official MPS referral), separately from QRIS. Admin must manually verify IB status until a genuine Exness partner verification integration is available.
-4. Admin approval must validate the correct plan-specific evidence and must never accept an Exness deposit as a substitute for Regular QRIS payment, or QRIS as a substitute for Active IB verification.
-5. Monthly Regular membership expiry/renewal and Active IB revalidation must be represented in the membership ledger before either plan can be granted production access.
+Implemented in source, but not yet accepted in Apps Script runtime:
+1. Registration persists `REGULAR` or `ACTIVE_IB`.
+2. Regular applicants see a separate QRIS panel only after selecting Regular; expected amount is fixed at Rp100,000 and proof is uploaded privately for Admin review. The QR is static; payer must enter Rp100,000 manually in their payment app.
+3. Active IB applicants use the separate Exness first-deposit evidence flow (minimum Rp500,000 into their own Exness account through the official MPS referral). Admin manually verifies IB status; no automatic Exness partner API verification exists.
+4. Admin approval validates plan-specific evidence: QRIS proof and Telegram link for Regular; Exness deposit proof, Telegram link, and manual IB verification for Active IB.
+5. The membership ledger records Regular 30-day expiry and Active IB verification status. Login and member-content endpoints now enforce the ledger; recurring renewal and scheduled IB revalidation workflows are still incomplete.
 
-Until those backend and frontend changes are implemented and tested in the isolated project, the QR asset is stored but payment collection is **not live**. Do not deploy or claim that the site accepts QRIS payments.
+The source flow is implemented but payment collection is **not live until the isolated Apps Script is updated, configured, tested, and explicitly deployed**. No payment has been received or verified by this code.
 
 ## Important implementation gaps — NOT ACCEPTED FOR PRODUCTION
 
@@ -109,6 +109,10 @@ This is an initial clean architecture baseline, not a production-ready release.
 Run `runMpsCryptoSelfTests()` manually in the isolated Apps Script editor. It checks SHA-256 against a known vector and six RFC 6238 HMAC-SHA1 TOTP vectors, plus Base32 decoding. This test is included in source but has not been executed in the Apps Script runtime by this audit.
 
 ## Current hardening added in source
+
+- Regular QRIS payment proof is exposed only to Admin through a private Drive file ID link; the Admin review flow checks exact Rp100,000, payment status, private file ownership/folder, and Telegram linkage before approval.
+- Membership ledger entitlement is enforced at member login, member content, and member announcement access. Regular plans expire after 30 days; Active IB plans require the corresponding membership plan to remain manually verified.
+- Approval and session reads use explicit one-row, multi-column ranges.
 
 - Admin-managed scheduled announcements support Public/Member audiences, active windows, and per-session dismissal.
 - Admin-managed Learning and News records are published only through authenticated member content APIs. News source name/URL and publication time are stored; editors must provide verified sources and original summaries.
