@@ -147,11 +147,11 @@ function provisionMpsRebuildStorage() {
   if (prop_('MPS_REBUILD_ALLOW_PROVISION') !== 'true')
     throw new Error('Provisioning terkunci. Aktifkan hanya pada spreadsheet sintetis di project test baru.');
   const ss = openDb_();
-  const legacy = ss.getSheetByName(MPS.LEGACY_SHEET);
+  let legacy = ss.getSheetByName(MPS.LEGACY_SHEET);
   if (!legacy) {
-    const sh = ss.insertSheet(MPS.LEGACY_SHEET);
-    sh.getRange(1,1,1,MPS.LEGACY_HEADERS.length).setValues([MPS.LEGACY_HEADERS]);
-    sh.setFrozenRows(1);
+    legacy = ss.insertSheet(MPS.LEGACY_SHEET);
+    legacy.getRange(1,1,1,MPS.LEGACY_HEADERS.length).setValues([MPS.LEGACY_HEADERS]);
+    legacy.setFrozenRows(1);
   } else {
     const width=legacy.getLastColumn();
     const actual=legacy.getRange(1,1,1,Math.max(width,MPS.LEGACY_HEADERS.length)).getDisplayValues()[0];
