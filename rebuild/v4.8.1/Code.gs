@@ -797,7 +797,7 @@ function requireSession_(token,roles) {
   else if (now.getTime()-lastSeenAt > 30*60*1000) reason = 'IDLE_TIMEOUT';
   else if (!roles.includes(String(v[1]))) reason = 'ROLE_NOT_ALLOWED';
   if (reason) {
-    if (!v[6]) sh.getRange(row,7).setValue(now);
+    if (!v[6]) sh.getRange(row,7).setValue("'"+now.toISOString());
     console.warn('MPS_SESSION_REJECTED reason='+reason+' row='+row+' role='+String(v[1]));
     throw new Error('Sesi ditolak ('+reason+'). Silakan masuk kembali.');
   }
