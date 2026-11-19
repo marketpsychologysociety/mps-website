@@ -822,6 +822,10 @@ function testMpsSessionRoundTrip() {
     row = sh.getLastRow();
     const foundRow = findRow_(sh,1,hash);
     if (foundRow !== row) throw new Error('SESSION_ROW_LOOKUP_MISMATCH');
+    const stored = sh.getRange(row,1,1,7).getValues()[0];
+    const storedExpiry = stored[4] instanceof Date ? stored[4].getTime() : new Date(stored[4]).getTime();
+    const storedLastSeen = stored[5] instanceof Date ? stored[5].getTime() : new Date(stored[5]).getTime();
+    console.log('MPS_SESSION_SELF_TEST_TIME now='+now.toISOString()+' expires='+expires.toISOString()+' storedExpires='+(Number.isFinite(storedExpiry)?new Date(storedExpiry).toISOString():String(stored[4]))+' storedLastSeen='+(Number.isFinite(storedLastSeen)?new Date(storedLastSeen).toISOString():String(stored[5]))+' deltaMs='+(storedExpiry-now.getTime()));
     const actor = requireSession_(token,['ADMIN','SUPER_ADMIN']);
     if (actor.role !== 'ADMIN' || actor.actorId !== 'SESSION-SELF-TEST')
       throw new Error('SESSION_ACTOR_MISMATCH');
