@@ -42,7 +42,10 @@ const MPS = Object.freeze({
     vip: {name:'MPS VIP Events', headers:['Event ID','Member ID','Nickname','Event Type','Telegram User ID','Occurred At','Verified','Public Display']},
     announcements: {name:'MPS Announcements', headers:['Announcement ID','Title','Body','Audience','Start At','End At','Active','Created At','Updated At']},
     learning: {name:'MPS Learning Content', headers:['Content ID','Created At','Updated At','Title','Category','Body','Resource URL','Published','Sort Order']},
-    news: {name:'MPS News Content', headers:['Content ID','Created At','Updated At','Title','Topic','Body','Source Name','Source URL','Published At','Published']}
+    news: {name:'MPS News Content', headers:['Content ID','Created At','Updated At','Title','Topic','Body','Source Name','Source URL','Published At','Published']},
+    membershipPlans: {name:'MPS Membership Plans', headers:['Application Ref','Plan','Created At','Monthly Fee IDR','IB Verification Status','Verified By','Verified At','Status']},
+    regularPayments: {name:'MPS Regular Payments', headers:['Application Ref','Submitted At','Amount IDR','Payment Date','Proof File ID','Status','Admin Note','Reviewed At']},
+    membershipLedger: {name:'MPS Membership Ledger', headers:['Member ID','Application Ref','Plan','Status','Started At','Expires At','Last Verified At','Verification Note']}
   }
 });
 
