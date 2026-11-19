@@ -276,7 +276,7 @@ function apiSubmitRegularPayment(input) {
   if(!/^MPS-APP-[A-F0-9]{20}$/.test(ref)) throw new Error('Application Ref tidak valid.');
   enforceRateLimit_('regular-payment',ref,3,3600);
   const date=clean_(input.paymentDate,20),amount=Number(input.amount);
-  if(amount!==100000 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) throw new Error('Pembayaran Regular harus tepat Rp100.000 dan tanggal harus valid.');
+  if(amount!==100000 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Pembayaran Regular harus tepat Rp100.000 dan tanggal harus valid.');
   const dt=new Date(date+'T00:00:00+07:00');
   if(isNaN(dt.getTime()) || Utilities.formatDate(dt,MPS.TZ,'yyyy-MM-dd')!==date || dt.getTime()>Date.now()+86400000) throw new Error('Tanggal pembayaran tidak valid.');
   const mime=String(input.proofMime||'');
@@ -597,6 +597,7 @@ function apiMemberLogin(memberId,pin) {
     throw new Error('ID Member atau PIN tidak valid.');
   const sh = legacySheet_(), row = findRow_(sh,1,id);
   if (!row || sh.getRange(row,8).getDisplayValue() !== 'Berhasil') throw new Error('Akses member belum aktif.');
+  assertMembershipEntitlement_(id);
   const pinHash = prop_('MPS_PIN_HASH_'+id);
   const salt = prop_('MPS_PIN_SALT_'+id);
   if (!pinHash || !salt || !constantTimeEquals_(sha256_(salt+p),pinHash)) throw new Error('PIN tidak valid.');
@@ -607,6 +608,7 @@ function apiGetAnnouncements(session) {
   let audience='PUBLIC';
   if (session) {
     const actor=requireSession_(session,['MEMBER','ADMIN','SUPER_ADMIN']);
+    if(actor.role==='MEMBER') assertMembershipEntitlement_(actor.actorId);
     audience=actor.role==='MEMBER'?'MEMBER':'ADMIN';
   }
   const now=Date.now();
@@ -712,6 +714,7 @@ function apiGetMemberContent(session, section) {
   if (actor.role === 'MEMBER') {
     const sh = legacySheet_(), row = findRow_(sh,1,actor.actorId);
     if (!row || sh.getRange(row,8).getDisplayValue() !== 'Berhasil') throw new Error('Akses member tidak aktif.');
+    assertMembershipEntitlement_(actor.actorId);
   }
   if (key === 'pulse') {
     const raw = prop_('MPS_MARKET_PULSE_JSON');
@@ -730,6 +733,22 @@ function apiGetMemberContent(session, section) {
     })};
   }
   return {section:key,content:[]};
+}
+
+function assertMembershipEntitlement_(memberId) {
+  const sh=sheet_('membershipLedger'), row=findRow_(sh,1,memberId);
+  if(!row) throw new Error('Masa aktif keanggotaan belum tercatat. Hubungi Admin MPS.');
+  const v=sh.getRange(row,1,8).getValues()[0];
+  if(String(v[3])!=='Aktif') throw new Error('Keanggotaan MPS tidak aktif.');
+  const plan=String(v[2]||'');
+  if(plan==='REGULAR') {
+    const expiry=new Date(v[5]).getTime();
+    if(!expiry || expiry<Date.now()) { sh.getRange(row,4).setValue('Kedaluwarsa'); throw new Error('Masa keanggotaan Regular 30 hari telah berakhir. Hubungi Admin untuk perpanjangan.'); }
+  } else if(plan==='ACTIVE_IB') {
+    const ps=sheet_('membershipPlans'), pr=findRow_(ps,1,String(v[1]||''));
+    if(!pr || ps.getRange(pr,5).getDisplayValue()!=='Terverifikasi') throw new Error('Status Exness IB tidak lagi terverifikasi. Akses member ditangguhkan.');
+  } else throw new Error('Jenis keanggotaan tidak dikenali.');
+  return true;
 }
 
 function apiLogout(session) {
