@@ -301,8 +301,10 @@ function apiSubmitRegularPayment(input) {
     apps.getRange(appRow,8).setValue('Pembayaran Dikirim');apps.getRange(appRow,15).setValue(new Date());
     let link={url:'',expiresAt:''};try{link=createTelegramLink_(ref,apps.getRange(appRow,4).getDisplayValue());}catch(e){audit_('SYSTEM','','TELEGRAM_LINK_CREATE_FAILED',ref,'WARNING','');}
     if(link.url)apps.getRange(appRow,11).setValue('Menunggu Verifikasi Telegram');
+    let adminBackupSent=false;const adminChat=prop_('MPS_TELEGRAM_CHAT_ID');
+    if(adminChat){const app=apps.getRange(appRow,1,1,15).getValues()[0];const backupText=['MPS — PENDAFTARAN & PEMBAYARAN REGULAR BARU','Application Ref: '+ref,'Nama: '+clean_(app[2],60),'Telegram: @'+cleanUsername_(app[3]),'Negara: '+clean_(app[4],60),'Tujuan: '+clean_(app[5],160),'Paket: Regular Member','Pembayaran: Rp100.000','Tanggal pembayaran: '+date,'Status: Menunggu Validasi Admin'].join('\\n');try{adminBackupSent=sendTelegramMessage_(adminChat,backupText);}catch(notifyError){audit_('SYSTEM','','REGULAR_PAYMENT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.');}}
     audit_('PUBLIC','', 'REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Fixed fee Rp100000; proof saved privately.');
-    return {ok:true,status:'Menunggu Validasi Pembayaran',telegramLink:link.url,telegramLinkAvailable:!!link.url};
+    return {ok:true,status:'Menunggu Validasi Pembayaran',telegramLink:link.url,telegramLinkAvailable:!!link.url,adminBackupSent:adminBackupSent};
   } finally {lock.releaseLock();}
 }
 
