@@ -772,36 +772,44 @@ function assertMembershipEntitlement_(memberId) {
 function apiLogout(session) {
   const hash = sha256_(String(session || ''));
   const sh = sheet_('sessions'), row = findRow_(sh,1,hash);
-  if (row) sh.getRange(row,7).setValue("'"+new Date().toISOString());
+  if (row) sh.getRange(row,7).setValue(Date.now());
   return {ok:true};
 }
 
+/** Session timestamps use epoch milliseconds to avoid Sheets timezone coercion. */
+function sessionTimeMs_(value) {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && /^\\d{10,13}$/.test(value.trim())) return Number(value.trim());
+  return new Date(value).getTime();
+}
+
 function createSession_(role,actorId) {
-  const token = randomHex_(48), now = new Date(), expires = new Date(now.getTime()+8*60*60*1000);
-  sheet_('sessions').appendRow([sha256_(token),role,actorId,"'"+now.toISOString(),"'"+expires.toISOString(),"'"+now.toISOString(),'']);
+  const token = randomHex_(48), nowMs = Date.now(), expiresMs = nowMs+8*60*60*1000;
+  sheet_('sessions').appendRow([sha256_(token),role,actorId,nowMs,expiresMs,nowMs,'']);
   audit_(role,actorId,'SESSION_CREATED','', 'SUCCESS','');
-  return {ok:true,session:token,role:role,expiresAt:expires.toISOString()};
+  return {ok:true,session:token,role:role,expiresAt:new Date(expiresMs).toISOString()};
 }
 
 function requireSession_(token,roles) {
   if (!token) throw new Error('Sesi tidak valid. Silakan masuk kembali.');
   const sh = sheet_('sessions'), row = findRow_(sh,1,sha256_(String(token)));
   if (!row) throw new Error('Sesi tidak ditemukan.');
-  const v = sh.getRange(row,1,1,7).getValues()[0], now = new Date();
-  const expiresAt = v[4] instanceof Date ? v[4].getTime() : new Date(v[4]).getTime();
-  const lastSeenAt = v[5] instanceof Date ? v[5].getTime() : new Date(v[5]).getTime();
+  const v = sh.getRange(row,1,1,7).getValues()[0], nowMs = Date.now();
+  const expiresAt = sessionTimeMs_(v[4]);
+  const lastSeenAt = sessionTimeMs_(v[5]);
   let reason = '';
   if (v[6]) reason = 'REVOKED';
   else if (!Number.isFinite(expiresAt) || !Number.isFinite(lastSeenAt)) reason = 'INVALID_SESSION_TIME';
-  else if (expiresAt < now.getTime()) reason = 'SESSION_EXPIRED';
-  else if (now.getTime()-lastSeenAt > 30*60*1000) reason = 'IDLE_TIMEOUT';
+  else if (expiresAt < nowMs) reason = 'SESSION_EXPIRED';
+  else if (nowMs-lastSeenAt > 30*60*1000) reason = 'IDLE_TIMEOUT';
   else if (!roles.includes(String(v[1]))) reason = 'ROLE_NOT_ALLOWED';
   if (reason) {
-    if (!v[6]) sh.getRange(row,7).setValue("'"+now.toISOString());
+    if (!v[6]) sh.getRange(row,7).setValue(nowMs);
     console.warn('MPS_SESSION_REJECTED reason='+reason+' row='+row+' role='+String(v[1]));
     throw new Error('Sesi ditolak ('+reason+'). Silakan masuk kembali.');
   }
-  sh.getRange(row,6).setValue("'"+now.toISOString());
+  sh.getRange(row,6).setValue(nowMs);
   return {role:String(v[1]),actorId:String(v[2])};
 }
 
@@ -818,13 +826,13 @@ function testMpsSessionRoundTrip() {
   const hash = sha256_(token);
   let row = 0;
   try {
-    sh.appendRow([hash,'ADMIN','SESSION-SELF-TEST',"'"+now.toISOString(),"'"+expires.toISOString(),"'"+now.toISOString(),'']);
+    sh.appendRow([hash,'ADMIN','SESSION-SELF-TEST',now.getTime(),expires.getTime(),now.getTime(),'']);
     row = sh.getLastRow();
     const foundRow = findRow_(sh,1,hash);
     if (foundRow !== row) throw new Error('SESSION_ROW_LOOKUP_MISMATCH');
     const stored = sh.getRange(row,1,1,7).getValues()[0];
-    const storedExpiry = stored[4] instanceof Date ? stored[4].getTime() : new Date(stored[4]).getTime();
-    const storedLastSeen = stored[5] instanceof Date ? stored[5].getTime() : new Date(stored[5]).getTime();
+    const storedExpiry = sessionTimeMs_(stored[4]);
+    const storedLastSeen = sessionTimeMs_(stored[5]);
     console.log('MPS_SESSION_SELF_TEST_TIME now='+now.toISOString()+' expires='+expires.toISOString()+' storedExpires='+(Number.isFinite(storedExpiry)?new Date(storedExpiry).toISOString():String(stored[4]))+' storedLastSeen='+(Number.isFinite(storedLastSeen)?new Date(storedLastSeen).toISOString():String(stored[5]))+' deltaMs='+(storedExpiry-now.getTime()));
     const actor = requireSession_(token,['ADMIN','SUPER_ADMIN']);
     if (actor.role !== 'ADMIN' || actor.actorId !== 'SESSION-SELF-TEST')
@@ -834,7 +842,7 @@ function testMpsSessionRoundTrip() {
     console.error('MPS_SESSION_SELF_TEST_FAILED '+String(err && err.message || err));
     return {ok:false,check:'SESSION_ROUND_TRIP',row:row,error:String(err && err.message || err),cleanup:'revoked'};
   } finally {
-    if (row) sh.getRange(row,7).setValue("'"+new Date().toISOString());
+    if (row) sh.getRange(row,7).setValue(Date.now());
   }
 }
 
