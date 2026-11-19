@@ -13,6 +13,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 
 - `Code.gs`: backend source.
 - `Index.html`: responsive frontend source.
+- `assets/qris-regular.png`: QRIS statis merchant Toko serba ada (NMID `ID1026540347758`), supplied and explicitly approved by the MPS owner for the Regular Member fee. It is an image asset only; it is not yet wired into the registration/payment flow.
 
 ## Required Script Properties for isolated tests
 
@@ -43,6 +44,26 @@ Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into sourc
 9. Remove or set `MPS_REBUILD_ALLOW_PROVISION` to anything other than `true` after provisioning.
 
 Provisioning creates the legacy 18-column sheet only if absent and creates auxiliary sheets only when absent. It accepts either the exact 18-column legacy header or the exact recognized 30-column v4.8 header (18 core + 12 technical columns). It rejects any other header layout. It does not clear, delete, or rewrite existing member rows or technical-column values; new member rows write only the 18 core values.
+
+## Owner-approved Regular Member QRIS asset (integration pending)
+
+The owner explicitly approved the supplied static QRIS image for MPS Regular Member subscription payments:
+- Merchant label on QR: **Toko serba ada**
+- NMID: **ID1026540347758**
+- QRIS type: static QR (the amount is not embedded in the QR payload)
+- Intended MPS fee: **Rp100,000 per month**
+- Asset path: `rebuild/v4.8.1/assets/qris-regular.png`
+
+The asset was decoded from the owner's supplied image and re-encoded as a small PNG. This approval authorizes using the QR image for the stated Regular Member fee; it does not establish that any payment was received or verified.
+
+Required implementation before acceptance:
+1. Registration must persist a membership plan: `REGULAR` or `ACTIVE_IB`.
+2. Regular applicants must receive a separate QRIS payment workflow with a fixed expected amount of Rp100,000, payment date/reference, private proof upload, and an Admin-only manual reconciliation/approval state. The UI must warn that the QR is static and the payer must enter Rp100,000 in their payment app.
+3. Active IB applicants must use the Exness first-deposit evidence workflow (minimum Rp500,000 into their own Exness account through the official MPS referral), separately from QRIS. Admin must manually verify IB status until a genuine Exness partner verification integration is available.
+4. Admin approval must validate the correct plan-specific evidence and must never accept an Exness deposit as a substitute for Regular QRIS payment, or QRIS as a substitute for Active IB verification.
+5. Monthly Regular membership expiry/renewal and Active IB revalidation must be represented in the membership ledger before either plan can be granted production access.
+
+Until those backend and frontend changes are implemented and tested in the isolated project, the QR asset is stored but payment collection is **not live**. Do not deploy or claim that the site accepts QRIS payments.
 
 ## Important implementation gaps — NOT ACCEPTED FOR PRODUCTION
 
