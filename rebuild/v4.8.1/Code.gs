@@ -159,7 +159,7 @@ function runMpsTelegramTestWebhookStatus() {
   [token,secret,actualUrl,expectedUrl].filter(Boolean).forEach(function(value){
     safeWebhookError=safeWebhookError.split(String(value)).join('[REDACTED]');
   });
-  safeWebhookError=safeWebhookError.replace(/https?:\\/\\/[^\\s"'<>]+/gi,'[URL REDACTED]').slice(0,400);
+  safeWebhookError=safeWebhookError.replace(/https?:\/\/[^\s"'<>]+/gi,'[URL REDACTED]').slice(0,400);
   const result={
     ok:true,
     botUsername:String(me.result.username||username),
