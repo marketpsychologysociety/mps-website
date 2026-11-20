@@ -53,7 +53,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   if (p.health === '1') return json_({ok:true,service:'MPS Member Backend',version:MPS.VERSION,mode:'rebuild'});
   const page = String(p.page || 'home').toLowerCase();
-  const allowed = ['home','register','deposit','member','dashboard','learning','pulse','calculator','vip','news','advertise','admin'];
+  const allowed = ['home','register','deposit','member','learning','pulse','calculator','vip','news','advertise','admin'];
   const t = HtmlService.createTemplateFromFile('Index');
   t.initialPage = allowed.includes(page) ? page : 'home';
   t.mpsVersion = MPS.VERSION;
@@ -123,28 +123,39 @@ function runMpsRebuildValidation() {
 
 function validateMpsRebuildConfig_() {
   const p = PropertiesService.getScriptProperties();
+  const adminHash = !!p.getProperty('MPS_REBUILD_ADMIN_PASSWORD_HASH');
+  const adminSalt = !!p.getProperty('MPS_REBUILD_ADMIN_PASSWORD_SALT');
+  const superHash = !!p.getProperty('MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH');
+  const superSalt = !!p.getProperty('MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT');
+  const backupId = p.getProperty('MPS_BACKUP_FOLDER_ID');
   const result = {
     ownerEmailConfigured: !!p.getProperty('MPS_REBUILD_OWNER_EMAIL'),
     spreadsheetConfigured: !!p.getProperty('MPS_SPREADSHEET_ID'),
     proofFolderConfigured: !!p.getProperty('MPS_PROOF_FOLDER_ID'),
-    adminCredentialConfigured: !!p.getProperty('MPS_REBUILD_ADMIN_PASSWORD_HASH'),
-    superAdminCredentialConfigured: !!p.getProperty('MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH'),
+    adminCredentialConfigured: adminHash && adminSalt,
+    adminPasswordHashConfigured: adminHash,
+    adminPasswordSaltConfigured: adminSalt,
+    superAdminCredentialConfigured: superHash && superSalt,
+    superAdminPasswordHashConfigured: superHash,
+    superAdminPasswordSaltConfigured: superSalt,
     adminTotpConfigured: !!p.getProperty('MPS_REBUILD_ADMIN_TOTP_SECRET'),
     superAdminTotpConfigured: !!p.getProperty('MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET'),
     telegramBotConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_TOKEN'),
     telegramChatConfigured: !!p.getProperty('MPS_TELEGRAM_CHAT_ID'),
     webhookSecretConfigured: !!p.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET'),
     vipGroupConfigured: !!p.getProperty('MPS_VIP_GROUP_ID'),
-    backupFolderConfigured: !!p.getProperty('MPS_BACKUP_FOLDER_ID'),
+    backupFolderConfigured: !!backupId,
+    backupFolderReadable: false,
     telegramBotUsernameConfigured: !!p.getProperty('MPS_TELEGRAM_BOT_USERNAME'),
     spreadsheetReadable: false,
     legacySheetPresent: false,
     legacySchema: 'NOT_CHECKED',
     auxiliarySheetsPresent: 0,
     auxiliarySheetsExpected: Object.keys(MPS.SHEETS).length,
+    auxiliarySheetChecks: {},
     proofFolderReadable: false,
     errors: [],
-    note: 'Read-only validation. No sheets, rows, properties, triggers, or webhooks changed.'
+    note: 'Read-only validation. No sheets, rows, properties, triggers, or webhooks changed. Telegram webhook installation is not verified by this check.'
   };
   try {
     const id = p.getProperty('MPS_SPREADSHEET_ID');
@@ -158,6 +169,7 @@ function validateMpsRebuildConfig_() {
       const headers = sh.getRange(1,1,1,Math.max(width,MPS.LEGACY_HEADERS.length)).getDisplayValues()[0];
       if (JSON.stringify(headers.slice(0,MPS.LEGACY_HEADERS.length)) !== JSON.stringify(MPS.LEGACY_HEADERS)) {
         result.legacySchema = 'MISMATCH';
+        result.errors.push('Header Database Member tidak cocok dengan 18 kolom legacy.');
       } else if (width === MPS.LEGACY_HEADERS.length) {
         result.legacySchema = 'legacy-18';
       } else if (width === MPS.LEGACY_EXTENDED_HEADERS.length &&
@@ -165,11 +177,26 @@ function validateMpsRebuildConfig_() {
         result.legacySchema = 'v4.8-30';
       } else {
         result.legacySchema = 'MISMATCH';
+        result.errors.push('Lebar/header Database Member bukan skema legacy-18 atau v4.8-30 yang dikenal.');
       }
     } else {
       result.legacySchema = 'MISSING';
+      result.errors.push('Sheet Database Member tidak ditemukan.');
     }
-    result.auxiliarySheetsPresent = Object.keys(MPS.SHEETS).filter(k => !!ss.getSheetByName(MPS.SHEETS[k].name)).length;
+    Object.keys(MPS.SHEETS).forEach(key => {
+      const spec = MPS.SHEETS[key];
+      const aux = ss.getSheetByName(spec.name);
+      const check = {name:spec.name,present:!!aux,headersMatch:false};
+      if (aux) {
+        const actual = aux.getRange(1,1,1,spec.headers.length).getDisplayValues()[0];
+        check.headersMatch = JSON.stringify(actual) === JSON.stringify(spec.headers);
+        if (!check.headersMatch) result.errors.push('Header sheet '+spec.name+' tidak cocok.');
+        result.auxiliarySheetsPresent++;
+      } else {
+        result.errors.push('Sheet '+spec.name+' belum tersedia.');
+      }
+      result.auxiliarySheetChecks[key] = check;
+    });
   } catch (e) {
     result.errors.push('Spreadsheet: ' + String(e && e.message || e));
   }
@@ -181,6 +208,16 @@ function validateMpsRebuildConfig_() {
   } catch (e) {
     result.errors.push('Proof folder: ' + String(e && e.message || e));
   }
+  if (backupId) {
+    try {
+      DriveApp.getFolderById(backupId).getName();
+      result.backupFolderReadable = true;
+    } catch (e) {
+      result.errors.push('Backup folder: ' + String(e && e.message || e));
+    }
+  }
+  if (!result.adminCredentialConfigured) result.errors.push('Kredensial Admin belum lengkap: password hash dan salt wajib tersedia.');
+  if (!result.superAdminCredentialConfigured) result.errors.push('Kredensial Super Admin belum lengkap: password hash dan salt wajib tersedia.');
   const output = JSON.stringify(result);
   Logger.log('MPS_REBUILD_VALIDATION ' + output);
   console.log('MPS_REBUILD_VALIDATION ' + output);
