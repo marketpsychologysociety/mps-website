@@ -84,8 +84,8 @@ function installMpsTelegramWebhook_() {
   if(!token || !username || !secret) throw new Error('Script Properties token, username, dan webhook secret wajib lengkap.');
   if(!/^[A-Za-z0-9_]{5,32}$/.test(username)) throw new Error('MPS_TELEGRAM_BOT_USERNAME tidak valid.');
   if(secret.length<32 || !/^[A-Za-z0-9_-]+$/.test(secret)) throw new Error('Webhook secret harus minimal 32 karakter alfanumerik, garis bawah, atau tanda hubung.');
-  const deploymentUrl=String(ScriptApp.getService().getUrl()||'').trim().replace(/\\/$/,'');
-  if(!/^https:\\/\\/script\\.google\\.com\\/macros\\/s\\/[^/]+\\/exec$/.test(deploymentUrl))
+  const deploymentUrl=String(ScriptApp.getService().getUrl()||'').trim().replace(/\/$/,'');
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(deploymentUrl))
     throw new Error('URL deployment Web App TEST tidak valid. Deploy sebagai Web App terlebih dahulu.');
   const webhookUrl=deploymentUrl+'/'+secret;
   const api='https://api.telegram.org/bot'+token+'/';
