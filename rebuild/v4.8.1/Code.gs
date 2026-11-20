@@ -293,7 +293,11 @@ function apiSubmitRegularPayment(input) {
   if(bytes.length>5*1024*1024 || !isAllowedImageBytes_(bytes,mime)) throw new Error('Bukti tidak valid atau melebihi 5 MB.');
   const lock=LockService.getScriptLock();lock.waitLock(15000);
   try {
-    if(!findRow_(sheet_('applications'),1,ref)) throw new Error('Application Ref tidak ditemukan.');
+    const apps=sheet_('applications'),appRow=findRow_(apps,1,ref);
+    if(!appRow) throw new Error('Application Ref tidak ditemukan.');
+    const applicationStatus=String(apps.getRange(appRow,8).getDisplayValue()||'');
+    if(!['Menunggu Pendaftaran','Menunggu Deposit'].includes(applicationStatus))
+      throw new Error('Pengajuan tidak berada pada tahap pengiriman pembayaran. Status saat ini: '+applicationStatus+'.');
     const ps=sheet_('membershipPlans'),pr=findRow_(ps,1,ref);
     if(!pr || ps.getRange(pr,2).getDisplayValue()!=='REGULAR') throw new Error('QRIS hanya untuk pendaftar Regular Member.');
     if(findRow_(sheet_('regularPayments'),1,ref)) throw new Error('Bukti pembayaran sudah diterima. Hubungi Admin untuk koreksi.');
@@ -303,7 +307,6 @@ function apiSubmitRegularPayment(input) {
     const file=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-QRIS-'+ref+'.'+ext));file.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     sheet_('regularPayments').appendRow([ref,new Date(),100000,date,file.getId(),'Menunggu Validasi','','']);
     ps.getRange(pr,8).setValue('Menunggu Validasi Pembayaran');
-    const apps=sheet_('applications'),appRow=findRow_(apps,1,ref);
     apps.getRange(appRow,8).setValue('Pembayaran Dikirim');apps.getRange(appRow,15).setValue(new Date());
     let link={url:'',expiresAt:''};try{link=createTelegramLink_(ref,apps.getRange(appRow,4).getDisplayValue());}catch(e){audit_('SYSTEM','','TELEGRAM_LINK_CREATE_FAILED',ref,'WARNING','');}
     if(link.url)apps.getRange(appRow,11).setValue('Menunggu Verifikasi Telegram');
