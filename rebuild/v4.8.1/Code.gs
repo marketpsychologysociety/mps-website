@@ -840,6 +840,7 @@ function apiLogout(session) {
  * Run manually from the TEST Apps Script editor; does not alter member records.
  */
 function testMpsSessionRoundTrip() {
+  requireOwnerContext_();
   const sh=sheet_('sessions'), token=randomHex_(48), nowMs=Date.now(), expiresMs=nowMs+5*60*1000;
   const hash=sha256_(token);
   let row=0;
