@@ -100,7 +100,7 @@ This is an initial clean architecture baseline, not a production-ready release.
 
 1. Configure the bot token, bot username, private admin chat ID, webhook secret, and synthetic VIP group ID as Script Properties.
 2. Add the bot to the synthetic VIP group as an administrator with invite-link permissions.
-3. Deploy only the isolated project after review; set the Telegram webhook URL to the deployed `/exec/<MPS_TELEGRAM_WEBHOOK_SECRET>` path and subscribe to `message`, `chat_member`, and `chat_join_request` updates. Do not run `setWebhook` from this source; the owner must do this explicitly.
+3. Deploy only the isolated TEST project after review. From its Apps Script editor, run the private owner-only `installMpsTelegramWebhook_()` helper once. It verifies the configured token belongs to the TEST bot, registers the deployed `/exec/<MPS_TELEGRAM_WEBHOOK_SECRET>` URL, subscribes to `message`, `chat_member`, and `chat_join_request` updates, and verifies the resulting webhook with Telegram `getWebhookInfo`. It does not return the webhook URL or secrets. Do not run this helper against production credentials or the production project.
 4. Test registration, deposit, matching and mismatching Telegram usernames, link expiry/reissue, approval, invite delivery, actual join, and leave using synthetic accounts only.
 5. Never use the production MPS bot/group for these acceptance tests.
 
