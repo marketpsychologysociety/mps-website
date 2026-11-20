@@ -1405,3 +1405,9 @@ function sha256_(v) { return Utilities.computeDigest(Utilities.DigestAlgorithm.S
 function constantTimeEquals_(a,b) { a=String(a);b=String(b);let d=a.length^b.length;for(let i=0;i<Math.max(a.length,b.length);i++)d|=(a.charCodeAt(i)||0)^(b.charCodeAt(i)||0);return d===0; }
 function json_(v) { return ContentService.createTextOutput(JSON.stringify(v)).setMimeType(ContentService.MimeType.JSON); }
 function text_(v) { return ContentService.createTextOutput(v).setMimeType(ContentService.MimeType.TEXT); }
+
+
+/** Public Apps Script editor entry point for a one-time TEST backup snapshot. */
+function runMpsBackupSnapshot() {
+  return createMpsBackupSnapshot_();
+}
