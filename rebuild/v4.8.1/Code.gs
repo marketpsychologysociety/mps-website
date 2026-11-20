@@ -198,7 +198,7 @@ function runMpsTelegramTestPostTransportProbe() {
     responseCode:response.getResponseCode(),
     contentType:String(headers['Content-Type']||headers['content-type']||''),
     redirectReturned:!!location,
-    redirectHost:(function(){try{return location?new URL(location).host:'';}catch(_){return location?'present-unparseable':'';}})(),
+    redirectHost:(function(){const match=location.match(/^https?:\/\/([^/]+)/i);return match?match[1]:(location?'present-unparseable':'');})(),
     responseBody:String(response.getContentText()||'').slice(0,160),
     note:'Read-only POST probe with an invalid path. No Telegram update or webhook setting was changed.'
   };
