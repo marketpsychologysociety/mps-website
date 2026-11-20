@@ -1230,6 +1230,8 @@ function createTelegramLink_(applicationRef, expectedUsername) {
 
 /** /start token is accepted only from the username recorded during registration. */
 function handleTelegramStart_(message) {
+  // Telegram account linking is private-chat only; never reply to /start in groups.
+  if (!message || !message.chat || message.chat.type !== 'private') return;
   const textValue = String(message.text || '').trim();
   const match = textValue.match(/^\/start(?:@\w+)?\s+([A-Fa-f0-9]{32})$/);
   const chatId = String(message.chat && message.chat.id || '');
