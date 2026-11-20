@@ -71,6 +71,50 @@ function doPost(e) {
   try { processTelegramUpdate_(update); return text_('OK'); }
   catch (err) { console.error('TELEGRAM_UPDATE_FAILED '+String(err && err.message || err)); return text_('OK'); }
 }
+/**
+ * Owner-run Telegram webhook installer for the isolated TEST bot only.
+ * Uses Script Properties; never logs or returns the bot token or webhook secret.
+ * Run manually from the TEST Apps Script editor after deploying the Web App.
+ */
+function installMpsTelegramWebhook_() {
+  requireOwnerContext_();
+  const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+  const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
+  const secret=prop_('MPS_TELEGRAM_WEBHOOK_SECRET').trim();
+  if(!token || !username || !secret) throw new Error('Script Properties token, username, dan webhook secret wajib lengkap.');
+  if(!/^[A-Za-z0-9_]{5,32}$/.test(username)) throw new Error('MPS_TELEGRAM_BOT_USERNAME tidak valid.');
+  if(secret.length<32 || !/^[A-Za-z0-9_-]+$/.test(secret)) throw new Error('Webhook secret harus minimal 32 karakter alfanumerik, garis bawah, atau tanda hubung.');
+  const deploymentUrl=String(ScriptApp.getService().getUrl()||'').trim().replace(/\/$/,'');
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(deploymentUrl))
+    throw new Error('URL deployment Web App TEST tidak valid. Deploy sebagai Web App terlebih dahulu.');
+  const webhookUrl=deploymentUrl+'/'+secret;
+  const api='https://api.telegram.org/bot'+token+'/';
+  const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
+  const me=JSON.parse(meResponse.getContentText()||'{}');
+  if(meResponse.getResponseCode()<200 || meResponse.getResponseCode()>=300 || !me.ok || !me.result)
+    throw new Error('Telegram getMe gagal. Periksa token bot TEST di Script Properties.');
+  if(String(me.result.username||'').toLowerCase()!==username.toLowerCase())
+    throw new Error('Username bot tidak cocok dengan token yang tersimpan. Tidak ada webhook yang diubah.');
+  const setResponse=UrlFetchApp.fetch(api+'setWebhook',{
+    method:'post',contentType:'application/json',
+    payload:JSON.stringify({url:webhookUrl,drop_pending_updates:false,allowed_updates:['message','chat_member','chat_join_request']}),
+    muteHttpExceptions:true
+  });
+  const setResult=JSON.parse(setResponse.getContentText()||'{}');
+  if(setResponse.getResponseCode()<200 || setResponse.getResponseCode()>=300 || !setResult.ok)
+    throw new Error('Telegram menolak pemasangan webhook. Periksa deployment TEST dan konfigurasi bot.');
+  const infoResponse=UrlFetchApp.fetch(api+'getWebhookInfo',{muteHttpExceptions:true});
+  const info=JSON.parse(infoResponse.getContentText()||'{}');
+  if(infoResponse.getResponseCode()<200 || infoResponse.getResponseCode()>=300 || !info.ok || !info.result || String(info.result.url||'')!==webhookUrl)
+    throw new Error('Webhook belum terverifikasi cocok setelah pemasangan. Periksa deployment TEST.');
+  audit_('OWNER','OWNER','TELEGRAM_TEST_WEBHOOK_INSTALLED','', 'SUCCESS','Dedicated TEST bot webhook installed and verified.');
+  return {
+    ok:true,botUsername:String(me.result.username||username),
+    webhookInstalled:true,pendingUpdates:Number(info.result.pending_update_count||0),
+    lastWebhookError:info.result.last_error_message?'Telegram melaporkan error pada pengiriman update.':''
+  };
+}
+
 function validateMpsRebuildConfig_() {
   const p = PropertiesService.getScriptProperties();
   const result = {
