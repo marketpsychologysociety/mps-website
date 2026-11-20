@@ -24,6 +24,62 @@
     .hidden{display:none!important}.result{overflow-wrap:anywhere;font-size:13px}.item{padding:14px 0;border-bottom:1px solid var(--line)}.item:last-child{border:0}.item small{color:var(--muted)}.item p{color:var(--muted);font-size:13px;line-height:1.6}.footer{border-top:1px solid var(--line);padding:25px 0;color:var(--muted);font-size:11px;text-align:center}
     .admin-dashboard-tools{display:grid;gap:14px}.admin-dashboard-tools>.panel{margin:0}.admin-dashboard-tools #adminQueue{display:grid;gap:10px}.admin-dashboard-tools #adminQueue .btn{margin:4px 6px 4px 0}@media(max-width:760px){.navrow{align-items:flex-start;padding:12px 0;flex-direction:column}nav{justify-content:flex-start}nav button{padding:8px}.hero{grid-template-columns:1fr;padding:35px 0}.seal{width:190px}.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.field.full{grid-column:auto}}
   </style>
+
+<style id="mps-neon-control-room">
+/* MPS neon Control Room — visual-only layer */
+#adminDashboard{padding:18px 0 42px}
+#adminDashboard>.panel{position:relative;overflow:hidden;padding:clamp(18px,3vw,32px);border:1px solid rgba(82,225,255,.38);border-radius:24px;background:radial-gradient(ellipse at 92% 0,rgba(27,214,255,.13),transparent 42%),radial-gradient(ellipse at 0 100%,rgba(191,91,255,.10),transparent 38%),linear-gradient(145deg,#101f35 0%,#081321 65%,#101a31 100%);box-shadow:0 0 0 1px rgba(216,180,90,.10),0 18px 55px rgba(0,0,0,.35),0 0 34px rgba(36,204,255,.10)}
+#adminDashboard>.panel:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#42e8ff,#a46bff,#e8c66b,#42e8ff);background-size:220% 100%;animation:mpsNeonFlow 7s linear infinite}
+#adminDashboard .eyebrow{color:#58e8ff;letter-spacing:3px;font-size:10px;font-weight:900;text-shadow:0 0 14px rgba(66,232,255,.6)}
+#adminDashboardTitle{font-size:clamp(25px,5vw,36px);font-weight:900;letter-spacing:.2px;color:#f7f3e9;text-shadow:0 0 22px rgba(70,216,255,.22);margin:8px 0}
+#adminDashboardRole{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid rgba(90,236,185,.35);border-radius:30px;background:rgba(39,214,155,.08);color:#9ff5d2;font-size:12px}
+#adminDashboardRole:before{content:"";width:7px;height:7px;border-radius:50%;background:#4df0ad;box-shadow:0 0 12px #4df0ad}
+#adminDashboard .actions{gap:10px;margin:20px 0 24px}
+#adminDashboard .btn{min-height:43px;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+#adminDashboard .btn:hover{transform:translateY(-2px);filter:brightness(1.12);box-shadow:0 0 18px rgba(69,221,255,.22)}
+#adminDashboard .btn.secondary{border:1px solid rgba(68,225,255,.55);background:linear-gradient(135deg,rgba(24,151,190,.18),rgba(111,73,180,.16));color:#9deeff;box-shadow:inset 0 0 16px rgba(65,220,255,.05)}
+#adminDashboard .btn.red{border-color:#ff6b8b;background:linear-gradient(135deg,#ff6484,#a72b55);color:#fff;box-shadow:0 0 18px rgba(255,72,124,.18)}
+#adminDashboardContent{gap:16px}
+#adminDashboardContent>.panel{position:relative;margin:0!important;padding:clamp(16px,2.5vw,24px);border:1px solid rgba(94,206,255,.22);border-radius:19px;background:linear-gradient(145deg,rgba(20,43,67,.96),rgba(9,23,39,.98));box-shadow:0 10px 28px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.025)}
+#adminDashboardContent>.panel:before{content:"";display:block;width:44px;height:3px;margin-bottom:13px;border-radius:5px;background:linear-gradient(90deg,#42e8ff,#a66bff);box-shadow:0 0 12px rgba(66,232,255,.5)}
+#adminDashboardContent h3{color:#f1d994;font-size:17px;letter-spacing:.2px}
+#adminQueue{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px;border:1px solid rgba(66,232,255,.28);border-radius:19px;background:radial-gradient(ellipse at 100% 0,rgba(63,215,255,.10),transparent 45%),rgba(5,15,28,.72)}
+#adminQueue:before{content:"OPERATIONS CONSOLE";grid-column:1/-1;color:#58e8ff;font-size:10px;font-weight:900;letter-spacing:2.4px}
+#adminQueue>.btn{width:100%;min-height:48px;margin:0!important;white-space:normal;line-height:1.35;border-radius:12px}
+#adminQueue>.notice{grid-column:1/-1;margin:0}
+#adminQueue>.item{grid-column:1/-1;padding:16px;border:1px solid rgba(216,180,90,.24);border-radius:14px;background:linear-gradient(145deg,rgba(18,39,60,.95),rgba(8,21,36,.95))}
+#adminQueue>.item strong{color:#f4d98f}
+#adminQueue>.item p{color:#c1cedb;font-size:13px;line-height:1.65}
+#adminQueue pre{grid-column:1/-1;max-width:100%;overflow:auto;margin:0;border:1px solid rgba(66,232,255,.22);background:#061321;color:#b8edff;font:11px/1.6 ui-monospace,monospace}
+#adminDashboardContent .form{gap:14px}
+#adminDashboardContent .field label{color:#b8d9e9;letter-spacing:.2px}
+#adminDashboardContent .field input,#adminDashboardContent .field select,#adminDashboardContent .field textarea{border:1px solid rgba(102,198,235,.25);border-radius:12px;background:#071525;color:#f5f5f5;box-shadow:inset 0 1px 8px rgba(0,0,0,.2)}
+#adminDashboardContent .field input:focus,#adminDashboardContent .field select:focus,#adminDashboardContent .field textarea:focus{outline:0;border-color:#4be5ff;box-shadow:0 0 0 3px rgba(75,229,255,.12),0 0 18px rgba(75,229,255,.12)}
+#adminDashboardContent .field button.btn{margin:4px 8px 4px 0}
+#announcementAdminList,#contentAdminList{display:grid;gap:10px;margin-top:14px}
+#announcementAdminList>*,#contentAdminList>*{padding:13px;border:1px solid rgba(105,197,240,.2);border-radius:12px;background:rgba(4,17,30,.55)}
+#adminLoginPanel{padding:clamp(18px,3vw,30px);border:1px solid rgba(66,232,255,.32);border-radius:20px;background:radial-gradient(ellipse at 100% 0,rgba(66,232,255,.10),transparent 42%),linear-gradient(145deg,#12263d,#081522)}
+#adminLoginPanel h2,#adminLoginPanel h3{color:#f1d994}
+#adminLoginPanel .divider{border-color:rgba(66,232,255,.2)!important}
+#adminLoginPanel .field input{border-color:rgba(102,198,235,.25);background:#071525;border-radius:12px}
+#adminLoginPanel .field input:focus{outline:0;border-color:#4be5ff;box-shadow:0 0 0 3px rgba(75,229,255,.12)}
+#adminLoginPanel .btn{width:100%;min-height:46px;background:linear-gradient(110deg,#f5dc91,#b98636);box-shadow:0 0 18px rgba(226,185,88,.16)}
+#adminLoginPanel #superAdminLogin .btn{background:linear-gradient(110deg,#ff7893,#a52e61);border-color:#ff7893;box-shadow:0 0 18px rgba(255,83,136,.18)}
+@keyframes mpsNeonFlow{to{background-position:220% 0}}
+@media(max-width:620px){
+ #adminDashboard{padding:10px 0 28px}
+ #adminDashboard>.panel{padding:16px;border-radius:18px}
+ #adminDashboard .actions{display:grid;grid-template-columns:1fr 1fr}
+ #adminDashboard .actions .btn{padding:11px 9px;font-size:10px}
+ #adminQueue{grid-template-columns:1fr;padding:12px}
+ #adminQueue:before,#adminQueue>.notice{grid-column:1}
+ #adminQueue>.btn{min-height:46px}
+ #adminDashboardContent>.panel{padding:15px}
+ #adminDashboardContent .field.full{grid-column:1/-1}
+}
+@media(prefers-reduced-motion:reduce){#adminDashboard>.panel:before{animation:none}#adminDashboard .btn{transition:none}}
+</style>
+
 </head>
 <body>
 <header class="top"><div class="wrap navrow">
