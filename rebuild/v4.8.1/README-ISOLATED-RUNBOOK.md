@@ -104,6 +104,17 @@ This is an initial clean architecture baseline, not a production-ready release.
 4. Test registration, deposit, matching and mismatching Telegram usernames, link expiry/reissue, approval, invite delivery, actual join, and leave using synthetic accounts only.
 5. Never use the production MPS bot/group for these acceptance tests.
 
+## One-shot isolated acceptance suite
+
+After configuring the isolated TEST project and its separate private backup folder, run the public editor function `runMpsFullAcceptanceSuite()` once. It performs, in order:
+
+1. Read-only configuration/schema validation (including all auxiliary sheet headers and backup-folder readability).
+2. SHA-256, RFC 6238 TOTP, and Base32 deterministic crypto self-tests.
+3. A temporary Admin session storage/validation round-trip; the synthetic session row is revoked in cleanup and no member row is changed.
+4. One timestamped private spreadsheet snapshot in `MPS_BACKUP_FOLDER_ID`; older backups are not deleted.
+
+The function returns a structured report and stops before later stages if an earlier stage fails. It does not install a Telegram webhook, create a weekly trigger, deploy the app, or run live Telegram/Binance/browser workflows. A successful backup stage verifies copy creation, not a restore drill.
+
 ## Deterministic crypto self-test
 
 Run `runMpsCryptoSelfTests_()` manually in the isolated Apps Script editor. It checks SHA-256 against a known vector and six RFC 6238 HMAC-SHA1 TOTP vectors, plus Base32 decoding. This test is included in source but has not been executed in the Apps Script runtime by this audit.

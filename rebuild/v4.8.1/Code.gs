@@ -1411,3 +1411,77 @@ function text_(v) { return ContentService.createTextOutput(v).setMimeType(Conten
 function runMpsBackupSnapshot() {
   return createMpsBackupSnapshot_();
 }
+
+
+/**
+ * One-shot owner-only acceptance suite for the isolated TEST project.
+ * Runs read-only configuration validation, deterministic crypto checks,
+ * a temporary session round-trip (the test row is revoked), then creates
+ * one private timestamped spreadsheet backup as the final step.
+ * Does NOT install Telegram webhooks or time triggers and does NOT deploy.
+ */
+function runMpsFullAcceptanceSuite() {
+  requireOwnerContext_();
+  const report = {ok:false, version:MPS.VERSION, startedAt:new Date().toISOString()};
+  try {
+    const validation = validateMpsRebuildConfig_();
+    report.validation = validation;
+    const required = [
+      'ownerEmailConfigured','spreadsheetConfigured','proofFolderConfigured',
+      'adminCredentialConfigured','superAdminCredentialConfigured',
+      'adminTotpConfigured','superAdminTotpConfigured',
+      'backupFolderConfigured','backupFolderReadable','spreadsheetReadable',
+      'legacySheetPresent','proofFolderReadable'
+    ];
+    const missing = required.filter(key => validation[key] !== true);
+    if (validation.errors.length || missing.length ||
+        !['legacy-18','v4.8-30'].includes(validation.legacySchema) ||
+        validation.auxiliarySheetsPresent !== validation.auxiliarySheetsExpected) {
+      report.failedStage = 'CONFIGURATION_VALIDATION';
+      report.errors = validation.errors.concat(missing.map(key => key+' is not true'));
+      report.finishedAt = new Date().toISOString();
+      Logger.log('MPS FULL ACCEPTANCE SUITE: '+JSON.stringify(report));
+      return report;
+    }
+
+    const crypto = runMpsCryptoSelfTests_();
+    report.crypto = crypto;
+    if (!crypto.ok) {
+      report.failedStage = 'CRYPTO_SELF_TEST';
+      report.finishedAt = new Date().toISOString();
+      Logger.log('MPS FULL ACCEPTANCE SUITE: '+JSON.stringify(report));
+      return report;
+    }
+
+    const session = testMpsSessionRoundTrip_();
+    report.session = session;
+    if (!session.ok) {
+      report.failedStage = 'SESSION_ROUND_TRIP';
+      report.finishedAt = new Date().toISOString();
+      Logger.log('MPS FULL ACCEPTANCE SUITE: '+JSON.stringify(report));
+      return report;
+    }
+
+    const backup = createMpsBackupSnapshot_();
+    report.backup = {ok:backup.ok,name:backup.name,url:backup.url,createdAt:backup.createdAt,note:backup.note};
+    report.telegram = {
+      credentialsConfigured:validation.telegramBotConfigured && validation.telegramBotUsernameConfigured && validation.telegramChatConfigured,
+      webhookSecretConfigured:validation.webhookSecretConfigured,
+      vipGroupConfigured:validation.vipGroupConfigured,
+      webhookRegistration:'NOT_TESTED',
+      botDeliveryAndVipJoin:'NOT_TESTED'
+    };
+    report.ok = !!backup.ok;
+    report.finishedAt = new Date().toISOString();
+    Logger.log('MPS FULL ACCEPTANCE SUITE: '+JSON.stringify(report));
+    console.log('MPS FULL ACCEPTANCE SUITE: '+JSON.stringify(report));
+    return report;
+  } catch (err) {
+    report.failedStage = report.failedStage || 'UNEXPECTED_ERROR';
+    report.errors = [String(err && err.message || err)];
+    report.finishedAt = new Date().toISOString();
+    Logger.log('MPS FULL ACCEPTANCE SUITE: '+JSON.stringify(report));
+    console.error('MPS FULL ACCEPTANCE SUITE FAILED: '+JSON.stringify(report));
+    return report;
+  }
+}
