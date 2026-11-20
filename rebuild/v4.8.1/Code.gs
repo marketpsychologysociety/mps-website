@@ -563,7 +563,9 @@ function apiAdminReissueTelegramLink(session, applicationRef) {
     if (!row) throw new Error('Application Ref tidak ditemukan.');
     const status = apps.getRange(row,8).getDisplayValue();
     if (['Disetujui','Ditolak'].includes(status)) throw new Error('Pengajuan yang sudah diputuskan tidak dapat menerima link baru.');
-    if (!findRow_(sheet_('deposits'),1,ref)) throw new Error('Deposit belum dikirim.');
+    const hasExnessDeposit = !!findRow_(sheet_('deposits'),1,ref);
+     const hasRegularPayment = !!findRow_(sheet_('regularPayments'),1,ref);
+     if (!hasExnessDeposit && !hasRegularPayment) throw new Error('Bukti deposit Exness atau pembayaran QRIS belum dikirim.');
     const link = createTelegramLink_(ref,apps.getRange(row,4).getDisplayValue());
     if (!link.url) throw new Error('MPS_TELEGRAM_BOT_USERNAME belum dikonfigurasi dengan benar.');
     apps.getRange(row,11).setValue('Menunggu Verifikasi Telegram');
