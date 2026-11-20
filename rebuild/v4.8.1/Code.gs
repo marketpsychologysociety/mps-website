@@ -71,7 +71,7 @@ function doPost(e) {
   try { processTelegramUpdate_(update); return text_('OK'); }
   catch (err) { console.error('TELEGRAM_UPDATE_FAILED '+String(err && err.message || err)); return text_('OK'); }
 }
-function validateMpsRebuildConfig() {
+function validateMpsRebuildConfig_() {
   const p = PropertiesService.getScriptProperties();
   const result = {
     ownerEmailConfigured: !!p.getProperty('MPS_REBUILD_OWNER_EMAIL'),
@@ -142,7 +142,7 @@ function validateMpsRebuildConfig() {
  * Requires MPS_REBUILD_ALLOW_PROVISION=true and an explicitly configured spreadsheet ID.
  * Existing legacy member data is not edited. Exact schema mismatch stops provisioning.
  */
-function provisionMpsRebuildStorage() {
+function provisionMpsRebuildStorage_() {
   requireOwnerContext_();
   if (prop_('MPS_REBUILD_ALLOW_PROVISION') !== 'true')
     throw new Error('Provisioning terkunci. Aktifkan hanya pada spreadsheet sintetis di project test baru.');
@@ -357,7 +357,7 @@ function apiSuperAdminLogin(password, totpCode) {
  * Creates Google Authenticator secrets once and returns provisioning URIs to the editor.
  * Never expose this function through a public web endpoint or share its return value.
  */
-function initializeMpsTotpSecrets() {
+function initializeMpsTotpSecrets_() {
   requireOwnerContext_();
   const props = PropertiesService.getScriptProperties();
   const adminKey = 'MPS_REBUILD_ADMIN_TOTP_SECRET';
@@ -411,7 +411,7 @@ function totpCode_(base32Secret, counter) {
 }
 
 /** Manual deterministic checks for pure crypto helpers; safe to run in the isolated Apps Script project. */
-function runMpsCryptoSelfTests() {
+function runMpsCryptoSelfTests_() {
   const checks = [];
   checks.push({name:'SHA-256 known vector',ok:sha256_('abc')==='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'});
   const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
@@ -839,7 +839,7 @@ function apiLogout(session) {
  * the same session gate used by Admin APIs, then revokes it automatically.
  * Run manually from the TEST Apps Script editor; does not alter member records.
  */
-function testMpsSessionRoundTrip() {
+function testMpsSessionRoundTrip_() {
   requireOwnerContext_();
   const sh=sheet_('sessions'), token=randomHex_(48), nowMs=Date.now(), expiresMs=nowMs+5*60*1000;
   const hash=sha256_(token);
@@ -1174,7 +1174,7 @@ function createMpsScheduledBackup_() {
   return createMpsBackupSnapshotCore_();
 }
 
-function installMpsWeeklyBackupTrigger() {
+function installMpsWeeklyBackupTrigger_() {
   requireOwnerContext_();
   const folderId=prop_('MPS_BACKUP_FOLDER_ID');
   if(!folderId || folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup privat yang terpisah wajib dikonfigurasi.');
@@ -1199,7 +1199,7 @@ function createMpsBackupSnapshotCore_() {
   return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup dibuat di folder privat. Tidak ada file lama yang dihapus.'};
 }
 
-function createMpsBackupSnapshot() {
+function createMpsBackupSnapshot_() {
   requireOwnerContext_();
   return createMpsBackupSnapshotCore_();
 }
