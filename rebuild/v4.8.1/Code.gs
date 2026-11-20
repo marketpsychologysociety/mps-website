@@ -97,7 +97,7 @@ function installMpsTelegramWebhook_() {
     throw new Error('Username bot tidak cocok dengan token yang tersimpan. Tidak ada webhook yang diubah.');
   const setResponse=UrlFetchApp.fetch(api+'setWebhook',{
     method:'post',contentType:'application/json',
-    payload:JSON.stringify({url:webhookUrl,drop_pending_updates:false}),
+    payload:JSON.stringify({url:webhookUrl,drop_pending_updates:false,allowed_updates:['message','chat_member','chat_join_request']}),
     muteHttpExceptions:true
   });
   const setResult=JSON.parse(setResponse.getContentText()||'{}');
