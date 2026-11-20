@@ -39,8 +39,8 @@ Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into sourc
 4. Create a new empty synthetic spreadsheet and a new private synthetic Drive folder.
 5. Set the spreadsheet and folder properties to those synthetic resources.
 6. Set `MPS_REBUILD_ALLOW_PROVISION=true`.
-7. Run `provisionMpsRebuildStorage()` manually once from the owner account.
-8. Run `validateMpsRebuildConfig()` and inspect the returned booleans.
+7. Run `provisionMpsRebuildStorage_()` manually once from the owner account.
+8. Run `validateMpsRebuildConfig_()` and inspect the returned booleans.
 9. Remove or set `MPS_REBUILD_ALLOW_PROVISION` to anything other than `true` after provisioning.
 
 Provisioning creates the legacy 18-column sheet only if absent and creates auxiliary sheets only when absent. It accepts either the exact 18-column legacy header or the exact recognized 30-column v4.8 header (18 core + 12 technical columns). It rejects any other header layout. It does not clear, delete, or rewrite existing member rows or technical-column values; new member rows write only the 18 core values.
@@ -80,8 +80,8 @@ This is an initial clean architecture baseline, not a production-ready release.
 - Bot must be an administrator of the VIP group with permission to create invite links. Configure `MPS_VIP_GROUP_ID` and Telegram webhook updates to include `chat_member` and `chat_join_request`. Confirmed `chat_member` joins are matched to an approved member by Telegram user ID; only then is the nickname published to the public VIP ticker. A verified leave removes the prior join from public display.
 - VIP invitation creation, owner-bound join-request approval, confirmed join/leave events, retryable invitation queue, and public nickname ticker are implemented in source. They still require isolated Bot API/group acceptance tests.
 - Admin health summary and the latest 50 audit events are available from the Admin panel. The summary omits secrets and member proof data.
-- `createMpsBackupSnapshot()` is an owner-only manual backup. It requires a separate private `MPS_BACKUP_FOLDER_ID`, refuses the proof folder, creates a timestamped spreadsheet copy, and never auto-deletes older backups.
-- `installMpsWeeklyBackupTrigger()` is an owner-run opt-in that installs one Sunday ~03:00 project-timezone backup trigger. The scheduled handler checks the effective Google account against `MPS_REBUILD_OWNER_EMAIL`, rechecks the private backup folder, and creates a private copy. It does not delete old backups. Trigger installation and a real scheduled execution/restore drill remain untested in Apps Script.
+- `createMpsBackupSnapshot_()` is an owner-only manual backup. It requires a separate private `MPS_BACKUP_FOLDER_ID`, refuses the proof folder, creates a timestamped spreadsheet copy, and never auto-deletes older backups.
+- `installMpsWeeklyBackupTrigger_()` is an owner-run opt-in that installs one Sunday ~03:00 project-timezone backup trigger. The scheduled handler checks the effective Google account against `MPS_REBUILD_OWNER_EMAIL`, rechecks the private backup folder, and creates a private copy. It does not delete old backups. Trigger installation and a real scheduled execution/restore drill remain untested in Apps Script.
 - Basic temporary per-identifier throttles now cover registration, deposit submission, and login attempts. They use Apps Script cache and are not atomic/distributed controls; robust lockout, IP/edge protection, stronger super-admin privilege separation, CSRF protections, and comprehensive authorization tests remain unimplemented.
 - Admin Learning/News publishing and scheduled Public/Member announcements are implemented in source. Actual premium materials and editorial news must still be supplied by Admin; no content has been fabricated. Member billing/QRIS lifecycle and Exness IB status/rebate integration are not implemented. Binance PAXGUSDT M5 fetch logic is implemented but has not been validated against the live API from Apps Script.
 - Proof uploads now stop unless the parent proof folder reports PRIVATE sharing access; each created proof file is also set PRIVATE. The owner must still verify the folder's individual editor list and test direct-file access in the isolated Drive environment.
@@ -91,7 +91,7 @@ This is an initial clean architecture baseline, not a production-ready release.
 ## Google Authenticator setup (isolated project only)
 
 1. First configure both Admin and Super Admin password hash/salt properties.
-2. In the Apps Script editor, run `initializeMpsTotpSecrets()` once as the project owner. Setup functions compare `Session.getEffectiveUser().getEmail()` with `MPS_REBUILD_OWNER_EMAIL` and reject calls where the effective account is unavailable or does not match.
+2. In the Apps Script editor, run `initializeMpsTotpSecrets_()` once as the project owner. Setup functions compare `Session.getEffectiveUser().getEmail()` with `MPS_REBUILD_OWNER_EMAIL` and reject calls where the effective account is unavailable or does not match.
 3. Add each returned `otpauth://` account to Google Authenticator on the corresponding device. The function refuses to overwrite existing secrets.
 4. Keep an offline recovery copy of the secrets in an approved secure vault. Do not paste secrets or authenticator codes into chat or source files.
 5. Admin and Super Admin login APIs now require password plus the current six-digit TOTP code. The HTML login screen provides separate Admin and Super Admin forms; both use separate passwords and authenticator secrets. Super Admin currently has the same review permissions as Admin; privileged Super Admin-only management actions remain to be defined.
@@ -106,7 +106,7 @@ This is an initial clean architecture baseline, not a production-ready release.
 
 ## Deterministic crypto self-test
 
-Run `runMpsCryptoSelfTests()` manually in the isolated Apps Script editor. It checks SHA-256 against a known vector and six RFC 6238 HMAC-SHA1 TOTP vectors, plus Base32 decoding. This test is included in source but has not been executed in the Apps Script runtime by this audit.
+Run `runMpsCryptoSelfTests_()` manually in the isolated Apps Script editor. It checks SHA-256 against a known vector and six RFC 6238 HMAC-SHA1 TOTP vectors, plus Base32 decoding. This test is included in source but has not been executed in the Apps Script runtime by this audit.
 
 ## Current hardening added in source
 
@@ -122,7 +122,7 @@ Run `runMpsCryptoSelfTests()` manually in the isolated Apps Script editor. It ch
 - Deposit submission: temporary limit of 3 attempts per Application Ref per hour.
 - Member login: temporary limit of 8 attempts per Member ID per 15 minutes.
 - Approved member PIN: Admin can issue/reset a six-digit PIN from the admin queue. Reset immediately invalidates the previous PIN. The PIN is returned once to the authenticated admin and is not written to Sheets or logs.
-- Setup-only functions `provisionMpsRebuildStorage()` and `initializeMpsTotpSecrets()` verify `MPS_REBUILD_OWNER_EMAIL` against the active Google account; anonymous browser calls are rejected.
+- Setup-only functions `provisionMpsRebuildStorage_()` and `initializeMpsTotpSecrets_()` verify `MPS_REBUILD_OWNER_EMAIL` against the active Google account; anonymous browser calls are rejected.
 - Admin/Super Admin MFA: separate Google Authenticator TOTP secrets; API login requires password plus six-digit code with ±1 time-step tolerance. Each TOTP time step is accepted only once per role to block simple replay.
 - Admin login: temporary limit of 8 attempts per 15 minutes; Super Admin: 5 attempts per 15 minutes.
 - Cache keys contain a SHA-256 digest rather than raw usernames or member IDs.
