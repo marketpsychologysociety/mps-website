@@ -175,6 +175,37 @@ function runMpsTelegramTestWebhookStatus() {
   return result;
 }
 
+
+/**
+ * Owner-run, read-only POST transport probe for the isolated TEST Web App.
+ * Uses an intentionally invalid path so doPost cannot process a Telegram update.
+ * Does not call Telegram, change webhook settings, or alter queued updates.
+ */
+function runMpsTelegramTestPostTransportProbe() {
+  requireOwnerContext_();
+  const deploymentUrl=getMpsTelegramWebhookDeploymentUrl_();
+  const response=UrlFetchApp.fetch(deploymentUrl+'/mps-post-transport-probe-invalid',{
+    method:'post',
+    contentType:'application/json',
+    payload:JSON.stringify({probe:'MPS_TEST_POST_TRANSPORT'}),
+    followRedirects:false,
+    muteHttpExceptions:true
+  });
+  const headers=response.getAllHeaders()||{};
+  const location=String(headers.Location||headers.location||'');
+  const result={
+    ok:true,
+    responseCode:response.getResponseCode(),
+    contentType:String(headers['Content-Type']||headers['content-type']||''),
+    redirectReturned:!!location,
+    redirectHost:(function(){const match=location.match(/^https?:\/\/([^/]+)/i);return match?match[1]:(location?'present-unparseable':'');})(),
+    responseBody:String(response.getContentText()||'').slice(0,160),
+    note:'Read-only POST probe with an invalid path. No Telegram update or webhook setting was changed.'
+  };
+  Logger.log('MPS TELEGRAM TEST POST TRANSPORT PROBE: '+JSON.stringify(result));
+  return result;
+}
+
 /**
  * Public Apps Script editor entry point for the owner-guarded Telegram TEST
  * webhook installer. This changes the dedicated TEST bot webhook only.
