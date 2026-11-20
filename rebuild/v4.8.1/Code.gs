@@ -177,6 +177,96 @@ function runMpsTelegramTestWebhookStatus() {
 
 
 /**
+ * Isolated TEST Telegram polling fallback.
+ * Run the installer manually from the TEST Apps Script editor. It removes only
+ * this TEST bot's webhook with drop_pending_updates=false, preserving queued updates.
+ */
+function runMpsTelegramTestPollingSetup() {
+  requireOwnerContext_();
+  const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+  const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
+  if(!token || !username) throw new Error('Token dan username bot TEST wajib lengkap.');
+  const api='https://api.telegram.org/bot'+token+'/';
+  const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
+  const me=JSON.parse(meResponse.getContentText()||'{}');
+  if(meResponse.getResponseCode()<200 || meResponse.getResponseCode()>=300 || !me.ok ||
+     String(me.result.username||'').toLowerCase()!==username.toLowerCase())
+    throw new Error('Identitas bot TEST tidak cocok. Tidak ada perubahan webhook atau trigger.');
+  const infoResponse=UrlFetchApp.fetch(api+'getWebhookInfo',{muteHttpExceptions:true});
+  const info=JSON.parse(infoResponse.getContentText()||'{}');
+  if(infoResponse.getResponseCode()<200 || infoResponse.getResponseCode()>=300 || !info.ok || !info.result)
+    throw new Error('Tidak dapat membaca status webhook bot TEST.');
+  if(String(info.result.url||'')) {
+    const delResponse=UrlFetchApp.fetch(api+'deleteWebhook',{
+      method:'post',contentType:'application/json',
+      payload:JSON.stringify({drop_pending_updates:false}),muteHttpExceptions:true
+    });
+    const del=JSON.parse(delResponse.getContentText()||'{}');
+    if(delResponse.getResponseCode()<200 || delResponse.getResponseCode()>=300 || !del.ok)
+      throw new Error('Webhook TEST tidak berhasil dilepas. Antrean update tidak dihapus; trigger belum dibuat.');
+  }
+  const verifyResponse=UrlFetchApp.fetch(api+'getWebhookInfo',{muteHttpExceptions:true});
+  const verify=JSON.parse(verifyResponse.getContentText()||'{}');
+  if(verifyResponse.getResponseCode()<200 || verifyResponse.getResponseCode()>=300 ||
+     !verify.ok || String(verify.result.url||''))
+    throw new Error('Webhook TEST masih aktif. Trigger belum dibuat.');
+  const triggers=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='pollMpsTelegramTestUpdates_');
+  if(!triggers.length) ScriptApp.newTrigger('pollMpsTelegramTestUpdates_').timeBased().everyMinutes(1).create();
+  const result={ok:true,botUsername:username,webhookRemoved:true,pendingUpdatesPreserved:Number(verify.result.pending_update_count||0),
+    pollingTriggerInstalled:true,triggerCount:Math.max(1,triggers.length)};
+  audit_('OWNER','OWNER','TELEGRAM_TEST_POLLING_INSTALLED','', 'SUCCESS','Polling fallback enabled; Telegram pending updates preserved.');
+  Logger.log('MPS TELEGRAM TEST POLLING SETUP: '+JSON.stringify(result));
+  return result;
+}
+
+/** One-minute TEST-only poller. Advances offset only after an update is journaled successfully. */
+function pollMpsTelegramTestUpdates_() {
+  requireOwnerContext_();
+  const lock=LockService.getUserLock();
+  if(!lock.tryLock(1000)) return {ok:true,skipped:'POLL_ALREADY_RUNNING'};
+  try {
+    const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+    const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
+    if(!token || !username) throw new Error('Konfigurasi bot TEST belum lengkap.');
+    const api='https://api.telegram.org/bot'+token+'/';
+    const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
+    const me=JSON.parse(meResponse.getContentText()||'{}');
+    if(meResponse.getResponseCode()<200 || meResponse.getResponseCode()>=300 || !me.ok ||
+       String(me.result.username||'').toLowerCase()!==username.toLowerCase())
+      throw new Error('Identitas bot TEST tidak cocok; polling dihentikan.');
+    const props=PropertiesService.getScriptProperties();
+    const storedOffset=props.getProperty('MPS_TELEGRAM_POLLING_OFFSET');
+    const payload={timeout:0,limit:10,allowed_updates:['message','chat_member','chat_join_request']};
+    if(storedOffset!==null && /^\d+$/.test(storedOffset)) payload.offset=Number(storedOffset);
+    const response=UrlFetchApp.fetch(api+'getUpdates',{
+      method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
+    });
+    const body=JSON.parse(response.getContentText()||'{}');
+    if(response.getResponseCode()<200 || response.getResponseCode()>=300 || !body.ok || !Array.isArray(body.result))
+      throw new Error('Telegram getUpdates gagal; offset tidak diubah.');
+    let processed=0;
+    for(const update of body.result) {
+      processTelegramUpdate_(update);
+      props.setProperty('MPS_TELEGRAM_POLLING_OFFSET',String(Number(update.update_id)+1));
+      processed++;
+    }
+    return {ok:true,received:body.result.length,processed:processed,
+      nextOffset:props.getProperty('MPS_TELEGRAM_POLLING_OFFSET')||'INITIAL'};
+  } finally { lock.releaseLock(); }
+}
+
+/** Owner-only reversible stop: removes only the TEST polling trigger; keeps Telegram queue and offset. */
+function runMpsTelegramTestPollingStop() {
+  requireOwnerContext_();
+  const triggers=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='pollMpsTelegramTestUpdates_');
+  triggers.forEach(t=>ScriptApp.deleteTrigger(t));
+  const result={ok:true,removedTriggers:triggers.length,telegramQueueChanged:false,offsetPreserved:true};
+  audit_('OWNER','OWNER','TELEGRAM_TEST_POLLING_STOPPED','', 'SUCCESS','Polling trigger removed; Telegram queue and offset preserved.');
+  Logger.log('MPS TELEGRAM TEST POLLING STOP: '+JSON.stringify(result));
+  return result;
+}
+
+/**
  * Owner-run, read-only POST transport probe for the isolated TEST Web App.
  * Uses an intentionally invalid path so doPost cannot process a Telegram update.
  * Does not call Telegram, change webhook settings, or alter queued updates.
