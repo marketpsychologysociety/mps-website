@@ -153,6 +153,13 @@ function runMpsTelegramTestWebhookStatus() {
   const deploymentUrl=getMpsTelegramWebhookDeploymentUrl_();
   const expectedUrl=deploymentUrl+'/'+secret;
   const actualUrl=String(info.result.url||'');
+  // Telegram's diagnostic can occasionally echo request details; redact all
+  // known webhook credentials/URLs before exposing the message in editor logs.
+  let safeWebhookError=String(info.result.last_error_message||'');
+  [token,secret,actualUrl,expectedUrl].filter(Boolean).forEach(function(value){
+    safeWebhookError=safeWebhookError.split(String(value)).join('[REDACTED]');
+  });
+  safeWebhookError=safeWebhookError.replace(/https?:\\/\\/[^\\s"'<>]+/gi,'[URL REDACTED]').slice(0,400);
   const result={
     ok:true,
     botUsername:String(me.result.username||username),
@@ -160,8 +167,9 @@ function runMpsTelegramTestWebhookStatus() {
     webhookMatchesThisTestDeployment:!!(actualUrl && actualUrl===expectedUrl),
     pendingUpdates:Number(info.result.pending_update_count||0),
     hasLastWebhookError:!!info.result.last_error_message,
+    lastWebhookErrorMessage:safeWebhookError,
     lastWebhookErrorDate:info.result.last_error_date?new Date(Number(info.result.last_error_date)*1000).toISOString():'',
-    note:'Read-only check. Webhook URL and secret are intentionally not returned.'
+    note:'Read-only check. Token, webhook URL, and secret are intentionally redacted.'
   };
   Logger.log('MPS TELEGRAM TEST WEBHOOK STATUS: '+JSON.stringify(result));
   return result;
