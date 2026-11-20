@@ -115,6 +115,12 @@ function installMpsTelegramWebhook_() {
   };
 }
 
+/** Public editor entry point for the owner-guarded, read-only rebuild validation. */
+function runMpsRebuildValidation() {
+  requireOwnerContext_();
+  return validateMpsRebuildConfig_();
+}
+
 function validateMpsRebuildConfig_() {
   const p = PropertiesService.getScriptProperties();
   const result = {
