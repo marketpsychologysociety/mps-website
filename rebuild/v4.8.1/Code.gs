@@ -115,6 +115,57 @@ function installMpsTelegramWebhook_() {
   };
 }
 
+
+/**
+ * Public Apps Script editor entry point: read-only Telegram TEST webhook status.
+ * Does not install, replace, or delete a webhook.
+ */
+function runMpsTelegramTestWebhookStatus() {
+  requireOwnerContext_();
+  const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+  const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
+  const secret=prop_('MPS_TELEGRAM_WEBHOOK_SECRET').trim();
+  if(!token || !username || !secret)
+    throw new Error('Script Properties Telegram TEST belum lengkap.');
+  const api='https://api.telegram.org/bot'+token+'/';
+  const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
+  const me=JSON.parse(meResponse.getContentText()||'{}');
+  if(meResponse.getResponseCode()<200 || meResponse.getResponseCode()>=300 || !me.ok || !me.result)
+    throw new Error('Telegram getMe gagal. Periksa konfigurasi bot TEST.');
+  if(String(me.result.username||'').toLowerCase()!==username.toLowerCase())
+    throw new Error('Username bot tidak cocok dengan token TEST.');
+  const infoResponse=UrlFetchApp.fetch(api+'getWebhookInfo',{muteHttpExceptions:true});
+  const info=JSON.parse(infoResponse.getContentText()||'{}');
+  if(infoResponse.getResponseCode()<200 || infoResponse.getResponseCode()>=300 || !info.ok || !info.result)
+    throw new Error('Telegram getWebhookInfo gagal.');
+  const deploymentUrl=String(ScriptApp.getService().getUrl()||'').trim().replace(/\/$/,'');
+  const expectedUrl=deploymentUrl+'/'+secret;
+  const actualUrl=String(info.result.url||'');
+  const result={
+    ok:true,
+    botUsername:String(me.result.username||username),
+    webhookInstalled:!!actualUrl,
+    webhookMatchesThisTestDeployment:!!(actualUrl && actualUrl===expectedUrl),
+    pendingUpdates:Number(info.result.pending_update_count||0),
+    hasLastWebhookError:!!info.result.last_error_message,
+    lastWebhookErrorDate:info.result.last_error_date?new Date(Number(info.result.last_error_date)*1000).toISOString():'',
+    note:'Read-only check. Webhook URL and secret are intentionally not returned.'
+  };
+  Logger.log('MPS TELEGRAM TEST WEBHOOK STATUS: '+JSON.stringify(result));
+  return result;
+}
+
+/**
+ * Public Apps Script editor entry point for the owner-guarded Telegram TEST
+ * webhook installer. This changes the dedicated TEST bot webhook only.
+ */
+function runMpsTelegramTestWebhookSetup() {
+  requireOwnerContext_();
+  const result=installMpsTelegramWebhook_();
+  Logger.log('MPS TELEGRAM TEST WEBHOOK SETUP: '+JSON.stringify(result));
+  return result;
+}
+
 /** Public editor entry point for the owner-guarded, read-only rebuild validation. */
 function runMpsRebuildValidation() {
   requireOwnerContext_();
