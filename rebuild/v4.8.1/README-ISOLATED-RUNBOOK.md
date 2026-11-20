@@ -21,13 +21,13 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 - `MPS_SPREADSHEET_ID`: ID of a synthetic test spreadsheet only.
 - `MPS_PROOF_FOLDER_ID`: ID of a private synthetic Drive folder only.
 - `MPS_REBUILD_ALLOW_PROVISION`: exact string `true`, only while provisioning the synthetic spreadsheet.
-- `MPS_REBUILD_ADMIN_PASSWORD_SALT` and `MPS_REBUILD_ADMIN_PASSWORD_HASH`: salted SHA-256 admin credential.
-- `MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT` and `MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH`: salted SHA-256 super-admin credential.
+- `MPS_REBUILD_ADMIN_PASSWORD_SALT` and `MPS_REBUILD_ADMIN_PASSWORD_HASH`: both required for the salted SHA-256 Admin credential. The read-only validator checks that both are present.
+- `MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT` and `MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH`: both required for the salted SHA-256 Super Admin credential. The read-only validator checks that both are present.
 - `MPS_REBUILD_ADMIN_TOTP_SECRET` and `MPS_REBUILD_SUPER_ADMIN_TOTP_SECRET`: created once by the isolated TOTP initializer.
 - `MPS_TELEGRAM_BOT_USERNAME`: bot username without `@`, used to build the post-deposit verification link.
 - Optional Telegram integration: `MPS_TELEGRAM_BOT_TOKEN`, `MPS_TELEGRAM_CHAT_ID` (private admin backup destination), `MPS_TELEGRAM_WEBHOOK_SECRET` (unguessable webhook path secret), and `MPS_VIP_GROUP_ID` (VIP group/channel chat ID).
 - Optional: `MPS_MARKET_PULSE_JSON` for synthetic Pulse payload.
-- Optional backup destination: `MPS_BACKUP_FOLDER_ID`, a separate private Drive folder used only by the owner-run manual snapshot function.
+- Optional backup destination: `MPS_BACKUP_FOLDER_ID`, a separate private Drive folder used only by the owner-run manual snapshot function. If configured, the read-only validator also checks that the folder can be opened; it never creates the folder.
 
 Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into source files or chat.
 
@@ -40,7 +40,7 @@ Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into sourc
 5. Set the spreadsheet and folder properties to those synthetic resources.
 6. Set `MPS_REBUILD_ALLOW_PROVISION=true`.
 7. Run `provisionMpsRebuildStorage_()` manually once from the owner account.
-8. Run `validateMpsRebuildConfig_()` and inspect the returned booleans.
+8. Run `runMpsRebuildValidation()` from the Apps Script editor. This public editor entry point first verifies the owner account, then calls the read-only validator. Inspect the returned booleans and `errors`; it does not provision or modify storage.
 9. Remove or set `MPS_REBUILD_ALLOW_PROVISION` to anything other than `true` after provisioning.
 
 Provisioning creates the legacy 18-column sheet only if absent and creates auxiliary sheets only when absent. It accepts either the exact 18-column legacy header or the exact recognized 30-column v4.8 header (18 core + 12 technical columns). It rejects any other header layout. It does not clear, delete, or rewrite existing member rows or technical-column values; new member rows write only the 18 core values.
