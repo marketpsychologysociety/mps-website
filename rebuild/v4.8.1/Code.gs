@@ -72,6 +72,20 @@ function doPost(e) {
   catch (err) { console.error('TELEGRAM_UPDATE_FAILED '+String(err && err.message || err)); return text_('OK'); }
 }
 /**
+ * Resolve the deployed TEST Web App URL.
+ * ScriptApp.getService().getUrl() can be empty in editor-triggered executions;
+ * MPS_WEB_APP_URL is the explicit deployment URL fallback.
+ */
+function getMpsTelegramWebhookDeploymentUrl_() {
+  const configured=prop_('MPS_WEB_APP_URL').trim();
+  const serviceUrl=String(ScriptApp.getService().getUrl()||'').trim();
+  const deploymentUrl=(configured||serviceUrl).replace(/\/$/,'');
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(deploymentUrl))
+    throw new Error('URL Web App TEST tidak valid. Isi Script Property MPS_WEB_APP_URL dengan URL deployment /exec TEST.');
+  return deploymentUrl;
+}
+
+/**
  * Owner-run Telegram webhook installer for the isolated TEST bot only.
  * Uses Script Properties; never logs or returns the bot token or webhook secret.
  * Run manually from the TEST Apps Script editor after deploying the Web App.
@@ -84,9 +98,7 @@ function installMpsTelegramWebhook_() {
   if(!token || !username || !secret) throw new Error('Script Properties token, username, dan webhook secret wajib lengkap.');
   if(!/^[A-Za-z0-9_]{5,32}$/.test(username)) throw new Error('MPS_TELEGRAM_BOT_USERNAME tidak valid.');
   if(secret.length<32 || !/^[A-Za-z0-9_-]+$/.test(secret)) throw new Error('Webhook secret harus minimal 32 karakter alfanumerik, garis bawah, atau tanda hubung.');
-  const deploymentUrl=String(ScriptApp.getService().getUrl()||'').trim().replace(/\/$/,'');
-  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(deploymentUrl))
-    throw new Error('URL deployment Web App TEST tidak valid. Deploy sebagai Web App terlebih dahulu.');
+  const deploymentUrl=getMpsTelegramWebhookDeploymentUrl_();
   const webhookUrl=deploymentUrl+'/'+secret;
   const api='https://api.telegram.org/bot'+token+'/';
   const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
@@ -138,7 +150,7 @@ function runMpsTelegramTestWebhookStatus() {
   const info=JSON.parse(infoResponse.getContentText()||'{}');
   if(infoResponse.getResponseCode()<200 || infoResponse.getResponseCode()>=300 || !info.ok || !info.result)
     throw new Error('Telegram getWebhookInfo gagal.');
-  const deploymentUrl=String(ScriptApp.getService().getUrl()||'').trim().replace(/\/$/,'');
+  const deploymentUrl=getMpsTelegramWebhookDeploymentUrl_();
   const expectedUrl=deploymentUrl+'/'+secret;
   const actualUrl=String(info.result.url||'');
   const result={
