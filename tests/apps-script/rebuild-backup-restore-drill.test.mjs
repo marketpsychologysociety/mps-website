@@ -22,11 +22,9 @@ function sheet(name,values,formulas=values.map(row=>row.map(()=>''))){
     })
   };
 }
-function harness({mismatch=false,copyPrivacyFailure=false,cleanupFailure=false,outsideFolder=false,tooLarge=false}={}){
+function harness({mismatch=false,backupMismatch=false,copyPrivacyFailure=false,cleanupFailure=false,outsideFolder=false,tooLarge=false}={}){
   const sourceSheets=[sheet('Database Member',[['ID Member','Status'],['MPS-TEST-0001','Berhasil']]),sheet('MPS Audit Logs',[['Event ID'],['EV-1']])];
-  const restoredSheets=mismatch
-    ?[sheet('Database Member',[['ID Member','Status'],['MPS-TEST-0001','Ditolak']]),sourceSheets[1]]
-    :sourceSheets;
+  const changedSheets=[sheet('Database Member',[['ID Member','Status'],['MPS-TEST-0001','Ditolak']]),sourceSheets[1]];\n  const backupSheets=backupMismatch?changedSheets:sourceSheets;\n  const restoredSheets=mismatch?changedSheets:sourceSheets;\n  const backupBook={getSheets:()=>backupSheets};
   const sourceBook={getSheets:()=>sourceSheets};
   const restoredBook={getSheets:()=>tooLarge?[{...sheet('Huge',[]),getLastRow:()=>1001,getLastColumn:()=>101}]:restoredSheets};
   const state={copyCreated:false,copyTrashed:false,sharing:copyPrivacyFailure?'ANYONE':'PRIVATE',folder:'MPS TEST - Backup'};
@@ -49,7 +47,7 @@ function harness({mismatch=false,copyPrivacyFailure=false,cleanupFailure=false,o
     prop_:key=>({MPS_SPREADSHEET_ID:'source-db',MPS_BACKUP_FOLDER_ID:'backup-folder',MPS_PROOF_FOLDER_ID:'proof-folder'}[key]||''),
     openDb_:()=>sourceBook,
     DriveApp:{Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'},getFolderById:()=>({getName:()=>state.folder}),getFileById:()=>backup},
-    SpreadsheetApp:{openById:()=>restoredBook},
+    SpreadsheetApp:{openById:id=>id==='backup-file-id'?backupBook:restoredBook},
     assertMpsDriveFolderTreePrivate_:()=>true,
     Utilities:{formatDate:()=> '20261121-200000'},
     sha256_:value=>crypto.createHash('sha256').update(String(value)).digest('hex'),
@@ -89,7 +87,7 @@ test('restore drill fails closed when the backup is outside the dedicated backup
   assert.equal(h.state.copyCreated,false);
 });
 
-test('restore drill rejects oversized TEST sheets before making a temporary copy',()=>{
+test('restore drill rejects oversized backup sheets before making a temporary copy',()=>{
   const h=harness({tooLarge:true});
   assert.throws(()=>h.run(),/RESTORE_DRILL_TEST_SHEET_TOO_LARGE/);
   assert.equal(h.state.copyCreated,false);
