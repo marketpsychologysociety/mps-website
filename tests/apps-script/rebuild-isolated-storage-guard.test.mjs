@@ -37,10 +37,10 @@ test('database access requires the exact isolated TEST marker before opening any
   assert.deepEqual(h.stats(),{spreadsheetOpens:0,folderOpens:0,fileOpens:0});
 });
 
-test('production-named spreadsheet is rejected before Drive access',()=>{
+test('production-named spreadsheet is rejected before spreadsheet data is opened',()=>{
   const h=harness({spreadsheetName:'MPS - Database Member'});
   assert.throws(()=>h.run(),/spreadsheet sintetis/);
-  assert.deepEqual(h.stats(),{spreadsheetOpens:1,folderOpens:0,fileOpens:0});
+  assert.deepEqual(h.stats(),{spreadsheetOpens:0,folderOpens:0,fileOpens:1});
 });
 
 test('production-named proof folder is rejected',()=>{
