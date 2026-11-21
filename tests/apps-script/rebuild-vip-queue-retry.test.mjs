@@ -10,7 +10,7 @@ function extract(name,next){
   assert.ok(start>=0&&end>start,name+' source boundaries must exist');
   return source.slice(start,end);
 }
-const queueSource=extract('apiAdminProcessVipQueue','revokeVipInvite_');
+const queueSource=extract('vipQueueDecision_','vipQueueRecordFailure_')+'\n'+extract('vipQueueRecordFailure_','apiAdminProcessVipQueue')+'\n'+extract('apiAdminProcessVipQueue','revokeVipInvite_');
 const revokeSource=extract('revokeVipInvite_','createVipInvite_');
 const memberId='MPS-TEST-0001', userId='700001', chatId='700001', groupId='-1001234567890';
 function makeSheet(rows){
@@ -21,7 +21,8 @@ function makeSheet(rows){
       getDisplayValue:()=>String((self.rows[row-1]||[])[col-1]??''),
       getValues:()=>Array.from({length:nr},(_,i)=>(self.rows[row-1+i]||[]).slice(col-1,col-1+nc)),
       setValue:value=>{if(!self.rows[row-1])self.rows[row-1]=[];self.rows[row-1][col-1]=value;},
-      setValues:values=>values.forEach((line,i)=>line.forEach((v,j)=>{if(!self.rows[row-1+i])self.rows[row-1+i]=[];self.rows[row-1+i][col-1+j]=v;}))
+      setValues:values=>values.forEach((line,i)=>line.forEach((v,j)=>{if(!self.rows[row-1+i])self.rows[row-1+i]=[];self.rows[row-1+i][col-1+j]=v;})),
+      clearContent:()=>{if(!self.rows[row-1])self.rows[row-1]=[];self.rows[row-1][col-1]='';}
     };
   }};
 }
@@ -64,7 +65,7 @@ test('expired SENT invite is replaced with a fresh 48-hour invite and old link i
   assert.equal(result.results[0].status,'REISSUED','Queue error: '+h.queue.rows[1][11]);
   assert.equal(h.queue.rows[1][7],'SENT');
   assert.equal(h.queue.rows[1][5],'https://t.me/+fresh-1');
-  assert.deepEqual(h.revoked,[{g:groupId,link:'https://t.me/+old-invite'}]);
+  assert.deepEqual(h.revoked,[],'the expired invite is already past its 48-hour lifetime');
   assert.equal(h.stats().inviteCalls,1);
   assert.equal(h.stats().sendCalls,1);
 });
@@ -93,7 +94,7 @@ test('RETRY queue rotates any old invite before sending a new one',()=>{
   const result=h.run();
   assert.equal(result.results[0].status,'SENT','Queue error: '+h.queue.rows[1][11]);
   assert.equal(h.queue.rows[1][5],'https://t.me/+fresh-1');
-  assert.equal(h.revoked[0].link,'https://t.me/+old-invite');
+  assert.equal(h.revoked.length,0,'expired invite is allowed to expire naturally');
 });
 
 test('failed Telegram delivery revokes the newly generated invite and leaves queue retryable',()=>{
@@ -101,8 +102,8 @@ test('failed Telegram delivery revokes the newly generated invite and leaves que
   const result=h.run();
   assert.equal(result.results[0].status,'RETRY');
   assert.equal(h.queue.rows[1][7],'RETRY');
-  assert.equal(h.revoked.length,2,'old and newly generated invites are both revoked best-effort');
-  assert.equal(h.revoked[1].link,'https://t.me/+fresh-1');
+  assert.equal(h.revoked.length,1,'only the newly created, undelivered invite is revoked');
+  assert.equal(h.revoked[0].link,'https://t.me/+fresh-1');
 });
 
 test('expired invite is not sent when member entitlement has expired',()=>{
