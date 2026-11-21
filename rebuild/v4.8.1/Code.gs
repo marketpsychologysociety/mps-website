@@ -85,7 +85,7 @@ function requireDedicatedTestTelegramBot_() {
   if(prop_('MPS_REBUILD_TEST_LABEL')!=='MPS-ISOLATED-TEST')
     throw new Error('Telegram dinonaktifkan: project bukan project TEST terisolasi.');
   const username=String(prop_('MPS_TELEGRAM_BOT_USERNAME')||'').trim().replace(/^@/,'');
-  if(!/test/i.test(username))
+  if(!/(?:^|[^A-Za-z0-9])test(?:[^A-Za-z0-9]|$)/i.test(username))
     throw new Error('Telegram hanya boleh memakai bot TEST khusus dengan username yang mengandung kata TEST. Jangan gunakan token bot MPS produksi.');
   const token=String(prop_('MPS_TELEGRAM_BOT_TOKEN')||'').trim();
   if(!token) throw new Error('Token bot Telegram TEST belum diatur.');
@@ -101,7 +101,7 @@ function assertDedicatedTestVipGroup_(groupId,token) {
   if(response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok || !result.result)
     throw new Error('Grup Telegram TEST tidak dapat diverifikasi. Tidak ada invite atau perubahan keanggotaan yang dilakukan.');
   const title=String(result.result.title||'');
-  if(!/test/i.test(title))
+  if(!/(?:^|[^A-Za-z0-9])test(?:[^A-Za-z0-9]|$)/i.test(title))
     throw new Error('Aksi VIP hanya boleh memakai grup Telegram TEST dengan nama yang mengandung kata TEST. Grup produksi ditolak.');
   return true;
 }
