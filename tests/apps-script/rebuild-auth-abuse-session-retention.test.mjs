@@ -39,7 +39,7 @@ function harness(rows,now=Date.now(),lastPrune=''){
 const DAY=86400000;
 
 test('six-digit PIN retains per-member brute-force throttling until a second factor is implemented',()=>{
-  assert.match(source,/enforceRateLimit_\\('member-login', id \\|\\| 'invalid', 8, 900\\)/);
+  assert.match(source,/enforceRateLimit_\('member-login', id \|\| 'invalid', 8, 900\)/);
   assert.doesNotMatch(source,/enforceRateLimit_\\('member-login', 'global'/);
 });
 test('session pruning clears only expired or revoked sessions older than 30 days without shifting rows',()=>{
