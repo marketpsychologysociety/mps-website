@@ -6,7 +6,7 @@ import vm from 'node:vm';
 
 const source=readFileSync(fileURLToPath(new URL('../../rebuild/v4.8.1/Code.gs',import.meta.url)),'utf8');
 const start=source.indexOf('function openDb_() {');
-const end=source.indexOf('\nfunction legacySheet_(',start+1);
+const end=source.indexOf('\nfunction requireOwnerContext_(',start+1);
 assert.ok(start>=0&&end>start,'openDb source boundaries must exist');
 const openSource=source.slice(start,end);
 const helperStart=source.indexOf('function assertMpsDriveFolderTreePrivate_(');
