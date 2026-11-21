@@ -2180,19 +2180,69 @@ function revokeVipInvite_(groupId,inviteLink) {
   audit_('TELEGRAM',userId,'VIP_JOIN_REQUEST_APPROVED',String(queue.getRange(row,2).getValue()),'SUCCESS','Invite owner matched linked Telegram user ID.');
 }
 
+function telegramMemberIsActive_(groupId,userId,token) {
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChatMember',{
+      method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';error.ambiguousRemoteOutcome=true;throw error;}
+  const status=response.getResponseCode();
+  if(status>=500||status<200||status>=300||!result.ok||!result.result) {
+    const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  const member=result.result;
+  return ['member','administrator','creator'].includes(String(member.status||'')) ||
+    (String(member.status||'')==='restricted' && member.is_member===true);
+}
+
 function telegramJoinRequestAction_(method,groupId,userId) {
   const token=requireDedicatedTestTelegramBot_();
   assertDedicatedTestVipGroup_(groupId,token);
-  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/'+method,{
-    method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
-  });
-  const result=JSON.parse(response.getContentText()||'{}');
-  if (response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok)
-    throw new Error('TELEGRAM_'+method.toUpperCase()+'_FAILED');
+  if(method==='approveChatJoinRequest' && telegramMemberIsActive_(groupId,userId,token)) return true;
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/'+method,{
+      method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    if(method==='approveChatJoinRequest') {
+      try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
+    }
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {
+    if(method==='approveChatJoinRequest') {
+      try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
+    }
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  const status=response.getResponseCode();
+  if(status>=500) {
+    if(method==='approveChatJoinRequest') {
+      try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
+    }
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  if(status<200||status>=300||!result.ok) {
+    if(method==='approveChatJoinRequest') {
+      try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
+    }
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_FAILED');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_FAILED';throw error;
+  }
   return true;
 }
-
-/** Only confirmed joins of approved members are published to the public ticker. */
 function handleTelegramChatMember_(event) {
   const groupId = prop_('MPS_VIP_GROUP_ID');
   if (!groupId || String(event.chat && event.chat.id || '') !== String(groupId)) return;
