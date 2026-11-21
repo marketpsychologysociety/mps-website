@@ -47,7 +47,8 @@ test('registration creates Application Ref and plan only; never issues member ID
   assert.equal(h.applications.rows[0][0],result.applicationRef);
   assert.equal(h.applications.rows[0][7],'Menunggu Pendaftaran');
   assert.equal(h.applications.rows[0][8],'','member ID column must remain empty at initial registration');
-  assert.deepEqual(h.plans.rows[0].slice(0,2),[result.applicationRef,'REGULAR']);
+  assert.equal(h.plans.rows[0][0],result.applicationRef);
+  assert.equal(h.plans.rows[0][1],'REGULAR');
   assert.equal(h.plans.rows[0][3],100000);
   assert.deepEqual(h.accessed,['applications','membershipPlans']);
   assert.equal(h.audits.length,1);
