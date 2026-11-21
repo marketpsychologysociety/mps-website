@@ -1936,7 +1936,7 @@ function vipQueueDecision_(state,attempts,nextAttemptAt,updatedAt,nowMs) {
   const s=String(state||''),n=Number(attempts||0);
   const timeMs=value=>value instanceof Date?value.getTime():new Date(value).getTime();
   const updated=timeMs(updatedAt),next=timeMs(nextAttemptAt);
-  const stale=Number.isFinite(updated)&&updated<nowMs-10*60*1000;
+  const stale=!Number.isFinite(updated)||updated<nowMs-10*60*1000;
   if(['PROCESSING','CREATING_INVITE'].includes(s) && stale)
     return {action:'MARK_UNKNOWN',status:'NEEDS_RECONCILIATION',code:'INVITE_CREATE_OUTCOME_UNKNOWN'};
   if(s==='DELIVERING' && stale)
@@ -1989,11 +1989,15 @@ function apiAdminProcessVipQueue(session) {
       const next=queue.getRange(row,10).getValue(),updated=queue.getRange(row,14).getValue();
       decision=vipQueueDecision_(current,attempts,next,updated,Date.now());
       if(decision.action==='MARK_UNKNOWN'||decision.action==='DEAD_LETTER') {
-        queue.getRange(row,8).setValue(decision.status);
+        const nextAttempts=decision.action==='MARK_UNKNOWN'?attempts+1:attempts;
+        const finalStatus=decision.action==='MARK_UNKNOWN'&&nextAttempts>=5?'DEAD_LETTER':decision.status;
+        queue.getRange(row,8).setValue(finalStatus);
+        if(decision.action==='MARK_UNKNOWN') queue.getRange(row,9).setValue(nextAttempts);
+        queue.getRange(row,10).clearContent();
         queue.getRange(row,11).clearContent();
-        queue.getRange(row,12).setValue(decision.code);
+        queue.getRange(row,12).setValue(finalStatus==='DEAD_LETTER'?'MAX_ATTEMPTS_REACHED':decision.code);
         queue.getRange(row,14).setValue(new Date());
-        results.push({intent:String(queue.getRange(row,2).getValue()||''),status:decision.status});
+        results.push({intent:String(queue.getRange(row,2).getValue()||''),status:finalStatus});
       } else if(decision.action==='PROCESS') {
         claimState=current;
         queue.getRange(row,8).setValue('CREATING_INVITE');
@@ -2055,12 +2059,14 @@ function apiAdminProcessVipQueue(session) {
         results.push({intent:intent,status:'SENT_RECONCILED'});
       } else if(err&&err.ambiguousRemoteOutcome) {
         const unknownState=phase==='DELIVERING'?'DELIVERY_UNKNOWN':'NEEDS_RECONCILIATION';
+        const nextAttempts=attempts+1,finalStatus=nextAttempts>=5?'DEAD_LETTER':unknownState;
         try {
-          queue.getRange(row,8).setValue(unknownState);queue.getRange(row,11).clearContent();
-          queue.getRange(row,12).setValue(String(err.code||'REMOTE_OUTCOME_UNKNOWN').slice(0,80));
+          queue.getRange(row,8).setValue(finalStatus);queue.getRange(row,9).setValue(nextAttempts);
+          queue.getRange(row,10).clearContent();queue.getRange(row,11).clearContent();
+          queue.getRange(row,12).setValue(String(finalStatus==='DEAD_LETTER'?'MAX_ATTEMPTS_REACHED':err.code||'REMOTE_OUTCOME_UNKNOWN').slice(0,80));
           queue.getRange(row,14).setValue(new Date());
         } catch(writeErr){console.error('VIP_QUEUE_UNKNOWN_STATE_WRITE_FAILED '+String(writeErr&&writeErr.message||writeErr));}
-        results.push({intent:intent,status:unknownState});
+        results.push({intent:intent,status:finalStatus});
       } else if(newInvite) {
         try {
           revokeVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),newInvite);
