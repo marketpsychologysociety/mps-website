@@ -737,7 +737,7 @@ function apiAdminList(session) {
     const dep = d.find(x => x[0] === r[0]) || [];
     const plan = plans.find(x => x[0] === r[0]) || [];
     const payment = payments.find(x => x[0] === r[0]) || [];
-    return {applicationRef:r[0],createdAt:r[1],nickname:r[2],telegramUsername:r[3],country:r[4],goal:r[5],status:r[7],telegramStatus:r[10]||'Belum Terhubung',memberId:r[8]||'',plan:plan[1]||'BELUM DIPILIH',monthlyFee:plan[3]||0,ibVerificationStatus:plan[4]||'',regularPaymentStatus:payment[5]||'',regularPaymentProofId:payment[4]||'',regularPaymentAmount:payment[2]||0,accountName:dep[2]||'',mt5Login:dep[3]||'',accountType:dep[4]||'',amount:dep[5]||'',depositDate:dep[6]||'',proofFileId:dep[7]||'',depositStatus:dep[9]||'',adminNote:r[13]||''};
+    return {applicationRef:String(r[0]||''),createdAt:r[1] instanceof Date?r[1].toISOString():String(r[1]||''),nickname:String(r[2]||''),telegramUsername:String(r[3]||''),country:String(r[4]||''),goal:String(r[5]||''),status:String(r[7]||''),telegramStatus:String(r[10]||'Belum Terhubung'),memberId:String(r[8]||''),plan:String(plan[1]||'BELUM DIPILIH'),monthlyFee:Number(plan[3]||0),ibVerificationStatus:String(plan[4]||''),regularPaymentStatus:String(payment[5]||''),regularPaymentProofId:String(payment[4]||''),regularPaymentAmount:Number(payment[2]||0),accountName:String(dep[2]||''),mt5Login:String(dep[3]||''),accountType:String(dep[4]||''),amount:String(dep[5]||''),depositDate:dep[6] instanceof Date?dep[6].toISOString():String(dep[6]||''),proofFileId:String(dep[7]||''),depositStatus:String(dep[9]||''),adminNote:String(r[13]||'')};
   }).reverse();
 }
 
