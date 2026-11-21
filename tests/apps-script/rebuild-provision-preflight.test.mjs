@@ -36,7 +36,7 @@ function harness({legacyHeaders=['ID','Time'],auxiliary={},deleteFails=false}={}
   const legacyName='Database Member';
   const specs={applications:{name:'Applications',headers:['ref','status']},deposits:{name:'Deposits',headers:['ref','amount']}};
   const sheets={...auxiliary};if(legacyHeaders!==null)sheets[legacyName]=makeSheet(legacyHeaders);
-  let inserts=0,deleted=0;
+  let inserts=0,deleted=0;const properties={};
   const ss={
     getSheetByName:name=>sheets[name]||null,
     insertSheet(name){inserts++;const sh=makeSheet();sheets[name]=sh;return sh;}
@@ -44,14 +44,14 @@ function harness({legacyHeaders=['ID','Time'],auxiliary={},deleteFails=false}={}
   const ctx={
     MPS:{LEGACY_SHEET:legacyName,LEGACY_HEADERS:['ID','Time'],LEGACY_EXTENDED_HEADERS:['ID','Time','Tech'],SHEETS:specs,VERSION:'4.8.1'},
     requireOwnerContext_:()=>true,
-    prop_:key=>key==='MPS_REBUILD_ALLOW_PROVISION'?'true':'',
-    openDb_:()=>ss,
+    prop_:key=>key==='MPS_REBUILD_ALLOW_PROVISION'?'true':key==='MPS_SPREADSHEET_ID'?'synthetic-db-id':'',
+    openDbForProvisioning_:()=>ss,
     ensureSheet_:undefined,
-    PropertiesService:{getScriptProperties:()=>({deleteProperty:key=>{deleted++;if(deleteFails)throw new Error('INJECTED_DELETE_FAILURE');}})},
+    PropertiesService:{getScriptProperties:()=>({getProperty:key=>properties[key]||null,setProperty:(key,value)=>{properties[key]=value;},deleteProperty:key=>{deleted++;if(deleteFails)throw new Error('INJECTED_DELETE_FAILURE');delete properties[key];}})},
     Logger:{log:()=>{}},console:{log:()=>{}}
   };
   vm.createContext(ctx);vm.runInContext(ensureSource,ctx,{timeout:1000});vm.runInContext(provisionSource,ctx,{timeout:1000});
-  return {run:()=>ctx.provisionMpsRebuildStorage_(),sheets,stats:()=>({inserts,deleted})};
+  return {run:()=>ctx.provisionMpsRebuildStorage_(),sheets,properties,stats:()=>({inserts,deleted})};
 }
 
 test('malformed later auxiliary schema is detected before any missing sheet is created',()=>{
@@ -68,10 +68,20 @@ test('valid preflight provisions only missing sheets and clears one-time flag',(
   const result=h.run();
   assert.equal(result.ok,true);
   assert.equal(result.provisioningFlagCleared,true);
+  assert.equal(h.properties.MPS_REBUILD_TEST_PROVISIONED_ID,'synthetic-db-id');
   assert.deepEqual(h.stats(),{inserts:3,deleted:1});
   assert.deepEqual(h.sheets['Database Member'].rows[0],['ID','Time']);
   assert.deepEqual(h.sheets.Applications.rows[0],['ref','status']);
   assert.deepEqual(h.sheets.Deposits.rows[0],['ref','amount']);
+});
+
+test('legacy database containing member rows is rejected before any provisioning write',()=>{
+  const legacy=makeSheet(['ID','Time']);legacy.rows.push(['REAL-LIKE-ID','Existing row']);
+  const h=harness({legacyHeaders:['ID','Time']});
+  h.sheets['Database Member'].rows.push(['REAL-LIKE-ID','Existing row']);
+  assert.throws(()=>h.run(),/harus kosong/i);
+  assert.equal(h.stats().inserts,0);
+  assert.equal(h.sheets.Applications,undefined);
 });
 
 test('failed one-time flag deletion returns explicit failure after safe provisioning',()=>{
