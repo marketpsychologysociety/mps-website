@@ -39,7 +39,7 @@ function harness(rows,now=Date.now(),lastPrune=''){
 const DAY=86400000;
 
 test('member login throttles only failed PIN checks, so correct credentials cannot be locked out',()=>{
-  const start=source.indexOf('function apiMemberLogin('),end=source.indexOf('\\nfunction ',start+1);
+  const start=source.indexOf('function apiMemberLogin('),end=source.indexOf('\nfunction ',start+1);
   const body=source.slice(start,end);
   const compare=body.indexOf('constantTimeEquals_');
   const throttle=body.indexOf("enforceRateLimit_('member-login'");
