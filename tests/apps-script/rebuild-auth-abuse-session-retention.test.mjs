@@ -38,9 +38,14 @@ function harness(rows,now=Date.now(),lastPrune=''){
 }
 const DAY=86400000;
 
-test('six-digit PIN retains per-member brute-force throttling until a second factor is implemented',()=>{
-  assert.match(source,/enforceRateLimit_\('member-login', id \|\| 'invalid', 8, 900\)/);
-  assert.doesNotMatch(source,/enforceRateLimit_\('member-login', 'global'/);
+test('member login throttles only failed PIN checks, so correct credentials cannot be locked out',()=>{
+  const start=source.indexOf('function apiMemberLogin('),end=source.indexOf('\nfunction ',start+1);
+  const body=source.slice(start,end);
+  const compare=body.indexOf('constantTimeEquals_');
+  const throttle=body.indexOf("enforceRateLimit_('member-login'");
+  const success=body.indexOf("return createSession_('MEMBER',id)");
+  assert.ok(compare>=0&&throttle>compare&&success>throttle);
+  assert.match(body,/A valid PIN always succeeds even after an attacker/);
 });
 test('session pruning clears only expired or revoked sessions older than 30 days without shifting rows',()=>{
   const now=Date.now(),old=now-31*DAY,fresh=now-2*DAY;

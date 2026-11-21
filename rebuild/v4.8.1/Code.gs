@@ -1251,8 +1251,6 @@ function randomPin_() {
 
 function apiMemberLogin(memberId,pin) {
   const id = clean_(memberId,20).toUpperCase(), p = String(pin || '');
-  // Keep per-member brute-force protection until a second factor is implemented; removing it would expose the six-digit PIN to rapid guessing.
-  enforceRateLimit_('member-login', id || 'invalid', 8, 900);
   if (!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id) || !/^\d{6}$/.test(p))
     throw new Error('ID Member atau PIN tidak valid.');
   const sh = legacySheet_(), row = findRow_(sh,1,id);
@@ -1260,7 +1258,12 @@ function apiMemberLogin(memberId,pin) {
   assertMembershipEntitlement_(id);
   const pinHash = prop_('MPS_PIN_HASH_'+id);
   const salt = prop_('MPS_PIN_SALT_'+id);
-  if (!pinHash || !salt || !constantTimeEquals_(sha256_(salt+p),pinHash)) throw new Error('PIN tidak valid.');
+  if (!pinHash || !salt || !constantTimeEquals_(sha256_(salt+p),pinHash)) {
+    // Count only failed PIN checks. A valid PIN always succeeds even after an attacker
+    // exhausts this Member ID's failure bucket, preventing targeted account lockout.
+    enforceRateLimit_('member-login', id, 8, 900);
+    throw new Error('PIN tidak valid.');
+  }
   return createSession_('MEMBER',id);
 }
 
