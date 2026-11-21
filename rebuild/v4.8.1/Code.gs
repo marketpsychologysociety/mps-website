@@ -2191,14 +2191,14 @@ function telegramMemberIsActive_(groupId,userId,token) {
       method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
     });
   } catch(fetchError) {
-    const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';error.ambiguousRemoteOutcome=true;throw error;
+    const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';throw error;
   }
   let result;
   try {result=JSON.parse(response.getContentText()||'{}');}
-  catch(parseError) {const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';error.ambiguousRemoteOutcome=true;throw error;}
+  catch(parseError) {const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';throw error;}
   const status=response.getResponseCode();
   if(status>=500||status<200||status>=300||!result.ok||!result.result) {
-    const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';error.ambiguousRemoteOutcome=true;throw error;
+    const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';throw error;
   }
   const member=result.result;
   return ['member','administrator','creator'].includes(String(member.status||'')) ||
