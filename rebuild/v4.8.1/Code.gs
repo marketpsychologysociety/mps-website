@@ -1855,19 +1855,25 @@ function apiAdminRetryTelegramFailures(session) {
       continue;
     }
     const raw=String(r[12]||'');
-    if(!raw) { sh.getRange(i+2,12).setValue('PAYLOAD_MISSING'); continue; }
+    if(!raw) {
+      sh.getRange(i+2,4).setValue('NOT_RETRYABLE');
+      sh.getRange(i+2,12).setValue('PAYLOAD_MISSING');
+      results.push({updateId:String(r[0]),status:'NOT_RETRYABLE',reason:'PAYLOAD_MISSING'});
+      continue;
+    }
     if (/^\/start(?:@\w+)?\s+\[REDACTED\]$/.test(String((()=>{try{return JSON.parse(raw).message?.text||''}catch(_){return ''}})()))) {
       sh.getRange(i+2,4).setValue('NOT_RETRYABLE');
       sh.getRange(i+2,12).setValue('TOKEN_REDACTED_REISSUE_LINK');
       results.push({updateId:String(r[0]),status:'NOT_RETRYABLE'});
       continue;
     }
-    try {
-      processTelegramUpdate_(JSON.parse(raw));
-      results.push({updateId:String(r[0]),status:'COMPLETED'});
-    } catch(err) {
-      results.push({updateId:String(r[0]),status:'FAILED'});
-    }
+    try { processTelegramUpdate_(JSON.parse(raw)); } catch(err) {}
+    // A concurrent retry may own the lease, or the processor may have refused
+    // a reconciliation-only row. Report the journal's actual state, never assume
+    // that a normal return means the update was completed.
+    const refreshedRow=findRow_(sh,1,String(r[0]));
+    const actualState=refreshedRow?String(sh.getRange(refreshedRow,4).getDisplayValue()||'UNKNOWN'):'MISSING';
+    results.push({updateId:String(r[0]),status:actualState});
   }
   audit_(actor.role,actor.actorId,'TELEGRAM_RETRY_BATCH','', 'SUCCESS','Processed '+results.length+' failed/stale updates.');
   return {ok:true,processed:results.length,results:results};
