@@ -893,9 +893,7 @@ function apiSubmitMemberRenewal(session,input) {
         failure.preserveProofFile=true;throw failure;
       }
     }
-    let auditWarning=false;
-    try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Fixed QRIS fee Rp100000; proof stored privately.');}
-    catch(_){auditWarning=true;}
+    const auditWarning=!audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Fixed QRIS fee Rp100000; proof stored privately.');
     return {ok:true,renewalRef:renewalRef,status:'Menunggu Validasi',auditWarning:auditWarning};
   } finally {lock.releaseLock();}
 }
@@ -982,9 +980,7 @@ function apiAdminReviewRenewal(session,renewalRef,decision,note) {
       }
       throw error;
     }
-    let auditWarning=false;
-    try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_'+decision,ref,'SUCCESS',decision==='APPROVE'?'Member ID preserved; expiry extended 30 days.':'Renewal rejected.');}
-    catch(_){auditWarning=true;}
+    const auditWarning=!audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_'+decision,ref,'SUCCESS',decision==='APPROVE'?'Member ID preserved; expiry extended 30 days.':'Renewal rejected.');
     return {ok:true,status:decision==='APPROVE'?'Disetujui':'Ditolak',
       memberId:String(renewal[1]),periodStart:period?period.startAt.toISOString():'',
       expiresAt:period?period.endAt.toISOString():'',auditWarning:auditWarning};
@@ -2630,8 +2626,13 @@ function findRow_(sh,col,value) {
 }
 function rows_(sh) { return sh.getLastRow()<2 ? [] : sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues(); }
 function audit_(role,actor,action,target,outcome,details) {
-  try { sheet_('audit').appendRow([randomHex_(16),new Date(),role,actor,action,target,outcome,clean_(details,500)]); }
-  catch (e) { console.error('AUDIT_WRITE_FAILED '+String(e.message||e)); }
+  try {
+    sheet_('audit').appendRow([randomHex_(16),new Date(),role,actor,action,target,outcome,clean_(details,500)]);
+    return true;
+  } catch (e) {
+    console.error('AUDIT_WRITE_FAILED '+String(e.message||e));
+    return false;
+  }
 }
 function isAllowedImageBytes_(bytes,mime) {
   const u=i=>(bytes[i]||0)&255;
