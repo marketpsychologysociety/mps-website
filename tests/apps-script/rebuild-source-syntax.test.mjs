@@ -14,10 +14,10 @@ test('complete Apps Script backend parses as one V8 program',()=>{
 });
 
 test('Apps Script HtmlService frontend inline JavaScript parses after template substitution',()=>{
-  const scripts=[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)];
+  const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
   assert.equal(scripts.length,1,'expected one inline frontend script');
   assert.ok(html.length>30000,'expected complete Index.html, not a partial snippet');
-  const javascript=scripts[0][1].replace(/<\\?=\\s*initialPage\\s*\\?>/g,JSON.stringify('home'));
+  const javascript=scripts[0][1].replace(/<\?=\s*initialPage\s*\?>/g,JSON.stringify('home'));
   assert.doesNotThrow(()=>new vm.Script(javascript,{filename:'rebuild/v4.8.1/Index.html inline script'}));
 });
 
