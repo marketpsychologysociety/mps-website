@@ -53,8 +53,8 @@ function makeSheet(rows=[],name='',faults={}){
   };
 }
 function harness({plan='ACTIVE_IB',faults={}}={}){
-  const applications=makeSheet([new Array(15).fill(''),[ref,new Date('2026-11-19T00:00:00Z'),'MPS Trader','trader_mps','Indonesia','Belajar money management','', 'Menunggu Pendaftaran','','','Belum Terhubung','','','','']], 'applications',faults);
-  const plans=makeSheet([new Array(8).fill(''),[ref,plan,new Date(),plan==='REGULAR'?100000:0,'','','','Menunggu Pembayaran']], 'membershipPlans',faults);
+  const applications=makeSheet([new Array(15).fill('')], 'applications',faults);
+  const plans=makeSheet([new Array(8).fill('')], 'membershipPlans',faults);
   const deposits=makeSheet([new Array(14).fill('')],'deposits',faults);
   const payments=makeSheet([new Array(8).fill('')],'regularPayments',faults);
   const links=makeSheet([new Array(11).fill('')],'links',faults);
