@@ -52,8 +52,6 @@ jobs:
         run: node --test tests/apps-script/rebuild-telegram-finalization-ambiguity.test.mjs
       - name: Run v4.8.1 Telegram retry result accuracy tests
         run: node --test tests/apps-script/rebuild-telegram-retry-result-accuracy.test.mjs
-      - name: Run v4.8.1 Telegram retry result accuracy tests
-        run: node --test tests/apps-script/rebuild-telegram-retry-result-accuracy.test.mjs
       - name: Run v4.8.1 dedicated TEST Telegram bot and group guards
         run: node --test tests/apps-script/rebuild-telegram-test-bot-guard.test.mjs
       - name: Run v4.8.1 owner action TEST marker tests
