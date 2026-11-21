@@ -1401,7 +1401,16 @@ function handleTelegramJoinRequest_(request) {
   const expected=String(queue.getRange(row,5).getDisplayValue()||'');
   const appRow=findRow_(sheet_('applications'),9,memberId);
   const app=appRow?sheet_('applications').getRange(appRow,1,1,15).getValues()[0]:null;
-  const valid=!!(userId && userId===expected && app && app[7]==='Disetujui' && String(app[11]||'')===userId);
+  let activeEntitlement=false;
+  if (app && app[7]==='Disetujui' && app[8]===memberId) {
+    const legacy=legacySheet_(), legacyRow=findRow_(legacy,1,memberId);
+    if (legacyRow && legacy.getRange(legacyRow,8).getDisplayValue()==='Berhasil') {
+      try { assertMembershipEntitlement_(memberId); activeEntitlement=true; }
+      catch (_) { activeEntitlement=false; }
+    }
+  }
+  const valid=!!(userId && userId===expected && app && app[7]==='Disetujui' &&
+    String(app[11]||'')===userId && activeEntitlement);
   if (!valid) {
     telegramJoinRequestAction_('declineChatJoinRequest',groupId,userId);
     if (userId) sendTelegramMessage_(userId,'Permintaan masuk VIP ditolak karena undangan tidak cocok dengan akun member MPS yang aktif.');
