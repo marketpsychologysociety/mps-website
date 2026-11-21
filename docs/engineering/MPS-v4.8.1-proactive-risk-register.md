@@ -15,6 +15,9 @@
 
 ## Priority 1 — resolve during pre-TEST hardening
 
+| AUTH-03 | Admin dashboard navigation could regress so leaving the Admin page and returning from another menu prompts for credentials again. | A future navigation refactor may clear or lose the in-memory Admin session, or route back to the login panel while the same tab's authenticated session is still active. | **Guard added in source:** section navigation preserves the current Admin session; only explicit `adminLogout()` clears it. Returning to the Admin menu routes to the existing dashboard. Synthetic regression test walks every public menu and returns to Admin after each, and checks unauthenticated routing plus explicit logout. Runtime/browser acceptance in the dedicated TEST Apps Script deployment remains pending. |
+
+
 | ID | Observed condition | Forward failure scenario | Mitigation / evidence |
 |---|---|---|---|
 | OPS-01 | Rate limiting uses ScriptLock around Script Cache read/increment. | High traffic serializes on one global lock; lock timeout may reject legitimate users. Cache is best-effort, not durable. | **Implemented in source:** use a bounded 1.5-second `tryLock`; fail closed with a clear retry message if contended; keep only cache read/increment under lock; move Sheets audit append after release. Never trust client-supplied IP/device identifiers as network identity. | Synthetic CI verifies contention, no counter mutation on lock failure, lock release, and audit outside the critical section. Shared TEST still needs concurrent load/lock-timeout and real CacheService eviction checks. CacheService remains best-effort, not durable. |
