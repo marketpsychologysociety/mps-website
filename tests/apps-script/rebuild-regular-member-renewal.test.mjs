@@ -55,7 +55,7 @@ test('renewal submission binds member to authenticated session and rejects dupli
 test('Admin renewal approval is idempotent, proof-verified, atomic and preserves member ID',()=>{
  const review=body('apiAdminReviewRenewal');
  assert.match(review,/requireSession_\(session,\['ADMIN','SUPER_ADMIN'\]\)/);
- assert.match(review,/!\\^MPS-REN-/);
+ assert.ok(review.includes("if(!/^MPS-REN-"));
  assert.match(review,/Menunggu Validasi/);
  assert.match(review,/decision==='APPROVE'/);
  assert.match(review,/assertMpsDriveFolderTreePrivate_/);
