@@ -62,7 +62,7 @@ test('Admin renewal approval is idempotent, proof-verified, atomic and preserves
  assert.match(review,/Menunggu Validasi/);
  assert.match(review,/decision==='APPROVE'/);
  assert.match(review,/assertMpsDriveFolderTreePrivate_/);
- assert.match(review,/paymentDateValue=new Date\(paymentDate\+'T00:00:00\\+07:00'\)/);
+ assert.match(review,/paymentDateValue=new Date\(paymentDate\+'T00:00:00\+07:00'\)/);
  assert.match(review,/Utilities\.formatDate\(paymentDateValue,MPS\.TZ,'yyyy-MM-dd'\)/);
  assert.match(review,/proof\.getMimeType\(\)/);
  assert.match(review,/proof\.getSize\(\)/);
