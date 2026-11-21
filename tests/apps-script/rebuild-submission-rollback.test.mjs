@@ -144,7 +144,7 @@ test('Regular QRIS submission restores plan and application after an ambiguous p
   h.ctx.apiRegister(registration);
   assert.throws(()=>h.ctx.apiSubmitRegularPayment(paymentInput),/INJECTED_membershipPlans:2:8_AFTER_WRITE/);
   assert.equal(h.payments.rows.length,1);
-  assert.equal(h.plans.rows[1][7],'Menunggu Pembayaran');
+  assert.equal(h.plans.rows[1][7],'Menunggu Pembayaran / Verifikasi');
   assert.equal(h.applications.rows[1][7],'Menunggu Pendaftaran');
   assert.equal(h.links.rows.length,1);
   assert.equal(h.file.trashed,true);
