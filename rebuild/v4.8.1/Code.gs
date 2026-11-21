@@ -651,6 +651,7 @@ function apiRegister(input) {
       try {
         ledger.appendRow([requestId,fingerprint,'STARTED',new Date(),'','REGISTER',ref,'','']);
         ledgerRow = findRow_(ledger,1,requestId);
+        if (!ledgerRow) throw new Error('REQUEST_INTENT_NOT_VISIBLE_AFTER_APPEND');
       } catch (intentError) {
         // appendRow can commit before a timeout reaches this execution.
         try { ledgerRow = findRow_(ledger,1,requestId); } catch (_) {}
