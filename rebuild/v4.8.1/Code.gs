@@ -2127,7 +2127,8 @@ function revokeVipInvite_(groupId,inviteLink) {
   if(status>=500) {const error=new Error('VIP_INVITE_REVOKE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_REVOKE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
   if(status<200||status>=300||!result.ok) {const error=new Error('VIP_INVITE_REVOKE_FAILED');error.code='VIP_INVITE_REVOKE_FAILED';throw error;}
   return true;
-}function createVipInvite_(groupId,userId) {
+}
+function createVipInvite_(groupId,userId) {
   if (!groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
   const token=requireDedicatedTestTelegramBot_();
   assertDedicatedTestVipGroup_(groupId,token);
@@ -2150,7 +2151,8 @@ function revokeVipInvite_(groupId,inviteLink) {
     const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
   }
   return result.result.invite_link;
-}function handleTelegramJoinRequest_(request) {
+}
+function handleTelegramJoinRequest_(request) {
   const groupId=prop_('MPS_VIP_GROUP_ID');
   if (!groupId || String(request.chat && request.chat.id || '')!==String(groupId)) return;
   const invite=String(request.invite_link && request.invite_link.invite_link || '');
@@ -2474,7 +2476,8 @@ function sendTelegramMessage_(chatId,messageText) {
   if(status>=500) {const error=new Error('TELEGRAM_SEND_OUTCOME_UNKNOWN');error.code='TELEGRAM_SEND_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
   if(status<200||status>=300||!result.ok) {const error=new Error('TELEGRAM_SEND_FAILED');error.code='TELEGRAM_SEND_FAILED';throw error;}
   return true;
-}function ensureSheet_(ss, spec) {
+}
+function ensureSheet_(ss, spec) {
   let sh = ss.getSheetByName(spec.name);
   if (!sh) sh = ss.insertSheet(spec.name);
   if (sh.getLastRow() === 0) {
