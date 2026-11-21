@@ -49,6 +49,11 @@ const MPS = Object.freeze({
   }
 });
 
+/**
+ * SECURITY: Owner/editor-only operations use a trailing underscore so they
+ * cannot be invoked through google.script.run from the public Web App.
+ * Run these entry points only from the Apps Script editor as project owner.
+ */
 function doGet(e) {
   const p = (e && e.parameter) || {};
   if (p.health === '1') return json_({ok:true,service:'MPS Member Backend',version:MPS.VERSION,mode:'rebuild'});
@@ -132,7 +137,7 @@ function installMpsTelegramWebhook_() {
  * Public Apps Script editor entry point: read-only Telegram TEST webhook status.
  * Does not install, replace, or delete a webhook.
  */
-function runMpsTelegramTestWebhookStatus() {
+function runMpsTelegramTestWebhookStatus_() {
   requireOwnerContext_();
   const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
   const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
@@ -181,7 +186,7 @@ function runMpsTelegramTestWebhookStatus() {
  * Run the installer manually from the TEST Apps Script editor. It removes only
  * this TEST bot's webhook with drop_pending_updates=false, preserving queued updates.
  */
-function runMpsTelegramTestPollingSetup() {
+function runMpsTelegramTestPollingSetup_() {
   requireOwnerContext_();
   const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
   const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
@@ -256,7 +261,7 @@ function pollMpsTelegramTestUpdates_() {
 }
 
 /** Owner-only reversible stop: removes only the TEST polling trigger; keeps Telegram queue and offset. */
-function runMpsTelegramTestPollingStop() {
+function runMpsTelegramTestPollingStop_() {
   requireOwnerContext_();
   const triggers=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='pollMpsTelegramTestUpdates_');
   triggers.forEach(t=>ScriptApp.deleteTrigger(t));
@@ -271,7 +276,7 @@ function runMpsTelegramTestPollingStop() {
  * Uses an intentionally invalid path so doPost cannot process a Telegram update.
  * Does not call Telegram, change webhook settings, or alter queued updates.
  */
-function runMpsTelegramTestPostTransportProbe() {
+function runMpsTelegramTestPostTransportProbe_() {
   requireOwnerContext_();
   const deploymentUrl=getMpsTelegramWebhookDeploymentUrl_();
   const response=UrlFetchApp.fetch(deploymentUrl+'/mps-post-transport-probe-invalid',{
@@ -300,7 +305,7 @@ function runMpsTelegramTestPostTransportProbe() {
  * Public Apps Script editor entry point for the owner-guarded Telegram TEST
  * webhook installer. This changes the dedicated TEST bot webhook only.
  */
-function runMpsTelegramTestWebhookSetup() {
+function runMpsTelegramTestWebhookSetup_() {
   requireOwnerContext_();
   const result=installMpsTelegramWebhook_();
   Logger.log('MPS TELEGRAM TEST WEBHOOK SETUP: '+JSON.stringify(result));
@@ -308,7 +313,7 @@ function runMpsTelegramTestWebhookSetup() {
 }
 
 /** Public editor entry point for the owner-guarded, read-only rebuild validation. */
-function runMpsRebuildValidation() {
+function runMpsRebuildValidation_() {
   requireOwnerContext_();
   return validateMpsRebuildConfig_();
 }
@@ -1856,7 +1861,7 @@ function text_(v) { return ContentService.createTextOutput(v).setMimeType(Conten
 
 
 /** Public Apps Script editor entry point for a one-time TEST backup snapshot. */
-function runMpsBackupSnapshot() {
+function runMpsBackupSnapshot_() {
   return createMpsBackupSnapshot_();
 }
 
@@ -1868,7 +1873,7 @@ function runMpsBackupSnapshot() {
  * one private timestamped spreadsheet backup as the final step.
  * Does NOT install Telegram webhooks or time triggers and does NOT deploy.
  */
-function runMpsFullAcceptanceSuite() {
+function runMpsFullAcceptanceSuite_() {
   requireOwnerContext_();
   const report = {ok:false, version:MPS.VERSION, startedAt:new Date().toISOString()};
   try {
