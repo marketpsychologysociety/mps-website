@@ -814,9 +814,11 @@ function memberRenewalAccessState_(memberId, nowMs) {
   const v=ledger.getRange(row,1,1,8).getValues()[0];
   if(String(v[2]||'')!=='REGULAR') return {eligible:false,reason:'RENEWAL_NOT_REQUIRED_FOR_THIS_PLAN',status:String(v[3]||'')};
   const expiry=v[5] instanceof Date?v[5].getTime():new Date(v[5]).getTime();
-  const expired=String(v[3]||'')==='Kedaluwarsa' || !Number.isFinite(expiry) || expiry<=nowMs;
-  if(!expired && String(v[3]||'')!=='Aktif') throw new Error('Keanggotaan Regular tidak berada pada status yang dapat diperpanjang.');
-  return {eligible:true,expired:expired,status:String(v[3]||''),expiresAt:Number.isFinite(expiry)?new Date(expiry).toISOString():''};
+  const status=String(v[3]||'');
+  const expired=status==='Kedaluwarsa' || (status==='Aktif' && Number.isFinite(expiry) && expiry<=nowMs);
+  if(!expired && (status!=='Aktif' || !Number.isFinite(expiry)))
+    throw new Error('Status atau tanggal kedaluwarsa keanggotaan tidak valid. Hubungi Admin MPS.');
+  return {eligible:true,expired:expired,status:status,expiresAt:Number.isFinite(expiry)?new Date(expiry).toISOString():''};
 }
 
 /** Return only renewal metadata; member-only learning/data still requires active entitlement. */
@@ -862,23 +864,26 @@ function apiSubmitMemberRenewal(session,input) {
     assertMpsDriveFolderTreePrivate_(folder,'folder bukti perpanjangan QRIS');
     const renewalRef='MPS-REN-'+randomHex_(20);
     const ext=mime==='image/jpeg'?'jpg':mime==='image/png'?'png':'webp';
-    proofFile=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-RENEWAL-'+renewalRef+'.'+ext));
-    proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
-    if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
-      throw new Error('Privasi bukti perpanjangan tidak dapat dipastikan.');
     try {
+      proofFile=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-RENEWAL-'+renewalRef+'.'+ext));
+      proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+      if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+        throw new Error('Privasi bukti perpanjangan tidak dapat dipastikan.');
       sh.appendRow([renewalRef,actor.actorId,new Date(),100000,date,proofFile.getId(),'Menunggu Validasi','','','','']);
     } catch(writeError) {
       const rollbackErrors=[];
-      try {proofFile.setTrashed(true);} catch(e){rollbackErrors.push('private proof cleanup: '+String(e&&e.message||e));}
+      if(proofFile) try {proofFile.setTrashed(true);if(!proofFile.isTrashed())throw new Error('trash state not confirmed');}
+      catch(e){rollbackErrors.push('private proof cleanup: '+String(e&&e.message||e));}
       if(rollbackErrors.length) {
         const failure=new Error('Pengajuan perpanjangan gagal dan rollback tidak lengkap. Bukti dipertahankan privat untuk rekonsiliasi.');
         failure.preserveProofFile=true;throw failure;
       }
       throw writeError;
     }
-    audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Fixed QRIS fee Rp100000; proof stored privately.');
-    return {ok:true,renewalRef:renewalRef,status:'Menunggu Validasi'};
+    let auditWarning=false;
+    try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Fixed QRIS fee Rp100000; proof stored privately.');}
+    catch(_){auditWarning=true;}
+    return {ok:true,renewalRef:renewalRef,status:'Menunggu Validasi',auditWarning:auditWarning};
   } finally {lock.releaseLock();}
 }
 
@@ -908,16 +913,18 @@ function apiAdminReviewRenewal(session,renewalRef,decision,note) {
     if(!row) throw new Error('Pengajuan perpanjangan tidak ditemukan.');
     const renewal=sh.getRange(row,1,1,11).getValues()[0];
     if(String(renewal[6]||'')!=='Menunggu Validasi') throw new Error('Pengajuan perpanjangan sudah diproses atau tidak menunggu validasi.');
-    if(Number(renewal[3])!==100000 || !renewal[5]) throw new Error('Nominal atau bukti QRIS perpanjangan tidak valid.');
-    const proof=DriveApp.getFileById(String(renewal[5]));
-    if(proof.isTrashed() || proof.getSharingAccess()!==DriveApp.Access.PRIVATE)
-      throw new Error('Bukti QRIS perpanjangan tidak tersedia atau tidak privat.');
-    const folderId=prop_('MPS_PROOF_FOLDER_ID');
-    if(!folderId) throw new Error('Folder bukti resmi belum dikonfigurasi.');
-    assertMpsDriveFolderTreePrivate_(DriveApp.getFolderById(folderId),'folder bukti perpanjangan QRIS');
-    let inExpectedFolder=false;const parents=proof.getParents();
-    while(parents.hasNext()) if(parents.next().getId()===folderId) inExpectedFolder=true;
-    if(!inExpectedFolder) throw new Error('Bukti perpanjangan bukan dari folder bukti resmi.');
+    if(decision==='APPROVE') {
+      if(Number(renewal[3])!==100000 || !renewal[5]) throw new Error('Nominal atau bukti QRIS perpanjangan tidak valid.');
+      const proof=DriveApp.getFileById(String(renewal[5]));
+      if(proof.isTrashed() || proof.getSharingAccess()!==DriveApp.Access.PRIVATE)
+        throw new Error('Bukti QRIS perpanjangan tidak tersedia atau tidak privat.');
+      const folderId=prop_('MPS_PROOF_FOLDER_ID');
+      if(!folderId) throw new Error('Folder bukti resmi belum dikonfigurasi.');
+      assertMpsDriveFolderTreePrivate_(DriveApp.getFolderById(folderId),'folder bukti perpanjangan QRIS');
+      let inExpectedFolder=false;const parents=proof.getParents();
+      while(parents.hasNext()) if(parents.next().getId()===folderId) inExpectedFolder=true;
+      if(!inExpectedFolder) throw new Error('Bukti perpanjangan bukan dari folder bukti resmi.');
+    }
     const ledger=sheet_('membershipLedger'),ledgerRow=findRow_(ledger,1,String(renewal[1]||''));
     if(!ledgerRow) throw new Error('Data masa aktif member tidak ditemukan.');
     const ledgerSnapshot=ledger.getRange(ledgerRow,1,1,8).getValues()[0];
