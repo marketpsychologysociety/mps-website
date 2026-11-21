@@ -1770,12 +1770,33 @@ function processTelegramUpdate_(update) {
     if (update.message) handleTelegramStart_(update.message);
     if (update.chat_member) handleTelegramChatMember_(update.chat_member);
     if (update.chat_join_request) handleTelegramJoinRequest_(update.chat_join_request);
-    finalizeTelegramUpdate_(row,claimToken,'COMPLETED','');
   } catch (err) {
     const state=err&&err.ambiguousRemoteOutcome?'NEEDS_RECONCILIATION':'FAILED';
     const code=String(err&&err.code||'PROCESSING_ERROR').slice(0,80);
-    finalizeTelegramUpdate_(row,claimToken,state,code);
+    try { finalizeTelegramUpdate_(row,claimToken,state,code); }
+    catch(finalizeError) {
+      console.error('TELEGRAM_HANDLER_FAILURE_JOURNAL_WRITE_FAILED updateId='+id+' code='+code);
+    }
     throw err;
+  }
+
+  // Handler side effects have completed. If the COMPLETED acknowledgement fails,
+  // never downgrade the update to FAILED: an Admin retry could replay Telegram
+  // messages, approvals, or membership events that already succeeded remotely.
+  try {
+    const finalized=finalizeTelegramUpdate_(row,claimToken,'COMPLETED','');
+    if(finalized===false)
+      console.warn('TELEGRAM_COMPLETED_ACK_NOT_OWNED updateId='+id+'; do not replay automatically.');
+  } catch(finalizeError) {
+    try {
+      finalizeTelegramUpdate_(row,claimToken,'NEEDS_RECONCILIATION','HANDLER_COMPLETED_FINALIZE_FAILED');
+    } catch(reconcileError) {
+      console.error('TELEGRAM_COMPLETED_ACK_AND_RECONCILIATION_FAILED updateId='+id+'; stale lease recovery must fail closed.');
+    }
+    const error=new Error('Telegram update side effects completed, but journal acknowledgement is uncertain. Do not retry this update automatically.');
+    error.code='HANDLER_COMPLETED_FINALIZE_FAILED';
+    error.ambiguousRemoteOutcome=true;
+    throw error;
   }
 }
 
