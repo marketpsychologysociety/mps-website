@@ -839,7 +839,7 @@ function apiSubmitMemberRenewal(session,input) {
   input=input||{};
   const date=clean_(input.paymentDate,20);
   const amount=Number(input.amount);
-  if(amount!==100000 || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) throw new Error('Perpanjangan Regular harus tepat Rp100.000 dan tanggal harus valid.');
+  if(amount!==100000 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) throw new Error('Perpanjangan Regular harus tepat Rp100.000 dan tanggal harus valid.');
   const dt=new Date(date+'T00:00:00+07:00');
   if(isNaN(dt.getTime()) || Utilities.formatDate(dt,MPS.TZ,'yyyy-MM-dd')!==date || dt.getTime()>Date.now()+86400000)
     throw new Error('Tanggal pembayaran perpanjangan tidak valid.');
