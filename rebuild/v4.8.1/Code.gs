@@ -313,6 +313,23 @@ function runMpsRebuildValidation() {
   return validateMpsRebuildConfig_();
 }
 
+function assertMpsDriveFolderTreePrivate_(folder,label) {
+  if(!folder || typeof folder.getId!=='function' || typeof folder.getParents!=='function')
+    throw new Error('Struktur folder '+String(label||'MPS')+' tidak dapat diverifikasi. Akses dihentikan.');
+  const seen={}, stack=[folder], name=String(label||'MPS Drive folder');
+  while(stack.length) {
+    const current=stack.pop(), id=String(current.getId()||'');
+    if(!id) throw new Error('ID folder '+name+' tidak dapat diverifikasi. Akses dihentikan.');
+    if(seen[id]) continue;
+    seen[id]=true;
+    if(typeof current.getSharingAccess!=='function' || String(current.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+      throw new Error('Folder '+name+' atau folder induknya tidak PRIVATE. Akses dihentikan.');
+    const parents=current.getParents();
+    while(parents.hasNext()) stack.push(parents.next());
+  }
+  return true;
+}
+
 function validateMpsRebuildConfig_() {
   const p = PropertiesService.getScriptProperties();
   const adminHash = !!p.getProperty('MPS_REBUILD_ADMIN_PASSWORD_HASH');
@@ -346,6 +363,8 @@ function validateMpsRebuildConfig_() {
     auxiliarySheetsExpected: Object.keys(MPS.SHEETS).length,
     auxiliarySheetChecks: {},
     proofFolderReadable: false,
+    proofFolderPrivate: false,
+    backupFolderPrivate: false,
     errors: [],
     note: 'Read-only validation. No sheets, rows, properties, triggers, or webhooks changed. Telegram webhook installation is not verified by this check.'
   };
@@ -395,15 +414,21 @@ function validateMpsRebuildConfig_() {
   try {
     const folderId = p.getProperty('MPS_PROOF_FOLDER_ID');
     if (!folderId) throw new Error('MPS_PROOF_FOLDER_ID belum diatur.');
-    DriveApp.getFolderById(folderId).getName();
+    const proofFolder=DriveApp.getFolderById(folderId);
+    proofFolder.getName();
+    assertMpsDriveFolderTreePrivate_(proofFolder,'folder bukti deposit');
     result.proofFolderReadable = true;
+    result.proofFolderPrivate = true;
   } catch (e) {
     result.errors.push('Proof folder: ' + String(e && e.message || e));
   }
   if (backupId) {
     try {
-      DriveApp.getFolderById(backupId).getName();
+      const backupFolder=DriveApp.getFolderById(backupId);
+      backupFolder.getName();
+      assertMpsDriveFolderTreePrivate_(backupFolder,'folder backup');
       result.backupFolderReadable = true;
+      result.backupFolderPrivate = true;
     } catch (e) {
       result.errors.push('Backup folder: ' + String(e && e.message || e));
     }
@@ -531,13 +556,13 @@ function apiSubmitDeposit(input) {
     const folderId = prop_('MPS_PROOF_FOLDER_ID');
     if (!folderId) throw new Error('Folder bukti belum dikonfigurasi.');
     const folder = DriveApp.getFolderById(folderId);
-    if (folder.getSharingAccess() !== DriveApp.Access.PRIVATE)
-      throw new Error('Folder bukti deposit harus privat. Periksa akses berbagi folder Drive.');
+    assertMpsDriveFolderTreePrivate_(folder,'folder bukti deposit');
     let linkInfo=null;
     try {
       const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : 'webp';
       proofFile = folder.createFile(Utilities.newBlob(bytes,mime,'MPS-PROOF-'+ref+'.'+ext));
       proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+      if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) throw new Error('Privasi file bukti deposit tidak dapat dipastikan.');
       const now = new Date();
       depositSheet.appendRow([ref,now,account,login,type,amount,date,proofFile.getId(),'','Menunggu Validasi','','','','']);
       linkInfo=createTelegramLink_(ref,apps.getRange(row,4).getDisplayValue());
@@ -617,12 +642,13 @@ function apiSubmitRegularPayment(input) {
     const regularSheet=sheet_('regularPayments');
     if(findRow_(regularSheet,1,ref)) throw new Error('Bukti pembayaran sudah diterima. Hubungi Admin untuk koreksi.');
     const folderId=prop_('MPS_PROOF_FOLDER_ID');if(!folderId)throw new Error('Folder bukti privat belum dikonfigurasi.');
-    const folder=DriveApp.getFolderById(folderId);if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE)throw new Error('Folder bukti harus privat.');
+    const folder=DriveApp.getFolderById(folderId);assertMpsDriveFolderTreePrivate_(folder,'folder bukti pembayaran QRIS');
     let linkInfo=null;
     try {
       const ext=mime==='image/jpeg'?'jpg':mime==='image/png'?'png':'webp';
       proofFile=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-QRIS-'+ref+'.'+ext));
       proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+      if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) throw new Error('Privasi file bukti QRIS tidak dapat dipastikan.');
       const now=new Date();
       regularSheet.appendRow([ref,now,100000,date,proofFile.getId(),'Menunggu Validasi','','']);
       linkInfo=createTelegramLink_(ref,apps.getRange(appRow,4).getDisplayValue());
@@ -843,7 +869,9 @@ function apiAdminReview(session, applicationRef, decision, note) {
       if(apps.getRange(ar,11).getDisplayValue()!=='Terhubung') throw new Error('Verifikasi Telegram harus berhasil sebelum disetujui.');
       const qrFile=DriveApp.getFileById(String(regular[4]));
       if(qrFile.isTrashed() || qrFile.getSharingAccess()!==DriveApp.Access.PRIVATE) throw new Error('Bukti QRIS tidak tersedia atau tidak privat.');
-      const expectedFolder=prop_('MPS_PROOF_FOLDER_ID');let okFolder=false;const parents=qrFile.getParents();while(parents.hasNext())if(parents.next().getId()===expectedFolder)okFolder=true;
+      const expectedFolder=prop_('MPS_PROOF_FOLDER_ID');
+      assertMpsDriveFolderTreePrivate_(DriveApp.getFolderById(expectedFolder),'folder bukti QRIS');
+      let okFolder=false;const parents=qrFile.getParents();while(parents.hasNext())if(parents.next().getId()===expectedFolder)okFolder=true;
       if(!expectedFolder || !okFolder)throw new Error('Bukti QRIS bukan dari folder bukti resmi.');
     }
     if (app[7] === 'Disetujui' || app[7] === 'Ditolak') throw new Error('Pengajuan sudah diputuskan.');
@@ -897,6 +925,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
       const proofFolder=prop_('MPS_PROOF_FOLDER_ID');
       if (!proofFolder || !proof.getParents().hasNext())
         throw new Error('Lokasi file bukti deposit tidak dapat diverifikasi.');
+      assertMpsDriveFolderTreePrivate_(DriveApp.getFolderById(proofFolder),'folder bukti deposit');
       const parents=proof.getParents(); let inExpectedFolder=false;
       while(parents.hasNext()) if(parents.next().getId()===proofFolder) inExpectedFolder=true;
       if(!inExpectedFolder) throw new Error('Bukti deposit tidak berada di folder bukti resmi MPS.');
@@ -1673,7 +1702,7 @@ function installMpsWeeklyBackupTrigger_() {
   const folderId=prop_('MPS_BACKUP_FOLDER_ID');
   if(!folderId || folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup privat yang terpisah wajib dikonfigurasi.');
   const folder=DriveApp.getFolderById(folderId);
-  if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE) throw new Error('Folder backup harus PRIVATE.');
+  assertMpsDriveFolderTreePrivate_(folder,'folder backup');
   const existing=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='createMpsScheduledBackup_');
   if(existing.length) return {ok:true,installed:false,message:'Trigger backup mingguan sudah ada.',count:existing.length};
   ScriptApp.newTrigger('createMpsScheduledBackup_').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(3).create();
@@ -1686,7 +1715,7 @@ function createMpsBackupSnapshotCore_() {
   if(!dbId || !folderId) throw new Error('MPS_SPREADSHEET_ID dan MPS_BACKUP_FOLDER_ID wajib diatur.');
   if(folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup tidak boleh sama dengan folder bukti deposit.');
   const folder=DriveApp.getFolderById(folderId);
-  if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE) throw new Error('Folder backup harus memiliki akses PRIVATE.');
+  assertMpsDriveFolderTreePrivate_(folder,'folder backup');
   const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
   const copy=DriveApp.getFileById(dbId).makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
   copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
@@ -1850,7 +1879,7 @@ function runMpsFullAcceptanceSuite() {
       'adminCredentialConfigured','superAdminCredentialConfigured',
       'adminTotpConfigured','superAdminTotpConfigured',
       'backupFolderConfigured','backupFolderReadable','spreadsheetReadable',
-      'legacySheetPresent','proofFolderReadable'
+      'legacySheetPresent','proofFolderReadable','proofFolderPrivate','backupFolderPrivate'
     ];
     const missing = required.filter(key => validation[key] !== true);
     if (validation.errors.length || missing.length ||
