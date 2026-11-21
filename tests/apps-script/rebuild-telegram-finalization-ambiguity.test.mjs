@@ -52,5 +52,5 @@ test('if reconciliation acknowledgement also fails, the update is not converted 
  const h=harness({finalizers:[new Error('first write timeout'),new Error('second write timeout')]});
  assert.throws(()=>h.run(),e=>e.code==='HANDLER_COMPLETED_FINALIZE_FAILED');
  assert.deepEqual(h.calls.map(x=>x.state),['COMPLETED','NEEDS_RECONCILIATION']);
- assert.doesNotContain(h.calls.map(x=>x.state),'FAILED');
+ assert.equal(h.calls.some(x=>x.state==='FAILED'),false);
 });
