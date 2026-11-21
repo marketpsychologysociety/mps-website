@@ -10,7 +10,7 @@ function extract(name,next){
   assert.ok(start>=0&&end>start,name+' source boundaries must exist');
   return source.slice(start,end);
 }
-const queueSource=extract('apiAdminProcessVipQueue','handleTelegramJoinRequest_');
+const queueSource=extract('apiAdminProcessVipQueue','revokeVipInvite_');
 const revokeSource=extract('revokeVipInvite_','createVipInvite_');
 const memberId='MPS-TEST-0001', userId='700001', chatId='700001', groupId='-1001234567890';
 function makeSheet(rows){
