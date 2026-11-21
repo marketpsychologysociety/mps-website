@@ -345,6 +345,7 @@ h3{font-family:Cinzel,Georgia,serif}
 <footer class="footer"><div class="wrap">MARKET PSYCHOLOGY SOCIETY • Trade responsibly. Learn continuously.</div></footer>
 <script>
 let adminSession='',memberSession='';
+// Navigation invariant: switching sections must never clear the in-memory Admin session. Only explicit adminLogout() may do that. Returning to Admin in the same tab restores the existing dashboard without another credential prompt.
 function go(id){if(id==='admin'&&typeof adminSession!=='undefined'&&adminSession){id='adminDashboard';}document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));window.scrollTo({top:0,behavior:'smooth'});}
 function formatRupiahDigits(value){const digits=String(value==null?'':value).replace(/[^0-9]/g,'');return digits?Number(digits).toLocaleString('id-ID'):'';}
 function bindRupiahInput(input){if(!input||input.dataset.rupiahBound==='1')return;input.dataset.rupiahBound='1';input.addEventListener('input',()=>{const position=input.selectionStart||input.value.length,digitsBefore=input.value.slice(0,position).replace(/[^0-9]/g,'').length;input.value=formatRupiahDigits(input.value);let cursor=0,count=0;while(cursor<input.value.length&&count<digitsBefore){if(/[0-9]/.test(input.value[cursor]))count++;cursor++;}try{input.setSelectionRange(cursor,cursor);}catch(_){}});input.addEventListener('blur',()=>{input.value=formatRupiahDigits(input.value);});}
