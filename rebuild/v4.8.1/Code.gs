@@ -81,6 +81,31 @@ function doPost(e) {
  * ScriptApp.getService().getUrl() can be empty in editor-triggered executions;
  * MPS_WEB_APP_URL is the explicit deployment URL fallback.
  */
+function requireDedicatedTestTelegramBot_() {
+  if(prop_('MPS_REBUILD_TEST_LABEL')!=='MPS-ISOLATED-TEST')
+    throw new Error('Telegram dinonaktifkan: project bukan project TEST terisolasi.');
+  const username=String(prop_('MPS_TELEGRAM_BOT_USERNAME')||'').trim().replace(/^@/,'');
+  if(!/(?:^|[^A-Za-z0-9])test(?:[^A-Za-z0-9]|$)/i.test(username))
+    throw new Error('Telegram hanya boleh memakai bot TEST khusus dengan username yang mengandung kata TEST. Jangan gunakan token bot MPS produksi.');
+  const token=String(prop_('MPS_TELEGRAM_BOT_TOKEN')||'').trim();
+  if(!token) throw new Error('Token bot Telegram TEST belum diatur.');
+  return token;
+}
+
+function assertDedicatedTestVipGroup_(groupId,token) {
+  if(!groupId) throw new Error('ID grup VIP TEST belum diatur.');
+  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChat',{
+    method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId}),muteHttpExceptions:true
+  });
+  const result=JSON.parse(response.getContentText()||'{}');
+  if(response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok || !result.result)
+    throw new Error('Grup Telegram TEST tidak dapat diverifikasi. Tidak ada invite atau perubahan keanggotaan yang dilakukan.');
+  const title=String(result.result.title||'');
+  if(!/(?:^|[^A-Za-z0-9])test(?:[^A-Za-z0-9]|$)/i.test(title))
+    throw new Error('Aksi VIP hanya boleh memakai grup Telegram TEST dengan nama yang mengandung kata TEST. Grup produksi ditolak.');
+  return true;
+}
+
 function getMpsTelegramWebhookDeploymentUrl_() {
   const configured=prop_('MPS_WEB_APP_URL').trim();
   const serviceUrl=String(ScriptApp.getService().getUrl()||'').trim();
@@ -97,7 +122,7 @@ function getMpsTelegramWebhookDeploymentUrl_() {
  */
 function installMpsTelegramWebhook_() {
   requireOwnerContext_();
-  const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+  const token=requireDedicatedTestTelegramBot_();
   const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
   const secret=prop_('MPS_TELEGRAM_WEBHOOK_SECRET').trim();
   if(!token || !username || !secret) throw new Error('Script Properties token, username, dan webhook secret wajib lengkap.');
@@ -139,7 +164,7 @@ function installMpsTelegramWebhook_() {
  */
 function runMpsTelegramTestWebhookStatus_() {
   requireOwnerContext_();
-  const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+  const token=requireDedicatedTestTelegramBot_();
   const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
   const secret=prop_('MPS_TELEGRAM_WEBHOOK_SECRET').trim();
   if(!token || !username || !secret)
@@ -188,9 +213,8 @@ function runMpsTelegramTestWebhookStatus_() {
  */
 function runMpsTelegramTestPollingSetup_() {
   requireOwnerContext_();
-  const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+  const token=requireDedicatedTestTelegramBot_();
   const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
-  if(!token || !username) throw new Error('Token dan username bot TEST wajib lengkap.');
   const api='https://api.telegram.org/bot'+token+'/';
   const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
   const me=JSON.parse(meResponse.getContentText()||'{}');
@@ -230,9 +254,8 @@ function pollMpsTelegramTestUpdates_() {
   const lock=LockService.getUserLock();
   if(!lock.tryLock(1000)) return {ok:true,skipped:'POLL_ALREADY_RUNNING'};
   try {
-    const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+    const token=requireDedicatedTestTelegramBot_();
     const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
-    if(!token || !username) throw new Error('Konfigurasi bot TEST belum lengkap.');
     const api='https://api.telegram.org/bot'+token+'/';
     const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
     const me=JSON.parse(meResponse.getContentText()||'{}');
@@ -1728,8 +1751,9 @@ function apiAdminProcessVipQueue(session) {
   return {ok:true,processed:results.length,results:results};
 }
 function revokeVipInvite_(groupId,inviteLink) {
-  const token=prop_('MPS_TELEGRAM_BOT_TOKEN');
-  if(!token || !groupId || !inviteLink) return false;
+  if(!groupId || !inviteLink) return false;
+  const token=requireDedicatedTestTelegramBot_();
+  assertDedicatedTestVipGroup_(groupId,token);
   const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{
     method:'post',contentType:'application/json',
     payload:JSON.stringify({chat_id:groupId,invite_link:inviteLink}),
@@ -1742,8 +1766,9 @@ function revokeVipInvite_(groupId,inviteLink) {
 }
 
 function createVipInvite_(groupId,userId) {
-  const token = prop_('MPS_TELEGRAM_BOT_TOKEN');
-  if (!token || !groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
+  if (!groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
+  const token=requireDedicatedTestTelegramBot_();
+  assertDedicatedTestVipGroup_(groupId,token);
   const payload = {chat_id:groupId,creates_join_request:true,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
   const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
     method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
@@ -1787,8 +1812,8 @@ function handleTelegramJoinRequest_(request) {
 }
 
 function telegramJoinRequestAction_(method,groupId,userId) {
-  const token=prop_('MPS_TELEGRAM_BOT_TOKEN');
-  if (!token) throw new Error('TELEGRAM_BOT_TOKEN_NOT_CONFIGURED');
+  const token=requireDedicatedTestTelegramBot_();
+  assertDedicatedTestVipGroup_(groupId,token);
   const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/'+method,{
     method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
   });
@@ -1920,8 +1945,8 @@ function apiGetPublicVipTicker() {
 }
 
 function sendTelegramMessage_(chatId, messageText) {
-  const token = prop_('MPS_TELEGRAM_BOT_TOKEN');
-  if (!token || !chatId) return false;
+  if (!prop_('MPS_TELEGRAM_BOT_TOKEN') || !chatId) return false;
+  const token=requireDedicatedTestTelegramBot_();
   const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
     method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:chatId,text:String(messageText).slice(0,3500)}),
     muteHttpExceptions:true
