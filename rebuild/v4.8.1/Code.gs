@@ -1931,86 +1931,155 @@ function enqueueVipInvite_(memberId,applicationRef,telegramUserId,chatId) {
 }
 
 /** Admin-triggered worker; safe to retry because an intent is unique per member. */
+/** Decide whether a VIP queue row is safe to process, wait, or reconcile. */
+function vipQueueDecision_(state,attempts,nextAttemptAt,updatedAt,nowMs) {
+  const s=String(state||''),n=Number(attempts||0);
+  const timeMs=value=>value instanceof Date?value.getTime():new Date(value).getTime();
+  const updated=timeMs(updatedAt),next=timeMs(nextAttemptAt);
+  const stale=Number.isFinite(updated)&&updated<nowMs-10*60*1000;
+  if(['PROCESSING','CREATING_INVITE'].includes(s) && stale)
+    return {action:'MARK_UNKNOWN',status:'NEEDS_RECONCILIATION',code:'INVITE_CREATE_OUTCOME_UNKNOWN'};
+  if(s==='DELIVERING' && stale)
+    return {action:'MARK_UNKNOWN',status:'DELIVERY_UNKNOWN',code:'MESSAGE_DELIVERY_OUTCOME_UNKNOWN'};
+  if(['NEEDS_RECONCILIATION','DELIVERY_UNKNOWN','SENT'].includes(s)) {
+    if(!Number.isFinite(updated)||updated>nowMs-48*60*60*1000) return {action:'WAIT'};
+    if(n>=5) return {action:'DEAD_LETTER',status:'DEAD_LETTER',code:'MAX_ATTEMPTS_REACHED'};
+    return {action:'PROCESS'};
+  }
+  if(s==='PENDING') return n>=5?{action:'DEAD_LETTER',status:'DEAD_LETTER',code:'MAX_ATTEMPTS_REACHED'}:{action:'PROCESS'};
+  if(s==='RETRY') {
+    if(n>=5) return {action:'DEAD_LETTER',status:'DEAD_LETTER',code:'MAX_ATTEMPTS_REACHED'};
+    if(Number.isFinite(next)&&next>nowMs) return {action:'WAIT'};
+    return {action:'PROCESS'};
+  }
+  return {action:'SKIP'};
+}
+
+function vipQueueRecordFailure_(queue,row,attempts,status,errorCode,nowMs) {
+  const count=Number(attempts||0)+1;
+  let finalStatus=status,nextAt='';
+  if(status==='RETRY' && count>=5) {finalStatus='DEAD_LETTER';errorCode='MAX_ATTEMPTS_REACHED';}
+  else if(finalStatus==='RETRY') {
+    const delay=Math.min(6*60*60*1000,5*60*1000*Math.pow(2,Math.max(0,count-1)));
+    nextAt=new Date(nowMs+delay);
+  }
+  queue.getRange(row,8).setValue(finalStatus);
+  queue.getRange(row,9).setValue(count);
+  if(nextAt) queue.getRange(row,10).setValue(nextAt); else queue.getRange(row,10).clearContent();
+  queue.getRange(row,11).clearContent();
+  queue.getRange(row,12).setValue(String(errorCode||'VIP_DELIVERY_FAILED').slice(0,80));
+  queue.getRange(row,14).setValue(new Date(nowMs));
+  return {status:finalStatus,attempts:count,nextAttemptAt:nextAt?nextAt.toISOString():''};
+}
+
+/** Admin-triggered worker with bounded retries and explicit remote-outcome reconciliation. */
 function apiAdminProcessVipQueue(session) {
   const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
-  const queue=sheet_('queue'), results=[], all=rows_(queue), now=Date.now();
-  const inviteLifetimeMs=48*60*60*1000;
-  for(let i=0;i<all.length && results.length<5;i++) {
-    const r=all[i], row=i+2, state=String(r[7]||'');
-    const updatedAtMs=r[13] instanceof Date?r[13].getTime():new Date(r[13]).getTime();
-    const staleProcessing=state==='PROCESSING' && (!Number.isFinite(updatedAtMs) || updatedAtMs<now-10*60*1000);
-    const sentInviteExpired=state==='SENT' && (!Number.isFinite(updatedAtMs) || updatedAtMs<=now-inviteLifetimeMs);
-    if(!['PENDING','RETRY'].includes(state) && !staleProcessing && !sentInviteExpired) continue;
-    const lock=LockService.getScriptLock();
-    lock.waitLock(10000);
-    let claimed=false, current, claimState='';
+  const queue=sheet_('queue'),results=[],all=rows_(queue),now=Date.now();
+  const leaseMs=10*60*1000;
+  for(let i=0;i<all.length && results.length<10;i++) {
+    const r=all[i],row=i+2;
+    let decision=vipQueueDecision_(r[7],r[8],r[9],r[13],Date.now());
+    if(decision.action==='SKIP'||decision.action==='WAIT') continue;
+    const lock=LockService.getScriptLock();lock.waitLock(10000);
+    let claimed=false,claimState='',attempts=0;
     try {
-      current=String(queue.getRange(row,8).getDisplayValue()||'');
-      const updated=queue.getRange(row,14).getValue();
-      const updatedMs=updated instanceof Date?updated.getTime():new Date(updated).getTime();
-      const stale=current==='PROCESSING' && (!Number.isFinite(updatedMs) || updatedMs<Date.now()-10*60*1000);
-      const expiredSent=current==='SENT' && (!Number.isFinite(updatedMs) || updatedMs<=Date.now()-inviteLifetimeMs);
-      if(current==='PENDING' || current==='RETRY' || stale || expiredSent) {
+      const current=String(queue.getRange(row,8).getDisplayValue()||'');
+      attempts=Number(queue.getRange(row,9).getValue()||0);
+      const next=queue.getRange(row,10).getValue(),updated=queue.getRange(row,14).getValue();
+      decision=vipQueueDecision_(current,attempts,next,updated,Date.now());
+      if(decision.action==='MARK_UNKNOWN'||decision.action==='DEAD_LETTER') {
+        queue.getRange(row,8).setValue(decision.status);
+        queue.getRange(row,11).clearContent();
+        queue.getRange(row,12).setValue(decision.code);
+        queue.getRange(row,14).setValue(new Date());
+        results.push({intent:String(queue.getRange(row,2).getValue()||''),status:decision.status});
+      } else if(decision.action==='PROCESS') {
         claimState=current;
-        queue.getRange(row,8).setValue('PROCESSING');
+        queue.getRange(row,8).setValue('CREATING_INVITE');
+        queue.getRange(row,11).setValue(new Date(Date.now()+leaseMs));
         queue.getRange(row,14).setValue(new Date());
         claimed=true;
       }
-    } finally { lock.releaseLock(); }
+    } finally {lock.releaseLock();}
     if(!claimed) continue;
-    let newInvite='';
+
+    let newInvite='',phase='CREATING_INVITE',deliveryConfirmed=false;
+    const intent=String(r[1]||'');
     try {
-      const memberId=String(r[1]||'').replace('VIP_INVITE:','');
+      const memberId=intent.replace(/^VIP_INVITE:/,'');
       const appRow=findRow_(sheet_('applications'),9,memberId);
       const app=appRow?sheet_('applications').getRange(appRow,1,1,15).getValues()[0]:null;
       const chatId=app?String(app[12]||''):'';
       const groupId=String(r[3]||prop_('MPS_VIP_GROUP_ID'));
-      if(!app || app[7]!=='Disetujui' || !app[8] || !chatId || String(app[11]||'')!==String(r[4]||''))
+      if(!app||app[7]!=='Disetujui'||!app[8]||!chatId||String(app[11]||'')!==String(r[4]||''))
         throw new Error('APPROVED_MEMBER_TELEGRAM_BINDING_NOT_VALID');
-      const legacy=legacySheet_(), legacyRow=findRow_(legacy,1,memberId);
-      if(!legacyRow || legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil')
+      const legacy=legacySheet_(),legacyRow=findRow_(legacy,1,memberId);
+      if(!legacyRow||legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil')
         throw new Error('LEGACY_MEMBER_RECORD_NOT_ACTIVE');
       assertMembershipEntitlement_(memberId);
-      const alreadyJoined=rows_(sheet_('vip')).some(ev=>
-        String(ev[1]||'')===memberId && ev[3]==='JOINED' &&
-        (ev[6]===true || String(ev[6]).toLowerCase()==='true') &&
-        (ev[7]===true || String(ev[7]).toLowerCase()==='true')
-      );
+      const alreadyJoined=rows_(sheet_('vip')).some(ev=>String(ev[1]||'')===memberId&&ev[3]==='JOINED'&&
+        (ev[6]===true||String(ev[6]).toLowerCase()==='true')&&(ev[7]===true||String(ev[7]).toLowerCase()==='true'));
       if(alreadyJoined) {
-        queue.getRange(row,8).setValue('JOINED');
-        queue.getRange(row,12).setValue('');
-        queue.getRange(row,14).setValue(new Date());
-        results.push({intent:r[1],status:'JOINED_ALREADY'});
-        continue;
+        queue.getRange(row,8).setValue('JOINED');queue.getRange(row,10).clearContent();queue.getRange(row,11).clearContent();
+        queue.getRange(row,12).clearContent();queue.getRange(row,14).setValue(new Date());
+        results.push({intent:intent,status:'JOINED_ALREADY'});continue;
       }
-      const oldInvite=String(queue.getRange(row,6).getDisplayValue()||'');
-      // Always create a fresh 48-hour link for retries and expired SENT tasks.
-      // The prior link is revoked best-effort after the replacement is created.
       newInvite=createVipInvite_(groupId,String(r[4]||''));
-      if(oldInvite && oldInvite!==newInvite) {
-        try { revokeVipInvite_(groupId,oldInvite); }
-        catch(revokeError) { audit_('SYSTEM','', 'VIP_OLD_INVITE_REVOKE_FAILED',r[1],'WARNING','Old invite could not be revoked; join requests remain bound to the expected Telegram user.'); }
-      }
+      // Persist the remote invite before sending it. If delivery times out, the
+      // exact invite remains available for manual reconciliation and is not revoked.
       queue.getRange(row,6).setValue(newInvite);
+      queue.getRange(row,8).setValue('DELIVERING');
+      queue.getRange(row,11).setValue(new Date(Date.now()+leaseMs));
+      queue.getRange(row,14).setValue(new Date());
+      phase='DELIVERING';
       const delivered=sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, memerlukan persetujuan bot): '+newInvite);
       if(!delivered) throw new Error('VIP_TELEGRAM_DELIVERY_NOT_CONFIGURED');
+      deliveryConfirmed=true;
       queue.getRange(row,8).setValue('SENT');
-      queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
-      queue.getRange(row,12).setValue('');
+      queue.getRange(row,9).setValue(attempts+1);
+      queue.getRange(row,10).clearContent();
+      queue.getRange(row,11).clearContent();
+      queue.getRange(row,12).clearContent();
       queue.getRange(row,14).setValue(new Date());
-      results.push({intent:r[1],status:claimState==='SENT'?'REISSUED':'SENT'});
-      audit_(actor.role,actor.actorId,claimState==='SENT'?'VIP_INVITE_REISSUED':'VIP_INVITE_SENT',r[1],'SUCCESS','Fresh 48-hour invite issued.');
+      results.push({intent:intent,status:claimState==='SENT'||claimState==='NEEDS_RECONCILIATION'||claimState==='DELIVERY_UNKNOWN'?'REISSUED':'SENT'});
+      try {audit_(actor.role,actor.actorId,claimState==='SENT'?'VIP_INVITE_REISSUED':'VIP_INVITE_SENT',intent,'SUCCESS','Fresh 48-hour invite issued.');}
+      catch(auditError){console.warn('VIP_INVITE_AUDIT_DEFERRED '+String(auditError&&auditError.message||auditError));}
     } catch(err) {
-      if(newInvite) {
-        try { revokeVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),newInvite); }
-        catch(revokeError) { audit_('SYSTEM','', 'VIP_NEW_INVITE_REVOKE_FAILED',r[1],'WARNING','Failed delivery left a fresh invite requiring reconciliation.'); }
+      let storedState='';
+      try {storedState=String(queue.getRange(row,8).getDisplayValue()||'');} catch(_){}
+      if(deliveryConfirmed||storedState==='SENT') {
+        // The remote message is known delivered. Never revoke or resend merely
+        // because a later local acknowledgement/audit write failed.
+        try {queue.getRange(row,8).setValue('SENT');queue.getRange(row,11).clearContent();queue.getRange(row,14).setValue(new Date());} catch(_){}
+        results.push({intent:intent,status:'SENT_RECONCILED'});
+      } else if(err&&err.ambiguousRemoteOutcome) {
+        const unknownState=phase==='DELIVERING'?'DELIVERY_UNKNOWN':'NEEDS_RECONCILIATION';
+        try {
+          queue.getRange(row,8).setValue(unknownState);queue.getRange(row,11).clearContent();
+          queue.getRange(row,12).setValue(String(err.code||'REMOTE_OUTCOME_UNKNOWN').slice(0,80));
+          queue.getRange(row,14).setValue(new Date());
+        } catch(writeErr){console.error('VIP_QUEUE_UNKNOWN_STATE_WRITE_FAILED '+String(writeErr&&writeErr.message||writeErr));}
+        results.push({intent:intent,status:unknownState});
+      } else if(newInvite) {
+        try {
+          revokeVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),newInvite);
+          const failure=vipQueueRecordFailure_(queue,row,attempts,'RETRY',String(err&&err.code||err&&err.message||'VIP_DELIVERY_FAILED'),Date.now());
+          results.push({intent:intent,status:failure.status,nextAttemptAt:failure.nextAttemptAt});
+        } catch(revokeError) {
+          try {
+            queue.getRange(row,8).setValue('NEEDS_RECONCILIATION');queue.getRange(row,11).clearContent();
+            queue.getRange(row,12).setValue(String(revokeError.code||'INVITE_REVOKE_OUTCOME_UNKNOWN').slice(0,80));
+            queue.getRange(row,14).setValue(new Date());
+          } catch(_){}
+          results.push({intent:intent,status:'NEEDS_RECONCILIATION'});
+        }
+      } else {
+        const failure=vipQueueRecordFailure_(queue,row,attempts,'RETRY',String(err&&err.code||err&&err.message||'VIP_DELIVERY_FAILED'),Date.now());
+        results.push({intent:intent,status:failure.status,nextAttemptAt:failure.nextAttemptAt});
       }
-      queue.getRange(row,8).setValue('RETRY');
-      queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
-      queue.getRange(row,12).setValue(String(err.message||'VIP_DELIVERY_FAILED').slice(0,80));
-      queue.getRange(row,14).setValue(new Date());
-      results.push({intent:r[1],status:'RETRY'});
-      audit_(actor.role,actor.actorId,'VIP_INVITE_FAILED',r[1],'WARNING',String(err.message||'').slice(0,160));
+      try {audit_(actor.role,actor.actorId,'VIP_INVITE_FAILED',intent,'WARNING',String(err&&err.code||err&&err.message||'').slice(0,160));}
+      catch(auditError){console.warn('VIP_INVITE_FAILURE_AUDIT_DEFERRED '+String(auditError&&auditError.message||auditError));}
     }
   }
   return {ok:true,processed:results.length,results:results};
