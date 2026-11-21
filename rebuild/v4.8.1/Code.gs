@@ -2024,6 +2024,11 @@ function verifyMpsBackupRestore_(backupFileId) {
     }).sort((a,b)=>a.name.localeCompare(b.name));
   };
   const sourceFingerprint=fingerprint(sourceSs);
+  // Validate the timestamped backup itself before creating another Drive copy.
+  // This catches corrupt/oversized snapshots without leaving a new artifact.
+  const backupFingerprint=fingerprint(SpreadsheetApp.openById(backupFile.getId()));
+  if(JSON.stringify(backupFingerprint)!==JSON.stringify(sourceFingerprint))
+    throw new Error('RESTORE_DRILL_BACKUP_CONTENT_MISMATCH');
   let drillCopy=null,cleanupError='';
   try {
     const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
