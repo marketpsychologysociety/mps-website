@@ -62,6 +62,12 @@ test('Admin renewal approval is idempotent, proof-verified, atomic and preserves
  assert.match(review,/Menunggu Validasi/);
  assert.match(review,/decision==='APPROVE'/);
  assert.match(review,/assertMpsDriveFolderTreePrivate_/);
+ assert.match(review,/paymentDateValue=new Date\(paymentDate\+'T00:00:00\+07:00'\)/);
+ assert.match(review,/Utilities\.formatDate\(paymentDateValue,MPS\.TZ,'yyyy-MM-dd'\)/);
+ assert.match(review,/proof\.getMimeType\(\)/);
+ assert.match(review,/proof\.getSize\(\)/);
+ assert.match(review,/proof\.getBlob\(\)\.getBytes\(\)/);
+ assert.match(review,/isAllowedImageBytes_\(proofBytes,proofMime\)/);
  assert.match(review,/ledgerSnapshot\[2\].*REGULAR/);
  assert.match(review,/calculateRenewalPeriod_\(ledgerSnapshot\[5\],now\.getTime\(\)\)/);
  assert.match(review,/ledger\.getRange\(ledgerRow,4\)\.setValue\('Aktif'\)/);
@@ -88,4 +94,12 @@ test('member UI offers renewal and Admin UI can review it even with no initial a
  assert.match(html,/apiAdminListRenewals/);
  assert.match(html,/apiAdminReviewRenewal/);
  assert.match(html,/await loadAdminRenewals\(\);if\(!items\.length\)/);
+});
+
+test('renewal auditWarning reflects actual append success or failure',()=>{
+ const audit=body('audit_');
+ assert.match(audit,/return true/);
+ assert.match(audit,/return false/);
+ assert.match(body('apiSubmitMemberRenewal'),/const auditWarning=!audit_\(/);
+ assert.match(body('apiAdminReviewRenewal'),/const auditWarning=!audit_\(/);
 });

@@ -893,9 +893,7 @@ function apiSubmitMemberRenewal(session,input) {
         failure.preserveProofFile=true;throw failure;
       }
     }
-    let auditWarning=false;
-    try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Fixed QRIS fee Rp100000; proof stored privately.');}
-    catch(_){auditWarning=true;}
+    const auditWarning=!audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Fixed QRIS fee Rp100000; proof stored privately.');
     return {ok:true,renewalRef:renewalRef,status:'Menunggu Validasi',auditWarning:auditWarning};
   } finally {lock.releaseLock();}
 }
@@ -928,9 +926,22 @@ function apiAdminReviewRenewal(session,renewalRef,decision,note) {
     if(String(renewal[6]||'')!=='Menunggu Validasi') throw new Error('Pengajuan perpanjangan sudah diproses atau tidak menunggu validasi.');
     if(decision==='APPROVE') {
       if(Number(renewal[3])!==100000 || !renewal[5]) throw new Error('Nominal atau bukti QRIS perpanjangan tidak valid.');
+      const paymentDate=String(renewal[4]||'');
+      if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(paymentDate))
+        throw new Error('Tanggal pembayaran perpanjangan tidak valid.');
+      const paymentDateValue=new Date(paymentDate+'T00:00:00+07:00');
+      if(isNaN(paymentDateValue.getTime()) || Utilities.formatDate(paymentDateValue,MPS.TZ,'yyyy-MM-dd')!==paymentDate || paymentDateValue.getTime()>Date.now()+86400000)
+        throw new Error('Tanggal pembayaran perpanjangan tidak valid.');
       const proof=DriveApp.getFileById(String(renewal[5]));
       if(proof.isTrashed() || proof.getSharingAccess()!==DriveApp.Access.PRIVATE)
         throw new Error('Bukti QRIS perpanjangan tidak tersedia atau tidak privat.');
+      const proofMime=String(proof.getMimeType()||'');
+      const proofSize=Number(proof.getSize()||0);
+      if(!['image/jpeg','image/png','image/webp'].includes(proofMime) || proofSize<(proofMime==='image/jpeg'?3:proofMime==='image/png'?8:12) || proofSize>5*1024*1024)
+        throw new Error('Format atau ukuran bukti QRIS perpanjangan tidak valid.');
+      const proofBytes=proof.getBlob().getBytes();
+      if(proofBytes.length!==proofSize || proofBytes.length>5*1024*1024 || !isAllowedImageBytes_(proofBytes,proofMime))
+        throw new Error('Isi file bukti QRIS perpanjangan tidak valid.');
       const folderId=prop_('MPS_PROOF_FOLDER_ID');
       if(!folderId) throw new Error('Folder bukti resmi belum dikonfigurasi.');
       assertMpsDriveFolderTreePrivate_(DriveApp.getFolderById(folderId),'folder bukti perpanjangan QRIS');
@@ -969,9 +980,7 @@ function apiAdminReviewRenewal(session,renewalRef,decision,note) {
       }
       throw error;
     }
-    let auditWarning=false;
-    try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_'+decision,ref,'SUCCESS',decision==='APPROVE'?'Member ID preserved; expiry extended 30 days.':'Renewal rejected.');}
-    catch(_){auditWarning=true;}
+    const auditWarning=!audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_'+decision,ref,'SUCCESS',decision==='APPROVE'?'Member ID preserved; expiry extended 30 days.':'Renewal rejected.');
     return {ok:true,status:decision==='APPROVE'?'Disetujui':'Ditolak',
       memberId:String(renewal[1]),periodStart:period?period.startAt.toISOString():'',
       expiresAt:period?period.endAt.toISOString():'',auditWarning:auditWarning};
@@ -2617,8 +2626,13 @@ function findRow_(sh,col,value) {
 }
 function rows_(sh) { return sh.getLastRow()<2 ? [] : sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues(); }
 function audit_(role,actor,action,target,outcome,details) {
-  try { sheet_('audit').appendRow([randomHex_(16),new Date(),role,actor,action,target,outcome,clean_(details,500)]); }
-  catch (e) { console.error('AUDIT_WRITE_FAILED '+String(e.message||e)); }
+  try {
+    sheet_('audit').appendRow([randomHex_(16),new Date(),role,actor,action,target,outcome,clean_(details,500)]);
+    return true;
+  } catch (e) {
+    console.error('AUDIT_WRITE_FAILED '+String(e.message||e));
+    return false;
+  }
 }
 function isAllowedImageBytes_(bytes,mime) {
   const u=i=>(bytes[i]||0)&255;
