@@ -2232,6 +2232,16 @@ function handleTelegramChatMember_(event) {
   }
 }
 
+function apiAdminListVipQueue(session) {
+  requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  return rows_(sheet_('queue')).map(r=>({
+    intent:String(r[1]||''),state:String(r[7]||''),attempts:Number(r[8]||0),
+    nextAttemptAt:r[9] instanceof Date?r[9].toISOString():String(r[9]||''),
+    lastErrorCode:String(r[11]||''),
+    updatedAt:r[13] instanceof Date?r[13].toISOString():String(r[13]||'')
+  })).reverse();
+}
+
 function apiAdminSystemHealth(session) {
   requireSession_(session,['ADMIN','SUPER_ADMIN']);
   const app=rows_(sheet_('applications')), queue=rows_(sheet_('queue')), journal=rows_(sheet_('journal'));
@@ -2241,8 +2251,11 @@ function apiAdminSystemHealth(session) {
     version:MPS.VERSION,checkedAt:new Date().toISOString(),
     applications:{total:app.length,pending:count(app,7,'Menunggu Pendaftaran')+count(app,7,'Deposit Dikirim')+count(app,7,'Menunggu Deposit')},
     memberRows:activeMembers,
-    vipQueue:{pending:count(queue,7,'PENDING'),processing:count(queue,7,'PROCESSING'),retry:count(queue,7,'RETRY'),sent:count(queue,7,'SENT'),joined:count(queue,7,'JOINED')},
-    telegram:{failedUpdates:count(journal,3,'FAILED'),processingUpdates:count(journal,3,'PROCESSING')},
+    vipQueue:{pending:count(queue,7,'PENDING'),processing:count(queue,7,'PROCESSING')+count(queue,7,'CREATING_INVITE')+count(queue,7,'DELIVERING'),
+      retry:count(queue,7,'RETRY'),sent:count(queue,7,'SENT'),joined:count(queue,7,'JOINED'),
+      needsReconciliation:count(queue,7,'NEEDS_RECONCILIATION'),deliveryUnknown:count(queue,7,'DELIVERY_UNKNOWN'),deadLetter:count(queue,7,'DEAD_LETTER')},
+    telegram:{failedUpdates:count(journal,3,'FAILED'),processingUpdates:count(journal,3,'PROCESSING'),
+      needsReconciliation:count(journal,3,'NEEDS_RECONCILIATION')},
     configuration:{telegramBot:!!prop_('MPS_TELEGRAM_BOT_TOKEN'),telegramBotUsername:!!prop_('MPS_TELEGRAM_BOT_USERNAME'),telegramAdminBackup:!!prop_('MPS_TELEGRAM_CHAT_ID'),telegramWebhook:!!prop_('MPS_TELEGRAM_WEBHOOK_SECRET'),vipGroup:!!prop_('MPS_VIP_GROUP_ID'),backupFolder:!!prop_('MPS_BACKUP_FOLDER_ID'),weeklyBackupTrigger:ScriptApp.getProjectTriggers().some(t=>t.getHandlerFunction()==='createMpsScheduledBackup_')},
     note:'Health summary only; no secrets, IDs, proof links, or member personal details are returned.'
   };
