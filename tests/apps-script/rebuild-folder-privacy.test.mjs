@@ -36,8 +36,8 @@ test('a missing or unreadable folder ancestry fails closed',()=>{
 
 test('cyclic or repeated parent references do not loop indefinitely',()=>{
   const a=folder('a','PRIVATE'),b=folder('b','PRIVATE');
-  a.getParents=()=>{let i=0;return{hasNext:()=>i<1,next:()=>b};};
-  b.getParents=()=>{let i=0;return{hasNext:()=>i<1,next:()=>a};};
+  a.getParents=()=>{let i=0;return{hasNext:()=>i<1,next:()=>{i++;return b;}};};
+  b.getParents=()=>{let i=0;return{hasNext:()=>i<1,next:()=>{i++;return a;}};};
   assert.equal(check(a),true);
 });
 
