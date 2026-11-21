@@ -1772,7 +1772,9 @@ function processTelegramUpdate_(update) {
     if (update.chat_join_request) handleTelegramJoinRequest_(update.chat_join_request);
     finalizeTelegramUpdate_(row,claimToken,'COMPLETED','');
   } catch (err) {
-    finalizeTelegramUpdate_(row,claimToken,'FAILED','PROCESSING_ERROR');
+    const state=err&&err.ambiguousRemoteOutcome?'NEEDS_RECONCILIATION':'FAILED';
+    const code=String(err&&err.code||'PROCESSING_ERROR').slice(0,80);
+    finalizeTelegramUpdate_(row,claimToken,state,code);
     throw err;
   }
 }
@@ -1805,8 +1807,21 @@ function apiAdminRetryTelegramFailures(session) {
   const now=Date.now();
   for(let i=0;i<all.length && results.length<10;i++) {
     const r=all[i], state=String(r[3]||'');
-    const stale=state==='PROCESSING' && new Date(r[5]).getTime()<now-10*60*1000;
-    if(state!=='FAILED' && !stale) continue;
+    const lastAttempt=r[5] instanceof Date?r[5].getTime():new Date(r[5]).getTime();
+    const stale=state==='PROCESSING' && (!Number.isFinite(lastAttempt)||lastAttempt<now-10*60*1000);
+    if(stale) {
+      sh.getRange(i+2,4).setValue('NEEDS_RECONCILIATION');
+      sh.getRange(i+2,12).setValue('STALE_UPDATE_OUTCOME_UNKNOWN');
+      results.push({updateId:String(r[0]),status:'NEEDS_RECONCILIATION'});
+      continue;
+    }
+    if(state!=='FAILED') continue;
+    if(!r[11]||String(r[11])==='PROCESSING_ERROR'||String(r[11])==='REMOTE_OUTCOME_UNKNOWN') {
+      sh.getRange(i+2,4).setValue('NEEDS_RECONCILIATION');
+      sh.getRange(i+2,12).setValue('LEGACY_FAILURE_REQUIRES_RECONCILIATION');
+      results.push({updateId:String(r[0]),status:'NEEDS_RECONCILIATION'});
+      continue;
+    }
     const raw=String(r[12]||'');
     if(!raw) { sh.getRange(i+2,12).setValue('PAYLOAD_MISSING'); continue; }
     if (/^\/start(?:@\w+)?\s+\[REDACTED\]$/.test(String((()=>{try{return JSON.parse(raw).message?.text||''}catch(_){return ''}})()))) {
@@ -2092,7 +2107,7 @@ function apiAdminProcessVipQueue(session) {
 }
 function revokeVipInvite_(groupId,inviteLink) {
   if(!groupId || !inviteLink) return false;
-  const token=requireDedicatedTestBot_();
+  const token=requireDedicatedTestTelegramBot_();
   assertDedicatedTestVipGroup_(groupId,token);
   let response;
   try {
