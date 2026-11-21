@@ -25,7 +25,7 @@ function harness(rows,now=Date.now(),lastPrune=''){
   const sh={
     getLastRow:()=>rows.length+1,
     getRange:(row,col,nr,nc)=>({getDisplayValues:()=>rows.slice(row-2,row-2+nr).map(r=>r.slice(col-1,col-1+nc))}),
-    deleteRow:row=>{deleted.push(row);rows.splice(row-2,1);}
+    getRange:(row,col,nr,nc)=>({clearContent:()=>{deleted.push(row);rows[row-2]=Array(7).fill('');}})
   };
   const context={
     PropertiesService:{getScriptProperties:()=>({getProperty:k=>properties.get(k)||null,setProperty:(k,v)=>properties.set(k,String(v))})},
@@ -89,7 +89,7 @@ test('session pruning removes only expired or revoked sessions older than 30 day
   const h=harness(rows,now),result=h.run();
   assert.equal(result.deleted,2);
   assert.deepEqual(h.deleted,[5,2]);
-  assert.deepEqual(h.rows.map(r=>r[0]),['hash-b','hash-c','hash-e']);
+  assert.deepEqual(h.rows.map(r=>r[0]),['','','hash-c','','hash-e']);
 });
 test('daily pruning is skipped and does not touch any session rows',()=>{
   const now=Date.now(),rows=[['hash','MEMBER','A',String(now),String(now+DAY),String(now),'']];
@@ -110,9 +110,9 @@ test('pruning fails safe for malformed timestamps and does not delete active ses
 test('prune marker is not advanced when a row deletion fails',()=>{
   const now=Date.now(),old=now-31*DAY,properties=new Map();
   const rows=[['old','MEMBER','A',String(old),String(old),'', '']];
-  const sh={getLastRow:()=>2,getRange:()=>({getDisplayValues:()=>[[String(old),String(old),'','']]}),deleteRow:()=>{throw new Error('delete failed');}};
+  const sh={getLastRow:()=>2,getRange:()=>({getDisplayValues:()=>[[String(old),String(old),'','']]}),getRange:()=>({clearContent:()=>{throw new Error('clear failed');}})};
   const context={PropertiesService:{getScriptProperties:()=>({getProperty:k=>properties.get(k)||null,setProperty:(k,v)=>properties.set(k,String(v))})},sessionTimeMs_:sessionMs};
   vm.createContext(context);vm.runInContext(extract('pruneExpiredSessionsLocked_'),context,{timeout:1000});
-  assert.throws(()=>context.pruneExpiredSessionsLocked_(sh,now),/delete failed/);
+  assert.throws(()=>context.pruneExpiredSessionsLocked_(sh,now),/clear failed/);
   assert.equal(properties.has('MPS_SESSIONS_LAST_PRUNE_AT'),false);
 });
