@@ -34,8 +34,45 @@ function harness(rows,now=Date.now(),lastPrune=''){
   vm.createContext(context);vm.runInContext(extract('pruneExpiredSessionsLocked_'),context,{timeout:1000});
   return{run:()=>context.pruneExpiredSessionsLocked_(sh,now),rows,deleted,properties};
 }
-const DAY=86400000;
-test('member PIN throttling is aggregate, not keyed by a victim Member ID',()=>{
+
+function limiterHarness(){
+  const cache=new Map(),stats={lock:0,release:0,audit:0};
+  const context={
+    CacheService:{getScriptCache:()=>({get:k=>cache.get(k)||null,put:(k,v)=>cache.set(k,String(v))})},
+    LockService:{getScriptLock:()=>({waitLock:()=>{stats.lock++;},releaseLock:()=>{stats.release++;}})},
+    sha256_:v=>'HASH'+String(v),
+    audit_:()=>{stats.audit++;},
+    console
+  };
+  vm.createContext(context);vm.runInContext(extract('enforceRateLimit_'),context,{timeout:1000});
+  return{run:(...args)=>context.enforceRateLimit_(...args),cache,stats};
+}
+\nconst DAY=86400000;
+
+test('aggregate member-login limiter shares one bucket across all Member IDs and releases its lock',()=>{
+  const h=limiterHarness();
+  h.run('member-login','global',2,60);
+  h.run('member-login','global',2,60);
+  assert.throws(()=>h.run('member-login','global',2,60),/Terlalu banyak percobaan/);
+  assert.equal(h.cache.size,1);
+  assert.equal(h.stats.lock,3);
+  assert.equal(h.stats.release,3);
+  assert.equal(h.stats.audit,0,'blocked member login attempts must not amplify into audit-sheet writes');
+});
+test('other rate-limited actions retain their existing audit behavior',()=>{
+  const h=limiterHarness();
+  h.run('admin-login','global',1,60);
+  assert.throws(()=>h.run('admin-login','global',1,60),/Terlalu banyak percobaan/);
+  assert.equal(h.stats.audit,1);
+});
+test('session cleanup is invoked while createSession holds its script lock and cleanup failure is non-fatal',()=>{
+  const start=source.indexOf('function createSession_('),end=source.indexOf('\\nfunction ',start+1);
+  const body=source.slice(start,end);
+  assert.ok(body.indexOf('lock.waitLock(10000)')<body.indexOf('pruneExpiredSessionsLocked_'));
+  assert.match(body,/try \{ pruneExpiredSessionsLocked_\(sh,nowMs\); \}[\\s\\S]*catch \(pruneError\)/);
+  assert.ok(body.indexOf('pruneExpiredSessionsLocked_')<body.indexOf('lock.releaseLock()'));
+});
+\ntest('member PIN throttling is aggregate, not keyed by a victim Member ID',()=>{
   assert.match(source,/enforceRateLimit_\('member-login', 'global', 1200, 60\)/);
   assert.doesNotMatch(source,/enforceRateLimit_\('member-login', id \|\| 'invalid'/);
   assert.match(source,/if \(scope !== 'member-login'\) audit_/);
