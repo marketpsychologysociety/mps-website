@@ -6,6 +6,14 @@
  * This routine does not open a spreadsheet, create sheets, write cells,
  * change formatting, or read member rows. It reads header rows and row counts only.
  */
+const MPS_READONLY_LEGACY_MEMBER_HEADERS = Object.freeze([
+  'ID Member','Waktu Daftar','Nama Panggilan','Username Telegram',
+  'Negara','Tujuan Bergabung','Catatan Member','Status Pendaftaran',
+  'Nama Sesuai Akun','Login MT5','Jenis Akun','Deposit Pertama (IDR)',
+  'Tanggal Deposit','Link Bukti Deposit','Status Verifikasi Deposit',
+  'Catatan Admin','Waktu Konfirmasi','Terakhir Diperbarui'
+]);
+
 const MPS_READONLY_SCHEMA = Object.freeze({
   'Database Member': Object.freeze([
     'ID Member','Waktu Daftar','Nama Panggilan','Username Telegram',
@@ -62,19 +70,34 @@ function mpsInspectSchemaReadOnly_(spreadsheet) {
     const actual = lastRow > 0 && lastColumn > 0
       ? sheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0]
       : [];
+    const isMemberSheet = name === 'Database Member';
+    const legacyMatch = isMemberSheet &&
+      actual.length === MPS_READONLY_LEGACY_MEMBER_HEADERS.length &&
+      JSON.stringify(actual) === JSON.stringify(MPS_READONLY_LEGACY_MEMBER_HEADERS);
+    const extendedMatch = isMemberSheet &&
+      actual.length === expected.length &&
+      JSON.stringify(actual) === JSON.stringify(expected);
     let mismatch = null;
-    const compareCount = Math.max(expected.length, actual.length);
-    for (let i = 0; i < compareCount; i++) {
-      if (String(actual[i] == null ? '' : actual[i]).trim() !==
-          String(expected[i] == null ? '' : expected[i])) {
-        mismatch = i + 1;
-        break;
+    if (isMemberSheet && (legacyMatch || extendedMatch)) {
+      mismatch = null;
+    } else {
+      const compareCount = Math.max(expected.length, actual.length);
+      for (let i = 0; i < compareCount; i++) {
+        if (String(actual[i] == null ? '' : actual[i]).trim() !==
+            String(expected[i] == null ? '' : expected[i])) {
+          mismatch = i + 1;
+          break;
+        }
       }
     }
     report.sheets.push({
       name: name,
       status: actual.length === 0 ? 'EMPTY' :
         (mismatch === null ? 'MATCH' : 'MISMATCH'),
+      schemaVersion: isMemberSheet
+        ? (legacyMatch ? 'legacy-18' : extendedMatch ? 'v4.8-30' : 'UNKNOWN')
+        : null,
+      acceptedHeaderCounts: isMemberSheet ? [18, 30] : [expected.length],
       expectedHeaders: expected.length,
       actualHeaders: actual.length,
       lastRow: lastRow,
