@@ -3054,3 +3054,35 @@ body:has(.mps-home-hero) .mps-route-step p{
   body:has(.mps-home-hero) .mps-home-feature{transition:none!important}
   body:has(.mps-home-hero) .mps-home-feature:hover{transform:none!important}
 }
+
+
+/* MPS session clock board — additive styles; existing brand marks remain untouched. */
+.mps-session-board{position:relative;isolation:isolate;overflow:hidden;padding:34px 20px 28px;background:radial-gradient(ellipse at 50% 0,rgba(39,223,255,.09),transparent 60%),linear-gradient(145deg,#091224,#050914);border-bottom:1px solid rgba(39,223,255,.2)}
+.mps-session-heading{text-align:center;margin:0 auto 24px}
+.mps-session-heading h2{margin:6px 0;color:#27dfff;font:700 clamp(20px,3vw,30px) var(--head)}
+.mps-session-heading p,.mps-session-foot{color:#aebbd0;font-size:11px;text-align:center}
+.mps-session-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:900px;margin:auto}
+.mps-session-card{--session-color:#27dfff;position:relative;display:flex;align-items:center;flex-direction:column;gap:7px;padding:18px 12px;border:1px solid color-mix(in srgb,var(--session-color) 45%,transparent);border-radius:16px;background:linear-gradient(150deg,rgba(18,31,52,.94),rgba(5,9,20,.96));box-shadow:0 10px 35px rgba(0,0,0,.25),inset 0 0 22px color-mix(in srgb,var(--session-color) 8%,transparent)}
+.mps-session-card[data-color="magenta"]{--session-color:#ff4fd8}.mps-session-card[data-color="gold"]{--session-color:#f4bd45}
+.mps-session-ring{width:min(100%,190px);aspect-ratio:1;border-radius:50%;padding:7px;background:conic-gradient(from 0deg,var(--session-color),transparent 24%,var(--session-color) 52%,transparent 76%,var(--session-color));box-shadow:0 0 18px color-mix(in srgb,var(--session-color) 42%,transparent);animation:mps-ring-spin 18s linear infinite}
+.mps-session-face{height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(circle,#101d31,#060a14 70%);border:1px solid color-mix(in srgb,var(--session-color) 55%,transparent)}
+.mps-session-time{font:800 clamp(20px,3vw,29px)/1.2 var(--body);letter-spacing:1px;color:var(--session-color);font-variant-numeric:tabular-nums;text-shadow:0 0 14px color-mix(in srgb,var(--session-color) 50%,transparent)}
+.mps-session-face small{font-size:8px;letter-spacing:1.4px;color:#9aabc2;margin:5px 0}
+.mps-session-status{font-size:9px;letter-spacing:1px;color:#ff7777}
+.mps-session-card.is-open .mps-session-status{color:#7ef0c0}
+.mps-session-card>strong{font-size:12px;letter-spacing:1.2px;color:var(--session-color)}
+.mps-session-zone{font-size:10px;color:#9eabc0}
+.mps-session-foot{max-width:760px;margin:20px auto 0}
+.mps-clock-watermark{position:absolute;right:18px;bottom:12px;width:48px;height:48px;object-fit:contain;opacity:.12;pointer-events:none;filter:drop-shadow(0 0 8px #27dfff)}
+.mps-news-alarm{max-width:900px;margin:24px auto 0;display:flex;align-items:center;gap:15px;padding:16px 18px;border:1px solid #ff3434;border-radius:12px;background:linear-gradient(100deg,rgba(100,0,0,.5),rgba(28,5,12,.95));color:#fff;box-shadow:0 0 24px rgba(255,0,0,.24);animation:mps-alarm-flash 1s steps(2,end) infinite}
+.mps-news-alarm[hidden]{display:none}
+.mps-news-alarm>div{display:flex;flex-direction:column;gap:3px}
+.mps-news-alarm strong{font-size:10px;letter-spacing:1.5px;color:#ff6a6a}
+.mps-news-alarm b{font-size:15px}.mps-news-alarm span:not(.mps-alarm-beacon){font-size:12px;font-weight:800}
+.mps-news-alarm small{font-size:10px;color:#ffc2c2}
+.mps-alarm-beacon{width:15px;height:15px;flex:0 0 15px;border-radius:50%;background:#ff1717;box-shadow:0 0 0 5px rgba(255,20,20,.18),0 0 22px #f00}
+@keyframes mps-ring-spin{to{transform:rotate(360deg)}}
+@keyframes mps-alarm-flash{50%{border-color:#ffb0b0;box-shadow:0 0 32px rgba(255,0,0,.65)}}
+@media(max-width:650px){.mps-session-grid{grid-template-columns:1fr;max-width:290px}.mps-session-card{padding:14px}.mps-session-ring{width:168px}.mps-clock-watermark{width:34px;height:34px;right:10px;bottom:8px}}
+@media(prefers-reduced-motion:reduce){.mps-session-ring,.mps-news-alarm{animation:none}}
+@media print{.mps-print-guard body{visibility:hidden!important}.mps-print-guard body:after{content:'Materi MPS dilindungi';visibility:visible;position:fixed;inset:40% 0;text-align:center;font-size:28px;color:#555}}
