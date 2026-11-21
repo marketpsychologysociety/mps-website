@@ -24,7 +24,10 @@ function sheet(name,values,formulas=values.map(row=>row.map(()=>''))){
 }
 function harness({mismatch=false,backupMismatch=false,copyPrivacyFailure=false,cleanupFailure=false,outsideFolder=false,tooLarge=false}={}){
   const sourceSheets=[sheet('Database Member',[['ID Member','Status'],['MPS-TEST-0001','Berhasil']]),sheet('MPS Audit Logs',[['Event ID'],['EV-1']])];
-  const changedSheets=[sheet('Database Member',[['ID Member','Status'],['MPS-TEST-0001','Ditolak']]),sourceSheets[1]];\n  const backupSheets=backupMismatch?changedSheets:sourceSheets;\n  const restoredSheets=mismatch?changedSheets:sourceSheets;\n  const backupBook={getSheets:()=>backupSheets};
+  const changedSheets=[sheet('Database Member',[['ID Member','Status'],['MPS-TEST-0001','Ditolak']]),sourceSheets[1]];
+  const backupSheets=backupMismatch?changedSheets:sourceSheets;
+  const restoredSheets=mismatch?changedSheets:sourceSheets;
+  const backupBook={getSheets:()=>backupSheets};
   const sourceBook={getSheets:()=>sourceSheets};
   const restoredBook={getSheets:()=>tooLarge?[{...sheet('Huge',[]),getLastRow:()=>1001,getLastColumn:()=>101}]:restoredSheets};
   const state={copyCreated:false,copyTrashed:false,sharing:copyPrivacyFailure?'ANYONE':'PRIVATE',folder:'MPS TEST - Backup'};
