@@ -52,9 +52,16 @@ assert.ok(Object.values(all).every(s => s.calls.writes === 0), 'no write method 
 
 const legacy = { ...all, 'Database Member': makeSheet(expected['Database Member'].slice(0,18), 2) };
 report = inspect(makeSpreadsheet(legacy));
-assert.equal(report.ok, false);
+assert.equal(report.ok, true, 'exact legacy 18-column schema must be accepted');
+assert.equal(report.sheets.find(s => s.name === 'Database Member').status, 'MATCH');
+assert.equal(report.sheets.find(s => s.name === 'Database Member').schemaVersion, 'legacy-18');
+assert.equal(report.sheets.find(s => s.name === 'Database Member').actualHeaders, 18);
+
+const malformedMember = { ...all, 'Database Member': makeSheet(expected['Database Member'].slice(0,19), 2) };
+report = inspect(makeSpreadsheet(malformedMember));
+assert.equal(report.ok, false, 'partial extended schema must fail closed');
 assert.equal(report.sheets.find(s => s.name === 'Database Member').status, 'MISMATCH');
-assert.equal(report.sheets.find(s => s.name === 'Database Member').firstMismatchColumn, 19);
+assert.equal(report.sheets.find(s => s.name === 'Database Member').firstMismatchColumn, 20);
 
 const missing = { ...all };
 delete missing['MPS Applications'];
@@ -68,4 +75,4 @@ assert.equal(report.sheets.find(s => s.name === 'MPS Deposit Applications').firs
 
 assert.throws(() => inspect(null), /objek Spreadsheet/);
 assert.ok(report.sheets.every(s => !('rows' in s) && !('memberData' in s)), 'report must not expose row contents');
-console.log('PASS: 5 read-only inspector scenarios (exact schema, legacy fail-closed, missing sheet, header mismatch, invalid input).');
+console.log('PASS: 6 read-only inspector scenarios (exact 18/30 schemas, partial-schema fail-closed, missing sheet, header mismatch, invalid input).');
