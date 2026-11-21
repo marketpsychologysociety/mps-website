@@ -61,7 +61,7 @@ test('expired SENT invite is replaced with a fresh 48-hour invite and old link i
   const h=harness({state:'SENT',ageHours:49});
   const result=h.run();
   assert.equal(result.processed,1);
-  assert.equal(result.results[0].status,'REISSUED');
+  assert.equal(result.results[0].status,'REISSUED','Queue error: '+h.queue.rows[1][11]);
   assert.equal(h.queue.rows[1][7],'SENT');
   assert.equal(h.queue.rows[1][5],'https://t.me/+fresh-1');
   assert.deepEqual(h.revoked,[{g:groupId,link:'https://t.me/+old-invite'}]);
@@ -91,7 +91,7 @@ test('expired SENT invite is not reissued when a verified JOINED event already e
 test('RETRY queue rotates any old invite before sending a new one',()=>{
   const h=harness({state:'RETRY',ageHours:2});
   const result=h.run();
-  assert.equal(result.results[0].status,'SENT');
+  assert.equal(result.results[0].status,'SENT','Queue error: '+h.queue.rows[1][11]);
   assert.equal(h.queue.rows[1][5],'https://t.me/+fresh-1');
   assert.equal(h.revoked[0].link,'https://t.me/+old-invite');
 });
