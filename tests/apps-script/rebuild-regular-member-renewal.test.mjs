@@ -50,6 +50,9 @@ test('renewal submission binds member to authenticated session and rejects dupli
  assert.match(submit,/Menunggu Validasi/);
  assert.match(submit,/setSharing\(DriveApp\.Access\.PRIVATE/);
  assert.match(submit,/proofFile\.setTrashed\(true\)/);
+ assert.match(submit,/appendRow may commit remotely/);
+ assert.match(submit,/lookupVerified/);
+ assert.match(submit,/jangan kirim ulang sebelum Admin merekonsiliasi/);
  assert.match(submit,/auditWarning/);
 });
 test('Admin renewal approval is idempotent, proof-verified, atomic and preserves member ID',()=>{
