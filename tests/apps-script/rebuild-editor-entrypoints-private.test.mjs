@@ -40,6 +40,7 @@ test('every function that performs owner-context operations is private',()=>{
 });
 
 test('public web API remains limited to the intended user-facing functions',()=>{
+  assert.ok(names.includes('requireOwnerContext_'));
   const publicNames=names.filter(name=>!name.endsWith('_'));
   for(const name of publicNames) assert.ok(!/^runMps/.test(name),'public maintenance endpoint is not allowed: '+name);
 });
