@@ -1811,6 +1811,7 @@ function apiAdminRetryTelegramFailures(session) {
     const stale=state==='PROCESSING' && (!Number.isFinite(lastAttempt)||lastAttempt<now-10*60*1000);
     if(stale) {
       sh.getRange(i+2,4).setValue('NEEDS_RECONCILIATION');
+      sh.getRange(i+2,8,1,2).clearContent();
       sh.getRange(i+2,12).setValue('STALE_UPDATE_OUTCOME_UNKNOWN');
       results.push({updateId:String(r[0]),status:'NEEDS_RECONCILIATION'});
       continue;
@@ -1818,6 +1819,7 @@ function apiAdminRetryTelegramFailures(session) {
     if(state!=='FAILED') continue;
     if(!r[11]||String(r[11])==='PROCESSING_ERROR'||String(r[11])==='REMOTE_OUTCOME_UNKNOWN') {
       sh.getRange(i+2,4).setValue('NEEDS_RECONCILIATION');
+      sh.getRange(i+2,8,1,2).clearContent();
       sh.getRange(i+2,12).setValue('LEGACY_FAILURE_REQUIRES_RECONCILIATION');
       results.push({updateId:String(r[0]),status:'NEEDS_RECONCILIATION'});
       continue;
@@ -2238,8 +2240,10 @@ function telegramJoinRequestAction_(method,groupId,userId) {
     if(method==='approveChatJoinRequest') {
       try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
     }
-    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_FAILED');
-    error.code='TELEGRAM_'+method.toUpperCase()+'_FAILED';throw error;
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN';
+    if(method==='approveChatJoinRequest') error.ambiguousRemoteOutcome=true;
+    throw error;
   }
   return true;
 }
