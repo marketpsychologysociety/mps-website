@@ -59,6 +59,7 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
   const deposits=makeSheet([new Array(14).fill('')],'deposits',faults);
   const payments=makeSheet([new Array(8).fill('')],'regularPayments',faults);
   const links=makeSheet([new Array(11).fill('')],'links',faults);
+  const ledger=makeSheet([new Array(9).fill('')],'ledger',faults);
   const files=[];
   const file={
     id:'proof-file-'+plan,trashed:false,sharing:'',
@@ -74,7 +75,7 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
     getSharingAccess:()=> 'PRIVATE',
     createFile(){files.push(file);return file;}
   };
-  const map={applications, membershipPlans:plans, deposits, regularPayments:payments, links};
+  const map={applications, membershipPlans:plans, deposits, regularPayments:payments, links, ledger};
   let lockDepth=0,telegramCalls=0;
   const ctx={
     MPS:{TZ:'Asia/Jakarta'},
@@ -106,7 +107,7 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
   vm.runInContext(depositSource,ctx,{timeout:1000});
   vm.runInContext(paymentSource,ctx,{timeout:1000});
   vm.runInContext(linkSource,ctx,{timeout:1000});
-  return {ctx,applications,plans,deposits,payments,links,files,file,stats:()=>({lockDepth,telegramCalls})};
+  return {ctx,applications,plans,deposits,payments,links,ledger,files,file,stats:()=>({lockDepth,telegramCalls})};
 }
 const registration={nickname:'Trader MPS',telegramUsername:'@trader_mps',country:'Indonesia',goal:'Belajar money management',note:'',plan:'REGULAR'};
 const proof={proofMime:'image/png',proofBase64:'iVBORw0KGgo='};
