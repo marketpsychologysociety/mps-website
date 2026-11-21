@@ -939,7 +939,7 @@ function apiAdminReviewRenewal(session,renewalRef,decision,note) {
         throw new Error('Bukti QRIS perpanjangan tidak tersedia atau tidak privat.');
       const proofMime=String(proof.getMimeType()||'');
       const proofSize=Number(proof.getSize()||0);
-      if(!['image/jpeg','image/png','image/webp'].includes(proofMime) || proofSize<12 || proofSize>5*1024*1024)
+      if(!['image/jpeg','image/png','image/webp'].includes(proofMime) || proofSize<(proofMime==='image/jpeg'?3:proofMime==='image/png'?8:12) || proofSize>5*1024*1024)
         throw new Error('Format atau ukuran bukti QRIS perpanjangan tidak valid.');
       const proofBytes=proof.getBlob().getBytes();
       if(proofBytes.length!==proofSize || proofBytes.length>5*1024*1024 || !isAllowedImageBytes_(proofBytes,proofMime))
