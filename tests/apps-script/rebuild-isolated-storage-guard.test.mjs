@@ -69,7 +69,7 @@ test('database file in a publicly shared parent folder is rejected',()=>{
 test('explicitly labeled synthetic spreadsheet and private proof folder pass',()=>{
   const h=harness();
   assert.ok(h.run());
-  assert.deepEqual(h.stats(),{spreadsheetOpens:1,folderOpens:1});
+  assert.deepEqual(h.stats(),{spreadsheetOpens:1,folderOpens:1,fileOpens:1});
 });
 
 test('provisioner clears its one-time allow flag and full acceptance requires separated TEST backup resources',()=>{
