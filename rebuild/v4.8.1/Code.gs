@@ -809,6 +809,9 @@ function calculateRenewalPeriod_(currentExpiry, nowMs) {
 
 /** Expired Regular members may authenticate only to submit/track a renewal. */
 function memberRenewalAccessState_(memberId, nowMs) {
+  const legacy=legacySheet_(),memberRow=findRow_(legacy,1,memberId);
+  if(!memberRow || legacy.getRange(memberRow,8).getDisplayValue()!=='Berhasil')
+    throw new Error('Status member tidak aktif. Perpanjangan tidak dapat diajukan.');
   const ledger=sheet_('membershipLedger'),row=findRow_(ledger,1,memberId);
   if(!row) throw new Error('Masa aktif keanggotaan belum tercatat. Hubungi Admin MPS.');
   const v=ledger.getRange(row,1,1,8).getValues()[0];
