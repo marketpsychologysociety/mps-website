@@ -1251,8 +1251,8 @@ function randomPin_() {
 
 function apiMemberLogin(memberId,pin) {
   const id = clean_(memberId,20).toUpperCase(), p = String(pin || '');
-  // Use one high-volume aggregate bucket: a known Member ID cannot be locked out by a targeted attacker.
-  enforceRateLimit_('member-login', 'global', 1200, 60);
+  // Keep per-member brute-force protection until a second factor is implemented; removing it would expose the six-digit PIN to rapid guessing.
+  enforceRateLimit_('member-login', id || 'invalid', 8, 900);
   if (!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id) || !/^\d{6}$/.test(p))
     throw new Error('ID Member atau PIN tidak valid.');
   const sh = legacySheet_(), row = findRow_(sh,1,id);
@@ -2216,8 +2216,7 @@ function enforceRateLimit_(scope, identifier, limit, windowSeconds) {
   try {
     const current = Number(cache.get(key) || 0);
     if (current >= limit) {
-      // Do not write one audit row per rejected login: that would amplify a flood into Sheets writes.
-      if (scope !== 'member-login') audit_('SYSTEM','', 'RATE_LIMIT_BLOCK',scope,'DENIED','Temporary request throttle triggered.');
+      audit_('SYSTEM','', 'RATE_LIMIT_BLOCK',scope,'DENIED','Temporary request throttle triggered.');
       throw new Error('Terlalu banyak percobaan. Tunggu beberapa saat lalu coba kembali.');
     }
     cache.put(key, String(current + 1), windowSeconds);
