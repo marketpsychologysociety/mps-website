@@ -874,14 +874,24 @@ function apiSubmitMemberRenewal(session,input) {
         throw new Error('Privasi bukti perpanjangan tidak dapat dipastikan.');
       sh.appendRow([renewalRef,actor.actorId,new Date(),100000,date,proofFile.getId(),'Menunggu Validasi','','','','']);
     } catch(writeError) {
-      const rollbackErrors=[];
-      if(proofFile) try {proofFile.setTrashed(true);if(!proofFile.isTrashed())throw new Error('trash state not confirmed');}
-      catch(e){rollbackErrors.push('private proof cleanup: '+String(e&&e.message||e));}
-      if(rollbackErrors.length) {
-        const failure=new Error('Pengajuan perpanjangan gagal dan rollback tidak lengkap. Bukti dipertahankan privat untuk rekonsiliasi.');
+      // appendRow may commit remotely and still surface a timeout. Reconcile by the
+      // unique Renewal Ref before trashing the proof or telling the member to retry.
+      let rowFound=false,lookupVerified=false;
+      try {rowFound=!!findRow_(sh,1,renewalRef);lookupVerified=true;} catch(_){}
+      if(!rowFound && lookupVerified) {
+        const rollbackErrors=[];
+        if(proofFile) try {proofFile.setTrashed(true);if(!proofFile.isTrashed())throw new Error('trash state not confirmed');}
+        catch(e){rollbackErrors.push('private proof cleanup: '+String(e&&e.message||e));}
+        if(rollbackErrors.length) {
+          const failure=new Error('Pengajuan perpanjangan gagal dan rollback tidak lengkap. Bukti dipertahankan privat untuk rekonsiliasi.');
+          failure.preserveProofFile=true;throw failure;
+        }
+        throw writeError;
+      }
+      if(!rowFound && !lookupVerified) {
+        const failure=new Error('Status penyimpanan perpanjangan belum dapat dipastikan. Bukti tetap privat; jangan kirim ulang sebelum Admin merekonsiliasi referensi '+renewalRef+'.');
         failure.preserveProofFile=true;throw failure;
       }
-      throw writeError;
     }
     let auditWarning=false;
     try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Fixed QRIS fee Rp100000; proof stored privately.');}
