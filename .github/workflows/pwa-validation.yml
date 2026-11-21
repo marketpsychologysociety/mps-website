@@ -40,6 +40,8 @@ jobs:
         run: node --test tests/apps-script/rebuild-provision-preflight.test.mjs
       - name: Parse complete v4.8.1 Apps Script backend and frontend
         run: node --test tests/apps-script/rebuild-source-syntax.test.mjs
+      - name: Run v4.8.1 member login abuse and session retention regressions
+        run: node --test tests/apps-script/rebuild-auth-abuse-session-retention.test.mjs
       - name: Run v4.8.1 dedicated TEST Telegram bot and group guards
         run: node --test tests/apps-script/rebuild-telegram-test-bot-guard.test.mjs
       - name: Run v4.8.1 owner action TEST marker tests
