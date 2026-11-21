@@ -10,8 +10,8 @@ function extract(name,next){
   assert.ok(start>=0&&end>start,name+' source boundaries must exist');
   return source.slice(start,end);
 }
-const provisionSource=extract('provisionMpsRebuildStorage_','ensureSheet_');
-const ensureSource=extract('ensureSheet_','/** Public API: initial application');
+const provisionSource=extract('provisionMpsRebuildStorage_','/** Public API: initial application');
+const ensureSource=extract('ensureSheet_','validateMpsRebuildConfig_');
 
 function makeSheet(headers=[],{malformedWidth=0}={}){
   const rows=headers.length?[headers.slice()]:[];
