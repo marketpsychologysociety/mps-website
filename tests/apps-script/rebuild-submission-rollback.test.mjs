@@ -13,6 +13,7 @@ function extract(name,nextName){
 }
 const folderPrivacySource=extract('assertMpsDriveFolderTreePrivate_','validateMpsRebuildConfig_');
 const registerSource=extract('apiRegister','apiSubmitDeposit');
+const proofRecoverySource=extract('getOrCreatePrivateProofFile_','apiSubmitDeposit');
 const depositSource=extract('apiSubmitDeposit','apiSubmitRegularPayment');
 const paymentSource=extract('apiSubmitRegularPayment','apiAdminLogin');
 const linkSource=extract('createTelegramLink_','handleTelegramStart_');
@@ -62,18 +63,22 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
   const ledger=makeSheet([new Array(9).fill('')],'ledger',faults);
   const files=[];
   const file={
-    id:'proof-file-'+plan,trashed:false,sharing:'',
+    id:'proof-file-'+plan,trashed:false,sharing:'',mime:'image/png',bytes:proofBytes,
     getId(){return this.id;},
     setSharing(access,permission){this.sharing=access+':'+permission;},
     getSharingAccess(){return this.sharing.split(':')[0];},
+    getMimeType(){return this.mime;},
+    getSize(){return this.bytes.length;},
+    getBlob(){return {getBytes:()=>this.bytes};},
     setTrashed(v){this.trashed=v;},
     isTrashed(){return this.trashed;}
   };
   const folder={
+    getFilesByName(name){const matches=files.filter(f=>f.blob.name===name&&!f.file.trashed);let i=0;return{hasNext:()=>i<matches.length,next:()=>matches[i++].file};},
     getId:()=> 'proof-folder',
     getParents:()=>({hasNext:()=>false}),
     getSharingAccess:()=> 'PRIVATE',
-    createFile(){files.push(file);return file;}
+    createFile(blob){file.mime=blob.mime;file.bytes=blob.bytes;files.push({file,blob});if(faults.createFileAfterWrite&&!faults.createFileAfterWriteUsed){faults.createFileAfterWriteUsed=true;throw new Error('INJECTED_DRIVE_CREATE_RESPONSE_LOST');}return file;}
   };
   const map={applications, membershipPlans:plans, deposits, regularPayments:payments, links, ledger};
   let lockDepth=0,telegramCalls=0;
@@ -103,6 +108,7 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
   };
   vm.createContext(ctx);
   vm.runInContext(folderPrivacySource,ctx,{timeout:1000});
+  vm.runInContext(proofRecoverySource,ctx,{timeout:1000});
   vm.runInContext(registerSource,ctx,{timeout:1000});
   vm.runInContext(depositSource,ctx,{timeout:1000});
   vm.runInContext(paymentSource,ctx,{timeout:1000});
@@ -166,4 +172,16 @@ test('rollback failure preserves private proof and raises an explicit reconcilia
   });
   assert.equal(h.deposits.rows.length,2,'failed compensation leaves the evidence row for manual reconciliation');
   assert.equal(h.file.trashed,false,'proof is preserved privately when its database row cannot be removed');
+});
+
+test('deposit recovers a Drive file committed before createFile response loss',()=>{
+  const h=harness({faults:{createFileAfterWrite:true}});
+  h.ctx.apiRegister({...registration,plan:'ACTIVE_IB'});
+  const result=h.ctx.apiSubmitDeposit(depositInput);
+  assert.equal(result.ok,true);
+  assert.equal(h.files.length,1,'only one deterministic proof file exists');
+  assert.equal(h.deposits.rows.length,2,'one deposit row committed');
+  assert.equal(h.file.sharing,'PRIVATE:NONE','recovered proof is explicitly private');
+  assert.equal(h.file.trashed,false);
+  assert.deepEqual(h.stats(),{lockDepth:0,telegramCalls:1});
 });

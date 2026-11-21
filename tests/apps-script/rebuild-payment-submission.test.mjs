@@ -12,6 +12,7 @@ function extract(name,nextName){
   return source.slice(start,end);
 }
 const folderPrivacySource=extract('assertMpsDriveFolderTreePrivate_','validateMpsRebuildConfig_');
+const proofRecoverySource=extract('getOrCreatePrivateProofFile_','apiSubmitDeposit');
 const depositSource=extract('apiSubmitDeposit','apiSubmitRegularPayment');
 const regularSource=extract('apiSubmitRegularPayment','apiAdminLogin');
 
@@ -39,17 +40,22 @@ function harness(plan='ACTIVE_IB'){
   const regular=makeSheet([new Array(8).fill('')]);
   const files=[];
   const file={
-    id:'proof-file-'+plan,shared:'',trashed:false,
+    id:'proof-file-'+plan,shared:'',trashed:false,mime:'image/png',bytes:new Uint8Array([137,80,78,71,13,10,26,10]),
     setSharing(access,permission){this.shared=access+':'+permission;},
     getId(){return this.id;},
     getSharingAccess(){return this.shared.split(':')[0];},
+    getMimeType(){return this.mime;},
+    getSize(){return this.bytes.length;},
+    getBlob(){return {getBytes:()=>this.bytes};},
     isTrashed(){return this.trashed;}
   };
+  let createAfterWrite=false;
   const folder={
+    getFilesByName(name){const matches=files.filter(x=>x.blob.name===name&&!x.file.trashed);let i=0;return{hasNext:()=>i<matches.length,next:()=>matches[i++].file};},
     getId:()=> 'proof-folder',
     getParents:()=>({hasNext:()=>false}),
     getSharingAccess:()=> 'PRIVATE',
-    createFile(blob){files.push({blob,file});return file;}
+    createFile(blob){files.push({blob,file});file.mime=blob.mime;file.bytes=blob.bytes;if(createAfterWrite){createAfterWrite=false;throw new Error('DRIVE_CREATE_RESPONSE_LOST');}return file;}
   };
   const sheetMap={applications:apps,membershipPlans:plans,deposits,regularPayments:regular};
   let linkCalls=0,telegramCalls=0,lockDepth=0;
@@ -75,10 +81,12 @@ function harness(plan='ACTIVE_IB'){
     Date
   };
   vm.createContext(context);
+  context.__setCreateAfterWrite=()=>{createAfterWrite=true;};
   vm.runInContext(folderPrivacySource,context,{timeout:1000});
+  vm.runInContext(proofRecoverySource,context,{timeout:1000});
   vm.runInContext(depositSource,context,{timeout:1000});
   vm.runInContext(regularSource,context,{timeout:1000});
-  return {context,apps,plans,deposits,regular,files,file,stats:()=>({linkCalls,telegramCalls,lockDepth})};
+  return {context,apps,plans,deposits,regular,files,file,setCreateAfterWrite:()=>context.__setCreateAfterWrite(),stats:()=>({linkCalls,telegramCalls,lockDepth})};
 }
 const proof={proofMime:'image/png',proofBase64:'iVBORw0KGgo='};
 
@@ -140,4 +148,27 @@ test('Regular QRIS endpoint rejects Active IB applications without creating proo
   assert.throws(()=>h.context.apiSubmitRegularPayment({applicationRef:ref,amount:100000,paymentDate:testDate,...proof}),/hanya untuk pendaftar Regular Member/);
   assert.equal(h.regular.rows.length,1);
   assert.equal(h.files.length,0);
+});
+
+test('Drive createFile success with lost response is recovered by exact deterministic filename without a duplicate',()=>{
+  const h=harness('ACTIVE_IB');
+  h.setCreateAfterWrite();
+  const result=h.context.apiSubmitDeposit({applicationRef:ref,accountName:'MPS Trader',mt5Login:'12345678',accountType:'Standard',amount:500000,depositDate:testDate,...proof});
+  assert.equal(result.ok,true);
+  assert.equal(h.files.length,1);
+  assert.equal(h.deposits.rows.length,2);
+  assert.equal(h.file.shared,'PRIVATE:NONE');
+  assert.deepEqual(h.stats(),{linkCalls:1,telegramCalls:1,lockDepth:0});
+});
+
+test('deterministic proof recovery refuses a same-name file with different bytes',()=>{
+  const h=harness('ACTIVE_IB');
+  h.files.push({blob:{name:'MPS-PROOF-'+ref+'.png'},file:h.file});
+  h.file.mime='image/png';
+  h.file.bytes=new Uint8Array([1,2,3,4,5,6,7,8]);
+  assert.throws(()=>h.context.getOrCreatePrivateProofFile_(
+    {getFilesByName:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return h.file;}};}},
+    {name:'MPS-PROOF-'+ref+'.png'},'MPS-PROOF-'+ref+'.png','image/png',
+    new Uint8Array([137,80,78,71,13,10,26,10])
+  ),/PROOF_FILE_RECOVERY_CONFLICT/);
 });
