@@ -2037,7 +2037,7 @@ function verifyMpsBackupRestore_(backupFileId) {
       throw new Error('RESTORE_DRILL_CONTENT_MISMATCH');
     return {ok:true,checkedSheets:sourceFingerprint.length,checkedCells:sourceFingerprint.reduce((n,s)=>n+s.rows*s.columns,0),
       comparison:'sheet names, dimensions, values, formulas and SHA-256 fingerprints match',
-      temporaryCopyCleanup:'PENDING'};
+      temporaryCopyCleanup:'CONFIRMED'};
   } finally {
     if(drillCopy) {
       try {
