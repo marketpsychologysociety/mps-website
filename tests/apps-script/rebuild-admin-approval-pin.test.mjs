@@ -11,6 +11,7 @@ function extract(name,nextName){
   assert.ok(start>=0&&end>start,name+' source boundaries must exist');
   return source.slice(start,end);
 }
+const folderPrivacySource=extract('assertMpsDriveFolderTreePrivate_','validateMpsRebuildConfig_');
 const reviewSource=extract('apiAdminReview','apiAdminReissueTelegramLink');
 const pinSource=extract('apiAdminIssuePin','randomPin_');
 const ref='MPS-APP-0123456789ABCDEF0123';
@@ -68,12 +69,12 @@ function approvalHarness({plan='ACTIVE_IB',ibStatus='Terverifikasi',amount=50000
     randomHex_:()=> 'ABCDEF1234',
     audit_:(...args)=>audits.push(args),
     prop_:key=>key==='MPS_PROOF_FOLDER_ID'?proofFolder:'',
-    DriveApp:{getFileById:id=>{assert.ok(['proof-deposit','proof-qris'].includes(id));return proofFile;},Access:{PRIVATE:'PRIVATE'}},
+    DriveApp:{getFileById:id=>{assert.ok(['proof-deposit','proof-qris'].includes(id));return proofFile;},getFolderById:id=>({getId:()=>proofFolder,getParents:()=>({hasNext:()=>false}),getSharingAccess:()=> 'PRIVATE'}),Access:{PRIVATE:'PRIVATE'}},
     Utilities:{formatDate:(date,tz,pattern)=>'2026-11-21'},
     enqueueVipInvite_:(memberId,applicationRef,userId,chat)=>{inviteQueued++;queue.appendRow(['queue-key','VIP_INVITE:'+memberId,'CREATE_AND_SEND_INVITE','vip-group',userId,'','','PENDING',0,new Date(),'','',new Date(),new Date()]);},
     Date
   };
-  vm.createContext(ctx);vm.runInContext(reviewSource,ctx,{timeout:1000});
+  vm.createContext(ctx);vm.runInContext(folderPrivacySource,ctx,{timeout:1000});vm.runInContext(reviewSource,ctx,{timeout:1000});
   return {run:(decision='APPROVE')=>ctx.apiAdminReview('admin-session',ref,decision,'Reviewed by Admin'),apps,plans,deposits,payments,members,ledger,queue,audits,stats:()=>({lockDepth,inviteQueued})};
 }
 

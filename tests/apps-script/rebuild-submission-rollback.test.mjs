@@ -11,6 +11,7 @@ function extract(name,nextName){
   assert.ok(start>=0&&end>start,name+' source boundaries must exist');
   return source.slice(start,end);
 }
+const folderPrivacySource=extract('assertMpsDriveFolderTreePrivate_','validateMpsRebuildConfig_');
 const registerSource=extract('apiRegister','apiSubmitDeposit');
 const depositSource=extract('apiSubmitDeposit','apiSubmitRegularPayment');
 const paymentSource=extract('apiSubmitRegularPayment','apiAdminLogin');
@@ -68,6 +69,8 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
     isTrashed(){return this.trashed;}
   };
   const folder={
+    getId:()=> 'proof-folder',
+    getParents:()=>({hasNext:()=>false}),
     getSharingAccess:()=> 'PRIVATE',
     createFile(){files.push(file);return file;}
   };
@@ -98,6 +101,7 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
     Date
   };
   vm.createContext(ctx);
+  vm.runInContext(folderPrivacySource,ctx,{timeout:1000});
   vm.runInContext(registerSource,ctx,{timeout:1000});
   vm.runInContext(depositSource,ctx,{timeout:1000});
   vm.runInContext(paymentSource,ctx,{timeout:1000});
