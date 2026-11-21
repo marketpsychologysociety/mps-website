@@ -2613,16 +2613,20 @@ function enforceRateLimit_(scope, identifier, limit, windowSeconds) {
   const cache = CacheService.getScriptCache();
   const key = 'MPS_RL_' + sha256_(scope + '|' + String(identifier)).slice(0,32);
   const lock = LockService.getScriptLock();
-  lock.waitLock(5000);
+  if(!lock.tryLock(1500))
+    throw new Error('Sistem sedang sibuk memproses permintaan. Silakan coba kembali sebentar lagi.');
+  let blocked=false;
   try {
     const current = Number(cache.get(key) || 0);
-    if (current >= limit) {
-      audit_('SYSTEM','', 'RATE_LIMIT_BLOCK',scope,'DENIED','Temporary request throttle triggered.');
-      throw new Error('Terlalu banyak percobaan. Tunggu beberapa saat lalu coba kembali.');
-    }
-    cache.put(key, String(current + 1), windowSeconds);
+    if (current >= limit) blocked=true;
+    else cache.put(key, String(current + 1), windowSeconds);
   } finally {
     lock.releaseLock();
+  }
+  // Sheets audit I/O must stay outside the global ScriptLock critical section.
+  if(blocked) {
+    audit_('SYSTEM','', 'RATE_LIMIT_BLOCK',scope,'DENIED','Temporary request throttle triggered.');
+    throw new Error('Terlalu banyak percobaan. Tunggu beberapa saat lalu coba kembali.');
   }
 }
 function findRow_(sh,col,value) {
