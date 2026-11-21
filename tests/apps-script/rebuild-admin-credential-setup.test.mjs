@@ -12,7 +12,7 @@ const bootstrapSource=source.slice(start,end);
 const adminPassword='Admin-password-strong-2026!';
 const superPassword='SuperAdmin-password-strong-2026!';
 function harness({initial={},failSet=false,failDelete=''}={}){
-  const values={...initial};let setCalls=0,ownerCalls=0;
+  const values={...initial};let setCalls=0,ownerCalls=0,saltCounter=0;
   const props={
     getProperty:key=>Object.prototype.hasOwnProperty.call(values,key)?values[key]:null,
     setProperties(input){setCalls++;if(failSet){values.MPS_REBUILD_ADMIN_PASSWORD_HASH=input.MPS_REBUILD_ADMIN_PASSWORD_HASH;throw new Error('INJECTED_SET_PROPERTIES');}Object.assign(values,input);},
@@ -21,7 +21,7 @@ function harness({initial={},failSet=false,failDelete=''}={}){
   const ctx={
     requireOwnerContext_:()=>{ownerCalls++;},
     PropertiesService:{getScriptProperties:()=>props},
-    randomHex_:n=>'SALT_'+n+'_'+(Object.keys(values).length+1),
+    randomHex_:n=>'SALT_'+n+'_'+(++saltCounter),
     sha256_:value=>'HASH_'+value
   };
   vm.createContext(ctx);vm.runInContext(bootstrapSource,ctx,{timeout:1000});
@@ -36,8 +36,8 @@ test('bootstrap stores separate salted hashes and removes both temporary plainte
   const result=h.run();
   assert.equal(result.ok,true);
   assert.equal(result.setupPasswordsRemoved,true);
-  assert.equal(h.values.MPS_REBUILD_ADMIN_PASSWORD_HASH,'HASH_SALT_64_5'+adminPassword);
-  assert.equal(h.values.MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH,'HASH_SALT_64_5'+superPassword);
+  assert.equal(h.values.MPS_REBUILD_ADMIN_PASSWORD_HASH,'HASH_SALT_64_1'+adminPassword);
+  assert.equal(h.values.MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH,'HASH_SALT_64_2'+superPassword);
   assert.ok(h.values.MPS_REBUILD_ADMIN_PASSWORD_SALT);
   assert.ok(h.values.MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT);
   assert.equal('MPS_REBUILD_ADMIN_SETUP_PASSWORD' in h.values,false);
