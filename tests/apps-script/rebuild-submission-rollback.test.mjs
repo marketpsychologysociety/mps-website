@@ -146,7 +146,8 @@ test('Regular QRIS submission restores plan and application after an ambiguous p
   assert.equal(h.payments.rows.length,1);
   assert.equal(h.plans.rows[1][7],'Menunggu Pembayaran / Verifikasi');
   assert.equal(h.applications.rows[1][7],'Menunggu Pendaftaran');
-  assert.equal(h.links.rows.length,1);
+  assert.equal(h.links.rows.length,2);
+  assert.equal(h.links.rows[1][3],'CANCELLED');
   assert.equal(h.file.trashed,true);
 });
 
