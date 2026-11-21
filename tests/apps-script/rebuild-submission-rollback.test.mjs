@@ -173,3 +173,15 @@ test('rollback failure preserves private proof and raises an explicit reconcilia
   assert.equal(h.deposits.rows.length,2,'failed compensation leaves the evidence row for manual reconciliation');
   assert.equal(h.file.trashed,false,'proof is preserved privately when its database row cannot be removed');
 });
+
+test('deposit recovers a Drive file committed before createFile response loss',()=>{
+  const h=harness({faults:{createFileAfterWrite:true}});
+  h.ctx.apiRegister({...registration,plan:'ACTIVE_IB'});
+  const result=h.ctx.apiSubmitDeposit(depositInput);
+  assert.equal(result.ok,true);
+  assert.equal(h.files.length,1,'only one deterministic proof file exists');
+  assert.equal(h.deposits.rows.length,2,'one deposit row committed');
+  assert.equal(h.file.sharing,'PRIVATE:NONE','recovered proof is explicitly private');
+  assert.equal(h.file.trashed,false);
+  assert.deepEqual(h.stats(),{lockDepth:0,telegramCalls:1});
+});
