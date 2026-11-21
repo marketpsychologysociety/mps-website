@@ -1874,6 +1874,7 @@ function apiAdminRetryTelegramFailures(session) {
     const refreshedRow=findRow_(sh,1,String(r[0]));
     const actualState=refreshedRow?String(sh.getRange(refreshedRow,4).getDisplayValue()||'UNKNOWN'):'MISSING';
     results.push({updateId:String(r[0]),status:actualState});
+  }
   audit_(actor.role,actor.actorId,'TELEGRAM_RETRY_BATCH','', 'SUCCESS','Processed '+results.length+' failed/stale updates.');
   return {ok:true,processed:results.length,results:results};
 }
