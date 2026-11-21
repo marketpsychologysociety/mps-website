@@ -390,6 +390,7 @@ function validateMpsRebuildConfig_() {
     ownerEmailConfigured: !!p.getProperty('MPS_REBUILD_OWNER_EMAIL'),
     isolatedTestLabelConfigured: p.getProperty('MPS_REBUILD_TEST_LABEL')==='MPS-ISOLATED-TEST',
     spreadsheetConfigured: !!p.getProperty('MPS_SPREADSHEET_ID'),
+    provisionedDatabaseIdMatches: !!p.getProperty('MPS_SPREADSHEET_ID') && p.getProperty('MPS_REBUILD_TEST_PROVISIONED_ID')===p.getProperty('MPS_SPREADSHEET_ID'),
     testSpreadsheetNameValid: false,
     proofFolderConfigured: !!p.getProperty('MPS_PROOF_FOLDER_ID'),
     adminCredentialConfigured: adminHash && adminSalt,
@@ -425,6 +426,8 @@ function validateMpsRebuildConfig_() {
   try {
     const id = p.getProperty('MPS_SPREADSHEET_ID');
     if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
+    if(p.getProperty('MPS_REBUILD_TEST_PROVISIONED_ID')!==id)
+      throw new Error('ID spreadsheet belum terikat melalui provisioning TEST resmi.');
     const databaseFile=DriveApp.getFileById(id);
     assertMpsDriveFileTreePrivate_(databaseFile,'database TEST');
     const driveFileName=String(databaseFile.getName()||'');
@@ -516,12 +519,14 @@ function provisionMpsRebuildStorage_() {
   requireOwnerContext_();
   if (prop_('MPS_REBUILD_ALLOW_PROVISION') !== 'true')
     throw new Error('Provisioning terkunci. Aktifkan hanya pada spreadsheet sintetis di project test baru.');
-  const ss = openDb_();
+  const ss = openDbForProvisioning_();
 
   // Preflight every existing sheet before the first write. A malformed later
   // auxiliary sheet must not leave earlier sheets partially provisioned.
   const legacy = ss.getSheetByName(MPS.LEGACY_SHEET);
   if (legacy) {
+    if(legacy.getLastRow()>1)
+      throw new Error('Database TEST harus kosong sebelum provisioning. Baris member yang sudah ada terdeteksi; jangan gunakan atau salin database produksi.');
     const width=legacy.getLastColumn();
     const actual=legacy.getRange(1,1,1,Math.max(width,MPS.LEGACY_HEADERS.length)).getDisplayValues()[0];
     const first18=actual.slice(0,MPS.LEGACY_HEADERS.length);
@@ -542,6 +547,8 @@ function provisionMpsRebuildStorage_() {
       return;
     }
     const lastRow=existing.getLastRow(), width=existing.getLastColumn();
+    if(lastRow>1)
+      throw new Error('Sheet '+spec.name+' sudah berisi baris data. Provisioning awal hanya boleh pada storage TEST kosong.');
     if(lastRow===0) {
       if(width!==0)
         throw new Error('Sheet '+spec.name+' kosong tetapi memiliki kolom tak terduga. Tidak ada perubahan dilakukan.');
@@ -564,8 +571,16 @@ function provisionMpsRebuildStorage_() {
   }
   missingAuxiliary.forEach(spec=>ensureSheet_(ss,spec));
 
+  const scriptProperties=PropertiesService.getScriptProperties();
   try {
-    PropertiesService.getScriptProperties().deleteProperty('MPS_REBUILD_ALLOW_PROVISION');
+    scriptProperties.setProperty('MPS_REBUILD_TEST_PROVISIONED_ID',prop_('MPS_SPREADSHEET_ID'));
+    if(scriptProperties.getProperty('MPS_REBUILD_TEST_PROVISIONED_ID')!==prop_('MPS_SPREADSHEET_ID'))
+      throw new Error('PROVISIONED_DATABASE_ID_WRITE_NOT_VERIFIED');
+  } catch(e) {
+    throw new Error('Schema TEST sudah dibuat tetapi pengikatan ID database gagal. Jangan jalankan API; periksa Script Properties dan ulangi provisioning hanya setelah aman.');
+  }
+  try {
+    scriptProperties.deleteProperty('MPS_REBUILD_ALLOW_PROVISION');
   } catch(e) {
     throw new Error('Provisioning TEST selesai, tetapi flag sekali pakai gagal dihapus. Jangan jalankan ulang sebelum menghapus MPS_REBUILD_ALLOW_PROVISION secara manual.');
   }
@@ -2029,11 +2044,13 @@ function sheet_(key) {
   if (JSON.stringify(h) !== JSON.stringify(spec.headers)) throw new Error('Header '+spec.name+' tidak cocok.');
   return sh;
 }
-function openDb_() {
+function openIsolatedTestDb_(requireProvisioned) {
   const id = prop_('MPS_SPREADSHEET_ID');
   if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
   if(prop_('MPS_REBUILD_TEST_LABEL')!=='MPS-ISOLATED-TEST')
     throw new Error('Akses database rebuild dikunci. MPS_REBUILD_TEST_LABEL harus bernilai MPS-ISOLATED-TEST pada project TEST terisolasi.');
+  if(requireProvisioned && prop_('MPS_REBUILD_TEST_PROVISIONED_ID')!==id)
+    throw new Error('Database TEST belum diprovision oleh fungsi resmi atau ID tidak cocok. Jalankan provisioning TEST terlebih dahulu.');
   const databaseFile=DriveApp.getFileById(id);
   assertMpsDriveFileTreePrivate_(databaseFile,'database TEST');
   const driveFileName=String(databaseFile.getName()||'');
@@ -2051,6 +2068,14 @@ function openDb_() {
     throw new Error('Folder bukti rebuild hanya boleh memakai folder TEST bernama dengan awalan MPS TEST -.');
   assertMpsDriveFolderTreePrivate_(proofFolder,'folder bukti TEST');
   return ss;
+}
+
+function openDb_() {
+  return openIsolatedTestDb_(true);
+}
+
+function openDbForProvisioning_() {
+  return openIsolatedTestDb_(false);
 }
 function requireOwnerContext_() {
   if(prop_('MPS_REBUILD_TEST_LABEL')!=='MPS-ISOLATED-TEST')
@@ -2135,7 +2160,7 @@ function runMpsFullAcceptanceSuite_() {
     const validation = validateMpsRebuildConfig_();
     report.validation = validation;
     const required = [
-      'ownerEmailConfigured','isolatedTestLabelConfigured','spreadsheetConfigured','testSpreadsheetNameValid','proofFolderConfigured','testProofFolderNameValid',
+      'ownerEmailConfigured','isolatedTestLabelConfigured','spreadsheetConfigured','provisionedDatabaseIdMatches','testSpreadsheetNameValid','proofFolderConfigured','testProofFolderNameValid',
       'adminCredentialConfigured','superAdminCredentialConfigured',
       'adminTotpConfigured','superAdminTotpConfigured',
       'backupFolderConfigured','backupFolderReadable','spreadsheetReadable',
