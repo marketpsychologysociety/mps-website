@@ -83,7 +83,7 @@ test('Telegram journal marks ambiguous outcomes and does not blindly replay stal
 
 test('duplicate VIP join approval is reconciled by current Telegram membership',()=>{
  const joinBody=body('telegramJoinRequestAction_'),memberBody=body('telegramMemberIsActive_');
- const source=memberBody+'\\n'+joinBody;
+ const source=memberBody+'\n'+joinBody;
  const make=(responses)=>{let i=0;const ctx={UrlFetchApp:{fetch:()=>{const next=responses[i++];if(next instanceof Error)throw next;return next;}},requireDedicatedTestTelegramBot_:()=> 'TEST_TOKEN',assertDedicatedTestVipGroup_:()=>true,JSON,Error,String};vm.createContext(ctx);vm.runInContext(source,ctx);return{ctx,calls:()=>i};};
  const active=make([response(200,{ok:true,result:{status:'member',is_member:true}})]);
  assert.equal(active.ctx.telegramJoinRequestAction_('approveChatJoinRequest','-100','123'),true);
