@@ -69,6 +69,8 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
     isTrashed(){return this.trashed;}
   };
   const folder={
+    getId:()=> 'proof-folder',
+    getParents:()=>({hasNext:()=>false}),
     getSharingAccess:()=> 'PRIVATE',
     createFile(){files.push(file);return file;}
   };
