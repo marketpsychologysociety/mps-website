@@ -39,6 +39,7 @@ function harness({mismatch=false,backupMismatch=false,copyPrivacyFailure=false,c
     isTrashed:()=>state.copyTrashed
   };
   const backup={
+    getId:()=>'backup-file-id',
     isTrashed:()=>false,
     getSharingAccess:()=>'PRIVATE',
     getName:()=>'MPS-v4.8.1-backup-20261121-200000',
