@@ -721,6 +721,8 @@ function getOrCreatePrivateProofFile_(folder,blob,name,mime,expectedBytes) {
     if (!it.hasNext()) return null;
     const found=it.next();
     if (it.hasNext()) throw new Error('PROOF_FILE_RECOVERY_DUPLICATE_NAME');
+    // A Drive create may have committed before setSharing was reached.
+    found.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     return verify(found);
   };
   const existing=findExact();
