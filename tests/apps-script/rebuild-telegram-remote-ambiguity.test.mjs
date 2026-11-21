@@ -85,6 +85,8 @@ test('duplicate VIP join approval is reconciled by current Telegram membership',
  const joinBody=body('telegramJoinRequestAction_'),memberBody=body('telegramMemberIsActive_');
  const source=memberBody+'\n'+joinBody;
  const make=(responses)=>{let i=0;const ctx={UrlFetchApp:{fetch:()=>{const next=responses[i++];if(next instanceof Error)throw next;return next;}},requireDedicatedTestTelegramBot_:()=> 'TEST_TOKEN',assertDedicatedTestVipGroup_:()=>true,JSON,Error,String};vm.createContext(ctx);vm.runInContext(source,ctx);return{ctx,calls:()=>i};};
+ const precheckUnavailable=make([new Error('read timeout')]);
+ assert.throws(()=>precheckUnavailable.ctx.telegramJoinRequestAction_('approveChatJoinRequest','-100','123'),e=>e.code==='TELEGRAM_MEMBER_STATUS_UNVERIFIED'&&e.ambiguousRemoteOutcome!==true);
  const active=make([response(200,{ok:true,result:{status:'member',is_member:true}})]);
  assert.equal(active.ctx.telegramJoinRequestAction_('approveChatJoinRequest','-100','123'),true);
  assert.equal(active.calls(),1,'already joined member is not approved twice');
