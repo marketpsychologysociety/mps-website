@@ -1572,47 +1572,77 @@ function enqueueVipInvite_(memberId,applicationRef,telegramUserId,chatId) {
 function apiAdminProcessVipQueue(session) {
   const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
   const queue=sheet_('queue'), results=[], all=rows_(queue), now=Date.now();
+  const inviteLifetimeMs=48*60*60*1000;
   for(let i=0;i<all.length && results.length<5;i++) {
     const r=all[i], row=i+2, state=String(r[7]||'');
-    const staleProcessing=state==='PROCESSING' && new Date(r[13]).getTime()<now-10*60*1000;
-    if(!['PENDING','RETRY'].includes(state) && !staleProcessing) continue;
+    const updatedAtMs=r[13] instanceof Date?r[13].getTime():new Date(r[13]).getTime();
+    const staleProcessing=state==='PROCESSING' && (!Number.isFinite(updatedAtMs) || updatedAtMs<now-10*60*1000);
+    const sentInviteExpired=state==='SENT' && (!Number.isFinite(updatedAtMs) || updatedAtMs<=now-inviteLifetimeMs);
+    if(!['PENDING','RETRY'].includes(state) && !staleProcessing && !sentInviteExpired) continue;
     const lock=LockService.getScriptLock();
     lock.waitLock(10000);
-    let claimed=false, current;
+    let claimed=false, current, claimState='';
     try {
       current=String(queue.getRange(row,8).getDisplayValue()||'');
       const updated=queue.getRange(row,14).getValue();
-      const stale=current==='PROCESSING' && new Date(updated).getTime()<Date.now()-10*60*1000;
-      if(current==='PENDING' || current==='RETRY' || stale) {
+      const updatedMs=updated instanceof Date?updated.getTime():new Date(updated).getTime();
+      const stale=current==='PROCESSING' && (!Number.isFinite(updatedMs) || updatedMs<Date.now()-10*60*1000);
+      const expiredSent=current==='SENT' && (!Number.isFinite(updatedMs) || updatedMs<=Date.now()-inviteLifetimeMs);
+      if(current==='PENDING' || current==='RETRY' || stale || expiredSent) {
+        claimState=current;
         queue.getRange(row,8).setValue('PROCESSING');
         queue.getRange(row,14).setValue(new Date());
         claimed=true;
       }
     } finally { lock.releaseLock(); }
     if(!claimed) continue;
+    let newInvite='';
     try {
       const memberId=String(r[1]||'').replace('VIP_INVITE:','');
       const appRow=findRow_(sheet_('applications'),9,memberId);
       const app=appRow?sheet_('applications').getRange(appRow,1,1,15).getValues()[0]:null;
       const chatId=app?String(app[12]||''):'';
+      const groupId=String(r[3]||prop_('MPS_VIP_GROUP_ID'));
       if(!app || app[7]!=='Disetujui' || !app[8] || !chatId || String(app[11]||'')!==String(r[4]||''))
         throw new Error('APPROVED_MEMBER_TELEGRAM_BINDING_NOT_VALID');
       const legacy=legacySheet_(), legacyRow=findRow_(legacy,1,memberId);
       if(!legacyRow || legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil')
         throw new Error('LEGACY_MEMBER_RECORD_NOT_ACTIVE');
       assertMembershipEntitlement_(memberId);
-      const invite=String(queue.getRange(row,6).getDisplayValue()||'') ||
-        createVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),String(r[4]||''));
-      queue.getRange(row,6).setValue(invite);
-      const delivered=sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, memerlukan persetujuan bot): '+invite);
-      if (!delivered) throw new Error('VIP_TELEGRAM_DELIVERY_NOT_CONFIGURED');
+      const alreadyJoined=rows_(sheet_('vip')).some(ev=>
+        String(ev[1]||'')===memberId && ev[3]==='JOINED' &&
+        (ev[6]===true || String(ev[6]).toLowerCase()==='true') &&
+        (ev[7]===true || String(ev[7]).toLowerCase()==='true')
+      );
+      if(alreadyJoined) {
+        queue.getRange(row,8).setValue('JOINED');
+        queue.getRange(row,12).setValue('');
+        queue.getRange(row,14).setValue(new Date());
+        results.push({intent:r[1],status:'JOINED_ALREADY'});
+        continue;
+      }
+      const oldInvite=String(queue.getRange(row,6).getDisplayValue()||'');
+      // Always create a fresh 48-hour link for retries and expired SENT tasks.
+      // The prior link is revoked best-effort after the replacement is created.
+      newInvite=createVipInvite_(groupId,String(r[4]||''));
+      if(oldInvite && oldInvite!==newInvite) {
+        try { revokeVipInvite_(groupId,oldInvite); }
+        catch(revokeError) { audit_('SYSTEM','', 'VIP_OLD_INVITE_REVOKE_FAILED',r[1],'WARNING','Old invite could not be revoked; join requests remain bound to the expected Telegram user.'); }
+      }
+      queue.getRange(row,6).setValue(newInvite);
+      const delivered=sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, memerlukan persetujuan bot): '+newInvite);
+      if(!delivered) throw new Error('VIP_TELEGRAM_DELIVERY_NOT_CONFIGURED');
       queue.getRange(row,8).setValue('SENT');
       queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
       queue.getRange(row,12).setValue('');
       queue.getRange(row,14).setValue(new Date());
-      results.push({intent:r[1],status:'SENT'});
-      audit_(actor.role,actor.actorId,'VIP_INVITE_SENT',r[1],'SUCCESS','');
+      results.push({intent:r[1],status:claimState==='SENT'?'REISSUED':'SENT'});
+      audit_(actor.role,actor.actorId,claimState==='SENT'?'VIP_INVITE_REISSUED':'VIP_INVITE_SENT',r[1],'SUCCESS','Fresh 48-hour invite issued.');
     } catch(err) {
+      if(newInvite) {
+        try { revokeVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),newInvite); }
+        catch(revokeError) { audit_('SYSTEM','', 'VIP_NEW_INVITE_REVOKE_FAILED',r[1],'WARNING','Failed delivery left a fresh invite requiring reconciliation.'); }
+      }
       queue.getRange(row,8).setValue('RETRY');
       queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
       queue.getRange(row,12).setValue(String(err.message||'VIP_DELIVERY_FAILED').slice(0,80));
@@ -1622,6 +1652,19 @@ function apiAdminProcessVipQueue(session) {
     }
   }
   return {ok:true,processed:results.length,results:results};
+}
+function revokeVipInvite_(groupId,inviteLink) {
+  const token=prop_('MPS_TELEGRAM_BOT_TOKEN');
+  if(!token || !groupId || !inviteLink) return false;
+  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{
+    method:'post',contentType:'application/json',
+    payload:JSON.stringify({chat_id:groupId,invite_link:inviteLink}),
+    muteHttpExceptions:true
+  });
+  const result=JSON.parse(response.getContentText()||'{}');
+  if(response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok)
+    throw new Error('VIP_INVITE_REVOKE_FAILED');
+  return true;
 }
 
 function createVipInvite_(groupId,userId) {
@@ -1637,7 +1680,6 @@ function createVipInvite_(groupId,userId) {
   return result.result.invite_link;
 }
 
-/** Approve join requests only when the Telegram user ID matches the linked member. */
 function handleTelegramJoinRequest_(request) {
   const groupId=prop_('MPS_VIP_GROUP_ID');
   if (!groupId || String(request.chat && request.chat.id || '')!==String(groupId)) return;
