@@ -1251,6 +1251,7 @@ function randomPin_() {
 
 function apiMemberLogin(memberId,pin) {
   const id = clean_(memberId,20).toUpperCase(), p = String(pin || '');
+  // Keep per-member brute-force protection until a second factor is implemented; removing it would expose the six-digit PIN to rapid guessing.
   enforceRateLimit_('member-login', id || 'invalid', 8, 900);
   if (!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id) || !/^\d{6}$/.test(p))
     throw new Error('ID Member atau PIN tidak valid.');
@@ -1426,6 +1427,38 @@ function writeSessionTime_(sh,row,col,value) {
   cell.setValue(String(value));
 }
 
+/**
+ * Remove only sessions that have been expired or revoked for at least 30 days.
+ * Caller must hold the ScriptLock. Malformed timestamps are retained fail-safe.
+ * A daily marker bounds Sheets work; marker is written only after all deletes succeed.
+ */
+function pruneExpiredSessionsLocked_(sh, nowMs) {
+  const props=PropertiesService.getScriptProperties();
+  const lastRun=Number(props.getProperty('MPS_SESSIONS_LAST_PRUNE_AT')||0);
+  if (Number.isFinite(lastRun) && lastRun>0 && nowMs-lastRun<24*60*60*1000)
+    return {skipped:true,deleted:0};
+  const lastRow=sh.getLastRow();
+  if(lastRow<2) {
+    props.setProperty('MPS_SESSIONS_LAST_PRUNE_AT',String(nowMs));
+    return {skipped:false,deleted:0};
+  }
+  const cutoff=nowMs-30*24*60*60*1000;
+  const values=sh.getRange(2,4,lastRow-1,4).getDisplayValues();
+  const remove=[];
+  for(let i=0;i<values.length;i++) {
+    const expires=sessionTimeMs_(values[i][1]);
+    const revoked=sessionTimeMs_(values[i][3]);
+    const oldExpired=Number.isFinite(expires)&&expires<cutoff;
+    const oldRevoked=Number.isFinite(revoked)&&revoked>0&&revoked<cutoff;
+    if(oldExpired||oldRevoked) remove.push(i+2);
+  }
+  // Clear cells without deleting sheet rows: requireSession_ may concurrently hold a row number,
+  // and row deletion could shift that index between its hash lookup and record read.
+  for(let i=remove.length-1;i>=0;i--) sh.getRange(remove[i],1,1,7).clearContent();
+  props.setProperty('MPS_SESSIONS_LAST_PRUNE_AT',String(nowMs));
+  return {skipped:false,deleted:remove.length};
+}
+
 function createSession_(role,actorId) {
   const lock=LockService.getScriptLock();
   lock.waitLock(10000);
@@ -1436,6 +1469,8 @@ function createSession_(role,actorId) {
     writeSessionTime_(sh,row,4,nowMs);
     writeSessionTime_(sh,row,5,expiresMs);
     writeSessionTime_(sh,row,6,nowMs);
+    try { pruneExpiredSessionsLocked_(sh,nowMs); }
+    catch (pruneError) { console.warn('MPS_SESSION_PRUNE_DEFERRED '+String(pruneError&&pruneError.message||pruneError)); }
   } finally {
     lock.releaseLock();
   }
