@@ -335,6 +335,27 @@ function assertMpsDriveFolderTreePrivate_(folder,label) {
   return true;
 }
 
+function assertMpsDriveFileTreePrivate_(file,label) {
+  if(!file || typeof file.getId!=='function' || typeof file.getParents!=='function')
+    throw new Error('Struktur file '+String(label||'MPS')+' tidak dapat diverifikasi. Akses dihentikan.');
+  const name=String(label||'MPS Drive file');
+  if(typeof file.getSharingAccess!=='function' || String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+    throw new Error('File '+name+' atau akses berbagi langsungnya tidak PRIVATE. Akses dihentikan.');
+  const seen={}, stack=[], parents=file.getParents();
+  while(parents.hasNext()) stack.push(parents.next());
+  while(stack.length) {
+    const current=stack.pop(), id=String(current.getId()||'');
+    if(!id) throw new Error('ID folder induk file '+name+' tidak dapat diverifikasi. Akses dihentikan.');
+    if(seen[id]) continue;
+    seen[id]=true;
+    if(typeof current.getSharingAccess!=='function' || String(current.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+      throw new Error('Folder induk file '+name+' atau rantai induknya tidak PRIVATE. Akses dihentikan.');
+    const ancestors=current.getParents();
+    while(ancestors.hasNext()) stack.push(ancestors.next());
+  }
+  return true;
+}
+
 function validateMpsRebuildConfig_() {
   const p = PropertiesService.getScriptProperties();
   const adminHash = !!p.getProperty('MPS_REBUILD_ADMIN_PASSWORD_HASH');
@@ -381,10 +402,14 @@ function validateMpsRebuildConfig_() {
   try {
     const id = p.getProperty('MPS_SPREADSHEET_ID');
     if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
+    const databaseFile=DriveApp.getFileById(id);
+    assertMpsDriveFileTreePrivate_(databaseFile,'database TEST');
+    const driveFileName=String(databaseFile.getName()||'');
+    result.testSpreadsheetNameValid=driveFileName.startsWith('MPS TEST - ') && driveFileName!=='MPS - Database Member';
+    if(!result.testSpreadsheetNameValid) throw new Error('File spreadsheet bukan resource TEST berlabel MPS TEST -. Database produksi ditolak.');
     const ss = SpreadsheetApp.openById(id);
     result.spreadsheetReadable = true;
-    result.testSpreadsheetNameValid=String(ss.getName()||'').startsWith('MPS TEST - ') && String(ss.getName()||'')!=='MPS - Database Member';
-    if(!result.testSpreadsheetNameValid) result.errors.push('Spreadsheet bukan resource TEST berlabel MPS TEST -. Database produksi ditolak.');
+    if(String(ss.getName()||'')!==driveFileName) throw new Error('Nama file Drive dan nama spreadsheet tidak cocok.');
     const sh = ss.getSheetByName(MPS.LEGACY_SHEET);
     result.legacySheetPresent = !!sh;
     if (sh) {
@@ -1872,6 +1897,7 @@ function createMpsBackupSnapshotCore_() {
   if(!String(folder.getName()||'').startsWith('MPS TEST - ')) throw new Error('Folder backup harus merupakan folder TEST berlabel MPS TEST -.');
   assertMpsDriveFolderTreePrivate_(folder,'folder backup');
   const sourceFile=DriveApp.getFileById(dbId);
+  assertMpsDriveFileTreePrivate_(sourceFile,'database TEST backup source');
   if(String(sourceFile.getName()||'')!==String(ss.getName()||'')) throw new Error('File sumber backup tidak cocok dengan spreadsheet TEST yang divalidasi.');
   const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
   const copy=sourceFile.makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
@@ -1952,10 +1978,15 @@ function openDb_() {
   if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
   if(prop_('MPS_REBUILD_TEST_LABEL')!=='MPS-ISOLATED-TEST')
     throw new Error('Akses database rebuild dikunci. MPS_REBUILD_TEST_LABEL harus bernilai MPS-ISOLATED-TEST pada project TEST terisolasi.');
+  const databaseFile=DriveApp.getFileById(id);
+  assertMpsDriveFileTreePrivate_(databaseFile,'database TEST');
+  const driveFileName=String(databaseFile.getName()||'');
+  if(!driveFileName.startsWith('MPS TEST - ') || driveFileName==='MPS - Database Member')
+    throw new Error('Database rebuild hanya boleh memakai spreadsheet sintetis bernama dengan awalan MPS TEST -.');
   const ss=SpreadsheetApp.openById(id);
   const spreadsheetName=String(ss.getName()||'');
-  if(!spreadsheetName.startsWith('MPS TEST - ') || spreadsheetName==='MPS - Database Member')
-    throw new Error('Database rebuild hanya boleh memakai spreadsheet sintetis bernama dengan awalan MPS TEST -.');
+  if(spreadsheetName!==driveFileName)
+    throw new Error('Nama file Drive dan nama spreadsheet tidak cocok. Akses dihentikan.');
   const proofFolderId=prop_('MPS_PROOF_FOLDER_ID');
   if(!proofFolderId) throw new Error('MPS_PROOF_FOLDER_ID TEST belum diatur.');
   const proofFolder=DriveApp.getFolderById(proofFolderId);
