@@ -32,14 +32,14 @@ function sheet(rows,{failSet='',failRollback=false}={}){
     };
   }};
 }
-function pinHarness({chatId='700001',telegramStatus='Terhubung',initialProps={},failSet=false}={}){
+function pinHarness({chatId='700001',telegramStatus='Terhubung',initialProps={},failSet=false,failRollback=false}={}){
   const legacy=sheet([new Array(18).fill(''),[memberId,'','','','','','','Berhasil']]);
   const apps=sheet([new Array(15).fill(''),['APP1','','Trader','trader_mps','Indonesia','','','Disetujui',memberId,'',telegramStatus,'700001',chatId,'','']]);
   const values={...initialProps};let setCalls=0,sendCalls=0;
   const props={
     getProperty:key=>Object.prototype.hasOwnProperty.call(values,key)?values[key]:null,
     setProperties(input){setCalls++;if(failSet&&setCalls===1){values['MPS_PIN_SALT_'+memberId]=input['MPS_PIN_SALT_'+memberId];throw new Error('INJECTED_PIN_SET_PROPERTIES');}Object.assign(values,input);},
-    setProperty:(key,value)=>{values[key]=value;},
+    setProperty:(key,value)=>{if(failRollback)throw new Error('INJECTED_PIN_RESTORE');values[key]=value;},
     deleteProperty:key=>{delete values[key];}
   };
   const ctx={
@@ -120,7 +120,19 @@ test('partial IB verification write restores the original complete plan row',()=
   assert.deepEqual(h.plans.rows[1],before);
 });
 
-test('IB verification reports explicitly when compensation also fails',()=>{
+test('IB verification reports explicitly and fails closed when compensation also fails',()=>{
   const h=ibHarness({failSet:'2:7',failRollback:true});
   assert.throws(()=>h.run('VERIFY'),/rollback tidak lengkap/i);
+  assert.equal(h.plans.rows[1][4],'Tidak Terverifikasi');
+  assert.equal(h.plans.rows[1][7],'Perlu Pemeriksaan Ulang');
+});
+
+test('PIN credential rollback failure removes both PIN properties when possible',()=>{
+  const h=pinHarness({failSet:true,failRollback:true,initialProps:{
+    ['MPS_PIN_SALT_'+memberId]:'OLD_SALT',
+    ['MPS_PIN_HASH_'+memberId]:'OLD_HASH'
+  }});
+  assert.throws(()=>h.run(),/rollback properti tidak lengkap/i);
+  assert.equal(h.values['MPS_PIN_SALT_'+memberId],undefined);
+  assert.equal(h.values['MPS_PIN_HASH_'+memberId],undefined);
 });
