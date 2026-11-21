@@ -36,6 +36,8 @@ jobs:
         run: node --test tests/apps-script/rebuild-folder-privacy.test.mjs
       - name: Run v4.8.1 owner-only editor entry-point security tests
         run: node --test tests/apps-script/rebuild-editor-entrypoints-private.test.mjs
+      - name: Run v4.8.1 Admin credential bootstrap tests (synthetic only)
+        run: node --test tests/apps-script/rebuild-admin-credential-setup.test.mjs
       - name: Run v4.8.1 rebuild Admin approval and PIN tests (synthetic only)
         run: node --test tests/apps-script/rebuild-admin-approval-pin.test.mjs
       - name: Run P1.23 isolated technical acceptance harness (synthetic only)
