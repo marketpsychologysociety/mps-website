@@ -36,14 +36,14 @@ function makeSheet(rows=[]){
     }
   };
 }
-function approvalHarness({plan='ACTIVE_IB',ibStatus='Terverifikasi',amount=500000,telegram=true,regularPaid=true}={}){
+function approvalHarness({plan='ACTIVE_IB',ibStatus='Terverifikasi',amount=500000,telegram=true,regularPaid=true,depositSubmitted=true}={}){
   const appRow=[ref,new Date('2026-11-19T00:00:00Z'),'MPS Trader','trader_mps','Indonesia','Belajar money management','', 'Deposit Dikirim','','',telegram?'Terhubung':'Menunggu Verifikasi Telegram',telegram?chatId:'',telegram?telegramUserId:'','',new Date()];
   const planRow=[ref,plan,new Date(),plan==='REGULAR'?100000:0,ibStatus,'','', 'Menunggu Validasi'];
   const depRow=[ref,new Date(),'MPS Trader','12345678','Standard',amount,'2026-11-19','proof-deposit','','Menunggu Validasi',chatId,telegramUserId,'',''];
   const paymentRow=[ref,new Date(),100000,'2026-11-19','proof-qris','Menunggu Validasi','',''];
   const apps=makeSheet([new Array(15).fill(''),appRow]);
   const plans=makeSheet([new Array(8).fill(''),planRow]);
-  const deposits=makeSheet([new Array(14).fill(''),...(plan==='REGULAR'?[]:[depRow])]);
+  const deposits=makeSheet([new Array(14).fill(''),...(plan==='REGULAR'||!depositSubmitted?[]:[depRow])]);
   const payments=makeSheet([new Array(8).fill(''),...(regularPaid&&plan==='REGULAR'?[paymentRow]:[])]);
   const members=makeSheet([new Array(18).fill('')]);
   const ledger=makeSheet([new Array(8).fill('')]);
@@ -133,6 +133,17 @@ test('Regular approval is blocked until a valid QRIS proof is submitted',()=>{
   assert.throws(()=>h.run(),/Bukti QRIS Regular belum tersedia/);
   assert.equal(h.members.rows.length,1);
   assert.equal(h.apps.rows[1][8],'');
+});
+
+test('Admin can reject an incomplete Active IB application with no deposit submitted',()=>{
+  const h=approvalHarness({depositSubmitted:false,telegram:false});
+  const result=h.run('REJECT');
+  assert.equal(result.ok,true);
+  assert.equal(result.status,'Ditolak');
+  assert.equal(h.apps.rows[1][7],'Ditolak');
+  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.members.rows.length,1);
+  assert.equal(h.stats().inviteQueued,0);
 });
 
 test('Admin rejection records rejection without issuing Member ID or VIP invite',()=>{

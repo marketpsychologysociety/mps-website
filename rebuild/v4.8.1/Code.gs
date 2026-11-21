@@ -778,7 +778,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
     const deps = sheet_('deposits'), dr = findRow_(deps,1,ref);
     if (decision==='APPROVE' && !['REGULAR','ACTIVE_IB'].includes(planType)) throw new Error('Jenis keanggotaan tidak valid. Pengajuan tidak dapat disetujui.');
     if (decision==='APPROVE' && planType==='ACTIVE_IB' && String(plan[4]||'')!=='Terverifikasi') throw new Error('Status Exness IB harus diverifikasi Admin terlebih dahulu.');
-    if (planType!=='REGULAR' && !dr) throw new Error('Data deposit Exness belum tersedia.');
+    if (decision==='APPROVE' && planType!=='REGULAR' && !dr) throw new Error('Data deposit Exness belum tersedia.');
     if (planType==='REGULAR' && decision==='APPROVE') {
       if(!regularRow || Number(regular[2])!==100000 || regular[5]!=='Menunggu Validasi') throw new Error('Bukti QRIS Regular belum tersedia atau belum menunggu validasi.');
       if(apps.getRange(ar,11).getDisplayValue()!=='Terhubung') throw new Error('Verifikasi Telegram harus berhasil sebelum disetujui.');
