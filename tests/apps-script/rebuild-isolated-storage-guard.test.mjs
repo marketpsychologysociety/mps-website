@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
 const source=readFileSync(fileURLToPath(new URL('../../rebuild/v4.8.1/Code.gs',import.meta.url)),'utf8');
-const start=source.indexOf('function openDb_() {');
+const start=source.indexOf('function openIsolatedTestDb_(requireProvisioned) {');
 const end=source.indexOf('\nfunction requireOwnerContext_(',start+1);
 assert.ok(start>=0&&end>start,'openDb source boundaries must exist');
 const openSource=source.slice(start,end);
