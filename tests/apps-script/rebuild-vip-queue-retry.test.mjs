@@ -35,7 +35,7 @@ function harness({state='SENT',ageHours=49,joined=false,entitlement=true,sendOk=
     'Disetujui',memberId,new Date(),'Terhubung',userId,chatId,'',new Date()
   ]]);
   const legacy=makeSheet([new Array(18).fill(''),[memberId,new Date(),'MPS Trader','trader_mps','Indonesia','','','Berhasil']]);
-  const events=joined?[[new Array(8).fill('')],[ 'EV1',memberId,'MPS Trader','JOINED',userId,new Date(),true,true ]][1]:[];
+  const events=joined?[[ 'EV1',memberId,'MPS Trader','JOINED',userId,new Date(),true,true ]]:[];
   const vip=makeSheet([new Array(8).fill(''),...events]);
   let inviteCalls=0,sendCalls=0;const revoked=[],sent=[];
   const ctx={
