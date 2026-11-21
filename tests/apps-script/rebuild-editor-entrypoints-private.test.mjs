@@ -2,9 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import vm from 'node:vm';
 
 const code=readFileSync(fileURLToPath(new URL('../../rebuild/v4.8.1/Code.gs',import.meta.url)),'utf8');
 const html=readFileSync(fileURLToPath(new URL('../../rebuild/v4.8.1/Index.html',import.meta.url)),'utf8');
+new vm.Script(code,{filename:'rebuild/v4.8.1/Code.gs'});
 const functions=[...code.matchAll(/^function\s+([A-Za-z0-9_$]+)\s*\(/gm)];
 const names=functions.map(x=>x[1]);
 function bodyOf(index){
