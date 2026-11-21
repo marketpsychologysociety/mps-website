@@ -153,6 +153,26 @@ Run `runMpsCryptoSelfTests_()` manually in the isolated Apps Script editor. It c
 
 These are baseline abuse controls only. They have not been load-tested or verified in the Apps Script runtime.
 
+## Preflight failure and mitigation matrix
+
+| Failure scenario | Expected safe behavior | Recovery before retry |
+|---|---|---|
+| TEST marker missing/wrong, production spreadsheet name, or public spreadsheet/ancestor ACL | Database access stops before spreadsheet rows are opened | Create/use a separate MPS TEST spreadsheet, restrict sharing on the file and every parent folder, then re-run read-only validation |
+| Production proof folder, public proof folder, or public ancestor | Database access stops before member workflows run | Create a private MPS TEST proof folder and set its ID only in the isolated project |
+| Unknown legacy or auxiliary sheet header/width | Provisioning preflight aborts before creating any missing sheets | Inspect the TEST spreadsheet schema; do not delete or rename existing columns blindly |
+| A sheet insert/header write fails midway | The provisioning flag remains unless the complete provisioning succeeds; newly created TEST sheets are retained so provisioning can be safely resumed after inspection | Check the existing sheets, correct the cause, and rerun only if MPS_REBUILD_ALLOW_PROVISION is still present |
+| One-time provisioning flag cannot be deleted | Provisioner returns an explicit error, not a success result | Inspect Script Properties and remove MPS_REBUILD_ALLOW_PROVISION manually if it remains |
+| Telegram token belongs to the production bot or bot username is not clearly TEST | Outbound Bot API operations are blocked before send, polling, webhook, invite, or revoke | Create a dedicated BotFather TEST bot whose username contains the distinct word TEST; never reuse the live MPS bot token |
+| VIP group is not readable or its title lacks the distinct word TEST | Invite creation/revocation and join-request approval/decline are blocked before mutation | Create a separate test group and name it with TEST; configure only that group's ID |
+| Deposit or QRIS submission has an ambiguous write failure | Submission rollback/failure-injection tests cover restoring sheet rows and cleaning up newly created proof files | Do not submit a second time until the application/deposit record and proof folder have been reconciled |
+| Admin approval/rejection fails during a multi-sheet write | Snapshot compensation restores application, evidence, plan, member, ledger, and VIP queue state; incomplete rollback is reported distinctly | Stop further approval for that application and reconcile the named rows before retry |
+| IB verification or PIN property write is partial/ambiguous | Restore the previous plan/PIN pair; if compensation fails, fail closed and require manual reconciliation/reset | Do not approve or use a newly displayed PIN until the Admin state and Script Properties are reconciled |
+| Telegram delivery fails or an invite expires | The VIP task remains retryable; expired unjoined links are rotated, old/new links are revoked best-effort, and verified JOINED members are not re-invited | Fix the dedicated TEST bot/group permissions, then retry from Admin; confirm actual join state first |
+| Backup folder is missing, shared, or not separate from proof folder | Full acceptance fails before backup creation | Configure a separate private MPS TEST backup folder and verify its parent chain |
+| Telegram is not configured in the isolated project | Non-Telegram checks can continue; webhook delivery and actual Bot API behavior remain explicitly NOT_TESTED | Keep Telegram marked unaccepted until dedicated TEST bot/group acceptance is performed |
+
+All automated cases above are synthetic/mock tests. They reduce known failure risk but do not prove live Google Apps Script service behavior, Google Drive ACL inheritance, Telegram delivery, or deployment correctness. Those require the isolated Apps Script acceptance phase; production deployment remains separately gated.
+
 ## Release gate
 
 Domain-copy monitoring, backup restore drills and recovery validation, QRIS billing lifecycle, Exness IB status/rebate integration, verified premium Learning/News editorial content, and production-grade edge protection remain release blockers. Do not deploy until these workflows are resolved, code is independently reviewed, isolated Apps Script/Sheets/Drive tests pass, Android checks pass, and the owner explicitly approves a deployment plan.
