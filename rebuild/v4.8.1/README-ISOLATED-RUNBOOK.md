@@ -90,6 +90,14 @@ This is an initial clean architecture baseline, not a production-ready release.
 - No physical Android/PWA acceptance, Apps Script quota test, ScriptLock contention test, live Telegram webhook test, live Bot API delivery test, actual VIP-group join/leave test, real announcement/content publishing test, or live Binance feed test has been performed.
 - No deployment or production migration is authorized by this runbook.
 
+## Admin password bootstrap (isolated project only)
+
+1. Choose two different strong passwords of at least 16 characters and store them in a password manager.
+2. In Script Properties of the isolated TEST project only, temporarily set `MPS_REBUILD_ADMIN_SETUP_PASSWORD` and `MPS_REBUILD_SUPER_ADMIN_SETUP_PASSWORD` to those two passwords. Never paste them into source code, GitHub, or chat.
+3. From the Apps Script editor, run the private function `initializeMpsAdminCredentials_()` once as the configured project owner.
+4. The function creates separate random salts and salted SHA-256 hashes, never returns or logs either password/hash, and deletes both temporary plaintext setup properties after successful initialization.
+5. If initialization reports that temporary properties remain, delete those two setup properties manually before continuing. Do not overwrite existing credential hashes/salts; password rotation requires a separate reviewed procedure.
+
 ## Google Authenticator setup (isolated project only)
 
 1. First configure both Admin and Super Admin password hash/salt properties.
