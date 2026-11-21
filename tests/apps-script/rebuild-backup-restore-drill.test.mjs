@@ -27,7 +27,7 @@ function harness({mismatch=false,backupMismatch=false,copyPrivacyFailure=false,c
   const changedSheets=[sheet('Database Member',[['ID Member','Status'],['MPS-TEST-0001','Ditolak']]),sourceSheets[1]];
   const backupSheets=backupMismatch?changedSheets:sourceSheets;
   const restoredSheets=mismatch?changedSheets:sourceSheets;
-  const backupBook={getSheets:()=>backupSheets};
+  const backupBook={getSheets:()=>tooLarge?[{...sheet('Huge',[]),getLastRow:()=>1001,getLastColumn:()=>101}]:backupSheets};
   const sourceBook={getSheets:()=>sourceSheets};
   const restoredBook={getSheets:()=>tooLarge?[{...sheet('Huge',[]),getLastRow:()=>1001,getLastColumn:()=>101}]:restoredSheets};
   const state={copyCreated:false,copyTrashed:false,sharing:copyPrivacyFailure?'ANYONE':'PRIVATE',folder:'MPS TEST - Backup'};
