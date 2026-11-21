@@ -102,7 +102,6 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
   vm.runInContext(depositSource,ctx,{timeout:1000});
   vm.runInContext(paymentSource,ctx,{timeout:1000});
   vm.runInContext(linkSource,ctx,{timeout:1000});
-  vm.runInContext(extract('rollbackTelegramLink_','apiSubmitDeposit'),ctx,{timeout:1000});
   return {ctx,applications,plans,deposits,payments,links,files,file,stats:()=>({lockDepth,telegramCalls})};
 }
 const registration={nickname:'Trader MPS',telegramUsername:'@trader_mps',country:'Indonesia',goal:'Belajar money management',note:'',plan:'REGULAR'};
