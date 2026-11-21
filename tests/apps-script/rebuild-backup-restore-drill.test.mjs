@@ -75,6 +75,12 @@ test('restore drill rejects changed backup data and still cleans up temporary co
   assert.equal(h.state.copyTrashed,true);
 });
 
+test('restore drill rejects a corrupt timestamped backup before creating a temporary copy',()=>{
+  const h=harness({backupMismatch:true});
+  assert.throws(()=>h.run(),/RESTORE_DRILL_BACKUP_CONTENT_MISMATCH/);
+  assert.equal(h.state.copyCreated,false);
+});
+
 test('restore drill rejects a copy whose privacy cannot be verified and cleans it up',()=>{
   const h=harness({copyPrivacyFailure:true});
   assert.throws(()=>h.run(),/RESTORE_DRILL_COPY_PRIVACY_UNVERIFIED/);
