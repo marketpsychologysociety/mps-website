@@ -404,10 +404,12 @@ function validateMpsRebuildConfig_() {
     if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
     const databaseFile=DriveApp.getFileById(id);
     assertMpsDriveFileTreePrivate_(databaseFile,'database TEST');
+    const driveFileName=String(databaseFile.getName()||'');
+    result.testSpreadsheetNameValid=driveFileName.startsWith('MPS TEST - ') && driveFileName!=='MPS - Database Member';
+    if(!result.testSpreadsheetNameValid) throw new Error('File spreadsheet bukan resource TEST berlabel MPS TEST -. Database produksi ditolak.');
     const ss = SpreadsheetApp.openById(id);
     result.spreadsheetReadable = true;
-    result.testSpreadsheetNameValid=String(ss.getName()||'').startsWith('MPS TEST - ') && String(ss.getName()||'')!=='MPS - Database Member';
-    if(!result.testSpreadsheetNameValid) result.errors.push('Spreadsheet bukan resource TEST berlabel MPS TEST -. Database produksi ditolak.');
+    if(String(ss.getName()||'')!==driveFileName) throw new Error('Nama file Drive dan nama spreadsheet tidak cocok.');
     const sh = ss.getSheetByName(MPS.LEGACY_SHEET);
     result.legacySheetPresent = !!sh;
     if (sh) {
