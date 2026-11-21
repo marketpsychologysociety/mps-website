@@ -21,6 +21,7 @@ function makeSheet(rows=[]){
   return {
     rows:rows.map(r=>r.slice()),
     appendRow(row){this.rows.push(row.slice());},
+    deleteRow(row){this.rows.splice(row-1,1);},
     getLastRow(){return this.rows.length;},
     getRange(r,c,nr=1,nc=1){
       const self=this;
@@ -196,5 +197,34 @@ test('PIN issuance is blocked for a member that is not active',()=>{
   const h=pinHarness(false,false);
   assert.throws(()=>h.run(),/PIN hanya dapat dibuat untuk member yang sudah aktif/);
   assert.deepEqual(h.props,{});
+  assert.equal(h.stats().lockDepth,0);
+});
+
+
+test('approval rollback compensates an ambiguous ledger append failure',()=>{
+  const h=approvalHarness();
+  const append=h.ledger.appendRow.bind(h.ledger);
+  h.ledger.appendRow=row=>{append(row);throw new Error('INJECTED_LEDGER_APPEND_AFTER_WRITE');};
+  assert.throws(()=>h.run(),/INJECTED_LEDGER_APPEND_AFTER_WRITE/);
+  assert.equal(h.members.rows.length,1);
+  assert.equal(h.apps.rows[1][7],'Deposit Dikirim');
+  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.deposits.rows[1][9],'Menunggu Validasi');
+  assert.equal(h.plans.rows[1][7],'Menunggu Validasi');
+  assert.equal(h.ledger.rows.length,1);
+  assert.equal(h.queue.rows.length,1);
+  assert.equal(h.stats().lockDepth,0);
+});
+
+test('approval rollback compensates an ambiguous VIP queue append failure',()=>{
+  const h=approvalHarness();
+  const append=h.queue.appendRow.bind(h.queue);
+  h.queue.appendRow=row=>{append(row);throw new Error('INJECTED_VIP_QUEUE_APPEND_AFTER_WRITE');};
+  assert.throws(()=>h.run(),/INJECTED_VIP_QUEUE_APPEND_AFTER_WRITE/);
+  assert.equal(h.members.rows.length,1);
+  assert.equal(h.apps.rows[1][7],'Deposit Dikirim');
+  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.ledger.rows.length,1);
+  assert.equal(h.queue.rows.length,1);
   assert.equal(h.stats().lockDepth,0);
 });
