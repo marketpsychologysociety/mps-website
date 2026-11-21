@@ -15,7 +15,7 @@ function sessionMs(value){
   if(value instanceof Date)return value.getTime();
   if(typeof value==='number'&&Number.isFinite(value))return value;
   const raw=String(value==null?'':value).trim();
-  if(/^\\d{10,13}$/.test(raw))return Number(raw);
+  if(/^\d{10,13}$/.test(raw))return Number(raw);
   const parsed=new Date(raw).getTime();
   return Number.isFinite(parsed)?parsed:NaN;
 }
