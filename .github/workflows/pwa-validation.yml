@@ -36,6 +36,8 @@ jobs:
         run: node --test tests/apps-script/rebuild-folder-privacy.test.mjs
       - name: Run v4.8.1 isolated TEST storage guard tests
         run: node --test tests/apps-script/rebuild-isolated-storage-guard.test.mjs
+      - name: Run v4.8.1 storage provisioning preflight and rollback tests
+        run: node --test tests/apps-script/rebuild-provision-preflight.test.mjs
       - name: Run v4.8.1 dedicated TEST Telegram bot and group guards
         run: node --test tests/apps-script/rebuild-telegram-test-bot-guard.test.mjs
       - name: Run v4.8.1 owner action TEST marker tests
