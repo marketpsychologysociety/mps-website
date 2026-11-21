@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
 const source=readFileSync(fileURLToPath(new URL('../../rebuild/v4.8.1/Code.gs',import.meta.url)),'utf8');
-const start=source.indexOf('function openDb_() {');
+const start=source.indexOf('function openIsolatedTestDb_(requireProvisioned) {');
 const end=source.indexOf('\nfunction requireOwnerContext_(',start+1);
 assert.ok(start>=0&&end>start,'openDb source boundaries must exist');
 const openSource=source.slice(start,end);
@@ -17,13 +17,13 @@ const privacySource=source.slice(helperStart,helperEnd);
 function folder(name,access='PRIVATE',parents=[]){
   return {getId:()=>name,getName:()=>name,getSharingAccess:()=>access,getParents:()=>{let i=0;return{hasNext:()=>i<parents.length,next:()=>parents[i++]};}};
 }
-function harness({label='MPS-ISOLATED-TEST',spreadsheetName='MPS TEST - Database Member',proofName='MPS TEST - Bukti Deposit',proofAccess='PRIVATE',parents=[],databaseAccess='PRIVATE',databaseParents=[]}={}){
+function harness({label='MPS-ISOLATED-TEST',provisionedId='synthetic-db-id',spreadsheetName='MPS TEST - Database Member',proofName='MPS TEST - Bukti Deposit',proofAccess='PRIVATE',parents=[],databaseAccess='PRIVATE',databaseParents=[]}={}){
   let spreadsheetOpens=0,folderOpens=0,fileOpens=0;
   const ss={getName:()=>spreadsheetName};
   const proof=folder(proofName,proofAccess,parents);
   const databaseFile={getId:()=> 'synthetic-db-id',getName:()=>spreadsheetName,getSharingAccess:()=>databaseAccess,getParents:()=>{let i=0;return{hasNext:()=>i<databaseParents.length,next:()=>databaseParents[i++]};}};
   const ctx={
-    prop_:key=>({MPS_SPREADSHEET_ID:'synthetic-db-id',MPS_REBUILD_TEST_LABEL:label,MPS_PROOF_FOLDER_ID:'synthetic-proof-id'}[key]||''),
+    prop_:key=>({MPS_SPREADSHEET_ID:'synthetic-db-id',MPS_REBUILD_TEST_LABEL:label,MPS_REBUILD_TEST_PROVISIONED_ID:provisionedId,MPS_PROOF_FOLDER_ID:'synthetic-proof-id'}[key]||''),
     SpreadsheetApp:{openById:id=>{spreadsheetOpens++;assert.equal(id,'synthetic-db-id');return ss;}},
     DriveApp:{Access:{PRIVATE:'PRIVATE'},getFileById:id=>{fileOpens++;assert.equal(id,'synthetic-db-id');return databaseFile;},getFolderById:id=>{folderOpens++;assert.equal(id,'synthetic-proof-id');return proof;}}
   };
@@ -34,6 +34,12 @@ function harness({label='MPS-ISOLATED-TEST',spreadsheetName='MPS TEST - Database
 test('database access requires the exact isolated TEST marker before opening any resource',()=>{
   const h=harness({label:'true'});
   assert.throws(()=>h.run(),/MPS-ISOLATED-TEST/);
+  assert.deepEqual(h.stats(),{spreadsheetOpens:0,folderOpens:0,fileOpens:0});
+});
+
+test('database ID not bound by official TEST provisioning is rejected before Drive access',()=>{
+  const h=harness({provisionedId:'another-db-id'});
+  assert.throws(()=>h.run(),/belum diprovision|ID tidak cocok/i);
   assert.deepEqual(h.stats(),{spreadsheetOpens:0,folderOpens:0,fileOpens:0});
 });
 

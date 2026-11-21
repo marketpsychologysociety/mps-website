@@ -19,7 +19,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 
 - `MPS_REBUILD_OWNER_EMAIL`: exact Google account email of the project owner. Provisioning and TOTP initialization verify `Session.getEffectiveUser().getEmail()` against this value and reject calls where the effective account is unavailable or does not match.
 - `MPS_REBUILD_TEST_LABEL`: exact string `MPS-ISOLATED-TEST`. Database APIs fail closed unless this marker is present.
-- `MPS_SPREADSHEET_ID`: ID of a synthetic test spreadsheet named with the prefix `MPS TEST - ` (for example, `MPS TEST - Database Member`). The spreadsheet file itself and every parent folder must have Drive sharing access set to **Restricted/Private**; publicly or domain-shared files/folders are rejected. Production-named storage is rejected.
+- `MPS_SPREADSHEET_ID`: ID of a synthetic test spreadsheet named with the prefix `MPS TEST - ` (for example, `MPS TEST - Database Member`). The spreadsheet file itself and every parent folder must have Drive sharing access set to **Restricted/Private**; publicly or domain-shared files/folders are rejected. Production-named storage is rejected. The one-time provisioner binds its exact ID into `MPS_REBUILD_TEST_PROVISIONED_ID`; do not create or edit that property manually. Every later database access must match this provisioned ID.
 - `MPS_PROOF_FOLDER_ID`: ID of a private synthetic Drive folder named with the prefix `MPS TEST - ` (for example, `MPS TEST - Bukti Deposit`). Its entire parent-folder chain must also be private.
 - `MPS_REBUILD_ALLOW_PROVISION`: exact string `true`, only while provisioning the synthetic spreadsheet. The provisioner deletes this flag after a successful run.
 - `MPS_REBUILD_ADMIN_SETUP_PASSWORD` and `MPS_REBUILD_SUPER_ADMIN_SETUP_PASSWORD`: temporary plaintext setup properties used once by `initializeMpsAdminCredentials_()`. The helper generates and stores separate salted hashes/salts, then deletes these temporary properties.
@@ -43,10 +43,10 @@ Owner-only setup, webhook, trigger, validation, and backup functions end with an
 5. Create a new private synthetic proof folder named `MPS TEST - Bukti Deposit` and a separate private synthetic backup folder named `MPS TEST - Backup`. Ensure every parent folder is private too.
 6. Set `MPS_REBUILD_TEST_LABEL=MPS-ISOLATED-TEST` and set the spreadsheet, proof-folder, and backup-folder IDs to those synthetic resources. Never use the production spreadsheet or the original `MPS - Bukti Konfirmasi` folder.
 7. Set `MPS_REBUILD_ALLOW_PROVISION=true` only for the provisioning run.
-8. Run `provisionMpsRebuildStorage_()` manually once from the owner account. On success, the provisioner removes the one-time allow-provision flag.
+8. Run `provisionMpsRebuildStorage_()` manually once from the owner account. The TEST database must contain no member/data rows before first provisioning. On success, the provisioner binds `MPS_REBUILD_TEST_PROVISIONED_ID` to the exact spreadsheet ID and removes the one-time allow-provision flag.
 9. Run `runMpsRebuildValidation_()` from the Apps Script editor. This private editor-only entry point verifies the owner account and checks the TEST marker, resource names, exact schemas, private folder ancestry, and credentials. Inspect every returned boolean and `errors`; it does not provision or modify storage.
 
-Provisioning creates the legacy 18-column sheet only if absent and creates auxiliary sheets only when absent. It accepts either the exact 18-column legacy header or the exact recognized 30-column v4.8 header (18 core + 12 technical columns). It rejects any other header layout. It does not clear, delete, or rewrite existing member rows or technical-column values; new member rows write only the 18 core values.
+Provisioning preflights the legacy schema and every existing auxiliary sheet before its first write. If any existing header/width is unknown, it stops without creating earlier missing sheets. Only after all preflight checks pass does it create missing sheets; existing rows and valid sheets are left untouched. The one-time provisioning flag must be removed successfully; if deletion fails, the function reports an explicit error and you must remove the flag manually before continuing. It accepts either the exact 18-column legacy header or the exact recognized 30-column v4.8 header (18 core + 12 technical columns). It rejects any other header layout. It does not clear, delete, or rewrite existing member rows or technical-column values; new member rows write only the 18 core values.
 
 ## Owner-approved Regular Member QRIS flow (source implemented; acceptance pending)
 
@@ -152,6 +152,26 @@ Run `runMpsCryptoSelfTests_()` manually in the isolated Apps Script editor. It c
 - Registration validates Telegram username format and allowed membership goals. Deposit dates must be valid ISO dates and not future-dated. Uploaded proof bytes must match the claimed JPEG/PNG/WEBP signature.
 
 These are baseline abuse controls only. They have not been load-tested or verified in the Apps Script runtime.
+
+## Preflight failure and mitigation matrix
+
+| Failure scenario | Expected safe behavior | Recovery before retry |
+|---|---|---|
+| TEST marker missing/wrong, production spreadsheet name, or public spreadsheet/ancestor ACL | Database access stops before spreadsheet rows are opened | Create/use a separate MPS TEST spreadsheet, restrict sharing on the file and every parent folder, then re-run read-only validation |
+| Production proof folder, public proof folder, or public ancestor | Database access stops before member workflows run | Create a private MPS TEST proof folder and set its ID only in the isolated project |
+| Unknown legacy or auxiliary sheet header/width | Provisioning preflight aborts before creating any missing sheets | Inspect the TEST spreadsheet schema; do not delete or rename existing columns blindly |
+| A sheet insert/header write fails midway | The provisioning flag remains unless the complete provisioning succeeds; newly created TEST sheets are retained so provisioning can be safely resumed after inspection | Check the existing sheets, correct the cause, and rerun only if MPS_REBUILD_ALLOW_PROVISION is still present |
+| One-time provisioning flag cannot be deleted | Provisioner returns an explicit error, not a success result | Inspect Script Properties and remove MPS_REBUILD_ALLOW_PROVISION manually if it remains |
+| Telegram token belongs to the production bot or bot username is not clearly TEST | Outbound Bot API operations are blocked before send, polling, webhook, invite, or revoke | Create a dedicated BotFather TEST bot whose username contains the distinct word TEST; never reuse the live MPS bot token |
+| VIP group is not readable or its title lacks the distinct word TEST | Invite creation/revocation and join-request approval/decline are blocked before mutation | Create a separate test group and name it with TEST; configure only that group's ID |
+| Deposit or QRIS submission has an ambiguous write failure | Submission rollback/failure-injection tests cover restoring sheet rows and cleaning up newly created proof files | Do not submit a second time until the application/deposit record and proof folder have been reconciled |
+| Admin approval/rejection fails during a multi-sheet write | Snapshot compensation restores application, evidence, plan, member, ledger, and VIP queue state; incomplete rollback is reported distinctly | Stop further approval for that application and reconcile the named rows before retry |
+| IB verification or PIN property write is partial/ambiguous | Restore the previous plan/PIN pair; if compensation fails, fail closed and require manual reconciliation/reset | Do not approve or use a newly displayed PIN until the Admin state and Script Properties are reconciled |
+| Telegram delivery fails or an invite expires | The VIP task remains retryable; expired unjoined links are rotated, old/new links are revoked best-effort, and verified JOINED members are not re-invited | Fix the dedicated TEST bot/group permissions, then retry from Admin; confirm actual join state first |
+| Backup folder is missing, shared, or not separate from proof folder | Full acceptance fails before backup creation | Configure a separate private MPS TEST backup folder and verify its parent chain |
+| Telegram is not configured in the isolated project | Non-Telegram checks can continue; webhook delivery and actual Bot API behavior remain explicitly NOT_TESTED | Keep Telegram marked unaccepted until dedicated TEST bot/group acceptance is performed |
+
+All automated cases above are synthetic/mock tests. They reduce known failure risk but do not prove live Google Apps Script service behavior, Google Drive ACL inheritance, Telegram delivery, or deployment correctness. Those require the isolated Apps Script acceptance phase; production deployment remains separately gated.
 
 ## Release gate
 
