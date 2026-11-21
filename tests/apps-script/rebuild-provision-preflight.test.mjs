@@ -10,7 +10,10 @@ function extract(name,next){
   assert.ok(start>=0&&end>start,name+' source boundaries must exist');
   return source.slice(start,end);
 }
-const provisionSource=extract('provisionMpsRebuildStorage_','/** Public API: initial application');
+const provisionStart=source.indexOf('function provisionMpsRebuildStorage_() {');
+const provisionEnd=source.indexOf('/** Public API: initial application',provisionStart+1);
+assert.ok(provisionStart>=0&&provisionEnd>provisionStart,'provisioner source boundaries must exist');
+const provisionSource=source.slice(provisionStart,provisionEnd);
 const ensureSource=extract('ensureSheet_','validateMpsRebuildConfig_');
 
 function makeSheet(headers=[],{malformedWidth=0}={}){
