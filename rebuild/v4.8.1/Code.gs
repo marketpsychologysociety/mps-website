@@ -727,6 +727,61 @@ function apiSuperAdminLogin(password, totpCode) {
  * Creates Google Authenticator secrets once and returns provisioning URIs to the editor.
  * Never expose this function through a public web endpoint or share its return value.
  */
+/**
+ * One-time owner/editor-only bootstrap for Admin and Super Admin passwords.
+ * Supply temporary setup values through Script Properties, run this function
+ * from the Apps Script editor, then the plaintext setup properties are deleted.
+ * Passwords and hashes are never returned or logged.
+ */
+function initializeMpsAdminCredentials_() {
+  requireOwnerContext_();
+  const props=PropertiesService.getScriptProperties();
+  const adminHashKey='MPS_REBUILD_ADMIN_PASSWORD_HASH';
+  const adminSaltKey='MPS_REBUILD_ADMIN_PASSWORD_SALT';
+  const superHashKey='MPS_REBUILD_SUPER_ADMIN_PASSWORD_HASH';
+  const superSaltKey='MPS_REBUILD_SUPER_ADMIN_PASSWORD_SALT';
+  if(props.getProperty(adminHashKey)||props.getProperty(adminSaltKey)||
+     props.getProperty(superHashKey)||props.getProperty(superSaltKey))
+    throw new Error('Kredensial Admin/Super Admin sudah ada. Bootstrap tidak akan menimpa kredensial.');
+  const adminPassword=String(props.getProperty('MPS_REBUILD_ADMIN_SETUP_PASSWORD')||'');
+  const superPassword=String(props.getProperty('MPS_REBUILD_SUPER_ADMIN_SETUP_PASSWORD')||'');
+  if(adminPassword.length<16||superPassword.length<16)
+    throw new Error('Password Admin dan Super Admin sementara wajib minimal 16 karakter.');
+  if(adminPassword===superPassword)
+    throw new Error('Password Admin dan Super Admin harus berbeda.');
+  const adminSalt=randomHex_(64), superSalt=randomHex_(64);
+  const values={
+    [adminHashKey]:sha256_(adminSalt+adminPassword),
+    [adminSaltKey]:adminSalt,
+    [superHashKey]:sha256_(superSalt+superPassword),
+    [superSaltKey]:superSalt
+  };
+  try {
+    props.setProperties(values,false);
+    if(!props.getProperty(adminHashKey)||!props.getProperty(adminSaltKey)||
+       !props.getProperty(superHashKey)||!props.getProperty(superSaltKey))
+      throw new Error('Penyimpanan kredensial belum lengkap setelah penulisan.');
+  } catch(writeError) {
+    const rollbackErrors=[];
+    [adminHashKey,adminSaltKey,superHashKey,superSaltKey].forEach(key=>{
+      try { props.deleteProperty(key); }
+      catch(e) { rollbackErrors.push(key); }
+    });
+    if(rollbackErrors.length)
+      throw new Error('Bootstrap kredensial gagal dan rollback tidak lengkap. Periksa properti: '+rollbackErrors.join(', '));
+    throw writeError;
+  }
+  let setupPasswordsRemoved=true;
+  ['MPS_REBUILD_ADMIN_SETUP_PASSWORD','MPS_REBUILD_SUPER_ADMIN_SETUP_PASSWORD'].forEach(key=>{
+    try { props.deleteProperty(key); }
+    catch(e) { setupPasswordsRemoved=false; }
+  });
+  if(!setupPasswordsRemoved)
+    throw new Error('Hash kredensial berhasil dibuat, tetapi properti password sementara belum seluruhnya terhapus. Hapus kedua properti setup secara manual sekarang.');
+  return {ok:true,adminCredentialConfigured:true,superAdminCredentialConfigured:true,setupPasswordsRemoved:true,
+    note:'Password plaintext dan hash tidak ditampilkan. Simpan password hanya di password manager.'};
+}
+
 function initializeMpsTotpSecrets_() {
   requireOwnerContext_();
   const props = PropertiesService.getScriptProperties();
