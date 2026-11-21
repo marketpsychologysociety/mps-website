@@ -1566,27 +1566,41 @@ function ensureSheet_(ss, spec) {
   let sh = ss.getSheetByName(spec.name);
   if (!sh) sh = ss.insertSheet(spec.name);
   if (sh.getLastRow() === 0) {
+    if (sh.getLastColumn() !== 0)
+      throw new Error('Sheet '+spec.name+' kosong tetapi memiliki kolom tak terduga. Tidak diubah.');
     sh.getRange(1,1,1,spec.headers.length).setValues([spec.headers]);
     sh.setFrozenRows(1);
     return;
   }
-  const actual = sh.getRange(1,1,1,Math.max(sh.getLastColumn(),spec.headers.length)).getDisplayValues()[0].slice(0,spec.headers.length);
+  const width = sh.getLastColumn();
+  if (width !== spec.headers.length)
+    throw new Error('Lebar sheet '+spec.name+' tidak cocok. Diharapkan tepat '+spec.headers.length+' kolom; ditemukan '+width+'. Tidak diubah.');
+  const actual = sh.getRange(1,1,1,width).getDisplayValues()[0];
   if (JSON.stringify(actual) !== JSON.stringify(spec.headers))
     throw new Error('Header sheet '+spec.name+' tidak cocok. Tidak diubah.');
 }
 
 function legacySheet_() {
   const sh = openDb_().getSheetByName(MPS.LEGACY_SHEET);
-  if (!sh || sh.getLastColumn() < 18) throw new Error('Database Member belum tersedia atau belum lengkap.');
-  const h = sh.getRange(1,1,1,18).getDisplayValues()[0];
-  if (JSON.stringify(h) !== JSON.stringify(MPS.LEGACY_HEADERS)) throw new Error('Skema Database Member tidak cocok.');
+  if (!sh) throw new Error('Database Member belum tersedia.');
+  const width = sh.getLastColumn();
+  if (width !== MPS.LEGACY_HEADERS.length && width !== MPS.LEGACY_EXTENDED_HEADERS.length)
+    throw new Error('Lebar Database Member tidak cocok. Hanya skema tepat 18 atau 30 kolom yang diterima.');
+  const expected = width === MPS.LEGACY_HEADERS.length
+    ? MPS.LEGACY_HEADERS : MPS.LEGACY_EXTENDED_HEADERS;
+  const headers = sh.getRange(1,1,1,width).getDisplayValues()[0];
+  if (JSON.stringify(headers) !== JSON.stringify(expected))
+    throw new Error('Skema Database Member tidak cocok. Tidak ada perubahan dilakukan.');
   return sh;
 }
 function sheet_(key) {
   const spec = MPS.SHEETS[key]; if (!spec) throw new Error('Sheet key tidak dikenal.');
   const sh = openDb_().getSheetByName(spec.name);
   if (!sh) throw new Error('Sheet '+spec.name+' belum diprovision.');
-  const h = sh.getRange(1,1,1,spec.headers.length).getDisplayValues()[0];
+  const width = sh.getLastColumn();
+  if (width !== spec.headers.length)
+    throw new Error('Lebar sheet '+spec.name+' tidak cocok. Diharapkan tepat '+spec.headers.length+' kolom; ditemukan '+width+'.');
+  const h = sh.getRange(1,1,1,width).getDisplayValues()[0];
   if (JSON.stringify(h) !== JSON.stringify(spec.headers)) throw new Error('Header '+spec.name+' tidak cocok.');
   return sh;
 }
