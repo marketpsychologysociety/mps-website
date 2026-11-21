@@ -92,6 +92,20 @@ function requireDedicatedTestTelegramBot_() {
   return token;
 }
 
+function assertDedicatedTestVipGroup_(groupId,token) {
+  if(!groupId) throw new Error('ID grup VIP TEST belum diatur.');
+  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChat',{
+    method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId}),muteHttpExceptions:true
+  });
+  const result=JSON.parse(response.getContentText()||'{}');
+  if(response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok || !result.result)
+    throw new Error('Grup Telegram TEST tidak dapat diverifikasi. Tidak ada invite atau perubahan keanggotaan yang dilakukan.');
+  const title=String(result.result.title||'');
+  if(!/test/i.test(title))
+    throw new Error('Aksi VIP hanya boleh memakai grup Telegram TEST dengan nama yang mengandung kata TEST. Grup produksi ditolak.');
+  return true;
+}
+
 function getMpsTelegramWebhookDeploymentUrl_() {
   const configured=prop_('MPS_WEB_APP_URL').trim();
   const serviceUrl=String(ScriptApp.getService().getUrl()||'').trim();
@@ -1739,6 +1753,7 @@ function apiAdminProcessVipQueue(session) {
 function revokeVipInvite_(groupId,inviteLink) {
   if(!groupId || !inviteLink) return false;
   const token=requireDedicatedTestTelegramBot_();
+  assertDedicatedTestVipGroup_(groupId,token);
   const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{
     method:'post',contentType:'application/json',
     payload:JSON.stringify({chat_id:groupId,invite_link:inviteLink}),
@@ -1753,6 +1768,7 @@ function revokeVipInvite_(groupId,inviteLink) {
 function createVipInvite_(groupId,userId) {
   if (!groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
   const token=requireDedicatedTestTelegramBot_();
+  assertDedicatedTestVipGroup_(groupId,token);
   const payload = {chat_id:groupId,creates_join_request:true,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
   const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
     method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
@@ -1797,6 +1813,7 @@ function handleTelegramJoinRequest_(request) {
 
 function telegramJoinRequestAction_(method,groupId,userId) {
   const token=requireDedicatedTestTelegramBot_();
+  assertDedicatedTestVipGroup_(groupId,token);
   const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/'+method,{
     method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
   });
