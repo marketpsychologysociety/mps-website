@@ -48,6 +48,13 @@ test('webhook, trigger, credential, provisioning, and backup setup paths retain 
     assert.ok(i>=0,'missing '+name);
     const next=source.indexOf('\nfunction ',i+1);
     const body=source.slice(i,next<0?undefined:next);
-    assert.match(body,/requireOwnerContext_\s*\(/,name+' must require owner context');
+    if(name==='runMpsBackupSnapshot_') {
+      assert.match(body,/createMpsBackupSnapshot_\s*\(/);
+      const coreStart=source.indexOf('function createMpsBackupSnapshot_(');
+      const coreEnd=source.indexOf('\nfunction ',coreStart+1);
+      assert.match(source.slice(coreStart,coreEnd),/requireOwnerContext_\s*\(/);
+    } else {
+      assert.match(body,/requireOwnerContext_\s*\(/,name+' must require owner context');
+    }
   }
 });
