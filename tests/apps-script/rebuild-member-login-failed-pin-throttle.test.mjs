@@ -34,7 +34,7 @@ function harness(){
 test('failed PIN attempts are counted, but valid PIN bypasses an exhausted failure bucket',()=>{
   const h=harness();
   for(let i=0;i<8;i++)assert.throws(()=>h.login('MPS-ABCDEF12','000000'),/PIN tidak valid/);
-  assert.equal(h.stats.failures,0);
+  assert.equal([...h.cache.values()][0],'8','eight failed checks must be recorded for this Member ID');
   const result=h.login('MPS-ABCDEF12','123456');
   assert.equal(result.ok,true);
   assert.equal(h.stats.sessions,1);
