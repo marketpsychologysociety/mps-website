@@ -199,9 +199,8 @@ function runMpsTelegramTestWebhookStatus_() {
  */
 function runMpsTelegramTestPollingSetup_() {
   requireOwnerContext_();
-  const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+  const token=requireDedicatedTestTelegramBot_();
   const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
-  if(!token || !username) throw new Error('Token dan username bot TEST wajib lengkap.');
   const api='https://api.telegram.org/bot'+token+'/';
   const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
   const me=JSON.parse(meResponse.getContentText()||'{}');
@@ -241,9 +240,8 @@ function pollMpsTelegramTestUpdates_() {
   const lock=LockService.getUserLock();
   if(!lock.tryLock(1000)) return {ok:true,skipped:'POLL_ALREADY_RUNNING'};
   try {
-    const token=prop_('MPS_TELEGRAM_BOT_TOKEN').trim();
+    const token=requireDedicatedTestTelegramBot_();
     const username=prop_('MPS_TELEGRAM_BOT_USERNAME').trim().replace(/^@/,'');
-    if(!token || !username) throw new Error('Konfigurasi bot TEST belum lengkap.');
     const api='https://api.telegram.org/bot'+token+'/';
     const meResponse=UrlFetchApp.fetch(api+'getMe',{muteHttpExceptions:true});
     const me=JSON.parse(meResponse.getContentText()||'{}');
