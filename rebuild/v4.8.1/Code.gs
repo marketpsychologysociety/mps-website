@@ -1653,6 +1653,33 @@ function apiAdminProcessVipQueue(session) {
   }
   return {ok:true,processed:results.length,results:results};
 }
+function revokeVipInvite_(groupId,inviteLink) {
+  const token=prop_('MPS_TELEGRAM_BOT_TOKEN');
+  if(!token || !groupId || !inviteLink) return false;
+  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{
+    method:'post',contentType:'application/json',
+    payload:JSON.stringify({chat_id:groupId,invite_link:inviteLink}),
+    muteHttpExceptions:true
+  });
+  const result=JSON.parse(response.getContentText()||'{}');
+  if(response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok)
+    throw new Error('VIP_INVITE_REVOKE_FAILED');
+  return true;
+}
+
+function createVipInvite_(groupId,userId) {
+  const token = prop_('MPS_TELEGRAM_BOT_TOKEN');
+  if (!token || !groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
+  const payload = {chat_id:groupId,creates_join_request:true,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
+  const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
+    method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
+  });
+  const result = JSON.parse(response.getContentText()||'{}');
+  if (response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok || !result.result || !result.result.invite_link)
+    throw new Error('VIP_INVITE_CREATE_FAILED');
+  return result.result.invite_link;
+}
+
 function handleTelegramJoinRequest_(request) {
   const groupId=prop_('MPS_VIP_GROUP_ID');
   if (!groupId || String(request.chat && request.chat.id || '')!==String(groupId)) return;
