@@ -48,6 +48,8 @@ jobs:
         run: node --test tests/apps-script/rebuild-regular-member-renewal.test.mjs
       - name: Run v4.8.1 Telegram remote ambiguity and retry tests
         run: node --test tests/apps-script/rebuild-telegram-remote-ambiguity.test.mjs
+      - name: Run v4.8.1 Telegram finalization ambiguity tests
+        run: node --test tests/apps-script/rebuild-telegram-finalization-ambiguity.test.mjs
       - name: Run v4.8.1 dedicated TEST Telegram bot and group guards
         run: node --test tests/apps-script/rebuild-telegram-test-bot-guard.test.mjs
       - name: Run v4.8.1 owner action TEST marker tests
