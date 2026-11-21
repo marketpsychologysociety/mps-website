@@ -123,8 +123,9 @@ After configuring the isolated TEST project and its separate private backup fold
 2. SHA-256, RFC 6238 TOTP, and Base32 deterministic crypto self-tests.
 3. A temporary Admin session storage/validation round-trip; the synthetic session row is revoked in cleanup and no member row is changed.
 4. One timestamped private spreadsheet snapshot in `MPS_BACKUP_FOLDER_ID`; older backups are not deleted.
+5. A non-destructive restore drill: create a temporary private copy of that snapshot, reopen it with `SpreadsheetApp.openById`, compare every sheet's name, dimensions, values, formulas, and SHA-256 fingerprint against the TEST source, then trash the temporary restore copy. The timestamped backup is retained. If cleanup cannot be confirmed, the suite fails and reports that the private temporary copy must be manually trashed.
 
-The function returns a structured report and stops before later stages if an earlier stage fails. It does not install a Telegram webhook, create a weekly trigger, deploy the app, or run live Telegram/Binance/browser workflows. A successful backup stage verifies copy creation, not a restore drill.
+The function returns a structured report and stops before later stages if an earlier stage fails. It does not install a Telegram webhook, create a weekly trigger, deploy the app, or run live Telegram/Binance/browser workflows. A successful backup and restore-drill stage verifies copy creation, reopening, content parity, and temporary-copy cleanup in the isolated TEST project; it is not a production restore.
 
 ## Deterministic crypto self-test
 

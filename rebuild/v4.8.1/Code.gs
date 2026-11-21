@@ -1982,6 +1982,81 @@ function createMpsBackupSnapshot_() {
   return createMpsBackupSnapshotCore_();
 }
 
+
+/**
+ * Non-destructive TEST backup restore drill.
+ * Re-opens a temporary copy of the backup and compares every sheet's dimensions,
+ * values, formulas, and content fingerprint with the live TEST source. The
+ * temporary restore copy is always trashed; the timestamped backup is retained.
+ */
+function verifyMpsBackupRestore_(backupFileId) {
+  requireOwnerContext_();
+  const sourceId=prop_('MPS_SPREADSHEET_ID');
+  const backupFolderId=prop_('MPS_BACKUP_FOLDER_ID');
+  if(!sourceId || !backupFolderId || !backupFileId)
+    throw new Error('RESTORE_DRILL_CONFIGURATION_MISSING');
+  if(backupFolderId===prop_('MPS_PROOF_FOLDER_ID'))
+    throw new Error('RESTORE_DRILL_BACKUP_FOLDER_MUST_BE_SEPARATE');
+  const sourceSs=openDb_();
+  const backupFolder=DriveApp.getFolderById(backupFolderId);
+  if(!String(backupFolder.getName()||'').startsWith('MPS TEST - '))
+    throw new Error('RESTORE_DRILL_FOLDER_NOT_TEST');
+  assertMpsDriveFolderTreePrivate_(backupFolder,'folder backup restore drill');
+  const backupFile=DriveApp.getFileById(backupFileId);
+  if(backupFile.isTrashed() || String(backupFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+    throw new Error('RESTORE_DRILL_BACKUP_NOT_PRIVATE_OR_MISSING');
+  if(!String(backupFile.getName()||'').startsWith('MPS-v4.8.1-backup-'))
+    throw new Error('RESTORE_DRILL_FILE_NOT_RECOGNIZED_BACKUP');
+  let inBackupFolder=false;
+  const parents=backupFile.getParents();
+  while(parents.hasNext()) if(parents.next().getId()===backupFolderId) inBackupFolder=true;
+  if(!inBackupFolder) throw new Error('RESTORE_DRILL_BACKUP_OUTSIDE_APPROVED_FOLDER');
+
+  const fingerprint=(ss)=>{
+    return ss.getSheets().map(sh=>{
+      const name=String(sh.getName()||'');
+      const rowCount=sh.getLastRow(),columnCount=sh.getLastColumn();
+      const cellCount=rowCount*columnCount;
+      if(cellCount>100000) throw new Error('RESTORE_DRILL_TEST_SHEET_TOO_LARGE:'+name);
+      const values=cellCount?sh.getRange(1,1,rowCount,columnCount).getValues():[];
+      const formulas=cellCount?sh.getRange(1,1,rowCount,columnCount).getFormulas():[];
+      return {name:name,rows:rowCount,columns:columnCount,sha256:sha256_(JSON.stringify({values:values,formulas:formulas}))};
+    }).sort((a,b)=>a.name.localeCompare(b.name));
+  };
+  const sourceFingerprint=fingerprint(sourceSs);
+  // Validate the timestamped backup itself before creating another Drive copy.
+  // This catches corrupt/oversized snapshots without leaving a new artifact.
+  const backupFingerprint=fingerprint(SpreadsheetApp.openById(backupFile.getId()));
+  if(JSON.stringify(backupFingerprint)!==JSON.stringify(sourceFingerprint))
+    throw new Error('RESTORE_DRILL_BACKUP_CONTENT_MISMATCH');
+  let drillCopy=null,cleanupError='';
+  try {
+    const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
+    drillCopy=backupFile.makeCopy('MPS-RESTORE-DRILL-'+stamp,backupFolder);
+    drillCopy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+    if(String(drillCopy.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+      throw new Error('RESTORE_DRILL_COPY_PRIVACY_UNVERIFIED');
+    const restored=SpreadsheetApp.openById(drillCopy.getId());
+    const restoredFingerprint=fingerprint(restored);
+    if(JSON.stringify(restoredFingerprint)!==JSON.stringify(sourceFingerprint))
+      throw new Error('RESTORE_DRILL_CONTENT_MISMATCH');
+    return {ok:true,checkedSheets:sourceFingerprint.length,checkedCells:sourceFingerprint.reduce((n,s)=>n+s.rows*s.columns,0),
+      comparison:'sheet names, dimensions, values, formulas and SHA-256 fingerprints match',
+      temporaryCopyCleanup:'CONFIRMED'};
+  } finally {
+    if(drillCopy) {
+      try {
+        drillCopy.setTrashed(true);
+        if(!drillCopy.isTrashed()) throw new Error('TRASH_STATE_NOT_CONFIRMED');
+      } catch(e) {
+        cleanupError=String(e&&e.message||e);
+        console.error('MPS_RESTORE_DRILL_TEMP_COPY_CLEANUP_FAILED '+cleanupError+' fileId='+drillCopy.getId());
+        throw new Error('RESTORE_DRILL_TEMP_COPY_REMAINS_PRIVATE; manually trash the temporary MPS-RESTORE-DRILL file in the TEST backup folder. '+cleanupError);
+      }
+    }
+  }
+}
+
 function apiGetPublicVipTicker() {
   const events=rows_(sheet_('vip'));
   const latest=events.filter(r=>r[3]==='JOINED' && (r[6]===true || String(r[6]).toLowerCase()==='true') && (r[7]===true || String(r[7]).toLowerCase()==='true'))
@@ -2197,6 +2272,14 @@ function runMpsFullAcceptanceSuite_() {
 
     const backup = createMpsBackupSnapshot_();
     report.backup = {ok:backup.ok,name:backup.name,url:backup.url,createdAt:backup.createdAt,note:backup.note};
+    const restore = verifyMpsBackupRestore_(backup.fileId);
+    report.restoreDrill = restore;
+    if (!restore.ok) {
+      report.failedStage = 'BACKUP_RESTORE_DRILL';
+      report.finishedAt = new Date().toISOString();
+      Logger.log('MPS FULL ACCEPTANCE SUITE: '+JSON.stringify(report));
+      return report;
+    }
     report.telegram = {
       credentialsConfigured:validation.telegramBotConfigured && validation.telegramBotUsernameConfigured && validation.telegramChatConfigured,
       webhookSecretConfigured:validation.webhookSecretConfigured,
