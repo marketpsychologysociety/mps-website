@@ -907,7 +907,11 @@ function apiAdminSetIbVerification(session, applicationRef, decision, note) {
     } catch(writeError) {
       try { sh.getRange(row,1,1,8).setValues([snapshot]); }
       catch(rollbackError) {
-        throw new Error('Perubahan verifikasi IB gagal dan rollback tidak lengkap. Hentikan persetujuan member ini dan rekonsiliasi baris paket keanggotaan secara manual.');
+        try {
+          sh.getRange(row,5).setValue('Tidak Terverifikasi');
+          sh.getRange(row,8).setValue('Perlu Pemeriksaan Ulang');
+        } catch(failClosedError) {}
+        throw new Error('Perubahan verifikasi IB gagal dan rollback tidak lengkap. Status ditutup jika penulisan memungkinkan; hentikan persetujuan member ini dan rekonsiliasi baris paket keanggotaan secara manual.');
       }
       throw writeError;
     }
@@ -1101,8 +1105,12 @@ function apiAdminIssuePin(session, memberId) {
       catch(e) { rollbackErrors.push('PIN salt'); }
       try { if(previousHash===null) props.deleteProperty(hashKey); else props.setProperty(hashKey,previousHash); }
       catch(e) { rollbackErrors.push('PIN hash'); }
-      if(rollbackErrors.length)
-        throw new Error('Pembuatan PIN gagal dan rollback properti tidak lengkap. PIN baru jangan digunakan; Admin harus reset ulang setelah rekonsiliasi.');
+      if(rollbackErrors.length) {
+        // Fail closed: remove both credentials if the previous pair cannot be restored.
+        try { props.deleteProperty(saltKey); } catch(e) {}
+        try { props.deleteProperty(hashKey); } catch(e) {}
+        throw new Error('Pembuatan PIN gagal dan rollback properti tidak lengkap. Kredensial PIN dihapus jika memungkinkan; Admin harus reset ulang setelah rekonsiliasi.');
+      }
       throw writeError;
     }
     const apps=sheet_('applications'), appRow=findRow_(apps,9,id);
