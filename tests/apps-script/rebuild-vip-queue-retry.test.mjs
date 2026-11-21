@@ -116,7 +116,7 @@ test('expired invite is not sent when member entitlement has expired',()=>{
 
 test('revoke helper calls Telegram revokeChatInviteLink without returning credentials',()=>{
   let request;
-  const ctx={prop_:()=> 'TEST_TOKEN',UrlFetchApp:{fetch:(url,options)=>{request={url,options};return{getResponseCode:()=>200,getContentText:()=>JSON.stringify({ok:true,result:{}})};}}};
+  const ctx={prop_:key=>key==='MPS_REBUILD_TEST_LABEL'?'MPS-ISOLATED-TEST':key==='MPS_TELEGRAM_BOT_USERNAME'?'MPS_Test_Bot':key==='MPS_TELEGRAM_BOT_TOKEN'?'TEST_TOKEN':'',requireDedicatedTestTelegramBot_:()=> 'TEST_TOKEN',assertDedicatedTestVipGroup_:()=>true,UrlFetchApp:{fetch:(url,options)=>{request={url,options};return{getResponseCode:()=>200,getContentText:()=>JSON.stringify({ok:true,result:{}})};}}};
   vm.createContext(ctx);vm.runInContext(revokeSource,ctx,{timeout:1000});
   assert.equal(ctx.revokeVipInvite_(groupId,'https://t.me/+old-invite'),true);
   assert.equal(request.url,'https://api.telegram.org/botTEST_TOKEN/revokeChatInviteLink');
