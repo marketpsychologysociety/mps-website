@@ -41,7 +41,7 @@ function harness({mismatch=false,copyPrivacyFailure=false,cleanupFailure=false,o
     isTrashed:()=>false,
     getSharingAccess:()=>'PRIVATE',
     getName:()=>'MPS-v4.8.1-backup-20261121-200000',
-    getParents:()=>({hasNext:()=>!outsideFolder,next:()=>({getId:()=>'backup-folder'})}),
+    getParents:()=>{let yielded=false;return{hasNext:()=>!outsideFolder&&!yielded,next:()=>{yielded=true;return{getId:()=>'backup-folder'};}};},
     makeCopy:()=>{state.copyCreated=true;return copy;}
   };
   const context={
