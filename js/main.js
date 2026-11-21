@@ -208,7 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
       </div>
       <img class="mps-clock-watermark" src="assets/logo.svg?v=mps-original-20261118" alt="" aria-hidden="true">
     `;
-    nav.insertAdjacentElement('afterend', section);
+    const placement = document.querySelector('.mps-ticker') || document.querySelector('.page-head') || nav;\n    placement.insertAdjacentElement('afterend', section);
 
     const formatter = (zone, options) => new Intl.DateTimeFormat('id-ID', { timeZone: zone, ...options });
     const getParts = (zone, now) => {
