@@ -697,6 +697,60 @@ function apiRegister(input) {
     return {ok:true,applicationRef:ref,status:'Menunggu Pendaftaran',plan:plan};
   } finally { lock.releaseLock(); }
 }
+/**
+ * Recover a private proof upload when Drive commits createFile but its response
+ * is lost. Names are deterministic per Application Ref and operation. Existing
+ * files are reused only after exact MIME/size/byte comparison and privacy checks.
+ * Ambiguous lookup or duplicate names fail closed; callers must not retry blindly.
+ */
+function getOrCreatePrivateProofFile_(folder,blob,name,mime,expectedBytes) {
+  const verify = file => {
+    if (!file || file.isTrashed()) throw new Error('PROOF_FILE_RECOVERY_INVALID');
+    if (String(file.getMimeType()||'') !== mime || Number(file.getSize()||0) !== expectedBytes.length)
+      throw new Error('PROOF_FILE_RECOVERY_CONFLICT');
+    if (String(file.getSharingAccess()) !== String(DriveApp.Access.PRIVATE))
+      throw new Error('PROOF_FILE_RECOVERY_NOT_PRIVATE');
+    const actual = file.getBlob().getBytes();
+    if (actual.length !== expectedBytes.length) throw new Error('PROOF_FILE_RECOVERY_CONFLICT');
+    for (let i=0;i<actual.length;i++) if (((actual[i]+256)%256) !== ((expectedBytes[i]+256)%256))
+      throw new Error('PROOF_FILE_RECOVERY_CONFLICT');
+    return file;
+  };
+  const findExact = () => {
+    const it=folder.getFilesByName(name);
+    if (!it.hasNext()) return null;
+    const found=it.next();
+    if (it.hasNext()) throw new Error('PROOF_FILE_RECOVERY_DUPLICATE_NAME');
+    return verify(found);
+  };
+  const existing=findExact();
+  if (existing) return existing;
+  try {
+    const created=folder.createFile(blob);
+    created.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+    if (String(created.getSharingAccess()) !== String(DriveApp.Access.PRIVATE))
+      throw new Error('Privasi file bukti tidak dapat dipastikan.');
+    return verify(created);
+  } catch (createError) {
+    // createFile may have committed remotely before the Apps Script call timed out.
+    let recovered=null, lookupCompleted=false;
+    try { recovered=findExact(); lookupCompleted=true; } catch (lookupError) {
+      const ambiguous=new Error('Status upload bukti belum dapat dipastikan. File harus direkonsiliasi di folder privat; jangan kirim ulang.');
+      ambiguous.preserveProofFile=true;
+      ambiguous.code='PROOF_UPLOAD_OUTCOME_UNKNOWN';
+      throw ambiguous;
+    }
+    if (recovered) return recovered;
+    if (!lookupCompleted) {
+      const ambiguous=new Error('Status upload bukti belum dapat dipastikan. Jangan kirim ulang sebelum rekonsiliasi.');
+      ambiguous.preserveProofFile=true;
+      ambiguous.code='PROOF_UPLOAD_OUTCOME_UNKNOWN';
+      throw ambiguous;
+    }
+    throw createError;
+  }
+}
+
 function apiSubmitDeposit(input) {
   input = input || {};
   const ref = clean_(input.applicationRef,40).toUpperCase();
@@ -742,7 +796,7 @@ function apiSubmitDeposit(input) {
     let linkInfo=null;
     try {
       const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : 'webp';
-      proofFile = folder.createFile(Utilities.newBlob(bytes,mime,'MPS-PROOF-'+ref+'.'+ext));
+      proofFile = getOrCreatePrivateProofFile_(folder,Utilities.newBlob(bytes,mime,'MPS-PROOF-'+ref+'.'+ext),'MPS-PROOF-'+ref+'.'+ext,mime,bytes);
       proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
       if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) throw new Error('Privasi file bukti deposit tidak dapat dipastikan.');
       const now = new Date();
@@ -828,7 +882,7 @@ function apiSubmitRegularPayment(input) {
     let linkInfo=null;
     try {
       const ext=mime==='image/jpeg'?'jpg':mime==='image/png'?'png':'webp';
-      proofFile=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-QRIS-'+ref+'.'+ext));
+      proofFile=getOrCreatePrivateProofFile_(folder,Utilities.newBlob(bytes,mime,'MPS-QRIS-'+ref+'.'+ext),'MPS-QRIS-'+ref+'.'+ext,mime,bytes);
       proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
       if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) throw new Error('Privasi file bukti QRIS tidak dapat dipastikan.');
       const now=new Date();
