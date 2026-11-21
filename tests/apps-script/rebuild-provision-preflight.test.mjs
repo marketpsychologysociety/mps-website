@@ -14,7 +14,7 @@ const provisionStart=source.indexOf('function provisionMpsRebuildStorage_() {');
 const provisionEnd=source.indexOf('/** Public API: initial application',provisionStart+1);
 assert.ok(provisionStart>=0&&provisionEnd>provisionStart,'provisioner source boundaries must exist');
 const provisionSource=source.slice(provisionStart,provisionEnd);
-const ensureSource=extract('ensureSheet_','validateMpsRebuildConfig_');
+const ensureSource=extract('ensureSheet_','legacySheet_');
 
 function makeSheet(headers=[],{malformedWidth=0}={}){
   const rows=headers.length?[headers.slice()]:[];
