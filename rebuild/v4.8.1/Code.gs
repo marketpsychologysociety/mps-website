@@ -1850,9 +1850,11 @@ function createMpsScheduledBackup_() {
 
 function installMpsWeeklyBackupTrigger_() {
   requireOwnerContext_();
+  openDb_();
   const folderId=prop_('MPS_BACKUP_FOLDER_ID');
   if(!folderId || folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup privat yang terpisah wajib dikonfigurasi.');
   const folder=DriveApp.getFolderById(folderId);
+  if(!String(folder.getName()||'').startsWith('MPS TEST - ')) throw new Error('Folder backup harus merupakan folder TEST berlabel MPS TEST -.');
   assertMpsDriveFolderTreePrivate_(folder,'folder backup');
   const existing=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='createMpsScheduledBackup_');
   if(existing.length) return {ok:true,installed:false,message:'Trigger backup mingguan sudah ada.',count:existing.length};
@@ -1865,11 +1867,14 @@ function createMpsBackupSnapshotCore_() {
   const dbId=prop_('MPS_SPREADSHEET_ID'), folderId=prop_('MPS_BACKUP_FOLDER_ID');
   if(!dbId || !folderId) throw new Error('MPS_SPREADSHEET_ID dan MPS_BACKUP_FOLDER_ID wajib diatur.');
   if(folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup tidak boleh sama dengan folder bukti deposit.');
+  const ss=openDb_();
   const folder=DriveApp.getFolderById(folderId);
   if(!String(folder.getName()||'').startsWith('MPS TEST - ')) throw new Error('Folder backup harus merupakan folder TEST berlabel MPS TEST -.');
   assertMpsDriveFolderTreePrivate_(folder,'folder backup');
+  const sourceFile=DriveApp.getFileById(dbId);
+  if(String(sourceFile.getName()||'')!==String(ss.getName()||'')) throw new Error('File sumber backup tidak cocok dengan spreadsheet TEST yang divalidasi.');
   const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
-  const copy=DriveApp.getFileById(dbId).makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
+  const copy=sourceFile.makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
   copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
   if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) throw new Error('Privasi file backup tidak dapat dipastikan.');
   return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup TEST dibuat di folder privat. Tidak ada file lama yang dihapus.'};
