@@ -778,6 +778,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
     const deps = sheet_('deposits'), dr = findRow_(deps,1,ref);
     if (decision==='APPROVE' && !['REGULAR','ACTIVE_IB'].includes(planType)) throw new Error('Jenis keanggotaan tidak valid. Pengajuan tidak dapat disetujui.');
     if (decision==='APPROVE' && planType==='ACTIVE_IB' && String(plan[4]||'')!=='Terverifikasi') throw new Error('Status Exness IB harus diverifikasi Admin terlebih dahulu.');
+    if (planType!=='REGULAR' && !dr) throw new Error('Data deposit Exness belum tersedia.');
     if (planType==='REGULAR' && decision==='APPROVE') {
       if(!regularRow || Number(regular[2])!==100000 || regular[5]!=='Menunggu Validasi') throw new Error('Bukti QRIS Regular belum tersedia atau belum menunggu validasi.');
       if(apps.getRange(ar,11).getDisplayValue()!=='Terhubung') throw new Error('Verifikasi Telegram harus berhasil sebelum disetujui.');
@@ -786,17 +787,49 @@ function apiAdminReview(session, applicationRef, decision, note) {
       const expectedFolder=prop_('MPS_PROOF_FOLDER_ID');let okFolder=false;const parents=qrFile.getParents();while(parents.hasNext())if(parents.next().getId()===expectedFolder)okFolder=true;
       if(!expectedFolder || !okFolder)throw new Error('Bukti QRIS bukan dari folder bukti resmi.');
     }
-    if (planType!=='REGULAR' && !dr) throw new Error('Data deposit Exness belum tersedia.');
     if (app[7] === 'Disetujui' || app[7] === 'Ditolak') throw new Error('Pengajuan sudah diputuskan.');
     const dep = dr ? deps.getRange(dr,1,1,14).getValues()[0] : [];
     const now = new Date(), adminNote = clean_(note,500);
-    if (decision === 'APPROVE' && apps.getRange(ar,11).getDisplayValue() !== 'Terhubung')
+
+    const restoreRow = (sh,row,width,snapshot,label,errors) => {
+      if(!row || !snapshot) return;
+      try { sh.getRange(row,1,1,width).setValues([snapshot]); }
+      catch(e) { errors.push(label+': '+String(e&&e.message||e)); }
+    };
+    const auditBestEffort = (action,status,details) => {
+      try { audit_(actor.role,actor.actorId,action,ref,status,details); return false; }
+      catch(e) { return true; }
+    };
+
+    if (decision === 'REJECT') {
+      const appSnapshot=app.slice(), depSnapshot=dr?dep.slice():null, regularSnapshot=regularRow?regular.slice():null;
+      try {
+        apps.getRange(ar,8).setValue('Ditolak');
+        apps.getRange(ar,14).setValue(adminNote);
+        if(dr){deps.getRange(dr,10).setValue('Ditolak');deps.getRange(dr,13).setValue(adminNote);}
+        if(regularRow){regularSheet.getRange(regularRow,6).setValue('Ditolak');regularSheet.getRange(regularRow,7).setValue(adminNote);}
+      } catch(error) {
+        const rollbackErrors=[];
+        restoreRow(apps,ar,15,appSnapshot,'applications',rollbackErrors);
+        restoreRow(deps,dr,14,depSnapshot,'deposits',rollbackErrors);
+        restoreRow(regularSheet,regularRow,8,regularSnapshot,'regularPayments',rollbackErrors);
+        if(rollbackErrors.length) {
+          auditBestEffort('APPLICATION_REJECTION_ROLLBACK_INCOMPLETE','CRITICAL',rollbackErrors.join('; ').slice(0,500));
+          throw new Error('Penolakan gagal dan rollback tidak lengkap: '+rollbackErrors.join('; '));
+        }
+        throw error;
+      }
+      const auditWarning=auditBestEffort('APPLICATION_REJECTED','SUCCESS','');
+      return {ok:true,status:'Ditolak',auditWarning:auditWarning};
+    }
+
+    if (apps.getRange(ar,11).getDisplayValue() !== 'Terhubung')
       throw new Error('Verifikasi Telegram harus berhasil sebelum pengajuan dapat disetujui.');
-    if (decision === 'APPROVE' && (!app[11] || !app[12]))
+    if (!app[11] || !app[12])
       throw new Error('Identitas Telegram belum terikat lengkap pada pengajuan.');
-    if (decision === 'APPROVE' && planType!=='REGULAR' && (Number(dep[5]) < 500000 || !dep[7] || dep[9] !== 'Menunggu Validasi'))
+    if (planType!=='REGULAR' && (Number(dep[5]) < 500000 || !dep[7] || dep[9] !== 'Menunggu Validasi'))
       throw new Error('Deposit belum memenuhi nominal minimum, bukti tidak tersedia, atau status deposit tidak valid.');
-    if (decision === 'APPROVE' && planType!=='REGULAR') {
+    if (planType!=='REGULAR') {
       if (!app[11] || !app[12] || String(dep[10]||'')!==String(app[11]) || String(dep[11]||'')!==String(app[12]))
         throw new Error('Ikatan Telegram pada aplikasi dan data deposit tidak cocok. Pengajuan tidak dapat disetujui.');
       const proof=DriveApp.getFileById(String(dep[7]));
@@ -809,24 +842,56 @@ function apiAdminReview(session, applicationRef, decision, note) {
       while(parents.hasNext()) if(parents.next().getId()===proofFolder) inExpectedFolder=true;
       if(!inExpectedFolder) throw new Error('Bukti deposit tidak berada di folder bukti resmi MPS.');
     }
-    if (decision === 'REJECT') {
-      apps.getRange(ar,8).setValue('Ditolak'); apps.getRange(ar,14).setValue(adminNote);
-      if(dr){deps.getRange(dr,10).setValue('Ditolak');deps.getRange(dr,13).setValue(adminNote);} if(regularRow){regularSheet.getRange(regularRow,6).setValue('Ditolak');regularSheet.getRange(regularRow,7).setValue(adminNote);}
-      audit_(actor.role,actor.actorId,'APPLICATION_REJECTED',ref,'SUCCESS','');
-      return {ok:true,status:'Ditolak'};
-    }
-    const memberId = 'MPS-' + randomHex_(10);
+
     const memberSheet = legacySheet_();
+    let memberId='';
+    for(let attempt=0;attempt<5;attempt++) {
+      const candidate='MPS-'+randomHex_(10);
+      if(!findRow_(memberSheet,1,candidate)){memberId=candidate;break;}
+    }
+    if(!memberId) throw new Error('Gagal membuat ID Member unik. Coba kembali.');
+    const ledger=sheet_('membershipLedger'), queue=sheet_('queue');
+    const inviteIntent='VIP_INVITE:'+memberId;
+    const queueExisted=!!findRow_(queue,2,inviteIntent);
+    const appSnapshot=app.slice(), depSnapshot=dr?dep.slice():null;
+    const regularSnapshot=regularRow?regular.slice():null;
+    const planSnapshot=planRow?plan.slice():null;
     const row = [memberId,app[1],app[2],app[3],app[4],app[5],app[6],'Berhasil',planType==='REGULAR'?'Pembayaran QRIS MPS':dep[2]||'',planType==='REGULAR'?'N/A':dep[3]||'',planType==='REGULAR'?'N/A':dep[4]||'',planType==='REGULAR'?100000:dep[5],planType==='REGULAR'?Utilities.formatDate(now,MPS.TZ,'yyyy-MM-dd'):dep[6]||'','', 'Disetujui',adminNote,now,now];
-    memberSheet.appendRow(row);
-    apps.getRange(ar,8).setValue('Disetujui'); apps.getRange(ar,9).setValue(memberId); apps.getRange(ar,14).setValue(adminNote); apps.getRange(ar,15).setValue(now);
-    if(dr){deps.getRange(dr,10).setValue('Disetujui');deps.getRange(dr,13).setValue(adminNote);deps.getRange(dr,14).setValue(now);} if(regularRow){regularSheet.getRange(regularRow,6).setValue('Disetujui');regularSheet.getRange(regularRow,7).setValue(adminNote);regularSheet.getRange(regularRow,8).setValue(now);} if(planRow){planSheet.getRange(planRow,8).setValue('Aktif');planSheet.getRange(planRow,6).setValue(actor.actorId);planSheet.getRange(planRow,7).setValue(now);sheet_('membershipLedger').appendRow([memberId,ref,planType,'Aktif',now,planType==='REGULAR'?new Date(now.getTime()+30*86400000):'',now,'Admin approved']);}
-    enqueueVipInvite_(memberId,ref,String(apps.getRange(ar,12).getDisplayValue()||''),String(apps.getRange(ar,13).getDisplayValue()||''));
-    audit_(actor.role,actor.actorId,'APPLICATION_APPROVED',ref,'SUCCESS','Member ID issued after approval; VIP invite queued.');
-    return {ok:true,status:'Disetujui',memberId:memberId,pinSetupRequired:true,vipInviteQueued:true};
+    try {
+      memberSheet.appendRow(row);
+      apps.getRange(ar,8).setValue('Disetujui');
+      apps.getRange(ar,9).setValue(memberId);
+      apps.getRange(ar,14).setValue(adminNote);
+      apps.getRange(ar,15).setValue(now);
+      if(dr){deps.getRange(dr,10).setValue('Disetujui');deps.getRange(dr,13).setValue(adminNote);deps.getRange(dr,14).setValue(now);}
+      if(regularRow){regularSheet.getRange(regularRow,6).setValue('Disetujui');regularSheet.getRange(regularRow,7).setValue(adminNote);regularSheet.getRange(regularRow,8).setValue(now);}
+      if(planRow){planSheet.getRange(planRow,8).setValue('Aktif');planSheet.getRange(planRow,6).setValue(actor.actorId);planSheet.getRange(planRow,7).setValue(now);}
+      ledger.appendRow([memberId,ref,planType,'Aktif',now,planType==='REGULAR'?new Date(now.getTime()+30*86400000):'',now,'Admin approved']);
+      enqueueVipInvite_(memberId,ref,String(apps.getRange(ar,12).getDisplayValue()||''),String(apps.getRange(ar,13).getDisplayValue()||''));
+    } catch(error) {
+      const rollbackErrors=[];
+      restoreRow(apps,ar,15,appSnapshot,'applications',rollbackErrors);
+      restoreRow(deps,dr,14,depSnapshot,'deposits',rollbackErrors);
+      restoreRow(regularSheet,regularRow,8,regularSnapshot,'regularPayments',rollbackErrors);
+      restoreRow(planSheet,planRow,8,planSnapshot,'membershipPlans',rollbackErrors);
+      try { const rowToDelete=findRow_(memberSheet,1,memberId); if(rowToDelete) memberSheet.deleteRow(rowToDelete); }
+      catch(e) { rollbackErrors.push('member row: '+String(e&&e.message||e)); }
+      try { const rowToDelete=findRow_(ledger,1,memberId); if(rowToDelete) ledger.deleteRow(rowToDelete); }
+      catch(e) { rollbackErrors.push('membership ledger: '+String(e&&e.message||e)); }
+      if(!queueExisted) {
+        try { const rowToDelete=findRow_(queue,2,inviteIntent); if(rowToDelete) queue.deleteRow(rowToDelete); }
+        catch(e) { rollbackErrors.push('VIP invite queue: '+String(e&&e.message||e)); }
+      }
+      if(rollbackErrors.length) {
+        auditBestEffort('APPLICATION_APPROVAL_ROLLBACK_INCOMPLETE','CRITICAL',rollbackErrors.join('; ').slice(0,500));
+        throw new Error('Persetujuan gagal dan rollback tidak lengkap: '+rollbackErrors.join('; '));
+      }
+      throw error;
+    }
+    const auditWarning=auditBestEffort('APPLICATION_APPROVED','SUCCESS','Member ID issued after approval; VIP invite queued.');
+    return {ok:true,status:'Disetujui',memberId:memberId,pinSetupRequired:true,vipInviteQueued:true,auditWarning:auditWarning};
   } finally { lock.releaseLock(); }
 }
-
 
 /**
  * Admin-only one-time PIN enrollment/rotation.
