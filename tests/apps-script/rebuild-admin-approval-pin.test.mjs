@@ -21,6 +21,7 @@ function makeSheet(rows=[]){
   return {
     rows:rows.map(r=>r.slice()),
     appendRow(row){this.rows.push(row.slice());},
+    deleteRow(row){this.rows.splice(row-1,1);},
     getLastRow(){return this.rows.length;},
     getRange(r,c,nr=1,nc=1){
       const self=this;
