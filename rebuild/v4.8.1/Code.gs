@@ -344,7 +344,9 @@ function validateMpsRebuildConfig_() {
   const backupId = p.getProperty('MPS_BACKUP_FOLDER_ID');
   const result = {
     ownerEmailConfigured: !!p.getProperty('MPS_REBUILD_OWNER_EMAIL'),
+    isolatedTestLabelConfigured: p.getProperty('MPS_REBUILD_TEST_LABEL')==='MPS-ISOLATED-TEST',
     spreadsheetConfigured: !!p.getProperty('MPS_SPREADSHEET_ID'),
+    testSpreadsheetNameValid: false,
     proofFolderConfigured: !!p.getProperty('MPS_PROOF_FOLDER_ID'),
     adminCredentialConfigured: adminHash && adminSalt,
     adminPasswordHashConfigured: adminHash,
@@ -369,7 +371,10 @@ function validateMpsRebuildConfig_() {
     auxiliarySheetChecks: {},
     proofFolderReadable: false,
     proofFolderPrivate: false,
+    testProofFolderNameValid: false,
     backupFolderPrivate: false,
+    testBackupFolderNameValid: false,
+    backupFolderSeparate: false,
     errors: [],
     note: 'Read-only validation. No sheets, rows, properties, triggers, or webhooks changed. Telegram webhook installation is not verified by this check.'
   };
@@ -378,6 +383,8 @@ function validateMpsRebuildConfig_() {
     if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
     const ss = SpreadsheetApp.openById(id);
     result.spreadsheetReadable = true;
+    result.testSpreadsheetNameValid=String(ss.getName()||'').startsWith('MPS TEST - ') && String(ss.getName()||'')!=='MPS - Database Member';
+    if(!result.testSpreadsheetNameValid) result.errors.push('Spreadsheet bukan resource TEST berlabel MPS TEST -. Database produksi ditolak.');
     const sh = ss.getSheetByName(MPS.LEGACY_SHEET);
     result.legacySheetPresent = !!sh;
     if (sh) {
@@ -420,7 +427,9 @@ function validateMpsRebuildConfig_() {
     const folderId = p.getProperty('MPS_PROOF_FOLDER_ID');
     if (!folderId) throw new Error('MPS_PROOF_FOLDER_ID belum diatur.');
     const proofFolder=DriveApp.getFolderById(folderId);
-    proofFolder.getName();
+    const proofFolderName=String(proofFolder.getName()||'');
+    result.testProofFolderNameValid=proofFolderName.startsWith('MPS TEST - ') && proofFolderName!=='MPS - Bukti Konfirmasi';
+    if(!result.testProofFolderNameValid) throw new Error('Folder bukti bukan resource TEST berlabel MPS TEST -. Folder produksi ditolak.');
     assertMpsDriveFolderTreePrivate_(proofFolder,'folder bukti deposit');
     result.proofFolderReadable = true;
     result.proofFolderPrivate = true;
@@ -429,8 +438,12 @@ function validateMpsRebuildConfig_() {
   }
   if (backupId) {
     try {
+      result.backupFolderSeparate=backupId!==p.getProperty('MPS_PROOF_FOLDER_ID');
+      if(!result.backupFolderSeparate) throw new Error('Folder backup harus berbeda dari folder bukti.');
       const backupFolder=DriveApp.getFolderById(backupId);
-      backupFolder.getName();
+      const backupFolderName=String(backupFolder.getName()||'');
+      result.testBackupFolderNameValid=backupFolderName.startsWith('MPS TEST - ');
+      if(!result.testBackupFolderNameValid) throw new Error('Folder backup bukan resource TEST berlabel MPS TEST -.');
       assertMpsDriveFolderTreePrivate_(backupFolder,'folder backup');
       result.backupFolderReadable = true;
       result.backupFolderPrivate = true;
@@ -474,7 +487,10 @@ function provisionMpsRebuildStorage_() {
     }
   }
   Object.keys(MPS.SHEETS).forEach(k => ensureSheet_(ss,MPS.SHEETS[k]));
-  const result = {ok:true,version:MPS.VERSION,legacyHeaders:legacy.getLastColumn(),acceptedSchema:legacy.getLastColumn()===30?'v4.8-30':'legacy-18',auxiliarySheets:Object.keys(MPS.SHEETS).length};
+  let provisioningFlagCleared=true;
+  try { PropertiesService.getScriptProperties().deleteProperty('MPS_REBUILD_ALLOW_PROVISION'); }
+  catch(e) { provisioningFlagCleared=false; }
+  const result = {ok:true,version:MPS.VERSION,legacyHeaders:legacy.getLastColumn(),acceptedSchema:legacy.getLastColumn()===30?'v4.8-30':'legacy-18',auxiliarySheets:Object.keys(MPS.SHEETS).length,provisioningFlagCleared:provisioningFlagCleared};
   Logger.log('MPS_REBUILD_PROVISION ' + JSON.stringify(result));
   console.log('MPS_REBUILD_PROVISION ' + JSON.stringify(result));
   return result;
@@ -1850,11 +1866,13 @@ function createMpsBackupSnapshotCore_() {
   if(!dbId || !folderId) throw new Error('MPS_SPREADSHEET_ID dan MPS_BACKUP_FOLDER_ID wajib diatur.');
   if(folderId===prop_('MPS_PROOF_FOLDER_ID')) throw new Error('Folder backup tidak boleh sama dengan folder bukti deposit.');
   const folder=DriveApp.getFolderById(folderId);
+  if(!String(folder.getName()||'').startsWith('MPS TEST - ')) throw new Error('Folder backup harus merupakan folder TEST berlabel MPS TEST -.');
   assertMpsDriveFolderTreePrivate_(folder,'folder backup');
   const stamp=Utilities.formatDate(new Date(),MPS.TZ,'yyyyMMdd-HHmmss');
   const copy=DriveApp.getFileById(dbId).makeCopy('MPS-v4.8.1-backup-'+stamp,folder);
   copy.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
-  return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup dibuat di folder privat. Tidak ada file lama yang dihapus.'};
+  if(String(copy.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) throw new Error('Privasi file backup tidak dapat dipastikan.');
+  return {ok:true,name:copy.getName(),fileId:copy.getId(),url:copy.getUrl(),createdAt:new Date().toISOString(),note:'Backup TEST dibuat di folder privat. Tidak ada file lama yang dihapus.'};
 }
 
 function createMpsBackupSnapshot_() {
@@ -1927,7 +1945,20 @@ function sheet_(key) {
 function openDb_() {
   const id = prop_('MPS_SPREADSHEET_ID');
   if (!id) throw new Error('MPS_SPREADSHEET_ID belum diatur.');
-  return SpreadsheetApp.openById(id);
+  if(prop_('MPS_REBUILD_TEST_LABEL')!=='MPS-ISOLATED-TEST')
+    throw new Error('Akses database rebuild dikunci. MPS_REBUILD_TEST_LABEL harus bernilai MPS-ISOLATED-TEST pada project TEST terisolasi.');
+  const ss=SpreadsheetApp.openById(id);
+  const spreadsheetName=String(ss.getName()||'');
+  if(!spreadsheetName.startsWith('MPS TEST - ') || spreadsheetName==='MPS - Database Member')
+    throw new Error('Database rebuild hanya boleh memakai spreadsheet sintetis bernama dengan awalan MPS TEST -.');
+  const proofFolderId=prop_('MPS_PROOF_FOLDER_ID');
+  if(!proofFolderId) throw new Error('MPS_PROOF_FOLDER_ID TEST belum diatur.');
+  const proofFolder=DriveApp.getFolderById(proofFolderId);
+  const proofFolderName=String(proofFolder.getName()||'');
+  if(!proofFolderName.startsWith('MPS TEST - ') || proofFolderName==='MPS - Bukti Konfirmasi')
+    throw new Error('Folder bukti rebuild hanya boleh memakai folder TEST bernama dengan awalan MPS TEST -.');
+  assertMpsDriveFolderTreePrivate_(proofFolder,'folder bukti TEST');
+  return ss;
 }
 function requireOwnerContext_() {
   const expected = prop_('MPS_REBUILD_OWNER_EMAIL').trim().toLowerCase();
@@ -2010,11 +2041,11 @@ function runMpsFullAcceptanceSuite_() {
     const validation = validateMpsRebuildConfig_();
     report.validation = validation;
     const required = [
-      'ownerEmailConfigured','spreadsheetConfigured','proofFolderConfigured',
+      'ownerEmailConfigured','isolatedTestLabelConfigured','spreadsheetConfigured','testSpreadsheetNameValid','proofFolderConfigured','testProofFolderNameValid',
       'adminCredentialConfigured','superAdminCredentialConfigured',
       'adminTotpConfigured','superAdminTotpConfigured',
       'backupFolderConfigured','backupFolderReadable','spreadsheetReadable',
-      'legacySheetPresent','proofFolderReadable','proofFolderPrivate','backupFolderPrivate'
+      'legacySheetPresent','proofFolderReadable','proofFolderPrivate','backupFolderPrivate','testBackupFolderNameValid','backupFolderSeparate'
     ];
     const missing = required.filter(key => validation[key] !== true);
     if (validation.errors.length || missing.length ||
