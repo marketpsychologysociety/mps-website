@@ -1746,7 +1746,7 @@ function processTelegramUpdate_(update) {
     const leaseUntil = new Date(now.getTime()+10*60*1000);
     if (row) {
       const state = sh.getRange(row,4).getDisplayValue();
-      if (state === 'COMPLETED') return;
+      if (state === 'COMPLETED' || state === 'NEEDS_RECONCILIATION' || state === 'NOT_RETRYABLE') return;
       const existingLease = sh.getRange(row,8).getValue();
       const leaseMs = existingLease instanceof Date ? existingLease.getTime() : new Date(existingLease).getTime();
       // Telegram may redeliver while the first execution is still handling the update.
@@ -1772,7 +1772,9 @@ function processTelegramUpdate_(update) {
     if (update.chat_join_request) handleTelegramJoinRequest_(update.chat_join_request);
     finalizeTelegramUpdate_(row,claimToken,'COMPLETED','');
   } catch (err) {
-    finalizeTelegramUpdate_(row,claimToken,'FAILED','PROCESSING_ERROR');
+    const state=err&&err.ambiguousRemoteOutcome?'NEEDS_RECONCILIATION':'FAILED';
+    const code=String(err&&err.code||'PROCESSING_ERROR').slice(0,80);
+    finalizeTelegramUpdate_(row,claimToken,state,code);
     throw err;
   }
 }
@@ -1805,8 +1807,23 @@ function apiAdminRetryTelegramFailures(session) {
   const now=Date.now();
   for(let i=0;i<all.length && results.length<10;i++) {
     const r=all[i], state=String(r[3]||'');
-    const stale=state==='PROCESSING' && new Date(r[5]).getTime()<now-10*60*1000;
-    if(state!=='FAILED' && !stale) continue;
+    const lastAttempt=r[5] instanceof Date?r[5].getTime():new Date(r[5]).getTime();
+    const stale=state==='PROCESSING' && (!Number.isFinite(lastAttempt)||lastAttempt<now-10*60*1000);
+    if(stale) {
+      sh.getRange(i+2,4).setValue('NEEDS_RECONCILIATION');
+      sh.getRange(i+2,8,1,2).clearContent();
+      sh.getRange(i+2,12).setValue('STALE_UPDATE_OUTCOME_UNKNOWN');
+      results.push({updateId:String(r[0]),status:'NEEDS_RECONCILIATION'});
+      continue;
+    }
+    if(state!=='FAILED') continue;
+    if(!r[11]||String(r[11])==='PROCESSING_ERROR'||String(r[11])==='REMOTE_OUTCOME_UNKNOWN') {
+      sh.getRange(i+2,4).setValue('NEEDS_RECONCILIATION');
+      sh.getRange(i+2,8,1,2).clearContent();
+      sh.getRange(i+2,12).setValue('LEGACY_FAILURE_REQUIRES_RECONCILIATION');
+      results.push({updateId:String(r[0]),status:'NEEDS_RECONCILIATION'});
+      continue;
+    }
     const raw=String(r[12]||'');
     if(!raw) { sh.getRange(i+2,12).setValue('PAYLOAD_MISSING'); continue; }
     if (/^\/start(?:@\w+)?\s+\[REDACTED\]$/.test(String((()=>{try{return JSON.parse(raw).message?.text||''}catch(_){return ''}})()))) {
@@ -1931,86 +1948,161 @@ function enqueueVipInvite_(memberId,applicationRef,telegramUserId,chatId) {
 }
 
 /** Admin-triggered worker; safe to retry because an intent is unique per member. */
+/** Decide whether a VIP queue row is safe to process, wait, or reconcile. */
+function vipQueueDecision_(state,attempts,nextAttemptAt,updatedAt,nowMs) {
+  const s=String(state||''),n=Number(attempts||0);
+  const timeMs=value=>value instanceof Date?value.getTime():new Date(value).getTime();
+  const updated=timeMs(updatedAt),next=timeMs(nextAttemptAt);
+  const stale=!Number.isFinite(updated)||updated<nowMs-10*60*1000;
+  if(['PROCESSING','CREATING_INVITE'].includes(s) && stale)
+    return {action:'MARK_UNKNOWN',status:'NEEDS_RECONCILIATION',code:'INVITE_CREATE_OUTCOME_UNKNOWN'};
+  if(s==='DELIVERING' && stale)
+    return {action:'MARK_UNKNOWN',status:'DELIVERY_UNKNOWN',code:'MESSAGE_DELIVERY_OUTCOME_UNKNOWN'};
+  if(['NEEDS_RECONCILIATION','DELIVERY_UNKNOWN','SENT'].includes(s)) {
+    if(!Number.isFinite(updated)||updated>nowMs-48*60*60*1000) return {action:'WAIT'};
+    if(n>=5) return {action:'DEAD_LETTER',status:'DEAD_LETTER',code:'MAX_ATTEMPTS_REACHED'};
+    return {action:'PROCESS'};
+  }
+  if(s==='PENDING') return n>=5?{action:'DEAD_LETTER',status:'DEAD_LETTER',code:'MAX_ATTEMPTS_REACHED'}:{action:'PROCESS'};
+  if(s==='RETRY') {
+    if(n>=5) return {action:'DEAD_LETTER',status:'DEAD_LETTER',code:'MAX_ATTEMPTS_REACHED'};
+    if(Number.isFinite(next)&&next>nowMs) return {action:'WAIT'};
+    return {action:'PROCESS'};
+  }
+  return {action:'SKIP'};
+}
+
+function vipQueueRecordFailure_(queue,row,attempts,status,errorCode,nowMs) {
+  const count=Number(attempts||0)+1;
+  let finalStatus=status,nextAt='';
+  if(status==='RETRY' && count>=5) {finalStatus='DEAD_LETTER';errorCode='MAX_ATTEMPTS_REACHED';}
+  else if(finalStatus==='RETRY') {
+    const delay=Math.min(6*60*60*1000,5*60*1000*Math.pow(2,Math.max(0,count-1)));
+    nextAt=new Date(nowMs+delay);
+  }
+  queue.getRange(row,8).setValue(finalStatus);
+  queue.getRange(row,9).setValue(count);
+  if(nextAt) queue.getRange(row,10).setValue(nextAt); else queue.getRange(row,10).clearContent();
+  queue.getRange(row,11).clearContent();
+  queue.getRange(row,12).setValue(String(errorCode||'VIP_DELIVERY_FAILED').slice(0,80));
+  queue.getRange(row,14).setValue(new Date(nowMs));
+  return {status:finalStatus,attempts:count,nextAttemptAt:nextAt?nextAt.toISOString():''};
+}
+
+/** Admin-triggered worker with bounded retries and explicit remote-outcome reconciliation. */
 function apiAdminProcessVipQueue(session) {
   const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
-  const queue=sheet_('queue'), results=[], all=rows_(queue), now=Date.now();
-  const inviteLifetimeMs=48*60*60*1000;
-  for(let i=0;i<all.length && results.length<5;i++) {
-    const r=all[i], row=i+2, state=String(r[7]||'');
-    const updatedAtMs=r[13] instanceof Date?r[13].getTime():new Date(r[13]).getTime();
-    const staleProcessing=state==='PROCESSING' && (!Number.isFinite(updatedAtMs) || updatedAtMs<now-10*60*1000);
-    const sentInviteExpired=state==='SENT' && (!Number.isFinite(updatedAtMs) || updatedAtMs<=now-inviteLifetimeMs);
-    if(!['PENDING','RETRY'].includes(state) && !staleProcessing && !sentInviteExpired) continue;
-    const lock=LockService.getScriptLock();
-    lock.waitLock(10000);
-    let claimed=false, current, claimState='';
+  const queue=sheet_('queue'),results=[],all=rows_(queue),now=Date.now();
+  const leaseMs=10*60*1000;
+  for(let i=0;i<all.length && results.length<10;i++) {
+    const r=all[i],row=i+2;
+    let decision=vipQueueDecision_(r[7],r[8],r[9],r[13],Date.now());
+    if(decision.action==='SKIP'||decision.action==='WAIT') continue;
+    const lock=LockService.getScriptLock();lock.waitLock(10000);
+    let claimed=false,claimState='',attempts=0;
     try {
-      current=String(queue.getRange(row,8).getDisplayValue()||'');
-      const updated=queue.getRange(row,14).getValue();
-      const updatedMs=updated instanceof Date?updated.getTime():new Date(updated).getTime();
-      const stale=current==='PROCESSING' && (!Number.isFinite(updatedMs) || updatedMs<Date.now()-10*60*1000);
-      const expiredSent=current==='SENT' && (!Number.isFinite(updatedMs) || updatedMs<=Date.now()-inviteLifetimeMs);
-      if(current==='PENDING' || current==='RETRY' || stale || expiredSent) {
+      const current=String(queue.getRange(row,8).getDisplayValue()||'');
+      attempts=Number(queue.getRange(row,9).getValue()||0);
+      const next=queue.getRange(row,10).getValue(),updated=queue.getRange(row,14).getValue();
+      decision=vipQueueDecision_(current,attempts,next,updated,Date.now());
+      if(decision.action==='MARK_UNKNOWN'||decision.action==='DEAD_LETTER') {
+        const nextAttempts=decision.action==='MARK_UNKNOWN'?attempts+1:attempts;
+        const finalStatus=decision.action==='MARK_UNKNOWN'&&nextAttempts>=5?'DEAD_LETTER':decision.status;
+        queue.getRange(row,8).setValue(finalStatus);
+        if(decision.action==='MARK_UNKNOWN') queue.getRange(row,9).setValue(nextAttempts);
+        queue.getRange(row,10).clearContent();
+        queue.getRange(row,11).clearContent();
+        queue.getRange(row,12).setValue(finalStatus==='DEAD_LETTER'?'MAX_ATTEMPTS_REACHED':decision.code);
+        queue.getRange(row,14).setValue(new Date());
+        results.push({intent:String(queue.getRange(row,2).getValue()||''),status:finalStatus});
+      } else if(decision.action==='PROCESS') {
         claimState=current;
-        queue.getRange(row,8).setValue('PROCESSING');
+        queue.getRange(row,8).setValue('CREATING_INVITE');
+        queue.getRange(row,11).setValue(new Date(Date.now()+leaseMs));
         queue.getRange(row,14).setValue(new Date());
         claimed=true;
       }
-    } finally { lock.releaseLock(); }
+    } finally {lock.releaseLock();}
     if(!claimed) continue;
-    let newInvite='';
+
+    let newInvite='',phase='CREATING_INVITE',deliveryConfirmed=false;
+    const intent=String(r[1]||'');
     try {
-      const memberId=String(r[1]||'').replace('VIP_INVITE:','');
+      const memberId=intent.replace(/^VIP_INVITE:/,'');
       const appRow=findRow_(sheet_('applications'),9,memberId);
       const app=appRow?sheet_('applications').getRange(appRow,1,1,15).getValues()[0]:null;
       const chatId=app?String(app[12]||''):'';
       const groupId=String(r[3]||prop_('MPS_VIP_GROUP_ID'));
-      if(!app || app[7]!=='Disetujui' || !app[8] || !chatId || String(app[11]||'')!==String(r[4]||''))
+      if(!app||app[7]!=='Disetujui'||!app[8]||!chatId||String(app[11]||'')!==String(r[4]||''))
         throw new Error('APPROVED_MEMBER_TELEGRAM_BINDING_NOT_VALID');
-      const legacy=legacySheet_(), legacyRow=findRow_(legacy,1,memberId);
-      if(!legacyRow || legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil')
+      const legacy=legacySheet_(),legacyRow=findRow_(legacy,1,memberId);
+      if(!legacyRow||legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil')
         throw new Error('LEGACY_MEMBER_RECORD_NOT_ACTIVE');
       assertMembershipEntitlement_(memberId);
-      const alreadyJoined=rows_(sheet_('vip')).some(ev=>
-        String(ev[1]||'')===memberId && ev[3]==='JOINED' &&
-        (ev[6]===true || String(ev[6]).toLowerCase()==='true') &&
-        (ev[7]===true || String(ev[7]).toLowerCase()==='true')
-      );
+      const alreadyJoined=rows_(sheet_('vip')).some(ev=>String(ev[1]||'')===memberId&&ev[3]==='JOINED'&&
+        (ev[6]===true||String(ev[6]).toLowerCase()==='true')&&(ev[7]===true||String(ev[7]).toLowerCase()==='true'));
       if(alreadyJoined) {
-        queue.getRange(row,8).setValue('JOINED');
-        queue.getRange(row,12).setValue('');
-        queue.getRange(row,14).setValue(new Date());
-        results.push({intent:r[1],status:'JOINED_ALREADY'});
-        continue;
+        queue.getRange(row,8).setValue('JOINED');queue.getRange(row,10).clearContent();queue.getRange(row,11).clearContent();
+        queue.getRange(row,12).clearContent();queue.getRange(row,14).setValue(new Date());
+        results.push({intent:intent,status:'JOINED_ALREADY'});continue;
       }
-      const oldInvite=String(queue.getRange(row,6).getDisplayValue()||'');
-      // Always create a fresh 48-hour link for retries and expired SENT tasks.
-      // The prior link is revoked best-effort after the replacement is created.
       newInvite=createVipInvite_(groupId,String(r[4]||''));
-      if(oldInvite && oldInvite!==newInvite) {
-        try { revokeVipInvite_(groupId,oldInvite); }
-        catch(revokeError) { audit_('SYSTEM','', 'VIP_OLD_INVITE_REVOKE_FAILED',r[1],'WARNING','Old invite could not be revoked; join requests remain bound to the expected Telegram user.'); }
-      }
+      // Persist the remote invite before sending it. If delivery times out, the
+      // exact invite remains available for manual reconciliation and is not revoked.
       queue.getRange(row,6).setValue(newInvite);
+      queue.getRange(row,8).setValue('DELIVERING');
+      queue.getRange(row,11).setValue(new Date(Date.now()+leaseMs));
+      queue.getRange(row,14).setValue(new Date());
+      phase='DELIVERING';
       const delivered=sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, memerlukan persetujuan bot): '+newInvite);
       if(!delivered) throw new Error('VIP_TELEGRAM_DELIVERY_NOT_CONFIGURED');
+      deliveryConfirmed=true;
       queue.getRange(row,8).setValue('SENT');
-      queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
-      queue.getRange(row,12).setValue('');
+      queue.getRange(row,9).setValue(attempts+1);
+      queue.getRange(row,10).clearContent();
+      queue.getRange(row,11).clearContent();
+      queue.getRange(row,12).clearContent();
       queue.getRange(row,14).setValue(new Date());
-      results.push({intent:r[1],status:claimState==='SENT'?'REISSUED':'SENT'});
-      audit_(actor.role,actor.actorId,claimState==='SENT'?'VIP_INVITE_REISSUED':'VIP_INVITE_SENT',r[1],'SUCCESS','Fresh 48-hour invite issued.');
+      results.push({intent:intent,status:claimState==='SENT'||claimState==='NEEDS_RECONCILIATION'||claimState==='DELIVERY_UNKNOWN'?'REISSUED':'SENT'});
+      try {audit_(actor.role,actor.actorId,claimState==='SENT'?'VIP_INVITE_REISSUED':'VIP_INVITE_SENT',intent,'SUCCESS','Fresh 48-hour invite issued.');}
+      catch(auditError){console.warn('VIP_INVITE_AUDIT_DEFERRED '+String(auditError&&auditError.message||auditError));}
     } catch(err) {
-      if(newInvite) {
-        try { revokeVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),newInvite); }
-        catch(revokeError) { audit_('SYSTEM','', 'VIP_NEW_INVITE_REVOKE_FAILED',r[1],'WARNING','Failed delivery left a fresh invite requiring reconciliation.'); }
+      let storedState='';
+      try {storedState=String(queue.getRange(row,8).getDisplayValue()||'');} catch(_){}
+      if(deliveryConfirmed||storedState==='SENT') {
+        // The remote message is known delivered. Never revoke or resend merely
+        // because a later local acknowledgement/audit write failed.
+        try {queue.getRange(row,8).setValue('SENT');queue.getRange(row,11).clearContent();queue.getRange(row,14).setValue(new Date());} catch(_){}
+        results.push({intent:intent,status:'SENT_RECONCILED'});
+      } else if(err&&err.ambiguousRemoteOutcome) {
+        const unknownState=phase==='DELIVERING'?'DELIVERY_UNKNOWN':'NEEDS_RECONCILIATION';
+        const nextAttempts=attempts+1,finalStatus=nextAttempts>=5?'DEAD_LETTER':unknownState;
+        try {
+          queue.getRange(row,8).setValue(finalStatus);queue.getRange(row,9).setValue(nextAttempts);
+          queue.getRange(row,10).clearContent();queue.getRange(row,11).clearContent();
+          queue.getRange(row,12).setValue(String(finalStatus==='DEAD_LETTER'?'MAX_ATTEMPTS_REACHED':err.code||'REMOTE_OUTCOME_UNKNOWN').slice(0,80));
+          queue.getRange(row,14).setValue(new Date());
+        } catch(writeErr){console.error('VIP_QUEUE_UNKNOWN_STATE_WRITE_FAILED '+String(writeErr&&writeErr.message||writeErr));}
+        results.push({intent:intent,status:finalStatus});
+      } else if(newInvite) {
+        try {
+          revokeVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),newInvite);
+          const failure=vipQueueRecordFailure_(queue,row,attempts,'RETRY',String(err&&err.code||err&&err.message||'VIP_DELIVERY_FAILED'),Date.now());
+          results.push({intent:intent,status:failure.status,nextAttemptAt:failure.nextAttemptAt});
+        } catch(revokeError) {
+          try {
+            queue.getRange(row,8).setValue('NEEDS_RECONCILIATION');queue.getRange(row,11).clearContent();
+            queue.getRange(row,12).setValue(String(revokeError.code||'INVITE_REVOKE_OUTCOME_UNKNOWN').slice(0,80));
+            queue.getRange(row,14).setValue(new Date());
+          } catch(_){}
+          results.push({intent:intent,status:'NEEDS_RECONCILIATION'});
+        }
+      } else {
+        const failure=vipQueueRecordFailure_(queue,row,attempts,'RETRY',String(err&&err.code||err&&err.message||'VIP_DELIVERY_FAILED'),Date.now());
+        results.push({intent:intent,status:failure.status,nextAttemptAt:failure.nextAttemptAt});
       }
-      queue.getRange(row,8).setValue('RETRY');
-      queue.getRange(row,9).setValue(Number(queue.getRange(row,9).getValue()||0)+1);
-      queue.getRange(row,12).setValue(String(err.message||'VIP_DELIVERY_FAILED').slice(0,80));
-      queue.getRange(row,14).setValue(new Date());
-      results.push({intent:r[1],status:'RETRY'});
-      audit_(actor.role,actor.actorId,'VIP_INVITE_FAILED',r[1],'WARNING',String(err.message||'').slice(0,160));
+      try {audit_(actor.role,actor.actorId,'VIP_INVITE_FAILED',intent,'WARNING',String(err&&err.code||err&&err.message||'').slice(0,160));}
+      catch(auditError){console.warn('VIP_INVITE_FAILURE_AUDIT_DEFERRED '+String(auditError&&auditError.message||auditError));}
     }
   }
   return {ok:true,processed:results.length,results:results};
@@ -2019,31 +2111,47 @@ function revokeVipInvite_(groupId,inviteLink) {
   if(!groupId || !inviteLink) return false;
   const token=requireDedicatedTestTelegramBot_();
   assertDedicatedTestVipGroup_(groupId,token);
-  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{
-    method:'post',contentType:'application/json',
-    payload:JSON.stringify({chat_id:groupId,invite_link:inviteLink}),
-    muteHttpExceptions:true
-  });
-  const result=JSON.parse(response.getContentText()||'{}');
-  if(response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok)
-    throw new Error('VIP_INVITE_REVOKE_FAILED');
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{
+      method:'post',contentType:'application/json',
+      payload:JSON.stringify({chat_id:groupId,invite_link:inviteLink}),muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    const error=new Error('VIP_INVITE_REVOKE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_REVOKE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {const error=new Error('VIP_INVITE_REVOKE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_REVOKE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  const status=response.getResponseCode();
+  if(status>=500) {const error=new Error('VIP_INVITE_REVOKE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_REVOKE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  if(status<200||status>=300||!result.ok) {const error=new Error('VIP_INVITE_REVOKE_FAILED');error.code='VIP_INVITE_REVOKE_FAILED';throw error;}
   return true;
 }
-
 function createVipInvite_(groupId,userId) {
   if (!groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
   const token=requireDedicatedTestTelegramBot_();
   assertDedicatedTestVipGroup_(groupId,token);
-  const payload = {chat_id:groupId,creates_join_request:true,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
-  const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
-    method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
-  });
-  const result = JSON.parse(response.getContentText()||'{}');
-  if (response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok || !result.result || !result.result.invite_link)
-    throw new Error('VIP_INVITE_CREATE_FAILED');
+  const payload={chat_id:groupId,creates_join_request:true,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
+      method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  const status=response.getResponseCode();
+  if(status>=500) {const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  if(status<200||status>=300||!result.ok) {const error=new Error('VIP_INVITE_CREATE_FAILED');error.code='VIP_INVITE_CREATE_FAILED';throw error;}
+  if(!result.result||!result.result.invite_link) {
+    const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
   return result.result.invite_link;
 }
-
 function handleTelegramJoinRequest_(request) {
   const groupId=prop_('MPS_VIP_GROUP_ID');
   if (!groupId || String(request.chat && request.chat.id || '')!==String(groupId)) return;
@@ -2076,19 +2184,71 @@ function handleTelegramJoinRequest_(request) {
   audit_('TELEGRAM',userId,'VIP_JOIN_REQUEST_APPROVED',String(queue.getRange(row,2).getValue()),'SUCCESS','Invite owner matched linked Telegram user ID.');
 }
 
+function telegramMemberIsActive_(groupId,userId,token) {
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/getChatMember',{
+      method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';throw error;}
+  const status=response.getResponseCode();
+  if(status>=500||status<200||status>=300||!result.ok||!result.result) {
+    const error=new Error('TELEGRAM_MEMBER_STATUS_UNVERIFIED');error.code='TELEGRAM_MEMBER_STATUS_UNVERIFIED';throw error;
+  }
+  const member=result.result;
+  return ['member','administrator','creator'].includes(String(member.status||'')) ||
+    (String(member.status||'')==='restricted' && member.is_member===true);
+}
+
 function telegramJoinRequestAction_(method,groupId,userId) {
   const token=requireDedicatedTestTelegramBot_();
   assertDedicatedTestVipGroup_(groupId,token);
-  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/'+method,{
-    method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
-  });
-  const result=JSON.parse(response.getContentText()||'{}');
-  if (response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok)
-    throw new Error('TELEGRAM_'+method.toUpperCase()+'_FAILED');
+  if(method==='approveChatJoinRequest' && telegramMemberIsActive_(groupId,userId,token)) return true;
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/'+method,{
+      method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:groupId,user_id:userId}),muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    if(method==='approveChatJoinRequest') {
+      try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
+    }
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {
+    if(method==='approveChatJoinRequest') {
+      try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
+    }
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  const status=response.getResponseCode();
+  if(status>=500) {
+    if(method==='approveChatJoinRequest') {
+      try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
+    }
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  if(status<200||status>=300||!result.ok) {
+    if(method==='approveChatJoinRequest') {
+      try {if(telegramMemberIsActive_(groupId,userId,token)) return true;} catch(_){}
+    }
+    const error=new Error('TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN');
+    error.code='TELEGRAM_'+method.toUpperCase()+'_OUTCOME_UNKNOWN';
+    if(method==='approveChatJoinRequest') error.ambiguousRemoteOutcome=true;
+    throw error;
+  }
   return true;
 }
-
-/** Only confirmed joins of approved members are published to the public ticker. */
 function handleTelegramChatMember_(event) {
   const groupId = prop_('MPS_VIP_GROUP_ID');
   if (!groupId || String(event.chat && event.chat.id || '') !== String(groupId)) return;
@@ -2128,6 +2288,16 @@ function handleTelegramChatMember_(event) {
   }
 }
 
+function apiAdminListVipQueue(session) {
+  requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  return rows_(sheet_('queue')).map(r=>({
+    intent:String(r[1]||''),state:String(r[7]||''),attempts:Number(r[8]||0),
+    nextAttemptAt:r[9] instanceof Date?r[9].toISOString():String(r[9]||''),
+    lastErrorCode:String(r[11]||''),
+    updatedAt:r[13] instanceof Date?r[13].toISOString():String(r[13]||'')
+  })).reverse();
+}
+
 function apiAdminSystemHealth(session) {
   requireSession_(session,['ADMIN','SUPER_ADMIN']);
   const app=rows_(sheet_('applications')), queue=rows_(sheet_('queue')), journal=rows_(sheet_('journal'));
@@ -2137,8 +2307,11 @@ function apiAdminSystemHealth(session) {
     version:MPS.VERSION,checkedAt:new Date().toISOString(),
     applications:{total:app.length,pending:count(app,7,'Menunggu Pendaftaran')+count(app,7,'Deposit Dikirim')+count(app,7,'Menunggu Deposit')},
     memberRows:activeMembers,
-    vipQueue:{pending:count(queue,7,'PENDING'),processing:count(queue,7,'PROCESSING'),retry:count(queue,7,'RETRY'),sent:count(queue,7,'SENT'),joined:count(queue,7,'JOINED')},
-    telegram:{failedUpdates:count(journal,3,'FAILED'),processingUpdates:count(journal,3,'PROCESSING')},
+    vipQueue:{pending:count(queue,7,'PENDING'),processing:count(queue,7,'PROCESSING')+count(queue,7,'CREATING_INVITE')+count(queue,7,'DELIVERING'),
+      retry:count(queue,7,'RETRY'),sent:count(queue,7,'SENT'),joined:count(queue,7,'JOINED'),
+      needsReconciliation:count(queue,7,'NEEDS_RECONCILIATION'),deliveryUnknown:count(queue,7,'DELIVERY_UNKNOWN'),deadLetter:count(queue,7,'DEAD_LETTER')},
+    telegram:{failedUpdates:count(journal,3,'FAILED'),processingUpdates:count(journal,3,'PROCESSING'),
+      needsReconciliation:count(journal,3,'NEEDS_RECONCILIATION')},
     configuration:{telegramBot:!!prop_('MPS_TELEGRAM_BOT_TOKEN'),telegramBotUsername:!!prop_('MPS_TELEGRAM_BOT_USERNAME'),telegramAdminBackup:!!prop_('MPS_TELEGRAM_CHAT_ID'),telegramWebhook:!!prop_('MPS_TELEGRAM_WEBHOOK_SECRET'),vipGroup:!!prop_('MPS_VIP_GROUP_ID'),backupFolder:!!prop_('MPS_BACKUP_FOLDER_ID'),weeklyBackupTrigger:ScriptApp.getProjectTriggers().some(t=>t.getHandlerFunction()==='createMpsScheduledBackup_')},
     note:'Health summary only; no secrets, IDs, proof links, or member personal details are returned.'
   };
@@ -2284,16 +2457,24 @@ function apiGetPublicVipTicker() {
   return latest;
 }
 
-function sendTelegramMessage_(chatId, messageText) {
-  if (!prop_('MPS_TELEGRAM_BOT_TOKEN') || !chatId) return false;
+function sendTelegramMessage_(chatId,messageText) {
+  if(!prop_('MPS_TELEGRAM_BOT_TOKEN')||!chatId) return false;
   const token=requireDedicatedTestTelegramBot_();
-  const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
-    method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:chatId,text:String(messageText).slice(0,3500)}),
-    muteHttpExceptions:true
-  });
-  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) throw new Error('Telegram sendMessage HTTP failure.');
-  const result = JSON.parse(response.getContentText() || '{}');
-  if (!result.ok) throw new Error('Telegram Bot API rejected sendMessage.');
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
+      method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:chatId,text:String(messageText).slice(0,3500)}),
+      muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    const error=new Error('TELEGRAM_SEND_OUTCOME_UNKNOWN');error.code='TELEGRAM_SEND_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {const error=new Error('TELEGRAM_SEND_OUTCOME_UNKNOWN');error.code='TELEGRAM_SEND_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  const status=response.getResponseCode();
+  if(status>=500) {const error=new Error('TELEGRAM_SEND_OUTCOME_UNKNOWN');error.code='TELEGRAM_SEND_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  if(status<200||status>=300||!result.ok) {const error=new Error('TELEGRAM_SEND_FAILED');error.code='TELEGRAM_SEND_FAILED';throw error;}
   return true;
 }
 function ensureSheet_(ss, spec) {
