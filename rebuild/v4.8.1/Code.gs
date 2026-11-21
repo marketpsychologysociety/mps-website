@@ -928,9 +928,22 @@ function apiAdminReviewRenewal(session,renewalRef,decision,note) {
     if(String(renewal[6]||'')!=='Menunggu Validasi') throw new Error('Pengajuan perpanjangan sudah diproses atau tidak menunggu validasi.');
     if(decision==='APPROVE') {
       if(Number(renewal[3])!==100000 || !renewal[5]) throw new Error('Nominal atau bukti QRIS perpanjangan tidak valid.');
+      const paymentDate=String(renewal[4]||'');
+      if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(paymentDate))
+        throw new Error('Tanggal pembayaran perpanjangan tidak valid.');
+      const paymentDateValue=new Date(paymentDate+'T00:00:00+07:00');
+      if(isNaN(paymentDateValue.getTime()) || Utilities.formatDate(paymentDateValue,MPS.TZ,'yyyy-MM-dd')!==paymentDate || paymentDateValue.getTime()>Date.now()+86400000)
+        throw new Error('Tanggal pembayaran perpanjangan tidak valid.');
       const proof=DriveApp.getFileById(String(renewal[5]));
       if(proof.isTrashed() || proof.getSharingAccess()!==DriveApp.Access.PRIVATE)
         throw new Error('Bukti QRIS perpanjangan tidak tersedia atau tidak privat.');
+      const proofMime=String(proof.getMimeType()||'');
+      const proofSize=Number(proof.getSize()||0);
+      if(!['image/jpeg','image/png','image/webp'].includes(proofMime) || proofSize<12 || proofSize>5*1024*1024)
+        throw new Error('Format atau ukuran bukti QRIS perpanjangan tidak valid.');
+      const proofBytes=proof.getBlob().getBytes();
+      if(proofBytes.length!==proofSize || proofBytes.length>5*1024*1024 || !isAllowedImageBytes_(proofBytes,proofMime))
+        throw new Error('Isi file bukti QRIS perpanjangan tidak valid.');
       const folderId=prop_('MPS_PROOF_FOLDER_ID');
       if(!folderId) throw new Error('Folder bukti resmi belum dikonfigurasi.');
       assertMpsDriveFolderTreePrivate_(DriveApp.getFolderById(folderId),'folder bukti perpanjangan QRIS');
