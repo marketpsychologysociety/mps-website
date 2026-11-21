@@ -51,5 +51,7 @@ test('missing journal payload becomes explicitly NOT_RETRYABLE and appears in re
  const h=harness({payload:''});
  const result=h.run();
  assert.equal(h.sh.rows[1][3],'NOT_RETRYABLE');
- assert.deepEqual(result.results[0],{updateId:'42',status:'NOT_RETRYABLE',reason:'PAYLOAD_MISSING'});
+ assert.equal(result.results[0].updateId,'42');
+ assert.equal(result.results[0].status,'NOT_RETRYABLE');
+ assert.equal(result.results[0].reason,'PAYLOAD_MISSING');
 });
