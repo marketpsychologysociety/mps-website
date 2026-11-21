@@ -1978,10 +1978,13 @@ function openDb_() {
     throw new Error('Akses database rebuild dikunci. MPS_REBUILD_TEST_LABEL harus bernilai MPS-ISOLATED-TEST pada project TEST terisolasi.');
   const databaseFile=DriveApp.getFileById(id);
   assertMpsDriveFileTreePrivate_(databaseFile,'database TEST');
+  const driveFileName=String(databaseFile.getName()||'');
+  if(!driveFileName.startsWith('MPS TEST - ') || driveFileName==='MPS - Database Member')
+    throw new Error('Database rebuild hanya boleh memakai spreadsheet sintetis bernama dengan awalan MPS TEST -.');
   const ss=SpreadsheetApp.openById(id);
   const spreadsheetName=String(ss.getName()||'');
-  if(!spreadsheetName.startsWith('MPS TEST - ') || spreadsheetName==='MPS - Database Member')
-    throw new Error('Database rebuild hanya boleh memakai spreadsheet sintetis bernama dengan awalan MPS TEST -.');
+  if(spreadsheetName!==driveFileName)
+    throw new Error('Nama file Drive dan nama spreadsheet tidak cocok. Akses dihentikan.');
   const proofFolderId=prop_('MPS_PROOF_FOLDER_ID');
   if(!proofFolderId) throw new Error('MPS_PROOF_FOLDER_ID TEST belum diatur.');
   const proofFolder=DriveApp.getFolderById(proofFolderId);
