@@ -176,7 +176,7 @@ function pinHarness(active=true,linked=false){
     randomPin_:()=>'123456',
     randomHex_:()=>'salt-test',
     sha256_:(value)=>'HASH:'+value,
-    PropertiesService:{getScriptProperties:()=>({setProperty:(k,v)=>{props[k]=v;}})},
+    PropertiesService:{getScriptProperties:()=>({getProperty:k=>Object.prototype.hasOwnProperty.call(props,k)?props[k]:null,setProperty:(k,v)=>{props[k]=v;},setProperties:values=>Object.assign(props,values),deleteProperty:k=>{delete props[k];}})},
     sendTelegramMessage_:()=>{telegramCalls++;return true;},
     audit_:(...args)=>audits.push(args)
   };

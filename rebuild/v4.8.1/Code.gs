@@ -898,8 +898,23 @@ function apiAdminSetIbVerification(session, applicationRef, decision, note) {
     if(!row) throw new Error('Data paket keanggotaan tidak ditemukan.');
     if(sh.getRange(row,2).getDisplayValue()!=='ACTIVE_IB') throw new Error('Pengajuan ini bukan Active IB Member.');
     const status=decision==='VERIFY'?'Terverifikasi':'Tidak Terverifikasi';
-    sh.getRange(row,5).setValue(status);sh.getRange(row,6).setValue(actor.actorId);sh.getRange(row,7).setValue(new Date());
-    sh.getRange(row,8).setValue(decision==='VERIFY'?'Menunggu Persetujuan Admin':'Perlu Pemeriksaan Ulang');
+    const snapshot=sh.getRange(row,1,1,8).getValues()[0];
+    try {
+      sh.getRange(row,5).setValue(status);
+      sh.getRange(row,6).setValue(actor.actorId);
+      sh.getRange(row,7).setValue(new Date());
+      sh.getRange(row,8).setValue(decision==='VERIFY'?'Menunggu Persetujuan Admin':'Perlu Pemeriksaan Ulang');
+    } catch(writeError) {
+      try { sh.getRange(row,1,1,8).setValues([snapshot]); }
+      catch(rollbackError) {
+        try {
+          sh.getRange(row,5).setValue('Tidak Terverifikasi');
+          sh.getRange(row,8).setValue('Perlu Pemeriksaan Ulang');
+        } catch(failClosedError) {}
+        throw new Error('Perubahan verifikasi IB gagal dan rollback tidak lengkap. Status ditutup jika penulisan memungkinkan; hentikan persetujuan member ini dan rekonsiliasi baris paket keanggotaan secara manual.');
+      }
+      throw writeError;
+    }
     audit_(actor.role,actor.actorId,'IB_STATUS_'+decision,ref,'SUCCESS',clean_(note,400));
     return {ok:true,status:status};
   } finally {lock.releaseLock();}
@@ -1078,8 +1093,26 @@ function apiAdminIssuePin(session, memberId) {
     if (!row || sh.getRange(row,8).getDisplayValue() !== 'Berhasil')
       throw new Error('PIN hanya dapat dibuat untuk member yang sudah aktif.');
     const pin = randomPin_(), salt = randomHex_(32), props = PropertiesService.getScriptProperties();
-    props.setProperty('MPS_PIN_SALT_'+id,salt);
-    props.setProperty('MPS_PIN_HASH_'+id,sha256_(salt+pin));
+    const saltKey='MPS_PIN_SALT_'+id, hashKey='MPS_PIN_HASH_'+id;
+    const previousSalt=props.getProperty(saltKey), previousHash=props.getProperty(hashKey);
+    try {
+      props.setProperties({[saltKey]:salt,[hashKey]:sha256_(salt+pin)},false);
+      if(props.getProperty(saltKey)!==salt || props.getProperty(hashKey)!==sha256_(salt+pin))
+        throw new Error('PIN_PROPERTY_WRITE_INCOMPLETE');
+    } catch(writeError) {
+      const rollbackErrors=[];
+      try { if(previousSalt===null) props.deleteProperty(saltKey); else props.setProperty(saltKey,previousSalt); }
+      catch(e) { rollbackErrors.push('PIN salt'); }
+      try { if(previousHash===null) props.deleteProperty(hashKey); else props.setProperty(hashKey,previousHash); }
+      catch(e) { rollbackErrors.push('PIN hash'); }
+      if(rollbackErrors.length) {
+        // Fail closed: remove both credentials if the previous pair cannot be restored.
+        try { props.deleteProperty(saltKey); } catch(e) {}
+        try { props.deleteProperty(hashKey); } catch(e) {}
+        throw new Error('Pembuatan PIN gagal dan rollback properti tidak lengkap. Kredensial PIN dihapus jika memungkinkan; Admin harus reset ulang setelah rekonsiliasi.');
+      }
+      throw writeError;
+    }
     const apps=sheet_('applications'), appRow=findRow_(apps,9,id);
     const chatId=appRow?String(apps.getRange(appRow,13).getDisplayValue()||''):'';
     if(appRow && chatId && apps.getRange(appRow,11).getDisplayValue()==='Terhubung') {
