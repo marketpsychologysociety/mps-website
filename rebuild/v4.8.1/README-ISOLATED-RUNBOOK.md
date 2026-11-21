@@ -32,7 +32,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 
 Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into source files or chat.
 
-Owner-only setup, webhook, trigger, validation, and backup functions end with an underscore. They are intentionally not callable through the public Web App (`google.script.run`); run them only from the Apps Script editor while signed in as the project owner.
+Owner-only setup, webhook, trigger, validation, and backup functions end with an underscore. They are intentionally not callable through the public Web App (`google.script.run`); run them only from the Apps Script editor while signed in as the project owner. Every owner/editor operation also requires `MPS_REBUILD_TEST_LABEL=MPS-ISOLATED-TEST`; it will fail closed if that TEST marker is missing.
 
 ## Provisioning
 
