@@ -1211,7 +1211,7 @@ function apiAdminSaveContent(session,section,input) {
   const row=findRow_(sh,1,target);
   if (key==='learning') {
     const category=clean_(data.category,80), resource=clean_(data.resourceUrl,500);
-    if (resource && !/^https:\/\//i.test(resource)) throw new Error('Tautan materi harus menggunakan HTTPS.');
+    if(resource) throw new Error('Tautan file Learning dinonaktifkan sementara. Jangan gunakan tautan Drive publik; pengiriman file privat khusus member belum tersedia. Materi teks tetap dapat dipublikasikan.');
     const created=row?sh.getRange(row,2).getValue():now;
     const values=[target,created,now,title,category,body,resource,published,Number(data.sortOrder||0)];
     if(row)sh.getRange(row,1,1,9).setValues([values]);else sh.appendRow(values);
@@ -1292,7 +1292,7 @@ function apiGetMemberContent(session, section) {
     const items=rows_(sheet_(key)).filter(r=>r[key==='learning'?7:9]===true || String(r[key==='learning'?7:9]).toLowerCase()==='true');
     items.sort((a,b)=>key==='learning'?Number(a[8]||0)-Number(b[8]||0):new Date(b[8]).getTime()-new Date(a[8]).getTime());
     return {section:key,items:items.map(r=>key==='learning'?{
-      id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),resourceUrl:String(r[6]||'')
+      id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),resourceUrl:''
     }:{
       id:String(r[0]),title:String(r[3]),topic:String(r[4]),body:String(r[5]),sourceName:String(r[6]||''),sourceUrl:String(r[7]||''),publishedAt:r[8] instanceof Date?r[8].toISOString():String(r[8]||'')
     })};
