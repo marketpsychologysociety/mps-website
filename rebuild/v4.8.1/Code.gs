@@ -2092,34 +2092,48 @@ function apiAdminProcessVipQueue(session) {
 }
 function revokeVipInvite_(groupId,inviteLink) {
   if(!groupId || !inviteLink) return false;
-  const token=requireDedicatedTestTelegramBot_();
+  const token=requireDedicatedTestBot_();
   assertDedicatedTestVipGroup_(groupId,token);
-  const response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{
-    method:'post',contentType:'application/json',
-    payload:JSON.stringify({chat_id:groupId,invite_link:inviteLink}),
-    muteHttpExceptions:true
-  });
-  const result=JSON.parse(response.getContentText()||'{}');
-  if(response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok)
-    throw new Error('VIP_INVITE_REVOKE_FAILED');
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/revokeChatInviteLink',{
+      method:'post',contentType:'application/json',
+      payload:JSON.stringify({chat_id:groupId,invite_link:inviteLink}),muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    const error=new Error('VIP_INVITE_REVOKE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_REVOKE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {const error=new Error('VIP_INVITE_REVOKE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_REVOKE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  const status=response.getResponseCode();
+  if(status>=500) {const error=new Error('VIP_INVITE_REVOKE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_REVOKE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  if(status<200||status>=300||!result.ok) {const error=new Error('VIP_INVITE_REVOKE_FAILED');error.code='VIP_INVITE_REVOKE_FAILED';throw error;}
   return true;
-}
-
-function createVipInvite_(groupId,userId) {
+}function createVipInvite_(groupId,userId) {
   if (!groupId || !userId) throw new Error('VIP_BOT_GROUP_OR_USER_NOT_CONFIGURED');
   const token=requireDedicatedTestTelegramBot_();
   assertDedicatedTestVipGroup_(groupId,token);
-  const payload = {chat_id:groupId,creates_join_request:true,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
-  const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
-    method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
-  });
-  const result = JSON.parse(response.getContentText()||'{}');
-  if (response.getResponseCode()<200 || response.getResponseCode()>=300 || !result.ok || !result.result || !result.result.invite_link)
-    throw new Error('VIP_INVITE_CREATE_FAILED');
+  const payload={chat_id:groupId,creates_join_request:true,expire_date:Math.floor(Date.now()/1000)+48*60*60,name:'MPS VIP'};
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/createChatInviteLink',{
+      method:'post',contentType:'application/json',payload:JSON.stringify(payload),muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  const status=response.getResponseCode();
+  if(status>=500) {const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  if(status<200||status>=300||!result.ok) {const error=new Error('VIP_INVITE_CREATE_FAILED');error.code='VIP_INVITE_CREATE_FAILED';throw error;}
+  if(!result.result||!result.result.invite_link) {
+    const error=new Error('VIP_INVITE_CREATE_OUTCOME_UNKNOWN');error.code='VIP_INVITE_CREATE_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
   return result.result.invite_link;
-}
-
-function handleTelegramJoinRequest_(request) {
+}function handleTelegramJoinRequest_(request) {
   const groupId=prop_('MPS_VIP_GROUP_ID');
   if (!groupId || String(request.chat && request.chat.id || '')!==String(groupId)) return;
   const invite=String(request.invite_link && request.invite_link.invite_link || '');
@@ -2359,19 +2373,26 @@ function apiGetPublicVipTicker() {
   return latest;
 }
 
-function sendTelegramMessage_(chatId, messageText) {
-  if (!prop_('MPS_TELEGRAM_BOT_TOKEN') || !chatId) return false;
+function sendTelegramMessage_(chatId,messageText) {
+  if(!prop_('MPS_TELEGRAM_BOT_TOKEN')||!chatId) return false;
   const token=requireDedicatedTestTelegramBot_();
-  const response = UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
-    method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:chatId,text:String(messageText).slice(0,3500)}),
-    muteHttpExceptions:true
-  });
-  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) throw new Error('Telegram sendMessage HTTP failure.');
-  const result = JSON.parse(response.getContentText() || '{}');
-  if (!result.ok) throw new Error('Telegram Bot API rejected sendMessage.');
+  let response;
+  try {
+    response=UrlFetchApp.fetch('https://api.telegram.org/bot'+token+'/sendMessage',{
+      method:'post',contentType:'application/json',payload:JSON.stringify({chat_id:chatId,text:String(messageText).slice(0,3500)}),
+      muteHttpExceptions:true
+    });
+  } catch(fetchError) {
+    const error=new Error('TELEGRAM_SEND_OUTCOME_UNKNOWN');error.code='TELEGRAM_SEND_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;
+  }
+  let result;
+  try {result=JSON.parse(response.getContentText()||'{}');}
+  catch(parseError) {const error=new Error('TELEGRAM_SEND_OUTCOME_UNKNOWN');error.code='TELEGRAM_SEND_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  const status=response.getResponseCode();
+  if(status>=500) {const error=new Error('TELEGRAM_SEND_OUTCOME_UNKNOWN');error.code='TELEGRAM_SEND_OUTCOME_UNKNOWN';error.ambiguousRemoteOutcome=true;throw error;}
+  if(status<200||status>=300||!result.ok) {const error=new Error('TELEGRAM_SEND_FAILED');error.code='TELEGRAM_SEND_FAILED';throw error;}
   return true;
-}
-function ensureSheet_(ss, spec) {
+}function ensureSheet_(ss, spec) {
   let sh = ss.getSheetByName(spec.name);
   if (!sh) sh = ss.insertSheet(spec.name);
   if (sh.getLastRow() === 0) {
