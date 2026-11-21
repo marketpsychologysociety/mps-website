@@ -1452,8 +1452,9 @@ function pruneExpiredSessionsLocked_(sh, nowMs) {
     const oldRevoked=Number.isFinite(revoked)&&revoked>0&&revoked<cutoff;
     if(oldExpired||oldRevoked) remove.push(i+2);
   }
-  // Delete from bottom to top so earlier row numbers remain valid.
-  for(let i=remove.length-1;i>=0;i--) sh.deleteRow(remove[i]);
+  // Clear cells without deleting sheet rows: requireSession_ may concurrently hold a row number,
+  // and row deletion could shift that index between its hash lookup and record read.
+  for(let i=remove.length-1;i>=0;i--) sh.getRange(remove[i],1,1,7).clearContent();
   props.setProperty('MPS_SESSIONS_LAST_PRUNE_AT',String(nowMs));
   return {skipped:false,deleted:remove.length};
 }
