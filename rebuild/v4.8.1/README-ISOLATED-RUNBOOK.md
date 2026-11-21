@@ -40,7 +40,7 @@ Never paste plaintext passwords, PINs, bot tokens, or webhook secrets into sourc
 5. Set the spreadsheet and folder properties to those synthetic resources.
 6. Set `MPS_REBUILD_ALLOW_PROVISION=true`.
 7. Run `provisionMpsRebuildStorage_()` manually once from the owner account.
-8. Run `runMpsRebuildValidation()` from the Apps Script editor. This public editor entry point first verifies the owner account, then calls the read-only validator. Inspect the returned booleans and `errors`; it does not provision or modify storage.
+8. Run `runMpsRebuildValidation_()` from the Apps Script editor. This public editor entry point first verifies the owner account, then calls the read-only validator. Inspect the returned booleans and `errors`; it does not provision or modify storage.
 9. Remove or set `MPS_REBUILD_ALLOW_PROVISION` to anything other than `true` after provisioning.
 
 Provisioning creates the legacy 18-column sheet only if absent and creates auxiliary sheets only when absent. It accepts either the exact 18-column legacy header or the exact recognized 30-column v4.8 header (18 core + 12 technical columns). It rejects any other header layout. It does not clear, delete, or rewrite existing member rows or technical-column values; new member rows write only the 18 core values.
@@ -106,7 +106,7 @@ This is an initial clean architecture baseline, not a production-ready release.
 
 ## One-shot isolated acceptance suite
 
-After configuring the isolated TEST project and its separate private backup folder, run the public editor function `runMpsFullAcceptanceSuite()` once. It performs, in order:
+After configuring the isolated TEST project and its separate private backup folder, run the public editor function `runMpsFullAcceptanceSuite_()` once. It performs, in order:
 
 1. Read-only configuration/schema validation (including all auxiliary sheet headers and backup-folder readability).
 2. SHA-256, RFC 6238 TOTP, and Base32 deterministic crypto self-tests.
