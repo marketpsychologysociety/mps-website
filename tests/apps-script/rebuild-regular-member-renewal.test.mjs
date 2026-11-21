@@ -95,3 +95,11 @@ test('member UI offers renewal and Admin UI can review it even with no initial a
  assert.match(html,/apiAdminReviewRenewal/);
  assert.match(html,/await loadAdminRenewals\(\);if\(!items\.length\)/);
 });
+
+test('renewal auditWarning reflects actual append success or failure',()=>{
+ const audit=body('audit_');
+ assert.match(audit,/return true/);
+ assert.match(audit,/return false/);
+ assert.match(body('apiSubmitMemberRenewal'),/const auditWarning=!audit_\(/);
+ assert.match(body('apiAdminReviewRenewal'),/const auditWarning=!audit_\(/);
+});
