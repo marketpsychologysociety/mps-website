@@ -29,7 +29,7 @@ function harness({mismatch=false,copyPrivacyFailure=false,cleanupFailure=false,o
     :sourceSheets;
   const sourceBook={getSheets:()=>sourceSheets};
   const restoredBook={getSheets:()=>tooLarge?[{...sheet('Huge',[]),getLastRow:()=>1001,getLastColumn:()=>101}]:restoredSheets};
-  const state={copyCreated:false,copyTrashed:false,sharing:'PRIVATE',folder:'MPS TEST - Backup'};
+  const state={copyCreated:false,copyTrashed:false,sharing:copyPrivacyFailure?'ANYONE':'PRIVATE',folder:'MPS TEST - Backup'};
   const copy={
     getId:()=>'restore-copy-id',
     setSharing(access){if(!copyPrivacyFailure)state.sharing=access;},
