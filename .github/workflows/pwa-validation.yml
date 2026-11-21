@@ -40,6 +40,8 @@ jobs:
         run: node --test tests/apps-script/rebuild-admin-credential-setup.test.mjs
       - name: Run v4.8.1 VIP invite expiry and retry tests (synthetic only)
         run: node --test tests/apps-script/rebuild-vip-queue-retry.test.mjs
+      - name: Run v4.8.1 Admin IB verification and PIN rollback tests (synthetic only)
+        run: node --test tests/apps-script/rebuild-admin-ib-pin-rollback.test.mjs
       - name: Run v4.8.1 rebuild Admin approval and PIN tests (synthetic only)
         run: node --test tests/apps-script/rebuild-admin-approval-pin.test.mjs
       - name: Run P1.23 isolated technical acceptance harness (synthetic only)
