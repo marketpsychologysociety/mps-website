@@ -1746,7 +1746,7 @@ function processTelegramUpdate_(update) {
     const leaseUntil = new Date(now.getTime()+10*60*1000);
     if (row) {
       const state = sh.getRange(row,4).getDisplayValue();
-      if (state === 'COMPLETED') return;
+      if (state === 'COMPLETED' || state === 'NEEDS_RECONCILIATION' || state === 'NOT_RETRYABLE') return;
       const existingLease = sh.getRange(row,8).getValue();
       const leaseMs = existingLease instanceof Date ? existingLease.getTime() : new Date(existingLease).getTime();
       // Telegram may redeliver while the first execution is still handling the update.
