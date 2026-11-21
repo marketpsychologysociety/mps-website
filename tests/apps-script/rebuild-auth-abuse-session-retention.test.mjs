@@ -81,7 +81,7 @@ test('session pruning clears only expired or revoked sessions older than 30 days
   const h=harness(rows,now),result=h.run();
   assert.equal(result.deleted,2);
   assert.deepEqual(h.cleared,[5,2]);
-  assert.deepEqual(h.rows.map(r=>r[0]),['','','hash-c','','hash-e']);
+  assert.deepEqual(h.rows.map(r=>r[0]),['','hash-b','hash-c','','hash-e']);
 });
 test('daily pruning is skipped and does not touch any session rows',()=>{
   const now=Date.now(),rows=[['hash','MEMBER','A',String(now),String(now+DAY),String(now),'']];
