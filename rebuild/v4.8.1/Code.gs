@@ -1966,6 +1966,8 @@ function openDb_() {
   return ss;
 }
 function requireOwnerContext_() {
+  if(prop_('MPS_REBUILD_TEST_LABEL')!=='MPS-ISOLATED-TEST')
+    throw new Error('Aksi owner/editor rebuild dikunci. MPS_REBUILD_TEST_LABEL harus bernilai MPS-ISOLATED-TEST pada project TEST terisolasi.');
   const expected = prop_('MPS_REBUILD_OWNER_EMAIL').trim().toLowerCase();
   // In Apps Script editor executions, getActiveUser() may return an empty
   // email for consumer accounts due to identity disclosure restrictions.
