@@ -607,30 +607,95 @@ function apiRegister(input) {
   enforceRateLimit_('register', username, 3, 3600);
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
-    const sh = sheet_('applications');
-    const duplicate=rows_(sh).some(r=>String(r[3]||'').toLowerCase()===username && !['Ditolak'].includes(String(r[7]||'')));
-    if(duplicate) throw new Error('Username Telegram ini sudah memiliki pengajuan aktif atau keanggotaan MPS. Gunakan Application Ref yang sudah ada atau hubungi Admin.');
-    const ref = 'MPS-APP-' + randomHex_(20);
+    const sh = sheet_('applications'), planSheet = sheet_('membershipPlans');
+    const ledger = sheet_('ledger');
+    // The idempotency key is server-derived from normalized registration data.
+    // Only its SHA-256 fingerprint is persisted; raw personal data is not copied
+    // into the request ledger. It is not an authorization credential.
+    const fingerprint = sha256_(JSON.stringify([
+      'REGISTER',nickname,username,country,goal,note,plan
+    ]));
+    const requestId = 'MPS-REQ-' + fingerprint.slice(0,32);
+    let ledgerRow = findRow_(ledger,1,requestId);
+    let ref = '';
+    if (ledgerRow) {
+      const prior = ledger.getRange(ledgerRow,1,1,9).getValues()[0];
+      if (String(prior[1]||'') !== fingerprint) throw new Error('IDEMPOTENCY_FINGERPRINT_CONFLICT');
+      ref = String(prior[6]||'');
+      if (String(prior[2]||'') === 'COMMITTED' && ref) {
+        return {ok:true,applicationRef:ref,status:'Menunggu Pendaftaran',plan:plan,idempotent:true};
+      }
+      if (String(prior[2]||'') === 'NEEDS_RECONCILIATION') {
+        throw new Error('Pendaftaran perlu rekonsiliasi Admin. Jangan kirim ulang dengan data berbeda.');
+      }
+      if (!ref) throw new Error('Status permintaan pendaftaran belum dapat dipastikan. Hubungi Admin sebelum mencoba lagi.');
+      const existingApp = findRow_(sh,1,ref), existingPlan = findRow_(planSheet,1,ref);
+      if (existingApp && existingPlan) {
+        ledger.getRange(ledgerRow,3,1,7).setValues([[
+          'COMMITTED',prior[3]||new Date(),new Date(),'REGISTER',ref,'','Menunggu Pendaftaran'
+        ]]);
+        return {ok:true,applicationRef:ref,status:'Menunggu Pendaftaran',plan:plan,idempotent:true,reconciled:true};
+      }
+      if (existingApp || existingPlan) {
+        ledger.getRange(ledgerRow,3).setValue('NEEDS_RECONCILIATION');
+        throw new Error('Pendaftaran tersimpan sebagian dan perlu rekonsiliasi Admin. Jangan kirim ulang.');
+      }
+      if (!['STARTED','FAILED_SAFE'].includes(String(prior[2]||''))) {
+        throw new Error('Status permintaan pendaftaran belum aman untuk diulang. Hubungi Admin.');
+      }
+      ledger.getRange(ledgerRow,3,1,7).setValues([[
+        'STARTED',prior[3]||new Date(),'','REGISTER',ref,'',''
+      ]]);
+    } else {
+      ref = 'MPS-APP-' + randomHex_(20);
+      try {
+        ledger.appendRow([requestId,fingerprint,'STARTED',new Date(),'','REGISTER',ref,'','']);
+        ledgerRow = findRow_(ledger,1,requestId);
+      } catch (intentError) {
+        // appendRow can commit before a timeout reaches this execution.
+        try { ledgerRow = findRow_(ledger,1,requestId); } catch (_) {}
+        if (!ledgerRow) throw new Error('Status pencatatan permintaan belum dapat dipastikan. Jangan kirim ulang; hubungi Admin.');
+        const persisted = ledger.getRange(ledgerRow,1,1,9).getValues()[0];
+        if (String(persisted[1]||'')!==fingerprint || String(persisted[6]||'')!==ref)
+          throw new Error('Konflik jurnal pendaftaran. Perlu rekonsiliasi Admin.');
+      }
+    }
+
+    const duplicate=rows_(sh).some(r=>String(r[3]||'').toLowerCase()===username && !['Ditolak'].includes(String(r[7]||'')) && String(r[0]||'')!==ref);
+    if(duplicate) {
+      ledger.getRange(ledgerRow,3).setValue('FAILED_SAFE');
+      throw new Error('Username Telegram ini sudah memiliki pengajuan aktif atau keanggotaan MPS. Gunakan Application Ref yang sudah ada atau hubungi Admin.');
+    }
     const now = new Date();
-    const planSheet=sheet_('membershipPlans');
     try {
-      sh.appendRow([ref,now,nickname,username,country,goal,note,'Menunggu Pendaftaran','','','Belum Terhubung','','','',''+now]);
-      planSheet.appendRow([ref,plan,now,plan==='REGULAR'?100000:0,plan==='ACTIVE_IB'?'Menunggu Verifikasi Manual':'TIDAK BERLAKU','','','Menunggu Pembayaran / Verifikasi']);
+      if (!findRow_(sh,1,ref)) sh.appendRow([ref,now,nickname,username,country,goal,note,'Menunggu Pendaftaran','','','Belum Terhubung','','','',''+now]);
+      if (!findRow_(planSheet,1,ref)) planSheet.appendRow([ref,plan,now,plan==='REGULAR'?100000:0,plan==='ACTIVE_IB'?'Menunggu Verifikasi Manual':'TIDAK BERLAKU','','','Menunggu Pembayaran / Verifikasi']);
     } catch (writeError) {
       const rollbackErrors=[];
       try { const planRow=findRow_(planSheet,1,ref); if(planRow) planSheet.deleteRow(planRow); }
       catch(e) { rollbackErrors.push('membership plan: '+String(e&&e.message||e)); }
       try { const appRow=findRow_(sh,1,ref); if(appRow) sh.deleteRow(appRow); }
       catch(e) { rollbackErrors.push('application: '+String(e&&e.message||e)); }
-      if(rollbackErrors.length) throw new Error('Pendaftaran gagal dan rollback tidak lengkap: '+rollbackErrors.join('; '));
+      try { ledger.getRange(ledgerRow,3).setValue(rollbackErrors.length?'NEEDS_RECONCILIATION':'FAILED_SAFE'); }
+      catch(e) { rollbackErrors.push('request ledger: '+String(e&&e.message||e)); }
+      if(rollbackErrors.length) throw new Error('Pendaftaran gagal dan rollback/jurnal tidak lengkap: '+rollbackErrors.join('; '));
       throw writeError;
+    }
+    try {
+      ledger.getRange(ledgerRow,3,1,7).setValues([[
+        'COMMITTED',ledger.getRange(ledgerRow,4).getValue()||now,new Date(),'REGISTER',ref,'','Menunggu Pendaftaran'
+      ]]);
+      const committed=ledger.getRange(ledgerRow,3).getDisplayValue();
+      if(committed!=='COMMITTED') throw new Error('REQUEST_LEDGER_COMMIT_NOT_VERIFIED');
+    } catch (journalError) {
+      // Business rows exist. Never delete them or invite a blind duplicate retry:
+      // the next identical request reconciles both rows against this stable ref.
+      throw new Error('Pendaftaran tersimpan tetapi konfirmasi jurnal belum dapat dipastikan. Kirim ulang data yang sama atau hubungi Admin untuk rekonsiliasi.');
     }
     audit_('PUBLIC','', 'APPLICATION_CREATED',ref,'SUCCESS','Plan='+plan+'; initial application only; no member ID issued.');
     return {ok:true,applicationRef:ref,status:'Menunggu Pendaftaran',plan:plan};
   } finally { lock.releaseLock(); }
 }
-
-/** Public API: save proof privately; application ref is required. */
 function apiSubmitDeposit(input) {
   input = input || {};
   const ref = clean_(input.applicationRef,40).toUpperCase();
