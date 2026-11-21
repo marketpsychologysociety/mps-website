@@ -547,6 +547,7 @@ function apiSubmitDeposit(input) {
       apps.getRange(row,15).setValue(now);
     } catch (writeError) {
       const rollbackErrors=[];
+      if(!linkInfo && writeError && writeError.linkRollback) linkInfo=writeError.linkRollback;
       try { apps.getRange(row,1,1,15).setValues([appSnapshot]); }
       catch(e) { rollbackErrors.push('application: '+String(e&&e.message||e)); }
       try { const depositRow=findRow_(depositSheet,1,ref); if(depositRow) depositSheet.deleteRow(depositRow); }
@@ -631,6 +632,7 @@ function apiSubmitRegularPayment(input) {
       apps.getRange(appRow,15).setValue(now);
     } catch(writeError) {
       const rollbackErrors=[];
+      if(!linkInfo && writeError && writeError.linkRollback) linkInfo=writeError.linkRollback;
       try { apps.getRange(appRow,1,1,15).setValues([appSnapshot]); }
       catch(e) { rollbackErrors.push('application: '+String(e&&e.message||e)); }
       try { ps.getRange(pr,1,1,8).setValues([planSnapshot]); }
@@ -1392,7 +1394,11 @@ function createTelegramLink_(applicationRef, expectedUsername) {
       try { const row=findRow_(links,1,item.tokenHash); if(row) links.getRange(row,4).setValue(item.status); }
       catch(e) { rollbackErrors.push('previous Telegram link: '+String(e&&e.message||e)); }
     });
-    if(rollbackErrors.length) throw new Error('Pembuatan link Telegram gagal dan rollback tidak lengkap: '+rollbackErrors.join('; '));
+    if(rollbackErrors.length) {
+      const failure=new Error('Pembuatan link Telegram gagal dan rollback tidak lengkap: '+rollbackErrors.join('; '));
+      failure.linkRollback={tokenHash:tokenHash,previousLinks:previousLinks};
+      throw failure;
+    }
     throw writeError;
   }
   return {url:'https://t.me/'+bot+'?start='+token,expiresAt:expires.toISOString(),tokenHash:tokenHash,previousLinks:previousLinks};
