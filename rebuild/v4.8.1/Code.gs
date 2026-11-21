@@ -1163,17 +1163,31 @@ function processTelegramUpdate_(update) {
   const id = String(update && update.update_id || '');
   if (!/^\d+$/.test(id)) throw new Error('Telegram update_id invalid.');
   const lock = LockService.getScriptLock(); lock.waitLock(15000);
-  let row;
+  let row, claimToken;
   try {
-    const sh = sheet_('journal'); row = findRow_(sh,1,id);
+    const sh = sheet_('journal');
+    row = findRow_(sh,1,id);
+    const now = new Date();
+    const leaseUntil = new Date(now.getTime()+10*60*1000);
     if (row) {
-      if (sh.getRange(row,4).getDisplayValue() === 'COMPLETED') return;
+      const state = sh.getRange(row,4).getDisplayValue();
+      if (state === 'COMPLETED') return;
+      const existingLease = sh.getRange(row,8).getValue();
+      const leaseMs = existingLease instanceof Date ? existingLease.getTime() : new Date(existingLease).getTime();
+      // Telegram may redeliver while the first execution is still handling the update.
+      // Do not let a second execution apply the same side effects concurrently.
+      if (state === 'PROCESSING' && Number.isFinite(leaseMs) && leaseMs > now.getTime()) return;
+      claimToken = randomHex_(32);
       sh.getRange(row,4).setValue('PROCESSING');
-      sh.getRange(row,6).setValue(new Date());
+      sh.getRange(row,6).setValue(now);
       sh.getRange(row,7).setValue(Number(sh.getRange(row,7).getValue() || 0)+1);
+      sh.getRange(row,8).setValue(leaseUntil);
+      sh.getRange(row,9).setValue(claimToken);
+      sh.getRange(row,12).setValue('');
     } else {
-      const type = update.message ? 'message' : update.chat_member ? 'chat_member' : 'other';
-      sh.appendRow([id,type,sha256_(JSON.stringify(update)),'PROCESSING',new Date(),new Date(),1,'','','','[]','',JSON.stringify(sanitizeTelegramUpdateForJournal_(update))]);
+      const type = update.message ? 'message' : update.chat_member ? 'chat_member' : update.chat_join_request ? 'chat_join_request' : 'other';
+      claimToken = randomHex_(32);
+      sh.appendRow([id,type,sha256_(JSON.stringify(update)),'PROCESSING',now,now,1,leaseUntil,claimToken,'','[]','',JSON.stringify(sanitizeTelegramUpdateForJournal_(update))]);
       row = sh.getLastRow();
     }
   } finally { lock.releaseLock(); }
@@ -1181,12 +1195,31 @@ function processTelegramUpdate_(update) {
     if (update.message) handleTelegramStart_(update.message);
     if (update.chat_member) handleTelegramChatMember_(update.chat_member);
     if (update.chat_join_request) handleTelegramJoinRequest_(update.chat_join_request);
-    const sh = sheet_('journal'); sh.getRange(row,4).setValue('COMPLETED');
-    sh.getRange(row,10).setValue(new Date()); sh.getRange(row,12).setValue('');
+    finalizeTelegramUpdate_(row,claimToken,'COMPLETED','');
   } catch (err) {
-    const sh = sheet_('journal'); sh.getRange(row,4).setValue('FAILED');
-    sh.getRange(row,12).setValue('PROCESSING_ERROR'); throw err;
+    finalizeTelegramUpdate_(row,claimToken,'FAILED','PROCESSING_ERROR');
+    throw err;
   }
+}
+
+/** Finalize only while this execution still owns the journal lease. */
+function finalizeTelegramUpdate_(row,claimToken,state,errorCode) {
+  const lock=LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    const sh=sheet_('journal');
+    if (String(sh.getRange(row,9).getDisplayValue()||'')!==String(claimToken||'')) return false;
+    if (sh.getRange(row,4).getDisplayValue()!=='PROCESSING') return false;
+    sh.getRange(row,4).setValue(state);
+    sh.getRange(row,8).clearContent();
+    sh.getRange(row,9).clearContent();
+    if (state==='COMPLETED') {
+      sh.getRange(row,10).setValue(new Date());
+      sh.getRange(row,12).setValue('');
+    } else {
+      sh.getRange(row,12).setValue(String(errorCode||'PROCESSING_ERROR').slice(0,80));
+    }
+    return true;
+  } finally { lock.releaseLock(); }
 }
 
 /** Issue a 24-hour single-use Telegram deep link; only its hash is stored. */
@@ -1368,7 +1401,16 @@ function handleTelegramJoinRequest_(request) {
   const expected=String(queue.getRange(row,5).getDisplayValue()||'');
   const appRow=findRow_(sheet_('applications'),9,memberId);
   const app=appRow?sheet_('applications').getRange(appRow,1,1,15).getValues()[0]:null;
-  const valid=!!(userId && userId===expected && app && app[7]==='Disetujui' && String(app[11]||'')===userId);
+  let activeEntitlement=false;
+  if (app && app[7]==='Disetujui' && app[8]===memberId) {
+    const legacy=legacySheet_(), legacyRow=findRow_(legacy,1,memberId);
+    if (legacyRow && legacy.getRange(legacyRow,8).getDisplayValue()==='Berhasil') {
+      try { assertMembershipEntitlement_(memberId); activeEntitlement=true; }
+      catch (_) { activeEntitlement=false; }
+    }
+  }
+  const valid=!!(userId && userId===expected && app && app[7]==='Disetujui' &&
+    String(app[11]||'')===userId && activeEntitlement);
   if (!valid) {
     telegramJoinRequestAction_('declineChatJoinRequest',groupId,userId);
     if (userId) sendTelegramMessage_(userId,'Permintaan masuk VIP ditolak karena undangan tidak cocok dengan akun member MPS yang aktif.');
