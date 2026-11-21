@@ -19,7 +19,7 @@ Do not deploy, create triggers, or register a Telegram webhook during source acc
 
 - `MPS_REBUILD_OWNER_EMAIL`: exact Google account email of the project owner. Provisioning and TOTP initialization verify `Session.getEffectiveUser().getEmail()` against this value and reject calls where the effective account is unavailable or does not match.
 - `MPS_REBUILD_TEST_LABEL`: exact string `MPS-ISOLATED-TEST`. Database APIs fail closed unless this marker is present.
-- `MPS_SPREADSHEET_ID`: ID of a synthetic test spreadsheet named with the prefix `MPS TEST - ` (for example, `MPS TEST - Database Member`). Production-named storage is rejected.
+- `MPS_SPREADSHEET_ID`: ID of a synthetic test spreadsheet named with the prefix `MPS TEST - ` (for example, `MPS TEST - Database Member`). The spreadsheet file itself and every parent folder must have Drive sharing access set to **Restricted/Private**; publicly or domain-shared files/folders are rejected. Production-named storage is rejected.
 - `MPS_PROOF_FOLDER_ID`: ID of a private synthetic Drive folder named with the prefix `MPS TEST - ` (for example, `MPS TEST - Bukti Deposit`). Its entire parent-folder chain must also be private.
 - `MPS_REBUILD_ALLOW_PROVISION`: exact string `true`, only while provisioning the synthetic spreadsheet. The provisioner deletes this flag after a successful run.
 - `MPS_REBUILD_ADMIN_SETUP_PASSWORD` and `MPS_REBUILD_SUPER_ADMIN_SETUP_PASSWORD`: temporary plaintext setup properties used once by `initializeMpsAdminCredentials_()`. The helper generates and stores separate salted hashes/salts, then deletes these temporary properties.
