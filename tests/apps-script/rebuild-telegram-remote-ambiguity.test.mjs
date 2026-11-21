@@ -75,6 +75,7 @@ test('VIP reconciliation becomes eligible only after the 48-hour invite lifetime
 test('Telegram journal marks ambiguous outcomes and does not blindly replay stale PROCESSING rows',()=>{
  const process=body('processTelegramUpdate_'),retry=body('apiAdminRetryTelegramFailures');
  assert.match(process,/err&&err\.ambiguousRemoteOutcome\?'NEEDS_RECONCILIATION':'FAILED'/);
+ assert.match(process,/state === 'COMPLETED' \|\| state === 'NEEDS_RECONCILIATION' \|\| state === 'NOT_RETRYABLE'/);
  assert.match(retry,/STALE_UPDATE_OUTCOME_UNKNOWN/);
  assert.match(retry,/LEGACY_FAILURE_REQUIRES_RECONCILIATION/);
  assert.match(retry,/if\(state!=='FAILED'\) continue/);
