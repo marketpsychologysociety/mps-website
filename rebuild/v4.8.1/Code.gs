@@ -517,12 +517,11 @@ function provisionMpsRebuildStorage_() {
   if (prop_('MPS_REBUILD_ALLOW_PROVISION') !== 'true')
     throw new Error('Provisioning terkunci. Aktifkan hanya pada spreadsheet sintetis di project test baru.');
   const ss = openDb_();
-  let legacy = ss.getSheetByName(MPS.LEGACY_SHEET);
-  if (!legacy) {
-    legacy = ss.insertSheet(MPS.LEGACY_SHEET);
-    legacy.getRange(1,1,1,MPS.LEGACY_HEADERS.length).setValues([MPS.LEGACY_HEADERS]);
-    legacy.setFrozenRows(1);
-  } else {
+
+  // Preflight every existing sheet before the first write. A malformed later
+  // auxiliary sheet must not leave earlier sheets partially provisioned.
+  const legacy = ss.getSheetByName(MPS.LEGACY_SHEET);
+  if (legacy) {
     const width=legacy.getLastColumn();
     const actual=legacy.getRange(1,1,1,Math.max(width,MPS.LEGACY_HEADERS.length)).getDisplayValues()[0];
     const first18=actual.slice(0,MPS.LEGACY_HEADERS.length);
@@ -534,11 +533,43 @@ function provisionMpsRebuildStorage_() {
       if (!exact30) throw new Error('Skema tambahan bukan 30 kolom v4.8 yang dikenali. Tidak ada kolom/data yang diubah.');
     }
   }
-  Object.keys(MPS.SHEETS).forEach(k => ensureSheet_(ss,MPS.SHEETS[k]));
-  let provisioningFlagCleared=true;
-  try { PropertiesService.getScriptProperties().deleteProperty('MPS_REBUILD_ALLOW_PROVISION'); }
-  catch(e) { provisioningFlagCleared=false; }
-  const result = {ok:true,version:MPS.VERSION,legacyHeaders:legacy.getLastColumn(),acceptedSchema:legacy.getLastColumn()===30?'v4.8-30':'legacy-18',auxiliarySheets:Object.keys(MPS.SHEETS).length,provisioningFlagCleared:provisioningFlagCleared};
+
+  const missingAuxiliary=[];
+  Object.keys(MPS.SHEETS).forEach(key=>{
+    const spec=MPS.SHEETS[key], existing=ss.getSheetByName(spec.name);
+    if(!existing) {
+      missingAuxiliary.push(spec);
+      return;
+    }
+    const lastRow=existing.getLastRow(), width=existing.getLastColumn();
+    if(lastRow===0) {
+      if(width!==0)
+        throw new Error('Sheet '+spec.name+' kosong tetapi memiliki kolom tak terduga. Tidak ada perubahan dilakukan.');
+      missingAuxiliary.push(spec);
+      return;
+    }
+    if(width!==spec.headers.length)
+      throw new Error('Lebar sheet '+spec.name+' tidak cocok. Diharapkan tepat '+spec.headers.length+' kolom; ditemukan '+width+'. Tidak ada perubahan dilakukan.');
+    const actual=existing.getRange(1,1,1,width).getDisplayValues()[0];
+    if(JSON.stringify(actual)!==JSON.stringify(spec.headers))
+      throw new Error('Header sheet '+spec.name+' tidak cocok. Tidak ada perubahan dilakukan.');
+  });
+
+  // All known schemas passed. Only now create missing sheets.
+  let legacySheet=legacy;
+  if(!legacySheet) {
+    legacySheet=ss.insertSheet(MPS.LEGACY_SHEET);
+    legacySheet.getRange(1,1,1,MPS.LEGACY_HEADERS.length).setValues([MPS.LEGACY_HEADERS]);
+    legacySheet.setFrozenRows(1);
+  }
+  missingAuxiliary.forEach(spec=>ensureSheet_(ss,spec));
+
+  try {
+    PropertiesService.getScriptProperties().deleteProperty('MPS_REBUILD_ALLOW_PROVISION');
+  } catch(e) {
+    throw new Error('Provisioning TEST selesai, tetapi flag sekali pakai gagal dihapus. Jangan jalankan ulang sebelum menghapus MPS_REBUILD_ALLOW_PROVISION secara manual.');
+  }
+  const result = {ok:true,version:MPS.VERSION,legacyHeaders:legacySheet.getLastColumn(),acceptedSchema:legacySheet.getLastColumn()===30?'v4.8-30':'legacy-18',auxiliarySheets:Object.keys(MPS.SHEETS).length,provisioningFlagCleared:true};
   Logger.log('MPS_REBUILD_PROVISION ' + JSON.stringify(result));
   console.log('MPS_REBUILD_PROVISION ' + JSON.stringify(result));
   return result;
