@@ -1346,15 +1346,19 @@ function apiAdminProcessVipQueue(session) {
     } finally { lock.releaseLock(); }
     if(!claimed) continue;
     try {
-      const invite=String(queue.getRange(row,6).getDisplayValue()||'') ||
-        createVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),String(r[4]||''));
-      queue.getRange(row,6).setValue(invite);
       const memberId=String(r[1]||'').replace('VIP_INVITE:','');
       const appRow=findRow_(sheet_('applications'),9,memberId);
       const app=appRow?sheet_('applications').getRange(appRow,1,1,15).getValues()[0]:null;
       const chatId=app?String(app[12]||''):'';
       if(!app || app[7]!=='Disetujui' || !app[8] || !chatId || String(app[11]||'')!==String(r[4]||''))
         throw new Error('APPROVED_MEMBER_TELEGRAM_BINDING_NOT_VALID');
+      const legacy=legacySheet_(), legacyRow=findRow_(legacy,1,memberId);
+      if(!legacyRow || legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil')
+        throw new Error('LEGACY_MEMBER_RECORD_NOT_ACTIVE');
+      assertMembershipEntitlement_(memberId);
+      const invite=String(queue.getRange(row,6).getDisplayValue()||'') ||
+        createVipInvite_(String(r[3]||prop_('MPS_VIP_GROUP_ID')),String(r[4]||''));
+      queue.getRange(row,6).setValue(invite);
       const delivered=sendTelegramMessage_(chatId,'Pendaftaran MPS Anda disetujui. Berikut tautan undangan VIP pribadi (berlaku 48 jam, memerlukan persetujuan bot): '+invite);
       if (!delivered) throw new Error('VIP_TELEGRAM_DELIVERY_NOT_CONFIGURED');
       queue.getRange(row,8).setValue('SENT');
@@ -1450,6 +1454,14 @@ function handleTelegramChatMember_(event) {
   if (app[7] !== 'Disetujui' || !memberId) return;
   const legacy=legacySheet_(), legacyRow=findRow_(legacy,1,memberId);
   if (!legacyRow || legacy.getRange(legacyRow,8).getDisplayValue()!=='Berhasil') return;
+  if (isActive) {
+    try {
+      assertMembershipEntitlement_(memberId);
+    } catch (err) {
+      audit_('TELEGRAM',userId,'VIP_JOIN_ENTITLEMENT_DENIED',memberId,'DENIED',String(err.message||'INACTIVE_ENTITLEMENT').slice(0,160));
+      return;
+    }
+  }
   const events=sheet_('vip'), now=new Date();
   if (isActive) {
     const already=rows_(events).some(r=>r[1]===memberId && r[3]==='JOINED' && String(r[6])==='true' && (r[7]===true || String(r[7]).toLowerCase()==='true'));
