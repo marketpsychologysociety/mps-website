@@ -44,6 +44,8 @@ jobs:
         run: node --test tests/apps-script/rebuild-auth-abuse-session-retention.test.mjs
       - name: Run v4.8.1 failed-PIN-only member login throttle tests
         run: node --test tests/apps-script/rebuild-member-login-failed-pin-throttle.test.mjs
+      - name: Run v4.8.1 Regular Member renewal lifecycle tests
+        run: node --test tests/apps-script/rebuild-regular-member-renewal.test.mjs
       - name: Run v4.8.1 dedicated TEST Telegram bot and group guards
         run: node --test tests/apps-script/rebuild-telegram-test-bot-guard.test.mjs
       - name: Run v4.8.1 owner action TEST marker tests

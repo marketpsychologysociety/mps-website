@@ -22,6 +22,7 @@ function harness(){
     legacySheet_:()=>({getRange:(row,col)=>({getDisplayValue:()=>col===8?'Berhasil':''})}),
     findRow_:(sh,col,id)=>id==='MPS-ABCDEF12'?2:0,
     assertMembershipEntitlement_:()=>true,
+    memberRenewalAccessState_:()=>({eligible:true,expired:false}),
     prop_:k=>props.get(k)||'',
     constantTimeEquals_:(a,b)=>String(a)===String(b),
     createSession_:(role,id)=>{stats.sessions++;return{ok:true,role,actorId:id};},

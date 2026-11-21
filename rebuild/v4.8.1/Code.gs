@@ -45,7 +45,8 @@ const MPS = Object.freeze({
     news: {name:'MPS News Content', headers:['Content ID','Created At','Updated At','Title','Topic','Body','Source Name','Source URL','Published At','Published']},
     membershipPlans: {name:'MPS Membership Plans', headers:['Application Ref','Plan','Created At','Monthly Fee IDR','IB Verification Status','Verified By','Verified At','Status']},
     regularPayments: {name:'MPS Regular Payments', headers:['Application Ref','Submitted At','Amount IDR','Payment Date','Proof File ID','Status','Admin Note','Reviewed At']},
-    membershipLedger: {name:'MPS Membership Ledger', headers:['Member ID','Application Ref','Plan','Status','Started At','Expires At','Last Verified At','Verification Note']}
+    membershipLedger: {name:'MPS Membership Ledger', headers:['Member ID','Application Ref','Plan','Status','Started At','Expires At','Last Verified At','Verification Note']},
+    renewals: {name:'MPS Membership Renewals', headers:['Renewal Ref','Member ID','Submitted At','Amount IDR','Payment Date','Proof File ID','Status','Admin Note','Reviewed At','Period Start','Period End']}
   }
 });
 
@@ -798,6 +799,185 @@ function apiSubmitRegularPayment(input) {
     return {ok:true,status:'Menunggu Validasi Pembayaran',telegramLink:linkInfo?linkInfo.url:'',telegramLinkAvailable:!!(linkInfo&&linkInfo.url),adminBackupSent:adminBackupSent};
   } finally {lock.releaseLock();}
 }
+
+/** Member renewal period: extend from the later of current expiry or approval time. */
+function calculateRenewalPeriod_(currentExpiry, nowMs) {
+  const expiryMs=currentExpiry instanceof Date?currentExpiry.getTime():new Date(currentExpiry).getTime();
+  const baseMs=Number.isFinite(expiryMs)?Math.max(expiryMs,nowMs):nowMs;
+  return {startAt:new Date(baseMs),endAt:new Date(baseMs+30*86400000)};
+}
+
+/** Expired Regular members may authenticate only to submit/track a renewal. */
+function memberRenewalAccessState_(memberId, nowMs) {
+  const legacy=legacySheet_(),memberRow=findRow_(legacy,1,memberId);
+  if(!memberRow || legacy.getRange(memberRow,8).getDisplayValue()!=='Berhasil')
+    throw new Error('Status member tidak aktif. Perpanjangan tidak dapat diajukan.');
+  const ledger=sheet_('membershipLedger'),row=findRow_(ledger,1,memberId);
+  if(!row) throw new Error('Masa aktif keanggotaan belum tercatat. Hubungi Admin MPS.');
+  const v=ledger.getRange(row,1,1,8).getValues()[0];
+  if(String(v[2]||'')!=='REGULAR') return {eligible:false,reason:'RENEWAL_NOT_REQUIRED_FOR_THIS_PLAN',status:String(v[3]||'')};
+  const expiry=v[5] instanceof Date?v[5].getTime():new Date(v[5]).getTime();
+  const status=String(v[3]||'');
+  const expired=status==='Kedaluwarsa' || (status==='Aktif' && Number.isFinite(expiry) && expiry<=nowMs);
+  if(!expired && (status!=='Aktif' || !Number.isFinite(expiry)))
+    throw new Error('Status atau tanggal kedaluwarsa keanggotaan tidak valid. Hubungi Admin MPS.');
+  return {eligible:true,expired:expired,status:status,expiresAt:Number.isFinite(expiry)?new Date(expiry).toISOString():''};
+}
+
+/** Return only renewal metadata; member-only learning/data still requires active entitlement. */
+function apiGetMemberRenewalInfo(session) {
+  const actor=requireSession_(session,['MEMBER']);
+  const state=memberRenewalAccessState_(actor.actorId,Date.now());
+  if(!state.eligible) return {eligible:false,reason:state.reason,status:state.status};
+  const sh=sheet_('renewals'),all=rows_(sh);
+  const pending=all.find(r=>String(r[1]||'')===actor.actorId && String(r[6]||'')==='Menunggu Validasi');
+  return {eligible:true,expired:state.expired,status:state.status,expiresAt:state.expiresAt,
+    pendingRenewal:pending?{renewalRef:String(pending[0]),submittedAt:pending[2] instanceof Date?pending[2].toISOString():String(pending[2]||''),status:String(pending[6])}:null,
+    amount:100000};
+}
+
+/** Submit a single pending QRIS renewal; member identity comes only from the server session. */
+function apiSubmitMemberRenewal(session,input) {
+  const actor=requireSession_(session,['MEMBER']);
+  input=input||{};
+  const date=clean_(input.paymentDate,20);
+  const amount=Number(input.amount);
+  if(amount!==100000 || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) throw new Error('Perpanjangan Regular harus tepat Rp100.000 dan tanggal harus valid.');
+  const dt=new Date(date+'T00:00:00+07:00');
+  if(isNaN(dt.getTime()) || Utilities.formatDate(dt,MPS.TZ,'yyyy-MM-dd')!==date || dt.getTime()>Date.now()+86400000)
+    throw new Error('Tanggal pembayaran perpanjangan tidak valid.');
+  const mime=String(input.proofMime||'');
+  if(!['image/jpeg','image/png','image/webp'].includes(mime)) throw new Error('Bukti harus JPG, PNG, atau WEBP.');
+  const raw=String(input.proofBase64||'').replace(/^data:[^,]+,/,'');
+  if(!raw || raw.length>7*1024*1024) throw new Error('Ukuran bukti maksimal 5 MB.');
+  const bytes=Utilities.base64Decode(raw);
+  if(bytes.length>5*1024*1024 || !isAllowedImageBytes_(bytes,mime)) throw new Error('Bukti tidak valid atau melebihi 5 MB.');
+  enforceRateLimit_('member-renewal',actor.actorId,3,3600);
+  const lock=LockService.getScriptLock();lock.waitLock(15000);
+  let proofFile=null;
+  try {
+    const state=memberRenewalAccessState_(actor.actorId,Date.now());
+    if(!state.eligible) throw new Error('Paket ini tidak menggunakan perpanjangan QRIS Regular.');
+    const sh=sheet_('renewals');
+    if(rows_(sh).some(r=>String(r[1]||'')===actor.actorId && String(r[6]||'')==='Menunggu Validasi'))
+      throw new Error('Sudah ada perpanjangan yang menunggu validasi. Jangan kirim ulang bukti.');
+    const folderId=prop_('MPS_PROOF_FOLDER_ID');
+    if(!folderId) throw new Error('Folder bukti privat belum dikonfigurasi.');
+    const folder=DriveApp.getFolderById(folderId);
+    assertMpsDriveFolderTreePrivate_(folder,'folder bukti perpanjangan QRIS');
+    const renewalRef='MPS-REN-'+randomHex_(20);
+    const ext=mime==='image/jpeg'?'jpg':mime==='image/png'?'png':'webp';
+    try {
+      proofFile=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-RENEWAL-'+renewalRef+'.'+ext));
+      proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+      if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+        throw new Error('Privasi bukti perpanjangan tidak dapat dipastikan.');
+      sh.appendRow([renewalRef,actor.actorId,new Date(),100000,date,proofFile.getId(),'Menunggu Validasi','','','','']);
+    } catch(writeError) {
+      // appendRow may commit remotely and still surface a timeout. Reconcile by the
+      // unique Renewal Ref before trashing the proof or telling the member to retry.
+      let rowFound=false,lookupVerified=false;
+      try {rowFound=!!findRow_(sh,1,renewalRef);lookupVerified=true;} catch(_){}
+      if(!rowFound && lookupVerified) {
+        const rollbackErrors=[];
+        if(proofFile) try {proofFile.setTrashed(true);if(!proofFile.isTrashed())throw new Error('trash state not confirmed');}
+        catch(e){rollbackErrors.push('private proof cleanup: '+String(e&&e.message||e));}
+        if(rollbackErrors.length) {
+          const failure=new Error('Pengajuan perpanjangan gagal dan rollback tidak lengkap. Bukti dipertahankan privat untuk rekonsiliasi.');
+          failure.preserveProofFile=true;throw failure;
+        }
+        throw writeError;
+      }
+      if(!rowFound && !lookupVerified) {
+        const failure=new Error('Status penyimpanan perpanjangan belum dapat dipastikan. Bukti tetap privat; jangan kirim ulang sebelum Admin merekonsiliasi referensi '+renewalRef+'.');
+        failure.preserveProofFile=true;throw failure;
+      }
+    }
+    let auditWarning=false;
+    try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Fixed QRIS fee Rp100000; proof stored privately.');}
+    catch(_){auditWarning=true;}
+    return {ok:true,renewalRef:renewalRef,status:'Menunggu Validasi',auditWarning:auditWarning};
+  } finally {lock.releaseLock();}
+}
+
+/** Admin queue for renewal requests; never exposes proof URLs publicly. */
+function apiAdminListRenewals(session) {
+  requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const ledger=rows_(sheet_('membershipLedger')),members=legacySheet_(),memberRows=rows_(members);
+  return rows_(sheet_('renewals')).map(r=>{
+    const member=memberRows.find(m=>String(m[0]||'')===String(r[1]||''))||[];
+    const current=ledger.find(x=>String(x[0]||'')===String(r[1]||''))||[];
+    return {renewalRef:String(r[0]||''),memberId:String(r[1]||''),nickname:String(member[2]||''),
+      submittedAt:r[2] instanceof Date?r[2].toISOString():String(r[2]||''),amount:Number(r[3]||0),
+      paymentDate:String(r[4]||''),proofFileId:String(r[5]||''),status:String(r[6]||''),
+      adminNote:String(r[7]||''),currentExpiry:current[5] instanceof Date?current[5].toISOString():String(current[5]||'')};
+  }).reverse();
+}
+
+/** Atomic Admin approval/rejection. Approval preserves Member ID and extends by 30 days. */
+function apiAdminReviewRenewal(session,renewalRef,decision,note) {
+  const actor=requireSession_(session,['ADMIN','SUPER_ADMIN']);
+  const ref=clean_(renewalRef,50).toUpperCase();
+  if(!/^MPS-REN-[A-F0-9]{20}$/.test(ref) || !['APPROVE','REJECT'].includes(decision))
+    throw new Error('Referensi atau keputusan perpanjangan tidak valid.');
+  const lock=LockService.getScriptLock();lock.waitLock(15000);
+  try {
+    const sh=sheet_('renewals'),row=findRow_(sh,1,ref);
+    if(!row) throw new Error('Pengajuan perpanjangan tidak ditemukan.');
+    const renewal=sh.getRange(row,1,1,11).getValues()[0];
+    if(String(renewal[6]||'')!=='Menunggu Validasi') throw new Error('Pengajuan perpanjangan sudah diproses atau tidak menunggu validasi.');
+    if(decision==='APPROVE') {
+      if(Number(renewal[3])!==100000 || !renewal[5]) throw new Error('Nominal atau bukti QRIS perpanjangan tidak valid.');
+      const proof=DriveApp.getFileById(String(renewal[5]));
+      if(proof.isTrashed() || proof.getSharingAccess()!==DriveApp.Access.PRIVATE)
+        throw new Error('Bukti QRIS perpanjangan tidak tersedia atau tidak privat.');
+      const folderId=prop_('MPS_PROOF_FOLDER_ID');
+      if(!folderId) throw new Error('Folder bukti resmi belum dikonfigurasi.');
+      assertMpsDriveFolderTreePrivate_(DriveApp.getFolderById(folderId),'folder bukti perpanjangan QRIS');
+      let inExpectedFolder=false;const parents=proof.getParents();
+      while(parents.hasNext()) if(parents.next().getId()===folderId) inExpectedFolder=true;
+      if(!inExpectedFolder) throw new Error('Bukti perpanjangan bukan dari folder bukti resmi.');
+    }
+    const ledger=sheet_('membershipLedger'),ledgerRow=findRow_(ledger,1,String(renewal[1]||''));
+    if(!ledgerRow) throw new Error('Data masa aktif member tidak ditemukan.');
+    const ledgerSnapshot=ledger.getRange(ledgerRow,1,1,8).getValues()[0];
+    if(String(ledgerSnapshot[2]||'')!=='REGULAR') throw new Error('Perpanjangan QRIS hanya berlaku untuk Regular Member.');
+    if(!['Aktif','Kedaluwarsa'].includes(String(ledgerSnapshot[3]||'')))
+      throw new Error('Status keanggotaan tidak dapat diperpanjang.');
+    const noteText=clean_(note,500),now=new Date();
+    const renewalSnapshot=renewal.slice();
+    const period=decision==='APPROVE'?calculateRenewalPeriod_(ledgerSnapshot[5],now.getTime()):null;
+    try {
+      sh.getRange(row,7).setValue(decision==='APPROVE'?'Disetujui':'Ditolak');
+      sh.getRange(row,8).setValue(noteText);
+      sh.getRange(row,9).setValue(now);
+      if(decision==='APPROVE') {
+        ledger.getRange(ledgerRow,4).setValue('Aktif');
+        ledger.getRange(ledgerRow,6).setValue(period.endAt);
+        ledger.getRange(ledgerRow,7).setValue(now);
+        ledger.getRange(ledgerRow,8).setValue('Renewal '+ref+' approved; period '+period.startAt.toISOString()+' to '+period.endAt.toISOString());
+        sh.getRange(row,10).setValue(period.startAt);
+        sh.getRange(row,11).setValue(period.endAt);
+      }
+    } catch(error) {
+      const rollbackErrors=[];
+      try {sh.getRange(row,1,1,11).setValues([renewalSnapshot]);} catch(e){rollbackErrors.push('renewal: '+String(e&&e.message||e));}
+      if(decision==='APPROVE') try {ledger.getRange(ledgerRow,1,1,8).setValues([ledgerSnapshot]);} catch(e){rollbackErrors.push('membership ledger: '+String(e&&e.message||e));}
+      if(rollbackErrors.length) {
+        try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_ROLLBACK_INCOMPLETE',ref,'CRITICAL',rollbackErrors.join('; ').slice(0,500));} catch(_){}
+        throw new Error('Keputusan perpanjangan gagal dan rollback tidak lengkap: '+rollbackErrors.join('; '));
+      }
+      throw error;
+    }
+    let auditWarning=false;
+    try {audit_(actor.role,actor.actorId,'MEMBERSHIP_RENEWAL_'+decision,ref,'SUCCESS',decision==='APPROVE'?'Member ID preserved; expiry extended 30 days.':'Renewal rejected.');}
+    catch(_){auditWarning=true;}
+    return {ok:true,status:decision==='APPROVE'?'Disetujui':'Ditolak',
+      memberId:String(renewal[1]),periodStart:period?period.startAt.toISOString():'',
+      expiresAt:period?period.endAt.toISOString():'',auditWarning:auditWarning};
+  } finally {lock.releaseLock();}
+}
+
 function apiAdminLogin(password, totpCode) {
   const expected = prop_('MPS_REBUILD_ADMIN_PASSWORD_HASH');
   const salt = prop_('MPS_REBUILD_ADMIN_PASSWORD_SALT');
@@ -1255,7 +1435,8 @@ function apiMemberLogin(memberId,pin) {
     throw new Error('ID Member atau PIN tidak valid.');
   const sh = legacySheet_(), row = findRow_(sh,1,id);
   if (!row || sh.getRange(row,8).getDisplayValue() !== 'Berhasil') throw new Error('Akses member belum aktif.');
-  assertMembershipEntitlement_(id);
+  const renewalState=memberRenewalAccessState_(id,Date.now());
+  if(!renewalState.eligible || !renewalState.expired) assertMembershipEntitlement_(id);
   const pinHash = prop_('MPS_PIN_HASH_'+id);
   const salt = prop_('MPS_PIN_SALT_'+id);
   if (!pinHash || !salt || !constantTimeEquals_(sha256_(salt+p),pinHash)) {
