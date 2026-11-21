@@ -25,6 +25,7 @@ function harness(){
     prop_:k=>props.get(k)||'',
     constantTimeEquals_:(a,b)=>String(a)===String(b),
     createSession_:(role,id)=>{stats.sessions++;return{ok:true,role,actorId:id};},
+    audit_:()=>{},
     console
   };
   vm.createContext(context);
