@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const root = process.cwd();
 const pages = [
   'about.html','announcements.html','contact.html','deposit-confirmation.html','education.html',
-  'heatmap.html','index.html','join.html','member-portal.html','membership.html',
+  'heatmap.html','index.html','join.html','news-review.html','member-portal.html','membership.html',
   'privacy.html','rebate.html','rewards.html','system.html','terms.html'
 ];
 const errors = [];
@@ -72,6 +72,12 @@ for (const page of pages) {
     check(exists(clean), page + ': local asset/reference missing: ' + value);
   }
 }
+
+const newsReview = read('news-review.html');
+check(newsReview.includes('FOMC') && newsReview.includes('CPI') && newsReview.includes('NFP'), 'News & Review must cover FOMC, CPI, and NFP macro drivers');
+check(newsReview.includes('federalreserve.gov') && newsReview.includes('bls.gov') && newsReview.includes('bea.gov'), 'News & Review must link primary Fed, BLS, and BEA sources');
+check(/bukan feed berita real-time/i.test(newsReview), 'News & Review must disclose that no live news feed is connected');
+check(/bukan rekomendasi transaksi/i.test(newsReview), 'News & Review must include a trading-risk disclaimer');
 
 for (const page of ['join.html', 'deposit-confirmation.html']) {
   const html = read(page);
