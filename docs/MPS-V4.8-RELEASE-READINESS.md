@@ -20,10 +20,12 @@ This checklist records repository evidence only. A merged GitHub PR is not proof
 | PR #100 — release-readiness gates documentation | Merged | Documentation only; does not certify production readiness |
 | PR #103 — incident and mitigation runbook | Merged | Operational guidance in main; real recovery drills remain open |
 | PR #106 — consistent rejected membership-plan state and rollback | Merged | Source and synthetic regression test are in main; live Sheets failure behavior remains unverified |
+| PR #108 — pending Member ID issuance after proof submission, reuse on Admin approval | Merged | Candidate flow now reserves an ID after Regular QRIS/Active IB proof, shows it to the applicant, and activates it only after approval; isolated Apps Script runtime still required |
+| PR #109 — Admin queue displays pending Member ID | Merged | Admin review cards now show the reserved ID or `Belum diterbitkan`; verified by source regression and Chromium CI |
 
-**Current repository checkpoint:** `main` = `571a6edccd9b43fbf8275dd28071ba75564215eb` (PR #106). No open pull requests were returned by the repository query during this audit.
+**Current repository checkpoint:** `main` = `1060d76c51450b0868bc0e8caf07885accabd2fd` (PR #109). The repository query at this checkpoint found no pending implementation PRs.
 
-**CI evidence:** main-branch run [#44989104454](https://github.com/marketpsychologysociety/mps-website/actions/runs/44989104454) for the current checkpoint completed SUCCESS. The preceding main run [#44988901608](https://github.com/marketpsychologysociety/mps-website/actions/runs/44988901608), which includes the Learning PDF proxy change, also completed SUCCESS. These are repository automation results, not live Google Apps Script/Sheets/Drive/Telegram acceptance.
+**CI evidence:** main-branch run [#45015110866](https://github.com/marketpsychologysociety/mps-website/actions/runs/45015110866) for the current checkpoint completed SUCCESS (109 steps). Main-branch run [#45014911712](https://github.com/marketpsychologysociety/mps-website/actions/runs/45014911712), which includes PR #108, also completed SUCCESS. PR #108 and PR #109 each passed the full CI/Chromium workflow before merge. These are repository automation results, not live Google Apps Script/Sheets/Drive/Telegram acceptance.
 
 **Source audit:** the v4.8.1 frontend's 29 distinct API calls all have matching backend function definitions. This confirms name-level coverage only; it does not prove correct runtime behavior or successful external service integration.
 
@@ -48,6 +50,9 @@ The canonical Pages address recorded for this project is https://marketpsycholog
 - [ ] Confirm no public/guessable Drive URL or raw file ID can bypass authorization.
 
 ### C. Apps Script, database, and admin
+- [x] Candidate source reserves a pending Member ID only after Regular QRIS or Active IB proof submission; registration alone returns only an Application Ref.
+- [x] Admin approval reuses the reserved ID, activates the member, and retains PIN issuance after approval; Admin queue displays the pending ID.
+- [ ] Confirm this lifecycle end-to-end in isolated Apps Script with synthetic Sheets/Drive, including Telegram linking and rollback behavior.
 - [ ] Reconcile candidate Code.gs/Index.html against the actual deployed Apps Script project and deployed version.
 - [ ] Confirm database schema compatibility without deleting or rewriting existing member data; explicitly validate legacy 18-column and v4.8 30-column cases.
 - [ ] Validate required Script Properties and storage IDs without displaying their secret values.
