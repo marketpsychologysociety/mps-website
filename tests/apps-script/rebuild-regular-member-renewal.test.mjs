@@ -121,7 +121,11 @@ test('renewal eligibility requires a valid expiry timestamp even when ledger sta
 
 test('renewal access state accepts valid expired Regular member but rejects malformed ledger rows',()=>{
  const stateSource=body('memberRenewalAccessState_');
- function run({plan='REGULAR',status='Kedaluwarsa',expiry=new Date('2026-10-01T00:00:00Z'),memberStatus='Berhasil'}){
+ function run(options={}){
+  const plan=options.plan||'REGULAR';
+  const status=options.status||'Kedaluwarsa';
+  const expiry=Object.prototype.hasOwnProperty.call(options,'expiry')?options.expiry:new Date('2026-10-01T00:00:00Z');
+  const memberStatus=options.memberStatus||'Berhasil';
   const legacy={getRange:()=>({getDisplayValue:()=>memberStatus})};
   const ledger={getRange:()=>({getValues:()=>[['MPS-ABCDEF1234','APP-1',plan,status,new Date('2026-09-01T00:00:00Z'),expiry,'','']]})};
   const ctx={Date,Number,legacySheet_:()=>legacy,sheet_:()=>ledger,findRow_:()=>2};
