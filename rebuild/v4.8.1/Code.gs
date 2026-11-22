@@ -924,8 +924,12 @@ function apiSubmitRegularPayment(input) {
 
 /** Member renewal period: extend from the later of current expiry or approval time. */
 function calculateRenewalPeriod_(currentExpiry, nowMs) {
+  const expiryMissing=currentExpiry===null || currentExpiry===undefined || String(currentExpiry).trim()==='';
   const expiryMs=currentExpiry instanceof Date?currentExpiry.getTime():new Date(currentExpiry).getTime();
-  const baseMs=Number.isFinite(expiryMs)?Math.max(expiryMs,nowMs):nowMs;
+  const clockMs=Number(nowMs);
+  if(expiryMissing || !Number.isFinite(expiryMs) || !Number.isFinite(clockMs))
+    throw new Error('Tanggal masa aktif atau waktu persetujuan tidak valid; perpanjangan dihentikan.');
+  const baseMs=Math.max(expiryMs,clockMs);
   return {startAt:new Date(baseMs),endAt:new Date(baseMs+30*86400000)};
 }
 
@@ -938,10 +942,13 @@ function memberRenewalAccessState_(memberId, nowMs) {
   if(!row) throw new Error('Masa aktif keanggotaan belum tercatat. Hubungi Admin MPS.');
   const v=ledger.getRange(row,1,1,8).getValues()[0];
   if(String(v[2]||'')!=='REGULAR') return {eligible:false,reason:'RENEWAL_NOT_REQUIRED_FOR_THIS_PLAN',status:String(v[3]||'')};
+  const expiryMissing=v[5]===null || v[5]===undefined || String(v[5]).trim()==='';
   const expiry=v[5] instanceof Date?v[5].getTime():new Date(v[5]).getTime();
   const status=String(v[3]||'');
-  const expired=status==='Kedaluwarsa' || (status==='Aktif' && Number.isFinite(expiry) && expiry<=nowMs);
-  if(!expired && (status!=='Aktif' || !Number.isFinite(expiry)))
+  if(expiryMissing || !Number.isFinite(expiry) || !Number.isFinite(Number(nowMs)))
+    throw new Error('Status atau tanggal kedaluwarsa keanggotaan tidak valid. Hubungi Admin MPS.');
+  const expired=status==='Kedaluwarsa' || (status==='Aktif' && expiry<=Number(nowMs));
+  if(!expired && status!=='Aktif')
     throw new Error('Status atau tanggal kedaluwarsa keanggotaan tidak valid. Hubungi Admin MPS.');
   return {eligible:true,expired:expired,status:status,expiresAt:Number.isFinite(expiry)?new Date(expiry).toISOString():''};
 }
