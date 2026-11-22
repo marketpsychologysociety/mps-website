@@ -1392,15 +1392,18 @@ function apiAdminReview(session, applicationRef, decision, note) {
     };
 
     if (decision === 'REJECT') {
-      const appSnapshot=app.slice(), depSnapshot=dr?dep.slice():null, regularSnapshot=regularRow?regular.slice():null;
+      const appSnapshot=app.slice(), depSnapshot=dr?dep.slice():null,
+        regularSnapshot=regularRow?regular.slice():null, planSnapshot=planRow?plan.slice():null;
       try {
         apps.getRange(ar,8).setValue('Ditolak');
         apps.getRange(ar,14).setValue(adminNote);
+        if(planRow) planSheet.getRange(planRow,8).setValue('Ditolak');
         if(dr){deps.getRange(dr,10).setValue('Ditolak');deps.getRange(dr,13).setValue(adminNote);}
         if(regularRow){regularSheet.getRange(regularRow,6).setValue('Ditolak');regularSheet.getRange(regularRow,7).setValue(adminNote);}
       } catch(error) {
         const rollbackErrors=[];
         restoreRow(apps,ar,15,appSnapshot,'applications',rollbackErrors);
+        restoreRow(planSheet,planRow,8,planSnapshot,'membership plan',rollbackErrors);
         restoreRow(deps,dr,14,depSnapshot,'deposits',rollbackErrors);
         restoreRow(regularSheet,regularRow,8,regularSnapshot,'regularPayments',rollbackErrors);
         if(rollbackErrors.length) {
