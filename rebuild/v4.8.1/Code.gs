@@ -1682,6 +1682,64 @@ function apiAdminSaveAnnouncement(session,input) {
   return {ok:true,id:target,active:active};
 }
 
+/**
+ * Public Learning Center feed: published reading text only.
+ * Deliberately omits Resource URL and file identifiers from anonymous responses.
+ */
+function apiGetPublicLearningContent() {
+  const items=rows_(sheet_('learning')).filter(r=>r[7]===true || String(r[7]).toLowerCase()==='true');
+  items.sort((a,b)=>Number(a[8]||0)-Number(b[8]||0));
+  return {section:'learning',access:'PUBLIC_READ',items:items.map(r=>({
+    id:String(r[0]),title:clean_(r[3],160),category:clean_(r[4],80),
+    body:clean_(r[5],12000),sortOrder:Number(r[8]||0)
+  }))};
+}
+
+/**
+ * Member-only PDF download.
+ * The browser never receives a public Drive URL. The requested file must be
+ * referenced by a published Learning row, remain private through its full
+ * Drive parent chain, and be a PDF under the strict response-size ceiling.
+ */
+function apiGetLearningPdfDownload(session, contentId) {
+  const actor=requireSession_(session,['MEMBER','ADMIN','SUPER_ADMIN']);
+  if(actor.role==='MEMBER') {
+    const memberRow=findRow_(legacySheet_(),1,actor.actorId);
+    if(!memberRow || legacySheet_().getRange(memberRow,8).getDisplayValue()!=='Berhasil')
+      throw new Error('Akses unduh hanya untuk anggota resmi yang aktif.');
+    assertMembershipEntitlement_(actor.actorId);
+  }
+  const id=clean_(contentId,40);
+  if(!/^MPS-LEARN-[A-F0-9]{12}$/.test(id)) throw new Error('Materi tidak ditemukan.');
+  const sh=sheet_('learning'), row=findRow_(sh,1,id);
+  if(!row) throw new Error('Materi tidak ditemukan.');
+  const values=sh.getRange(row,1,1,9).getValues()[0];
+  if(!(values[7]===true || String(values[7]).toLowerCase()==='true'))
+    throw new Error('Materi tidak tersedia untuk diunduh.');
+  const resource=String(values[6]||'').trim();
+  let fileId='';
+  let match=resource.match(/^https:\/\/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]{20,})\/(?:view|preview)(?:[?#].*)?$/i);
+  if(match) fileId=match[1];
+  if(!fileId) {
+    match=resource.match(/^https:\/\/drive\.google\.com\/open\?id=([A-Za-z0-9_-]{20,})(?:&.*)?$/i);
+    if(match) fileId=match[1];
+  }
+  if(!fileId) throw new Error('File PDF belum ditautkan melalui format Drive yang didukung.');
+  const file=DriveApp.getFileById(fileId);
+  if(file.isTrashed()) throw new Error('File PDF tidak tersedia.');
+  assertMpsDriveFileTreePrivate_(file,'materi Learning Center');
+  if(String(file.getMimeType()||'')!=='application/pdf')
+    throw new Error('Unduhan hanya mendukung PDF.');
+  const size=Number(file.getSize()||0);
+  if(!Number.isFinite(size) || size<=0 || size>6*1024*1024)
+    throw new Error('Ukuran PDF harus lebih dari 0 dan maksimal 6 MB.');
+  const blob=file.getBlob(), bytes=blob.getBytes();
+  if(bytes.length!==size || bytes.length<5 || bytes[0]!==37 || bytes[1]!==80 || bytes[2]!==68 || bytes[3]!==70 || bytes[4]!==45)
+    throw new Error('Isi file tidak lolos pemeriksaan PDF.');
+  audit_(actor.role,actor.actorId,'LEARNING_PDF_DOWNLOADED',id,'SUCCESS','Private Drive PDF streamed through authenticated Apps Script response.');
+  return {ok:true,fileName:clean_(file.getName(),120)||'materi-mps.pdf',mimeType:'application/pdf',size:bytes.length,base64:Utilities.base64Encode(bytes)};
+}
+
 function apiGetMemberContent(session, section) {
   const actor = requireSession_(session,['MEMBER','ADMIN','SUPER_ADMIN']);
   const key = clean_(section,30).toLowerCase();
