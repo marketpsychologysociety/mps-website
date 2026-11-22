@@ -1689,6 +1689,53 @@ function apiAdminSaveAnnouncement(session,input) {
   return {ok:true,id:target,active:active};
 }
 
+function driveFileIdFromUrl_(value) {
+  const url=String(value||'').trim();
+  let match=url.match(/^https:\/\/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]{15,})(?:\/|$)/i);
+  if(!match) match=url.match(/^https:\/\/drive\.google\.com\/open\?id=([A-Za-z0-9_-]{15,})(?:&|$)/i);
+  if(!match) match=url.match(/^https:\/\/drive\.google\.com\/uc\?id=([A-Za-z0-9_-]{15,})(?:&|$)/i);
+  return match?match[1]:'';
+}
+
+function apiDownloadLearningMaterial(session, contentId) {
+  const actor=requireSession_(session,['MEMBER','ADMIN','SUPER_ADMIN']);
+  if(actor.role==='MEMBER') {
+    const memberSheet=legacySheet_(), memberRow=findRow_(memberSheet,1,actor.actorId);
+    if(!memberRow || memberSheet.getRange(memberRow,8).getDisplayValue()!=='Berhasil')
+      throw new Error('Akses member tidak aktif.');
+    assertMembershipEntitlement_(actor.actorId);
+  }
+  enforceRateLimit_('learning-download',actor.actorId,8,60);
+  const id=clean_(contentId,40);
+  if(!/^MPS-LEARN-[A-F0-9]{12}$/.test(id)) throw new Error('Materi tidak valid.');
+  const catalog=sheet_('learning'), row=findRow_(catalog,1,id);
+  if(!row) throw new Error('Materi tidak tersedia untuk member ini.');
+  const record=catalog.getRange(row,1,1,9).getValues()[0];
+  if(!(record[7]===true || String(record[7]).toLowerCase()==='true'))
+    throw new Error('Materi tidak tersedia untuk member ini.');
+  const fileId=driveFileIdFromUrl_(record[6]);
+  if(!fileId) throw new Error('Materi ini belum menggunakan file PDF Google Drive privat.');
+  const folderId=prop_('MPS_LEARNING_FOLDER_ID'), proofFolderId=prop_('MPS_PROOF_FOLDER_ID');
+  if(!folderId || folderId===proofFolderId) throw new Error('Folder Learning belum dikonfigurasi secara aman.');
+  const folder=DriveApp.getFolderById(folderId);
+  assertMpsDriveFolderTreePrivate_(folder,'Learning');
+  const file=DriveApp.getFileById(fileId);
+  if(file.isTrashed() || String(file.getMimeType())!=='application/pdf' ||
+     Number(file.getSize())<=0 || Number(file.getSize())>8*1024*1024)
+    throw new Error('PDF tidak tersedia atau melebihi batas ukuran 8 MB.');
+  assertMpsDriveFileTreePrivate_(file,'Learning PDF');
+  let inFolder=false;
+  const parents=file.getParents();
+  while(parents.hasNext()) if(String(parents.next().getId())===String(folderId)) inFolder=true;
+  if(!inFolder) throw new Error('Akses file tidak diizinkan.');
+  const bytes=file.getBlob().getBytes();
+  if(bytes.length!==Number(file.getSize()) || bytes.length>8*1024*1024)
+    throw new Error('Ukuran PDF tidak valid.');
+  const prefix=bytes.slice(0,5).map(b=>(b+256)%256);
+  if(prefix.join(',')!=='37,80,68,70,45') throw new Error('Isi file bukan PDF yang valid.');
+  return {ok:true,name:clean_(file.getName(),120)||'MPS-Learning.pdf',mimeType:'application/pdf',base64:Utilities.base64Encode(bytes)};
+}
+
 function apiGetMemberContent(session, section) {
   const actor = requireSession_(session,['MEMBER','ADMIN','SUPER_ADMIN']);
   const key = clean_(section,30).toLowerCase();
@@ -1709,7 +1756,7 @@ function apiGetMemberContent(session, section) {
     const items=rows_(sheet_(key)).filter(r=>r[key==='learning'?7:9]===true || String(r[key==='learning'?7:9]).toLowerCase()==='true');
     items.sort((a,b)=>key==='learning'?Number(a[8]||0)-Number(b[8]||0):new Date(b[8]).getTime()-new Date(a[8]).getTime());
     return {section:key,items:items.map(r=>key==='learning'?{
-      id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),resourceUrl:String(r[6]||'')
+      id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),hasDownload:!!driveFileIdFromUrl_(r[6])
     }:{
       id:String(r[0]),title:String(r[3]),topic:String(r[4]),body:String(r[5]),sourceName:String(r[6]||''),sourceUrl:String(r[7]||''),publishedAt:r[8] instanceof Date?r[8].toISOString():String(r[8]||'')
     })};
