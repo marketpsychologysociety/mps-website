@@ -41,7 +41,7 @@
 .mps-gs-card[data-session="london"]{--session:#f05bff}.mps-gs-card[data-session="newyork"]{--session:#f4bd45}
 .mps-gs-city{color:var(--session);font-size:clamp(11px,1.6vw,14px);font-weight:900;letter-spacing:.2em;text-shadow:0 0 12px color-mix(in srgb,var(--session) 70%,transparent)}
 .mps-gs-location{color:#d6e2f2;font-size:11px;letter-spacing:.16em;margin:5px 0 13px}
-.mps-gs-face{position:relative;width:min(100%,210px);aspect-ratio:1;margin:0 auto 14px;border-radius:50%;border:2px solid var(--session);background:radial-gradient(circle at center,rgba(12,28,46,.98) 0 52%,rgba(4,10,20,.98) 72%);box-shadow:0 0 9px var(--session),inset 0 0 22px color-mix(in srgb,var(--session) 22%,transparent),0 0 30px color-mix(in srgb,var(--session) 28%,transparent)}
+.mps-gs-face{position:relative;width:min(100%,210px);aspect-ratio:1;margin:0 auto 14px;border-radius:50%;border:2px solid var(--session);background:radial-gradient(circle at center,rgba(12,28,46,.28) 0 52%,rgba(4,10,20,.42) 72%);box-shadow:0 0 9px var(--session),inset 0 0 22px color-mix(in srgb,var(--session) 22%,transparent),0 0 30px color-mix(in srgb,var(--session) 28%,transparent)}
 .mps-gs-face:before,.mps-gs-face:after{content:"";position:absolute;border-radius:50%;pointer-events:none}
 .mps-gs-face:before{inset:7px;border:1px dashed color-mix(in srgb,var(--session) 65%,transparent)}
 .mps-gs-face:after{inset:15px;border:1px solid color-mix(in srgb,var(--session) 22%,transparent)}
@@ -63,6 +63,65 @@
 @media(max-width:620px){.mps-global-sessions{padding:26px 10px}.mps-gs-grid{gap:8px}.mps-gs-card{padding:13px 5px 14px;border-radius:13px}.mps-gs-face{width:min(100%,112px);margin-bottom:10px}.mps-gs-face:before{inset:5px}.mps-gs-face:after{inset:10px}.mps-gs-tick{height:5px;top:5px}.mps-gs-location{font-size:9px;letter-spacing:.1em}.mps-gs-digital{font-size:clamp(13px,4vw,18px)}.mps-gs-status{font-size:8px;padding:5px 7px;letter-spacing:.06em}.mps-gs-meta{font-size:9px}.mps-gs-brand strong{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.mps-gs-face,.mps-gs-hand{transition:none!important}}
 
+
+/* MPS compact world-clock HUD integrated into the bull/bear hero artwork. */
+.mps-premium-hero .mps-global-sessions{
+  position:absolute!important;z-index:3!important;top:clamp(230px,39%,310px)!important;left:50%!important;
+  transform:translateX(-50%)!important;width:min(720px,calc(100% - 72px))!important;
+  padding:0!important;border:0!important;background:transparent!important;overflow:visible!important;
+}
+.mps-premium-hero .mps-global-sessions:before,
+.mps-premium-hero .mps-gs-head,
+.mps-premium-hero .mps-gs-title,
+.mps-premium-hero .mps-gs-subtitle,
+.mps-premium-hero .mps-gs-overlap,
+.mps-premium-hero .mps-gs-foot{display:none!important}
+.mps-premium-hero .mps-gs-grid{max-width:none!important;gap:clamp(7px,1.3vw,15px)!important}
+.mps-premium-hero .mps-gs-card{
+  min-height:0!important;padding:0 2px!important;border:0!important;border-radius:0!important;
+  text-align:center!important;background:transparent!important;backdrop-filter:none!important;box-shadow:none!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;
+}
+.mps-premium-hero .mps-gs-card:before{display:none!important;content:none!important}
+.mps-premium-hero .mps-gs-city{font-size:10px!important;letter-spacing:.14em!important;line-height:1.15}
+.mps-premium-hero .mps-gs-location{font-size:8px!important;letter-spacing:.08em!important;margin:3px 0 5px!important}
+.mps-premium-hero .mps-gs-face{
+  position:relative!important;left:auto!important;top:auto!important;transform:none!important;
+  width:clamp(82px,10vw,108px)!important;flex:0 0 auto!important;margin:0 auto 5px!important;border-width:2px!important;
+  box-shadow:0 0 10px var(--session),inset 0 0 16px color-mix(in srgb,var(--session) 20%,transparent)!important
+}
+.mps-premium-hero .mps-gs-face:before{inset:5px!important}.mps-premium-hero .mps-gs-face:after{inset:10px!important}
+.mps-premium-hero .mps-gs-tick{top:5px!important;height:6px!important;width:1.5px!important;transform-origin:50% 45px!important}
+.mps-premium-hero .mps-gs-hour{height:23%!important;width:3px!important}
+.mps-premium-hero .mps-gs-minute{height:32%!important;width:2px!important}
+.mps-premium-hero .mps-gs-second{height:36%!important;width:1px!important}
+.mps-premium-hero .mps-gs-pin{width:6px!important;height:6px!important}
+.mps-premium-hero .mps-gs-digital{font-size:12px!important;letter-spacing:.025em!important;line-height:1.1!important}
+.mps-premium-hero .mps-gs-date{font-size:7px!important;margin-top:2px!important;white-space:nowrap}
+.mps-premium-hero .mps-gs-status{margin-top:4px!important;padding:3px 6px!important;font-size:7px!important;letter-spacing:.06em!important;gap:4px!important}
+.mps-premium-hero .mps-gs-status i{width:5px!important;height:5px!important}
+.mps-premium-hero .mps-gs-meta{display:none!important}
+@media(max-width:700px){
+  .mps-premium-hero .mps-global-sessions{top:clamp(165px,38vw,205px)!important;width:calc(100% - 24px)!important}
+  .mps-premium-hero .mps-gs-grid{gap:2px!important}
+  .mps-premium-hero .mps-gs-card{padding:0!important}
+  .mps-premium-hero .mps-gs-city{font-size:8px!important;letter-spacing:.045em!important}
+  .mps-premium-hero .mps-gs-location{font-size:6px!important;letter-spacing:0!important;margin:3px 0 4px!important}
+  .mps-premium-hero .mps-gs-face{width:clamp(64px,22vw,82px)!important;margin-bottom:4px!important}
+  .mps-premium-hero .mps-gs-face:before{inset:4px!important}.mps-premium-hero .mps-gs-face:after{inset:8px!important}
+  .mps-premium-hero .mps-gs-tick{top:4px!important;height:4px!important;transform-origin:50% 34px!important}
+  .mps-premium-hero .mps-gs-digital{font-size:9px!important;letter-spacing:0!important}
+  .mps-premium-hero .mps-gs-date{font-size:6px!important;white-space:normal;line-height:1.15}
+  .mps-premium-hero .mps-gs-status{font-size:5.5px!important;padding:2px 3px!important;gap:3px!important;letter-spacing:0!important;margin-top:3px!important}
+  .mps-premium-hero .mps-gs-status i{width:4px!important;height:4px!important}
+}
+@media(max-width:360px){
+  .mps-premium-hero .mps-global-sessions{width:calc(100% - 18px)!important}
+  .mps-premium-hero .mps-gs-face{width:60px!important}
+  .mps-premium-hero .mps-gs-tick{transform-origin:50% 32px!important}
+  .mps-premium-hero .mps-gs-digital{font-size:8px!important}
+}
+
 </style></head>
 <body>
 <nav class="navbar mps-home-nav" aria-label="Navigasi utama">
@@ -71,7 +130,13 @@
   <ul class="nav-links" id="navLinks"><li><a href="index.html">Beranda</a></li><li><a href="heatmap.html">Pemantauan Pasar</a></li><li><a href="member-portal.html">Pusat Sinyal</a></li><li><a href="system.html">Analisis Pasar</a></li><li><a href="news-review.html">News &amp; Review</a></li><li><a href="announcements.html">Pengumuman</a></li><li><a href="education.html">Ruang Belajar</a></li><li><a href="education.html">Psikologi Perdagangan</a></li><li><a href="system.html">Alat Bantu Perdagangan</a></li><li><a href="member-portal.html">Komunitas</a></li><li><a href="membership.html">Keanggotaan</a></li><li><a href="rebate.html">Mitra Exness &amp; Pengembalian Komisi</a></li><li><a class="mps-nav-login" href="member-portal.html">Masuk Anggota</a></li><li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button></li></ul>
 </nav>
 
-<section class="mps-global-sessions" id="mps-global-sessions" aria-labelledby="mps-gs-heading">
+
+
+
+
+<header class="hero mps-home-hero mps-premium-hero">
+  <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1b" alt=""></div>
+  <section class="mps-global-sessions" id="mps-global-sessions" data-mps-session-clocks aria-labelledby="mps-gs-heading">
   <div class="mps-gs-head">
     <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
     <div class="mps-gs-brand"><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></div>
@@ -101,11 +166,6 @@
   <div class="mps-gs-overlap" id="mps-gs-overlap"> <strong>MARKET OVERLAP</strong> · Memeriksa irisan sesi London dan New York…</div>
   <p class="mps-gs-foot">Waktu ditampilkan berdasarkan zona waktu resmi masing-masing kota. Jam sesi adalah indikator jam kerja pasar FX, bukan jaminan likuiditas atau rekomendasi transaksi.</p>
 </section>
-
-
-
-<header class="hero mps-home-hero mps-premium-hero">
-  <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1b" alt=""></div>
   <div class="hero-content reveal mps-premium-copy">
     <div class="hero-kicker"><span></span> MASYARAKAT PSIKOLOGI PERDAGANGAN</div>
     <h1>SELAMA INI KAMU BERTRANSAKSI,<br><span>SUDAH DAPAT APA SAJA?</span></h1>

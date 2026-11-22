@@ -164,11 +164,63 @@ document.addEventListener("DOMContentLoaded", function () {
 })();
 
 
-/* MPS live market-session clocks, existing-logo watermark, and verified-event alarm.
-   London/New York DST is handled by IANA time-zone data in Intl. */
+/* MPS hero world clocks: update the single static panel; never inject a second panel. */
+(() => {
+  const zones = [
+    {id:'tokyo',zone:'Asia/Tokyo',open:9,close:18},
+    {id:'london',zone:'Europe/London',open:8,close:17},
+    {id:'newyork',zone:'America/New_York',open:8,close:17}
+  ];
+  const mountClocks = () => {
+    const panel = document.querySelector('[data-mps-session-clocks]');
+    document.querySelectorAll('.mps-session-board').forEach(node => node.remove());
+    document.querySelectorAll('.mps-global-sessions').forEach(node => { if (node !== panel) node.remove(); });
+    if (!panel) return;
+    zones.forEach(({id}) => {
+      const card=panel.querySelector('[data-session="'+id+'"]'), face=card&&card.querySelector('.mps-gs-face');
+      if (!face) return;
+      const ticks=face.querySelector('.mps-gs-ticks');
+      if (ticks && !ticks.children.length) for(let n=0;n<12;n++){
+        const tick=document.createElement('i'); tick.className='mps-gs-tick';
+        tick.style.transform='translateX(-50%) rotate('+(n*30)+'deg)'; ticks.appendChild(tick);
+      }
+    });
+    const timeFmt=new Map(zones.map(z=>[z.id,new Intl.DateTimeFormat('en-GB',{timeZone:z.zone,hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'})]));
+    const dateFmt=new Map(zones.map(z=>[z.id,new Intl.DateTimeFormat('id-ID',{timeZone:z.zone,weekday:'short',day:'2-digit',month:'short',year:'numeric'})]));
+    const update=()=>{
+      const now=new Date();
+      zones.forEach(({id,zone,open,close})=>{
+        const card=panel.querySelector('[data-session="'+id+'"]'); if(!card)return;
+        const parts=Object.fromEntries(timeFmt.get(id).formatToParts(now).map(p=>[p.type,p.value]));
+        const hh=+parts.hour,mm=+parts.minute,ss=+parts.second;
+        const digital=card.querySelector('.mps-gs-digital'),date=card.querySelector('.mps-gs-date');
+        if(digital)digital.textContent=parts.hour+':'+parts.minute+':'+parts.second;
+        if(date)date.textContent=dateFmt.get(id).format(now);
+        const degrees={hour:(hh%12)*30+mm*.5,minute:mm*6+ss*.1,second:ss*6};
+        Object.entries(degrees).forEach(([hand,angle])=>{const el=card.querySelector('.mps-gs-'+hand);if(el)el.style.transform='translateX(-50%) rotate('+angle+'deg)';});
+        const weekday=new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short'}).format(now);
+        const openNow=!['Sat','Sun'].includes(weekday)&&hh>=open&&hh<close;
+        const status=card.querySelector('.mps-gs-status');
+        if(status){status.classList.toggle('is-closed',!openNow);const label=status.querySelector('span');if(label)label.textContent=openNow?'SESI BERLANGSUNG':'SESI TUTUP';}
+      });
+      const overlap=panel.querySelector('#mps-gs-overlap');
+      if(overlap){
+        const london=+new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',hourCycle:'h23'}).format(now);
+        const ny=+new Intl.DateTimeFormat('en-GB',{timeZone:'America/New_York',hour:'2-digit',hourCycle:'h23'}).format(now);
+        const weekday=now.getUTCDay()>0&&now.getUTCDay()<6;
+        overlap.innerHTML='<strong>MARKET OVERLAP</strong> · '+(weekday&&london>=13&&london<17&&ny>=8&&ny<12?'London dan New York sedang aktif bersamaan.':'Irisan sesi London dan New York belum berlangsung saat ini.');
+      }
+    };
+    update(); window.setInterval(update,1000);
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountClocks,{once:true});else mountClocks();
+})();
+
+/* MPS verified high-impact event alarm.
+   The three world clocks are rendered once in index.html inside the hero mockup. */
 (() => {
   const mount = () => {
-    if (document.querySelector('[data-mps-session-clocks]')) return;
+    if (document.querySelector('[data-mps-news-alarm]')) return;
     const nav = document.querySelector('.navbar');
     if (!nav) return;
 
@@ -177,87 +229,56 @@ document.addEventListener("DOMContentLoaded", function () {
     const links = nav.querySelector('.nav-links');
     if (links && !links.querySelector('a[href="journal.html"]')) links.appendChild(journal);
 
-    const section = document.createElement('section');
-    section.className = 'mps-session-board';
-    section.dataset.mpsSessionClocks = 'true';
-    section.setAttribute('aria-label', 'Jam sesi pasar dunia');
-    section.innerHTML = `
-      <div class="mps-session-heading">
-        <span class="eyebrow">WAKTU PASAR DUNIA</span>
-        <h2>Jam Sesi Perdagangan</h2>
-        <p>Waktu lokal langsung · penyesuaian waktu musim panas otomatis</p>
-      </div>
-      <div class="mps-session-grid">
-        <article class="mps-session-card" data-zone="Asia/Tokyo" data-open="9" data-close="18" data-label="ASIA · TOKYO" data-color="cyan">
-          <div class="mps-session-ring"><div class="mps-session-face"><span class="mps-session-time">--:--:--</span><small>WAKTU LOKAL</small><b class="mps-session-status">MEMUAT</b></div></div>
-          <strong>ASIA · TOKYO</strong><small class="mps-session-zone">Tokyo</small>
-        </article>
-        <article class="mps-session-card" data-zone="Europe/London" data-open="8" data-close="17" data-label="EROPA · LONDON" data-color="magenta">
-          <div class="mps-session-ring"><div class="mps-session-face"><span class="mps-session-time">--:--:--</span><small>WAKTU LOKAL</small><b class="mps-session-status">MEMUAT</b></div></div>
-          <strong>EROPA · LONDON</strong><small class="mps-session-zone">London</small>
-        </article>
-        <article class="mps-session-card" data-zone="America/New_York" data-open="8" data-close="17" data-label="AMERIKA · NEW YORK" data-color="gold">
-          <div class="mps-session-ring"><div class="mps-session-face"><span class="mps-session-time">--:--:--</span><small>WAKTU LOKAL</small><b class="mps-session-status">MEMUAT</b></div></div>
-          <strong>AMERIKA · NEW YORK</strong><small class="mps-session-zone">New York</small>
-        </article>
-      </div>
-      <div class="mps-session-foot">Jam sesi merupakan acuan umum sesi pasar, bukan jaminan likuiditas atau jam operasional broker.</div>
-      <div class="mps-news-alarm" data-mps-news-alarm hidden role="status" aria-live="polite">
-        <span class="mps-alarm-beacon" aria-hidden="true"></span>
-        <div><strong>PERINGATAN BERITA BERDAMPAK TINGGI</strong><b data-mps-news-title></b><span data-mps-news-countdown></span><small data-mps-news-meta></small></div>
-      </div>
-      <img class="mps-clock-watermark" src="assets/logo.svg?v=mps-original-20261118" alt="" aria-hidden="true">
+    const alarm = document.createElement('div');
+    alarm.className = 'mps-news-alarm';
+    alarm.dataset.mpsNewsAlarm = '';
+    alarm.hidden = true;
+    alarm.setAttribute('role', 'status');
+    alarm.setAttribute('aria-live', 'polite');
+    alarm.innerHTML = `
+      <span class="mps-alarm-beacon" aria-hidden="true"></span>
+      <div><strong>PERINGATAN BERITA BERDAMPAK TINGGI</strong><b data-mps-news-title></b><span data-mps-news-countdown></span><small data-mps-news-meta></small></div>
     `;
     const placement = document.querySelector('.mps-ticker') || document.querySelector('.page-head') || nav;
-    placement.insertAdjacentElement('afterend', section);
+    placement.insertAdjacentElement('afterend', alarm);
 
-    const formatter = (zone, options) => new Intl.DateTimeFormat('id-ID', { timeZone: zone, ...options });
-    const getParts = (zone, now) => {
-      const parts = formatter(zone, { hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23', weekday:'short' }).formatToParts(now);
-      return Object.fromEntries(parts.map(part => [part.type, part.value]));
-    };
-    const cards = [...section.querySelectorAll('.mps-session-card')];
-    const sessions = new Map();
-    const update = () => {
-      const now = new Date();
-      let allClosed = true;
-      cards.forEach(card => {
-        const zone = card.dataset.zone;
-        const parts = getParts(zone, now);
-        const hour = Number(parts.hour);
-        const minute = Number(parts.minute);
-        const open = Number(card.dataset.open);
-        const close = Number(card.dataset.close);
-        const weekday = parts.weekday;
-        const weekdayOk = !['Min', 'Sab'].includes(weekday);
-        const isOpen = weekdayOk && (hour > open || (hour === open && minute >= 0)) && hour < close;
-        if (isOpen) allClosed = false;
-        card.querySelector('.mps-session-time').textContent = `${parts.hour}:${parts.minute}:${parts.second}`;
-        card.querySelector('.mps-session-status').textContent = isOpen ? 'SESI BERLANGSUNG' : 'SESI TUTUP';
-        card.classList.toggle('is-open', isOpen);
-        card.classList.toggle('is-closed', !isOpen);
-        card.querySelector('.mps-session-zone').textContent = formatter(zone, { timeZoneName:'short' }).format(now);
-        sessions.set(zone, isOpen);
-      });
-      renderAlarm(now, allClosed);
-    };
-    const alarm = section.querySelector('[data-mps-news-alarm]');
-    const renderAlarm = (now, allClosed) => {
+    const zones = [
+      { zone:'Asia/Tokyo', open:9, close:18 },
+      { zone:'Europe/London', open:8, close:17 },
+      { zone:'America/New_York', open:8, close:17 }
+    ];
+    const allSessionsClosed = now => zones.every(({zone, open, close}) => {
+      const parts = Object.fromEntries(
+        new Intl.DateTimeFormat('en-US', {
+          timeZone:zone, weekday:'short', hour:'2-digit', hourCycle:'h23'
+        }).formatToParts(now).map(part => [part.type, part.value])
+      );
+      const hour = Number(parts.hour);
+      const weekdayOpen = !['Sat','Sun'].includes(parts.weekday);
+      return !(weekdayOpen && hour >= open && hour < close);
+    });
+
+    const renderAlarm = now => {
       // Event data must come from a trusted, verified MPS feed; no sample events are fabricated.
       const event = window.MPS_HIGH_IMPACT_EVENT;
       const start = event && Date.parse(event.startsAt);
       const verified = event && event.verified === true && event.impact === 'high' &&
         typeof event.title === 'string' && event.title.trim() && Number.isFinite(start) && start > now.getTime();
-      if (!verified || !allClosed) { alarm.hidden = true; return; }
+      if (!verified || !allSessionsClosed(now)) { alarm.hidden = true; return; }
+
       alarm.hidden = false;
-      section.querySelector('[data-mps-news-title]').textContent = event.title;
+      alarm.querySelector('[data-mps-news-title]').textContent = event.title;
       const remaining = Math.max(0, start - now.getTime());
       const hours = Math.floor(remaining / 3600000);
       const minutes = Math.floor((remaining % 3600000) / 60000);
       const seconds = Math.floor((remaining % 60000) / 1000);
-      section.querySelector('[data-mps-news-countdown]').textContent = `Mulai dalam ${hours}j ${minutes}m ${seconds}d`;
-      section.querySelector('[data-mps-news-meta]').textContent = event.timeWib ? `Jadwal: ${event.timeWib} WIB · Sumber terverifikasi` : 'Jadwal terverifikasi · WIB';
+      alarm.querySelector('[data-mps-news-countdown]').textContent = `Mulai dalam ${hours}j ${minutes}m ${seconds}d`;
+      alarm.querySelector('[data-mps-news-meta]').textContent = event.timeWib
+        ? `Jadwal: ${event.timeWib} WIB · Sumber terverifikasi`
+        : 'Jadwal terverifikasi · WIB';
     };
+
+    const update = () => renderAlarm(new Date());
     update();
     window.setInterval(update, 1000);
     window.addEventListener('mps:verified-high-impact-event', event => {
@@ -265,6 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
       update();
     });
   };
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once:true });
   else mount();
 })();
