@@ -65,6 +65,7 @@ function approvalHarness({plan='ACTIVE_IB',ibStatus='Terverifikasi',amount=50000
     clean_:(v,max)=>String(v==null?'':v).replace(/[<>]/g,'').trim().slice(0,max),
     requireSession_:()=>({role:'ADMIN',actorId:'admin-test'}),
     LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;}})},
+    rows_:sh=>sh.rows,
     sheet_:key=>{if(!map[key])throw new Error('unexpected sheet '+key);return map[key];},
     legacySheet_:()=>members,
     findRow_:(sh,col,value)=>{const i=sh.rows.findIndex((r,n)=>n>0&&String(r[col-1]??'')===String(value));return i<0?0:i+1;},
