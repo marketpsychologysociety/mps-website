@@ -91,5 +91,5 @@ test('Super Admin can retrieve a private Learning PDF only from the configured f
   const sharedFolder=harness({privateFolder:'ANYONE'});
   assert.throws(()=>sharedFolder.admin(),/Folder Learning tidak PRIVATE/);
   const sharedFile=harness({privateFile:'ANYONE'});
-  assert.throws(()=>sharedFile.admin(),/File tidak tersedia/);
+  assert.throws(()=>sharedFile.admin(),/File Learning PDF tidak PRIVATE/);
 });
