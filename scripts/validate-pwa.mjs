@@ -6,7 +6,7 @@ const root = process.cwd();
 const pages = [
   'about.html','announcements.html','contact.html','deposit-confirmation.html','education.html',
   'heatmap.html','index.html','join.html','news-review.html','member-portal.html','membership.html',
-  'privacy.html','rebate.html','rewards.html','system.html','terms.html'
+  'privacy.html','rebate.html','rewards.html','system.html','terms.html','journal.html'
 ];
 const errors = [];
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -86,6 +86,28 @@ check(newsReview.includes('FOMC') && newsReview.includes('CPI') && newsReview.in
 check(newsReview.includes('federalreserve.gov') && newsReview.includes('bls.gov') && newsReview.includes('bea.gov'), 'News & Review must link primary Fed, BLS, and BEA sources');
 check(/bukan feed berita real-time/i.test(newsReview), 'News & Review must disclose that no live news feed is connected');
 check(/bukan rekomendasi transaksi/i.test(newsReview), 'News & Review must include a trading-risk disclaimer');
+
+
+const mainJs = read('js/main.js');
+try { new vm.Script(mainJs, { filename: 'js/main.js' }); }
+catch (error) { errors.push('js/main.js syntax error: ' + error.message); }
+check(mainJs.includes('data-mps-session-clocks') && mainJs.includes('Asia/Tokyo') &&
+  mainJs.includes('Europe/London') && mainJs.includes('America/New_York'),
+  'Live session clock mounting and all three market time zones must exist');
+check(mainJs.includes('mps:verified-high-impact-event') &&
+  mainJs.includes("event.verified === true") && mainJs.includes("event.impact === 'high'"),
+  'High-impact alarm must require an explicitly verified high-impact event');
+check(mainJs.includes("event.target.closest('.mps-session-board, [data-mps-private-preview]')") &&
+  mainJs.includes("['p'].includes(key)"),
+  'Browser-only screenshot/print deterrents must remain scoped and present');
+const journalHtml = read('journal.html');
+check(journalHtml.includes('<html lang="id">') &&
+  journalHtml.includes('Jurnal Perdagangan MPS') &&
+  journalHtml.includes('Belum terhubung ke penyimpanan anggota'),
+  'Journal landing page must be Indonesian and clearly disclose that member storage is not connected');
+check(journalHtml.includes('href="member-portal.html"') &&
+  journalHtml.includes('js/main.js'),
+  'Journal landing page must provide a return path to the member portal and load shared navigation code');
 
 for (const page of ['join.html', 'deposit-confirmation.html']) {
   const html = read(page);
