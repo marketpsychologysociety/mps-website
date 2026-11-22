@@ -74,8 +74,8 @@ for (const page of pages) {
 }
 
 const newsReview = read('news-review.html');
-check(/FOMC[\s\\S]*CPI[\s\\S]*NFP/.test(newsReview), 'News & Review must cover FOMC, CPI, and NFP macro drivers');
-check(/federalreserve\.gov[\s\\S]*bls\.gov[\s\\S]*bea\.gov/.test(newsReview), 'News & Review must link primary Fed, BLS, and BEA sources');
+check(newsReview.includes('FOMC') && newsReview.includes('CPI') && newsReview.includes('NFP'), 'News & Review must cover FOMC, CPI, and NFP macro drivers');
+check(newsReview.includes('federalreserve.gov') && newsReview.includes('bls.gov') && newsReview.includes('bea.gov'), 'News & Review must link primary Fed, BLS, and BEA sources');
 check(/bukan feed berita real-time/i.test(newsReview), 'News & Review must disclose that no live news feed is connected');
 check(/bukan rekomendasi transaksi/i.test(newsReview), 'News & Review must include a trading-risk disclaimer');
 
