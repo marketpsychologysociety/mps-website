@@ -66,6 +66,8 @@ jobs:
         run: node --test tests/apps-script/rebuild-vip-queue-retry.test.mjs
       - name: Run v4.8.1 public VIP ticker and announcement privacy tests (synthetic only)
         run: node --test tests/apps-script/rebuild-public-display-privacy.test.mjs
+      - name: Run v4.8.1 Learning PDF download proxy security tests (synthetic only)
+        run: node --test tests/apps-script/rebuild-learning-download-proxy.test.mjs
       - name: Run v4.8.1 Admin IB verification and PIN rollback tests (synthetic only)
         run: node --test tests/apps-script/rebuild-admin-ib-pin-rollback.test.mjs
       - name: Run v4.8.1 rebuild Admin approval and PIN tests (synthetic only)
