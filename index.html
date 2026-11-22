@@ -63,6 +63,69 @@
 @media(max-width:620px){.mps-global-sessions{padding:26px 10px}.mps-gs-grid{gap:8px}.mps-gs-card{padding:13px 5px 14px;border-radius:13px}.mps-gs-face{width:min(100%,112px);margin-bottom:10px}.mps-gs-face:before{inset:5px}.mps-gs-face:after{inset:10px}.mps-gs-tick{height:5px;top:5px}.mps-gs-location{font-size:9px;letter-spacing:.1em}.mps-gs-digital{font-size:clamp(13px,4vw,18px)}.mps-gs-status{font-size:8px;padding:5px 7px;letter-spacing:.06em}.mps-gs-meta{font-size:9px}.mps-gs-brand strong{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.mps-gs-face,.mps-gs-hand{transition:none!important}}
 
+
+/* MPS compact world-clock HUD integrated into the bull/bear hero artwork. */
+.mps-premium-hero .mps-global-sessions{
+  position:absolute!important;z-index:3!important;top:clamp(245px,43%,365px)!important;left:50%!important;
+  transform:translateX(-50%)!important;width:min(900px,calc(100% - 44px))!important;
+  padding:0!important;border:0!important;background:transparent!important;overflow:visible!important;
+}
+.mps-premium-hero .mps-global-sessions:before,
+.mps-premium-hero .mps-gs-head,
+.mps-premium-hero .mps-gs-title,
+.mps-premium-hero .mps-gs-subtitle,
+.mps-premium-hero .mps-gs-overlap,
+.mps-premium-hero .mps-gs-foot{display:none!important}
+.mps-premium-hero .mps-gs-grid{max-width:none!important;gap:clamp(7px,1.3vw,15px)!important}
+.mps-premium-hero .mps-gs-card{
+  min-height:92px!important;padding:12px 12px 10px 78px!important;border-radius:12px!important;
+  text-align:left!important;background:linear-gradient(110deg,rgba(4,12,27,.86),rgba(5,15,30,.68))!important;
+  backdrop-filter:blur(8px);box-shadow:0 0 18px color-mix(in srgb,var(--session) 13%,transparent),inset 0 0 14px rgba(90,210,255,.045)!important;
+}
+.mps-premium-hero .mps-gs-card:before{
+  content:"MPS";position:absolute;right:9px;top:7px;color:#d9efff;font:800 7px/1 ui-monospace,monospace;
+  letter-spacing:.2em;opacity:.82;text-shadow:0 0 7px var(--session)
+}
+.mps-premium-hero .mps-gs-city{font-size:10px!important;letter-spacing:.12em!important;line-height:1.1}
+.mps-premium-hero .mps-gs-location{font-size:8px!important;letter-spacing:.09em!important;margin:3px 0 4px!important}
+.mps-premium-hero .mps-gs-face{
+  position:absolute!important;left:10px!important;top:50%!important;transform:translateY(-50%)!important;
+  width:56px!important;margin:0!important;border-width:1px!important;
+  box-shadow:0 0 7px var(--session),inset 0 0 12px color-mix(in srgb,var(--session) 18%,transparent)!important
+}
+.mps-premium-hero .mps-gs-face:before{inset:4px!important}.mps-premium-hero .mps-gs-face:after{inset:8px!important}
+.mps-premium-hero .mps-gs-tick{top:4px!important;height:4px!important;width:1px!important}
+.mps-premium-hero .mps-gs-hour{height:23%!important;width:2px!important}
+.mps-premium-hero .mps-gs-minute{height:32%!important;width:1.5px!important}
+.mps-premium-hero .mps-gs-second{height:36%!important;width:1px!important}
+.mps-premium-hero .mps-gs-pin{width:5px!important;height:5px!important}
+.mps-premium-hero .mps-gs-digital{font-size:13px!important;letter-spacing:.035em!important;line-height:1.1!important}
+.mps-premium-hero .mps-gs-date{font-size:7px!important;margin-top:2px!important;white-space:nowrap}
+.mps-premium-hero .mps-gs-status{margin-top:4px!important;padding:3px 6px!important;font-size:7px!important;letter-spacing:.06em!important;gap:4px!important}
+.mps-premium-hero .mps-gs-status i{width:5px!important;height:5px!important}
+.mps-premium-hero .mps-gs-meta{display:none!important}
+@media(max-width:700px){
+  .mps-premium-hero .mps-global-sessions{top:clamp(175px,43vw,235px)!important;width:calc(100% - 18px)!important}
+  .mps-premium-hero .mps-gs-grid{gap:5px!important}
+  .mps-premium-hero .mps-gs-card{min-height:78px!important;padding:9px 4px 7px 42px!important;border-radius:9px!important}
+  .mps-premium-hero .mps-gs-card:before{top:5px;right:5px;font-size:6px}
+  .mps-premium-hero .mps-gs-city{font-size:8px!important;letter-spacing:.04em!important}
+  .mps-premium-hero .mps-gs-location{font-size:6px!important;letter-spacing:0!important;margin:3px 0!important}
+  .mps-premium-hero .mps-gs-face{left:5px!important;width:31px!important}
+  .mps-premium-hero .mps-gs-face:before{inset:3px!important}.mps-premium-hero .mps-gs-face:after{inset:6px!important}
+  .mps-premium-hero .mps-gs-tick{top:3px!important;height:3px!important}
+  .mps-premium-hero .mps-gs-digital{font-size:9px!important;letter-spacing:0!important}
+  .mps-premium-hero .mps-gs-date{font-size:6px!important;white-space:normal;line-height:1.15}
+  .mps-premium-hero .mps-gs-status{font-size:5.5px!important;padding:2px 3px!important;gap:3px!important;letter-spacing:0!important;margin-top:3px!important}
+  .mps-premium-hero .mps-gs-status i{width:4px!important;height:4px!important}
+}
+@media(max-width:360px){
+  .mps-premium-hero .mps-global-sessions{width:calc(100% - 12px)!important}
+  .mps-premium-hero .mps-gs-card{padding-left:37px!important}
+  .mps-premium-hero .mps-gs-face{width:27px!important}
+  .mps-premium-hero .mps-gs-digital{font-size:8px!important}
+}
+
 </style></head>
 <body>
 <nav class="navbar mps-home-nav" aria-label="Navigasi utama">
@@ -71,7 +134,13 @@
   <ul class="nav-links" id="navLinks"><li><a href="index.html">Beranda</a></li><li><a href="heatmap.html">Pemantauan Pasar</a></li><li><a href="member-portal.html">Pusat Sinyal</a></li><li><a href="system.html">Analisis Pasar</a></li><li><a href="news-review.html">News &amp; Review</a></li><li><a href="announcements.html">Pengumuman</a></li><li><a href="education.html">Ruang Belajar</a></li><li><a href="education.html">Psikologi Perdagangan</a></li><li><a href="system.html">Alat Bantu Perdagangan</a></li><li><a href="member-portal.html">Komunitas</a></li><li><a href="membership.html">Keanggotaan</a></li><li><a href="rebate.html">Mitra Exness &amp; Pengembalian Komisi</a></li><li><a class="mps-nav-login" href="member-portal.html">Masuk Anggota</a></li><li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button></li></ul>
 </nav>
 
-<section class="mps-global-sessions" id="mps-global-sessions" aria-labelledby="mps-gs-heading">
+
+
+
+
+<header class="hero mps-home-hero mps-premium-hero">
+  <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1b" alt=""></div>
+  <section class="mps-global-sessions" id="mps-global-sessions" aria-labelledby="mps-gs-heading">
   <div class="mps-gs-head">
     <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
     <div class="mps-gs-brand"><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></div>
@@ -101,11 +170,6 @@
   <div class="mps-gs-overlap" id="mps-gs-overlap"> <strong>MARKET OVERLAP</strong> · Memeriksa irisan sesi London dan New York…</div>
   <p class="mps-gs-foot">Waktu ditampilkan berdasarkan zona waktu resmi masing-masing kota. Jam sesi adalah indikator jam kerja pasar FX, bukan jaminan likuiditas atau rekomendasi transaksi.</p>
 </section>
-
-
-
-<header class="hero mps-home-hero mps-premium-hero">
-  <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1b" alt=""></div>
   <div class="hero-content reveal mps-premium-copy">
     <div class="hero-kicker"><span></span> MASYARAKAT PSIKOLOGI PERDAGANGAN</div>
     <h1>SELAMA INI KAMU BERTRANSAKSI,<br><span>SUDAH DAPAT APA SAJA?</span></h1>
