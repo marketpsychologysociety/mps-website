@@ -142,6 +142,7 @@ test('Admin can reject an incomplete Active IB application with no deposit submi
   assert.equal(result.ok,true);
   assert.equal(result.status,'Ditolak');
   assert.equal(h.apps.rows[1][7],'Ditolak');
+  assert.equal(h.plans.rows[1][7],'Ditolak');
   assert.equal(h.apps.rows[1][8],'');
   assert.equal(h.members.rows.length,1);
   assert.equal(h.stats().inviteQueued,0);
@@ -153,6 +154,7 @@ test('Admin rejection records rejection without issuing Member ID or VIP invite'
   assert.equal(result.ok,true);
   assert.equal(result.status,'Ditolak');
   assert.equal(h.apps.rows[1][7],'Ditolak');
+  assert.equal(h.plans.rows[1][7],'Ditolak');
   assert.equal(h.apps.rows[1][8],'');
   assert.equal(h.members.rows.length,1);
   assert.equal(h.stats().inviteQueued,0);
@@ -238,5 +240,25 @@ test('approval rollback compensates an ambiguous VIP queue append failure',()=>{
   assert.equal(h.apps.rows[1][8],'');
   assert.equal(h.ledger.rows.length,1);
   assert.equal(h.queue.rows.length,1);
+  assert.equal(h.stats().lockDepth,0);
+});
+
+test('rejection restores application and membership plan if plan-state write fails',()=>{
+  const h=approvalHarness({depositSubmitted:false,telegram:false});
+  const original=h.plans.getRange.bind(h.plans);
+  let failOnce=true;
+  h.plans.getRange=(row,col,nr,nc)=>{
+    const range=original(row,col,nr,nc);
+    const setValue=range.setValue.bind(range);
+    range.setValue=value=>{
+      if(col===8 && value==='Ditolak' && failOnce){failOnce=false;throw new Error('INJECTED_PLAN_REJECT_WRITE');}
+      return setValue(value);
+    };
+    return range;
+  };
+  assert.throws(()=>h.run('REJECT'),/INJECTED_PLAN_REJECT_WRITE/);
+  assert.equal(h.apps.rows[1][7],'Deposit Dikirim');
+  assert.equal(h.plans.rows[1][7],'Menunggu Validasi');
+  assert.equal(h.members.rows.length,1);
   assert.equal(h.stats().lockDepth,0);
 });
