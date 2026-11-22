@@ -278,6 +278,75 @@
   }
 }
 </style>
+
+<style id="mps-desktop-hero-centered-final">
+/* Desktop-only final override: center copy and restore the complete bull/bear + globe artwork.
+   Keep the already-approved mobile composition and clock rules untouched. */
+@media (min-width:701px){
+  body:has(.mps-home-hero) .mps-premium-hero{
+    position:relative!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:0!important;
+    min-height:780px!important;
+    height:auto!important;
+    padding:42px 24px 48px!important;
+    overflow:visible!important;
+    isolation:isolate!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art-wrap{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:680px!important;
+    max-height:none!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    z-index:1!important;
+    pointer-events:none!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
+    display:block!important;
+    width:100%!important;
+    max-width:1500px!important;
+    height:100%!important;
+    object-fit:contain!important;
+    object-position:center center!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy{
+    position:relative!important;
+    inset:auto!important;
+    z-index:3!important;
+    align-self:center!important;
+    justify-self:center!important;
+    float:none!important;
+    transform:none!important;
+    width:min(850px,100%)!important;
+    max-width:850px!important;
+    margin:0 auto!important;
+    padding:24px 16px!important;
+    text-align:center!important;
+    background:linear-gradient(90deg,transparent,rgba(3,7,16,.30),transparent)!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy .hero-kicker,
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy .hero-btns{
+    justify-content:center!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy h1,
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy .desc{
+    text-align:center!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-global-sessions{
+    z-index:4!important;
+  }
+}
+</style>
+
 </head>
 <body>
 <nav class="navbar mps-home-nav" aria-label="Navigasi utama">
