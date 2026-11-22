@@ -101,16 +101,37 @@
 .mps-premium-hero .mps-gs-status{margin-top:4px!important;padding:3px 6px!important;font-size:7px!important;letter-spacing:.06em!important;gap:4px!important}
 .mps-premium-hero .mps-gs-status i{width:5px!important;height:5px!important}
 .mps-premium-hero .mps-gs-meta{display:none!important}
-/* Desktop: place the complete session panel in normal flow BELOW hero copy. */
+/* Desktop repair: give hero enough real height for copy + full session clocks.
+   Keep artwork behind the content and balance the composition from the left. */
 @media(min-width:701px){
-  .mps-premium-hero{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important}
-  .mps-premium-hero .mps-premium-art-wrap{position:absolute!important;inset:0!important;pointer-events:none!important}
-  .mps-premium-hero .mps-premium-copy{position:relative!important;z-index:2!important;width:min(850px,100%)!important}
+  .mps-premium-hero{
+    position:relative!important;display:flex!important;flex-direction:column!important;
+    align-items:stretch!important;justify-content:flex-start!important;gap:0!important;
+    height:auto!important;min-height:820px!important;max-height:none!important;
+    padding:58px max(32px,calc((100% - 1220px)/2)) 48px!important;
+    overflow:visible!important;
+  }
+  .mps-premium-hero .mps-premium-art-wrap{
+    position:absolute!important;inset:0!important;width:62%!important;height:100%!important;
+    max-height:none!important;left:auto!important;right:0!important;
+    justify-content:flex-end!important;pointer-events:none!important;
+  }
+  .mps-premium-hero .mps-premium-art{
+    width:100%!important;height:100%!important;object-fit:contain!important;
+    object-position:right center!important;
+  }
+  .mps-premium-hero .mps-premium-copy{
+    position:relative!important;z-index:2!important;
+    width:min(52%,620px)!important;max-width:620px!important;
+    margin:0!important;padding:0!important;text-align:left!important;
+  }
   .mps-premium-hero .mps-global-sessions{
-    position:relative!important;z-index:2!important;top:auto!important;left:auto!important;transform:none!important;
-    width:min(920px,calc(100% - 36px))!important;margin:18px 0 0 auto!important;padding:14px 14px!important;
+    position:relative!important;z-index:3!important;top:auto!important;left:auto!important;
+    transform:none!important;width:min(920px,100%)!important;
+    margin:22px auto 0!important;padding:14px!important;
     border:1px solid rgba(65,220,255,.2)!important;border-radius:18px!important;
-    background:linear-gradient(135deg,rgba(7,11,23,.94),rgba(10,16,32,.96))!important;overflow:hidden!important;
+    background:linear-gradient(135deg,rgba(7,11,23,.96),rgba(10,16,32,.98))!important;
+    overflow:hidden!important;
   }
   .mps-premium-hero .mps-global-sessions:before{display:block!important}
   .mps-premium-hero .mps-gs-head{display:flex!important}
@@ -119,7 +140,12 @@
   .mps-premium-hero .mps-gs-title{margin:12px 0 6px!important}
   .mps-premium-hero .mps-gs-subtitle{margin:0 auto 16px!important}
   .mps-premium-hero .mps-gs-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:clamp(6px,1vw,12px)!important}
-  .mps-premium-hero .mps-gs-card{padding:14px 8px 16px!important;border:1px solid color-mix(in srgb,var(--session) 45%,transparent)!important;border-radius:16px!important;background:linear-gradient(155deg,rgba(17,29,49,.92),rgba(6,11,22,.96))!important;box-shadow:inset 0 0 20px color-mix(in srgb,var(--session) 8%,transparent),0 0 20px color-mix(in srgb,var(--session) 9%,transparent)!important}
+  .mps-premium-hero .mps-gs-card{
+    display:flex!important;flex-direction:column!important;align-items:center!important;
+    padding:14px 8px 16px!important;border:1px solid color-mix(in srgb,var(--session) 45%,transparent)!important;
+    border-radius:16px!important;background:linear-gradient(155deg,rgba(17,29,49,.92),rgba(6,11,22,.96))!important;
+    box-shadow:inset 0 0 20px color-mix(in srgb,var(--session) 8%,transparent),0 0 20px color-mix(in srgb,var(--session) 9%,transparent)!important;
+  }
   .mps-premium-hero .mps-gs-face{width:clamp(78px,8.5vw,100px)!important}
   .mps-premium-hero .mps-gs-tick{transform-origin:50% 39px!important}
   .mps-premium-hero .mps-gs-meta{display:block!important}
@@ -128,23 +154,7 @@
   .mps-premium-hero .mps-global-sessions{top:clamp(165px,38vw,205px)!important;width:calc(100% - 24px)!important}
   .mps-premium-hero .mps-gs-grid{gap:2px!important}
   .mps-premium-hero .mps-gs-card{padding:0!important}
-  .mps-premium-hero .mps-gs-city{font-size:8px!important;letter-spacing:.045em!important}
-  .mps-premium-hero .mps-gs-location{font-size:6px!important;letter-spacing:0!important;margin:3px 0 4px!important}
-  .mps-premium-hero .mps-gs-face{width:clamp(64px,22vw,82px)!important;margin-bottom:4px!important}
-  .mps-premium-hero .mps-gs-face:before{inset:4px!important}.mps-premium-hero .mps-gs-face:after{inset:8px!important}
-  .mps-premium-hero .mps-gs-tick{top:4px!important;height:4px!important;transform-origin:50% 34px!important}
-  .mps-premium-hero .mps-gs-digital{font-size:9px!important;letter-spacing:0!important}
-  .mps-premium-hero .mps-gs-date{font-size:6px!important;white-space:normal;line-height:1.15}
-  .mps-premium-hero .mps-gs-status{font-size:5.5px!important;padding:2px 3px!important;gap:3px!important;letter-spacing:0!important;margin-top:3px!important}
-  .mps-premium-hero .mps-gs-status i{width:4px!important;height:4px!important}
 }
-@media(max-width:360px){
-  .mps-premium-hero .mps-global-sessions{width:calc(100% - 18px)!important}
-  .mps-premium-hero .mps-gs-face{width:60px!important}
-  .mps-premium-hero .mps-gs-tick{transform-origin:50% 32px!important}
-  .mps-premium-hero .mps-gs-digital{font-size:8px!important}
-}
-
 </style></head>
 <body>
 <nav class="navbar mps-home-nav" aria-label="Navigasi utama">
