@@ -1756,7 +1756,7 @@ function apiGetMemberContent(session, section) {
     const items=rows_(sheet_(key)).filter(r=>r[key==='learning'?7:9]===true || String(r[key==='learning'?7:9]).toLowerCase()==='true');
     items.sort((a,b)=>key==='learning'?Number(a[8]||0)-Number(b[8]||0):new Date(b[8]).getTime()-new Date(a[8]).getTime());
     return {section:key,items:items.map(r=>key==='learning'?{
-      id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),hasDownload:!!String(r[6]||'').trim()
+      id:String(r[0]),title:String(r[3]),category:String(r[4]),body:String(r[5]),hasDownload:!!driveFileIdFromUrl_(r[6])
     }:{
       id:String(r[0]),title:String(r[3]),topic:String(r[4]),body:String(r[5]),sourceName:String(r[6]||''),sourceUrl:String(r[7]||''),publishedAt:r[8] instanceof Date?r[8].toISOString():String(r[8]||'')
     })};
