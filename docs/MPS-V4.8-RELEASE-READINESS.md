@@ -40,9 +40,11 @@ The canonical Pages address recorded for this project is https://marketpsycholog
 
 ### B. Learning Center
 - [ ] Public visitors can read all six complete learning modules without login.
-- [x] Candidate frontend uses the authenticated download proxy and does not receive the raw Learning Drive URL; synthetic regression tests cover the path.\n- [ ] Confirm the download on a real isolated member session and Android device.
+- [x] Candidate frontend uses the authenticated download proxy and does not receive the raw Learning Drive URL; synthetic regression tests cover the path.
+- [ ] Confirm the download on a real isolated member session and Android device.
 - [ ] Live Drive test confirms the Learning folder, every PDF, and every ancestor folder are private.
-- [x] Candidate member download endpoint verifies the member session, active status, entitlement, rate limit, and private PDF checks server-side; admin access is role-gated in source and synthetic tests.\n- [ ] Verify the endpoint against real isolated Apps Script and Drive resources before production use.
+- [x] Candidate member download endpoint verifies the member session, active status, entitlement, rate limit, and private PDF checks server-side; admin access is role-gated in source and synthetic tests.
+- [ ] Verify the endpoint against real isolated Apps Script and Drive resources before production use.
 - [ ] Confirm no public/guessable Drive URL or raw file ID can bypass authorization.
 
 ### C. Apps Script, database, and admin
