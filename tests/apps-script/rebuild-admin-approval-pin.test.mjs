@@ -114,7 +114,7 @@ test('Active IB approval is blocked until Exness IB status is verified',()=>{
   const h=approvalHarness({ibStatus:'Menunggu Verifikasi Manual'});
   assert.throws(()=>h.run(),/Status Exness IB harus diverifikasi Admin terlebih dahulu/);
   assert.equal(h.members.rows.length,1);
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'MPS-ABCDEF1234','submitted proof already reserved the Member ID');
   assert.equal(h.plans.rows[1][7],'Menunggu Validasi');
 });
 
@@ -240,7 +240,7 @@ test('approval rollback compensates an ambiguous VIP queue append failure',()=>{
   assert.throws(()=>h.run(),/INJECTED_VIP_QUEUE_APPEND_AFTER_WRITE/);
   assert.equal(h.members.rows.length,1);
   assert.equal(h.apps.rows[1][7],'Deposit Dikirim');
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'MPS-ABCDEF1234');
   assert.equal(h.ledger.rows.length,1);
   assert.equal(h.queue.rows.length,1);
   assert.equal(h.stats().lockDepth,0);
