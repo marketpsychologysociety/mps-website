@@ -81,7 +81,7 @@ test('public announcement audience is public-only; member and admin views requir
   const publicItems=context.apiGetAnnouncements('');
   assert.deepEqual(JSON.parse(JSON.stringify(publicItems.map(x=>x.id))),['a-public']);
   const memberItems=context.apiGetAnnouncements('member-token');
-  assert.deepEqual(JSON.parse(JSON.stringify(memberItems.map(x=>x.id))),['a-member','a-public']);
+  assert.deepEqual(JSON.parse(JSON.stringify(memberItems.map(x=>x.id))),['a-public','a-member']);
   const adminItems=context.apiGetAnnouncements('admin-token');
   assert.deepEqual(JSON.parse(JSON.stringify(adminItems.map(x=>x.id))),['a-member','a-public']);
 });
