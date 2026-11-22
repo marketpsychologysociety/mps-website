@@ -759,15 +759,15 @@ function ensurePendingMemberId_(apps, appRow) {
   if(existing) {
     if(!/^MPS-[A-F0-9]{10}$/.test(existing)) throw new Error('ID Member sementara pada pengajuan tidak valid. Perlu rekonsiliasi Admin.');
     if(findRow_(members,1,existing)) throw new Error('ID Member sementara sudah tercatat sebagai member. Perlu rekonsiliasi Admin.');
-    const duplicate=findRow_(apps,9,existing);
-    if(duplicate && duplicate!==appRow) throw new Error('ID Member sementara terduplikasi pada pengajuan lain.');
+    const duplicate=rows_(apps).some((r,index)=>index+1!==appRow && String(r[8]||'').trim().toUpperCase()===existing);
+    if(duplicate) throw new Error('ID Member sementara terduplikasi pada pengajuan lain.');
     return existing;
   }
   for(let attempt=0;attempt<10;attempt++) {
     const candidate='MPS-'+randomHex_(10);
     if(findRow_(members,1,candidate)) continue;
-    const duplicate=findRow_(apps,9,candidate);
-    if(duplicate && duplicate!==appRow) continue;
+    const duplicate=rows_(apps).some((r,index)=>index+1!==appRow && String(r[8]||'').trim().toUpperCase()===candidate);
+    if(duplicate) continue;
     apps.getRange(appRow,9).setValue(candidate);
     if(String(apps.getRange(appRow,9).getDisplayValue()||'').trim().toUpperCase()!==candidate)
       throw new Error('ID Member sementara gagal diverifikasi setelah disimpan.');
