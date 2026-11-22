@@ -12,6 +12,7 @@ function extract(name,nextName){
   return source.slice(start,end);
 }
 const folderPrivacySource=extract('assertMpsDriveFolderTreePrivate_','validateMpsRebuildConfig_');
+const pendingIdSource=extract('ensurePendingMemberId_','apiSubmitDeposit');
 const proofRecoverySource=extract('getOrCreatePrivateProofFile_','apiSubmitDeposit');
 const depositSource=extract('apiSubmitDeposit','apiSubmitRegularPayment');
 const regularSource=extract('apiSubmitRegularPayment','apiAdminLogin');
@@ -33,8 +34,8 @@ function makeSheet(rows=[]){
 }
 const ref='MPS-APP-0123456789ABCDEF0123';
 const testDate='2026-11-20';
-function harness(plan='ACTIVE_IB'){
-  const apps=makeSheet([new Array(15).fill(''),[ref,new Date('2026-11-19T00:00:00Z'),'MPS Trader','trader_mps','Indonesia','Belajar money management','', 'Menunggu Pendaftaran','','','Belum Terhubung','','','','']]);
+function harness(plan='ACTIVE_IB',pendingMemberId=''){
+  const apps=makeSheet([new Array(15).fill(''),[ref,new Date('2026-11-19T00:00:00Z'),'MPS Trader','trader_mps','Indonesia','Belajar money management','', 'Menunggu Pendaftaran',pendingMemberId,'','Belum Terhubung','','','','']]);
   const plans=makeSheet([new Array(8).fill(''),[ref,plan,new Date(),plan==='REGULAR'?100000:0,'','','','Menunggu Pembayaran']]);
   const deposits=makeSheet([new Array(14).fill('')]);
   const regular=makeSheet([new Array(8).fill('')]);
@@ -57,6 +58,7 @@ function harness(plan='ACTIVE_IB'){
     getSharingAccess:()=> 'PRIVATE',
     createFile(blob){files.push({blob,file});file.mime=blob.mime;file.bytes=blob.bytes;if(createAfterWrite){createAfterWrite=false;throw new Error('DRIVE_CREATE_RESPONSE_LOST');}return file;}
   };
+  const members=makeSheet([new Array(18).fill('')]);
   const sheetMap={applications:apps,membershipPlans:plans,deposits,regularPayments:regular};
   let linkCalls=0,telegramCalls=0,lockDepth=0;
   const context={
@@ -65,7 +67,10 @@ function harness(plan='ACTIVE_IB'){
     cleanUsername_:v=>String(v||'').replace(/^@/,'').trim().toLowerCase(),
     enforceRateLimit_:()=>{},
     LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;}})},
+    rows_:sh=>sh.rows,
     sheet_:key=>{if(!sheetMap[key])throw new Error('unexpected sheet '+key);return sheetMap[key];},
+    legacySheet_:()=>members,
+    randomHex_:()=> 'ABCDEF1234',
     findRow_:(sh,col,value)=>{const i=sh.rows.findIndex((r,n)=>n>0&&String(r[col-1]??'')===String(value));return i<0?0:i+1;},
     prop_:key=>key==='MPS_PROOF_FOLDER_ID'?'proof-folder':key==='MPS_TELEGRAM_CHAT_ID'?'admin-chat':'',
     DriveApp:{Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'},getFolderById:id=>{assert.equal(id,'proof-folder');return folder;}},
@@ -83,10 +88,11 @@ function harness(plan='ACTIVE_IB'){
   vm.createContext(context);
   context.__setCreateAfterWrite=()=>{createAfterWrite=true;};
   vm.runInContext(folderPrivacySource,context,{timeout:1000});
+  vm.runInContext(pendingIdSource,context,{timeout:1000});
   vm.runInContext(proofRecoverySource,context,{timeout:1000});
   vm.runInContext(depositSource,context,{timeout:1000});
   vm.runInContext(regularSource,context,{timeout:1000});
-  return {context,apps,plans,deposits,regular,files,file,setCreateAfterWrite:()=>context.__setCreateAfterWrite(),stats:()=>({linkCalls,telegramCalls,lockDepth})};
+  return {context,apps,plans,deposits,regular,members,files,file,setCreateAfterWrite:()=>context.__setCreateAfterWrite(),stats:()=>({linkCalls,telegramCalls,lockDepth})};
 }
 const proof={proofMime:'image/png',proofBase64:'iVBORw0KGgo='};
 
@@ -95,6 +101,8 @@ test('Active IB deposit submission accepts the Rp500,000 minimum, stores private
   const result=h.context.apiSubmitDeposit({applicationRef:ref,accountName:'MPS Trader',mt5Login:'12345678',accountType:'Standard',amount:500000,depositDate:testDate,...proof});
   assert.equal(result.ok,true);
   assert.equal(result.status,'Menunggu Validasi Admin');
+  assert.equal(result.memberId,'MPS-ABCDEF1234');
+  assert.equal(h.apps.rows[1][8],result.memberId);
   assert.equal(h.deposits.rows.length,2);
   assert.equal(h.deposits.rows[1][5],500000);
   assert.equal(h.deposits.rows[1][9],'Menunggu Validasi');
@@ -126,6 +134,8 @@ test('Regular QRIS submission accepts exactly Rp100,000 and stores proof private
   const result=h.context.apiSubmitRegularPayment({applicationRef:ref,amount:100000,paymentDate:testDate,...proof});
   assert.equal(result.ok,true);
   assert.equal(result.status,'Menunggu Validasi Pembayaran');
+  assert.equal(result.memberId,'MPS-ABCDEF1234');
+  assert.equal(h.apps.rows[1][8],result.memberId);
   assert.equal(h.regular.rows.length,2);
   assert.equal(h.regular.rows[1][2],100000);
   assert.equal(h.regular.rows[1][5],'Menunggu Validasi');
@@ -171,4 +181,23 @@ test('deterministic proof recovery refuses a same-name file with different bytes
     {name:'MPS-PROOF-'+ref+'.png'},'MPS-PROOF-'+ref+'.png','image/png',
     new Uint8Array([137,80,78,71,13,10,26,10])
   ),/PROOF_FILE_RECOVERY_CONFLICT/);
+});
+
+test('payment submission reuses a pending Member ID already reserved for the application',()=>{
+  const h=harness('ACTIVE_IB','MPS-1122334455');
+  const result=h.context.apiSubmitDeposit({applicationRef:ref,accountName:'MPS Trader',mt5Login:'12345678',accountType:'Standard',amount:500000,depositDate:testDate,...proof});
+  assert.equal(result.memberId,'MPS-1122334455');
+  assert.equal(h.apps.rows[1][8],'MPS-1122334455');
+  assert.equal(h.members.rows.length,1);
+});
+
+test('pending Member ID reservation fails closed on a duplicate application ID',()=>{
+  const h=harness('ACTIVE_IB','MPS-ABCDEF1234');
+  h.apps.rows.push([ref,new Date(),'Other','other_user','','','','Menunggu Pendaftaran','MPS-ABCDEF1234']);
+  assert.throws(()=>h.context.ensurePendingMemberId_(h.apps,2),/terduplikasi pada pengajuan lain/);
+});
+test('pending Member ID reservation fails closed if the ID already exists in the member database',()=>{
+  const h=harness('ACTIVE_IB','MPS-ABCDEF1234');
+  h.members.rows.push(['MPS-ABCDEF1234']);
+  assert.throws(()=>h.context.ensurePendingMemberId_(h.apps,2),/sudah tercatat sebagai member/);
 });

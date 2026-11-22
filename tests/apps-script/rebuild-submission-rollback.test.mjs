@@ -61,6 +61,7 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
   const payments=makeSheet([new Array(8).fill('')],'regularPayments',faults);
   const links=makeSheet([new Array(11).fill('')],'links',faults);
   const ledger=makeSheet([new Array(9).fill('')],'ledger',faults);
+  const members=makeSheet([new Array(18).fill('')],'members',faults);
   const files=[];
   const file={
     id:'proof-file-'+plan,trashed:false,sharing:'',mime:'image/png',bytes:proofBytes,
@@ -89,6 +90,7 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
     enforceRateLimit_:()=>{},
     LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;}})},
     sheet_:key=>{if(!map[key])throw new Error('unexpected sheet '+key);return map[key];},
+    legacySheet_:()=>members,
     rows_:sh=>sh.rows,
     findRow_:(sh,col,value)=>{const i=sh.rows.findIndex((r,n)=>n>0&&String(r[col-1]??'')===String(value));return i<0?0:i+1;},
     prop_:key=>key==='MPS_PROOF_FOLDER_ID'?'proof-folder':key==='MPS_TELEGRAM_BOT_USERNAME'?'MPS_Notificationnew_bot':key==='MPS_TELEGRAM_CHAT_ID'?'admin-chat':'',
@@ -113,7 +115,7 @@ function harness({plan='ACTIVE_IB',faults={}}={}){
   vm.runInContext(depositSource,ctx,{timeout:1000});
   vm.runInContext(paymentSource,ctx,{timeout:1000});
   vm.runInContext(linkSource,ctx,{timeout:1000});
-  return {ctx,applications,plans,deposits,payments,links,ledger,files,file,stats:()=>({lockDepth,telegramCalls})};
+  return {ctx,applications,plans,deposits,payments,links,ledger,members,files,file,stats:()=>({lockDepth,telegramCalls})};
 }
 const registration={nickname:'Trader MPS',telegramUsername:'@trader_mps',country:'Indonesia',goal:'Belajar money management',note:'',plan:'REGULAR'};
 const proof={proofMime:'image/png',proofBase64:'iVBORw0KGgo='};

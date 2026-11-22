@@ -12,6 +12,7 @@ function extract(name,nextName){
   return source.slice(start,end);
 }
 const folderPrivacySource=extract('assertMpsDriveFolderTreePrivate_','validateMpsRebuildConfig_');
+const pendingIdSource=extract('ensurePendingMemberId_','apiSubmitDeposit');
 const reviewSource=extract('apiAdminReview','apiAdminReissueTelegramLink');
 const pinSource=extract('apiAdminIssuePin','randomPin_');
 const ref='MPS-APP-0123456789ABCDEF0123';
@@ -38,7 +39,8 @@ function makeSheet(rows=[]){
   };
 }
 function approvalHarness({plan='ACTIVE_IB',ibStatus='Terverifikasi',amount=500000,telegram=true,regularPaid=true,depositSubmitted=true}={}){
-  const appRow=[ref,new Date('2026-11-19T00:00:00Z'),'MPS Trader','trader_mps','Indonesia','Belajar money management','', 'Deposit Dikirim','','',telegram?'Terhubung':'Menunggu Verifikasi Telegram',telegram?chatId:'',telegram?telegramUserId:'','',new Date()];
+  const pendingId=(plan==='REGULAR'?regularPaid:depositSubmitted)?'MPS-ABCDEF1234':'';
+  const appRow=[ref,new Date('2026-11-19T00:00:00Z'),'MPS Trader','trader_mps','Indonesia','Belajar money management','', 'Deposit Dikirim',pendingId,'',telegram?'Terhubung':'Menunggu Verifikasi Telegram',telegram?chatId:'',telegram?telegramUserId:'','',new Date()];
   const planRow=[ref,plan,new Date(),plan==='REGULAR'?100000:0,ibStatus,'','', 'Menunggu Validasi'];
   const depRow=[ref,new Date(),'MPS Trader','12345678','Standard',amount,'2026-11-19','proof-deposit','','Menunggu Validasi',chatId,telegramUserId,'',''];
   const paymentRow=[ref,new Date(),100000,'2026-11-19','proof-qris','Menunggu Validasi','',''];
@@ -63,6 +65,7 @@ function approvalHarness({plan='ACTIVE_IB',ibStatus='Terverifikasi',amount=50000
     clean_:(v,max)=>String(v==null?'':v).replace(/[<>]/g,'').trim().slice(0,max),
     requireSession_:()=>({role:'ADMIN',actorId:'admin-test'}),
     LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;}})},
+    rows_:sh=>sh.rows,
     sheet_:key=>{if(!map[key])throw new Error('unexpected sheet '+key);return map[key];},
     legacySheet_:()=>members,
     findRow_:(sh,col,value)=>{const i=sh.rows.findIndex((r,n)=>n>0&&String(r[col-1]??'')===String(value));return i<0?0:i+1;},
@@ -74,7 +77,7 @@ function approvalHarness({plan='ACTIVE_IB',ibStatus='Terverifikasi',amount=50000
     enqueueVipInvite_:(memberId,applicationRef,userId,chat)=>{inviteQueued++;queue.appendRow(['queue-key','VIP_INVITE:'+memberId,'CREATE_AND_SEND_INVITE','vip-group',userId,'','','PENDING',0,new Date(),'','',new Date(),new Date()]);},
     Date
   };
-  vm.createContext(ctx);vm.runInContext(folderPrivacySource,ctx,{timeout:1000});vm.runInContext(reviewSource,ctx,{timeout:1000});
+  vm.createContext(ctx);vm.runInContext(folderPrivacySource,ctx,{timeout:1000});vm.runInContext(pendingIdSource,ctx,{timeout:1000});vm.runInContext(reviewSource,ctx,{timeout:1000});
   return {run:(decision='APPROVE')=>ctx.apiAdminReview('admin-session',ref,decision,'Reviewed by Admin'),apps,plans,deposits,payments,members,ledger,queue,audits,stats:()=>({lockDepth,inviteQueued})};
 }
 
@@ -84,6 +87,7 @@ test('Active IB approval issues Member ID only after IB, deposit proof, Telegram
   assert.equal(result.ok,true);
   assert.equal(result.status,'Disetujui');
   assert.equal(result.memberId,'MPS-ABCDEF1234');
+  assert.equal(h.apps.rows[1][8],result.memberId,'approval must preserve the ID issued after proof submission');
   assert.equal(h.members.rows.length,2);
   assert.equal(h.members.rows[1][0],result.memberId);
   assert.equal(h.members.rows[1][7],'Berhasil');
@@ -111,7 +115,7 @@ test('Active IB approval is blocked until Exness IB status is verified',()=>{
   const h=approvalHarness({ibStatus:'Menunggu Verifikasi Manual'});
   assert.throws(()=>h.run(),/Status Exness IB harus diverifikasi Admin terlebih dahulu/);
   assert.equal(h.members.rows.length,1);
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'MPS-ABCDEF1234','submitted proof already reserved the Member ID');
   assert.equal(h.plans.rows[1][7],'Menunggu Validasi');
 });
 
@@ -119,21 +123,21 @@ test('Active IB approval rejects deposits below Rp500,000 without issuing a Memb
   const h=approvalHarness({amount:499999});
   assert.throws(()=>h.run(),/Deposit belum memenuhi nominal minimum/);
   assert.equal(h.members.rows.length,1);
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'MPS-ABCDEF1234','submitted proof already reserved the Member ID');
 });
 
 test('Approval is blocked until the registered Telegram identity is linked',()=>{
   const h=approvalHarness({telegram:false});
   assert.throws(()=>h.run(),/Verifikasi Telegram harus berhasil/);
   assert.equal(h.members.rows.length,1);
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'MPS-ABCDEF1234','submitted proof already reserved the Member ID');
 });
 
 test('Regular approval is blocked until a valid QRIS proof is submitted',()=>{
   const h=approvalHarness({plan:'REGULAR',regularPaid:false});
   assert.throws(()=>h.run(),/Bukti QRIS Regular belum tersedia/);
   assert.equal(h.members.rows.length,1);
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'','no payment proof means no Member ID yet');
 });
 
 test('Admin can reject an incomplete Active IB application with no deposit submitted',()=>{
@@ -155,7 +159,7 @@ test('Admin rejection records rejection without issuing Member ID or VIP invite'
   assert.equal(result.status,'Ditolak');
   assert.equal(h.apps.rows[1][7],'Ditolak');
   assert.equal(h.plans.rows[1][7],'Ditolak');
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'MPS-ABCDEF1234','the issued ID remains auditable after rejection');
   assert.equal(h.members.rows.length,1);
   assert.equal(h.stats().inviteQueued,0);
 });
@@ -222,7 +226,7 @@ test('approval rollback compensates an ambiguous ledger append failure',()=>{
   assert.throws(()=>h.run(),/INJECTED_LEDGER_APPEND_AFTER_WRITE/);
   assert.equal(h.members.rows.length,1);
   assert.equal(h.apps.rows[1][7],'Deposit Dikirim');
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'MPS-ABCDEF1234');
   assert.equal(h.deposits.rows[1][9],'Menunggu Validasi');
   assert.equal(h.plans.rows[1][7],'Menunggu Validasi');
   assert.equal(h.ledger.rows.length,1);
@@ -237,7 +241,7 @@ test('approval rollback compensates an ambiguous VIP queue append failure',()=>{
   assert.throws(()=>h.run(),/INJECTED_VIP_QUEUE_APPEND_AFTER_WRITE/);
   assert.equal(h.members.rows.length,1);
   assert.equal(h.apps.rows[1][7],'Deposit Dikirim');
-  assert.equal(h.apps.rows[1][8],'');
+  assert.equal(h.apps.rows[1][8],'MPS-ABCDEF1234');
   assert.equal(h.ledger.rows.length,1);
   assert.equal(h.queue.rows.length,1);
   assert.equal(h.stats().lockDepth,0);
