@@ -393,7 +393,7 @@
   const zones={tokyo:{zone:'Asia/Tokyo',open:9,close:18},london:{zone:'Europe/London',open:8,close:17},newyork:{zone:'America/New_York',open:8,close:17}};
   const two=n=>String(n).padStart(2,'0');
   function parts(date,zone){const p=new Intl.DateTimeFormat('en-GB',{timeZone:zone,hour:'2-digit',minute:'2-digit',second:'2-digit',year:'numeric',month:'short',day:'2-digit',weekday:'short',hourCycle:'h23'}).formatToParts(date);return Object.fromEntries(p.map(x=>[x.type,x.value]));}
-  function buildTicks(card){const host=card.querySelector('.mps-gs-ticks');if(host.dataset.ready)return;host.dataset.ready='1';for(let i=0;i<12;i++){const tick=document.createElement('i');tick.className='mps-gs-tick';tick.style.transform='translateX(-50%) rotate('+i*30+'deg)';host.appendChild(tick);}}
+  function buildTicks(card){const host=card.querySelector('.mps-gs-ticks');if(host.dataset.ready)return;host.dataset.ready='1';for(let i=0;i<12;i++){const tick=document.createElement('i');tick.className='mps-gs-tick';tick.style.transform='translateX(-50%) rotate('+i*30+'deg)';tick.style.transformOrigin='50% '+(card.querySelector('.mps-gs-face').clientWidth/2-7)+'px';host.appendChild(tick);}}
   function update(){const now=new Date();let londonOpen=false,nyOpen=false;
     Object.entries(zones).forEach(([key,cfg])=>{const card=document.querySelector('.mps-gs-card[data-session="'+key+'"]');if(!card)return;buildTicks(card);const p=parts(now,cfg.zone),h=Number(p.hour),m=Number(p.minute),s=Number(p.second),hour24=h%24;
       card.querySelector('.mps-gs-digital').textContent=two(h)+':'+two(m)+':'+two(s);
