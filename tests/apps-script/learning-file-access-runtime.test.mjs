@@ -17,6 +17,8 @@ const fileId='learning-file-0123456789';
 function harness({catalogStatus='Published',privateFile='PRIVATE',privateFolder='PRIVATE',privateAncestor='PRIVATE',inFolder=true,mime='application/pdf',bytes=[37,80,68,70,45,49],trashed=false,authorized=true,adminRole='SUPER_ADMIN'}={}){
   let driveFileReads=0;
   const catalog=[{'File ID':fileId,Title:'Materi Uji',Category:'Risk',Level:'Beginner',Description:'',Status:catalogStatus,'Sort Order':1}];
+  const ancestor={getId:()=> 'drive-root',getSharingAccess:()=>privateAncestor,getParents:()=>({hasNext:()=>false,next:()=>null})};
+  const parent={getId:()=>inFolder?'learning-folder':'other-folder',getSharingAccess:()=>privateFolder,getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return ancestor;}};}};
   const file={
     getId:()=>fileId,getName:()=> 'materi.pdf',getSize:()=>bytes.length,getMimeType:()=>mime,
     getSharingAccess:()=>privateFile,isTrashed:()=>trashed,getLastUpdated:()=>new Date('2026-11-01T00:00:00Z'),
@@ -65,7 +67,7 @@ test('direct member file ID cannot bypass authentication or Published catalog st
 test('member file endpoint rejects non-private, misplaced, trashed, oversized, and non-PDF files',()=>{
   const cases=[
     [{privateFile:'ANYONE'},/Materi tidak tersedia untuk member ini/],
-    [{privateFolder:'ANYONE'},/Folder induk Learning PDF atau rantai induknya tidak PRIVATE/],\n    [{privateAncestor:'ANYONE'},/Folder induk Learning PDF atau rantai induknya tidak PRIVATE/],
+    [{privateFolder:'ANYONE'},/Materi tidak tersedia untuk member ini/],\n    [{privateAncestor:'ANYONE'},/Materi tidak tersedia untuk member ini/],
     [{inFolder:false},/Akses file tidak diizinkan/],
     [{trashed:true},/Materi tidak tersedia untuk member ini/],
     [{mime:'image/png'},/Materi tidak tersedia untuk member ini/],
@@ -86,7 +88,7 @@ test('Super Admin can retrieve a private Learning PDF only from the configured f
   const misplaced=harness({inFolder:false});
   assert.throws(()=>misplaced.admin(),/Akses file tidak diizinkan/);
   const sharedFolder=harness({privateFolder:'ANYONE'});
-  assert.throws(()=>sharedFolder.admin(),/Folder Learning tidak PRIVATE/);
+  assert.throws(()=>sharedFolder.admin(),/Folder induk Learning PDF atau rantai induknya tidak PRIVATE/);
   const sharedFile=harness({privateFile:'ANYONE'});
   assert.throws(()=>sharedFile.admin(),/File tidak tersedia/);
 });
