@@ -11,19 +11,19 @@ function extract(name){
   assert.ok(start>=0&&end>start,name+' boundaries must exist');
   return source.slice(start,end);
 }
-const runtimeSource=['listLearningFiles_','apiGetLearningFile','apiAdminGetLearningFile'].map(extract).join('\n');
+const runtimeSource=['listLearningFiles_','apiGetLearningFile','apiAdminGetLearningFile','assertMpsDriveFileTreePrivate_'].map(extract).join('\n');
 const fileId='learning-file-0123456789';
 
-function harness({catalogStatus='Published',privateFile='PRIVATE',privateFolder='PRIVATE',inFolder=true,mime='application/pdf',bytes=[37,80,68,70,45,49],trashed=false,authorized=true,adminRole='SUPER_ADMIN'}={}){
+function harness({catalogStatus='Published',privateFile='PRIVATE',privateFolder='PRIVATE',privateAncestor='PRIVATE',inFolder=true,mime='application/pdf',bytes=[37,80,68,70,45,49],trashed=false,authorized=true,adminRole='SUPER_ADMIN'}={}){
   let driveFileReads=0;
   const catalog=[{'File ID':fileId,Title:'Materi Uji',Category:'Risk',Level:'Beginner',Description:'',Status:catalogStatus,'Sort Order':1}];
   const file={
     getId:()=>fileId,getName:()=> 'materi.pdf',getSize:()=>bytes.length,getMimeType:()=>mime,
     getSharingAccess:()=>privateFile,isTrashed:()=>trashed,getLastUpdated:()=>new Date('2026-11-01T00:00:00Z'),
-    getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return{getId:()=>inFolder?'learning-folder':'other-folder'};}};},
+    getParents:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return parent;}};},
     getBlob:()=>({getBytes:()=>bytes})
   };
-  const folder={getFiles:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return file;}};},getSharingAccess:()=>privateFolder};
+  const folder={getId:()=> 'learning-folder',getParents:()=>({hasNext:()=>false,next:()=>null}),getFiles:()=>{let used=false;return{hasNext:()=>!used,next:()=>{used=true;return file;}};},getSharingAccess:()=>privateFolder};
   const context={
     MPS:{maxLearningFileBytes:8*1024*1024},
     MPS_LEARNING_CATALOG:{sheet:'MPS Learning Catalog',headers:[]},
@@ -65,7 +65,7 @@ test('direct member file ID cannot bypass authentication or Published catalog st
 test('member file endpoint rejects non-private, misplaced, trashed, oversized, and non-PDF files',()=>{
   const cases=[
     [{privateFile:'ANYONE'},/Materi tidak tersedia untuk member ini/],
-    [{privateFolder:'ANYONE'},/Folder Learning tidak PRIVATE/],
+    [{privateFolder:'ANYONE'},/Folder induk Learning PDF atau rantai induknya tidak PRIVATE/],\n    [{privateAncestor:'ANYONE'},/Folder induk Learning PDF atau rantai induknya tidak PRIVATE/],
     [{inFolder:false},/Akses file tidak diizinkan/],
     [{trashed:true},/Materi tidak tersedia untuk member ini/],
     [{mime:'image/png'},/Materi tidak tersedia untuk member ini/],
