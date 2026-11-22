@@ -73,6 +73,14 @@ for (const page of pages) {
   }
 }
 
+const legacyNewsNavPages = ['about.html','contact.html','education.html','member-portal.html','membership.html','rebate.html','rewards.html','system.html','terms.html','privacy.html'];
+for (const page of legacyNewsNavPages) {
+  const html = read(page);
+  check(!html.includes('href="announcements.html">Market News'), page + ': legacy Market News navigation must not point to announcements');
+  check(!html.includes('href="announcements.html">Economic Calendar'), page + ': static announcements page must not be labeled as a live economic calendar');
+  check(html.includes('href="news-review.html"'), page + ': News & Review navigation link missing');
+}
+
 const newsReview = read('news-review.html');
 check(newsReview.includes('FOMC') && newsReview.includes('CPI') && newsReview.includes('NFP'), 'News & Review must cover FOMC, CPI, and NFP macro drivers');
 check(newsReview.includes('federalreserve.gov') && newsReview.includes('bls.gov') && newsReview.includes('bea.gov'), 'News & Review must link primary Fed, BLS, and BEA sources');
