@@ -101,6 +101,12 @@
 .mps-premium-hero .mps-gs-status{margin-top:4px!important;padding:3px 6px!important;font-size:7px!important;letter-spacing:.06em!important;gap:4px!important}
 .mps-premium-hero .mps-gs-status i{width:5px!important;height:5px!important}
 .mps-premium-hero .mps-gs-meta{display:none!important}
+/* Desktop-only spacing: keep the session clocks clear of the hero copy. */
+@media(min-width:701px){
+  .mps-premium-hero .mps-global-sessions{top:clamp(178px,25vw,220px)!important;width:min(680px,calc(100% - 96px))!important}
+  .mps-premium-hero .mps-gs-face{width:clamp(78px,8.5vw,94px)!important}
+  .mps-premium-hero .mps-gs-tick{transform-origin:50% 39px!important}
+}
 @media(max-width:700px){
   .mps-premium-hero .mps-global-sessions{top:clamp(165px,38vw,205px)!important;width:calc(100% - 24px)!important}
   .mps-premium-hero .mps-gs-grid{gap:2px!important}
