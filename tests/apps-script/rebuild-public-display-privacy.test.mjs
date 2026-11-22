@@ -56,7 +56,7 @@ test('public VIP ticker limits output to eight most recent eligible join events'
 });
 
 test('public announcement audience is public-only; member and admin views require valid role sessions',()=>{
-  const start=Date.parse('2026-11-22T00:00:00Z');
+  const start=Date.now();
   const rows=[
     ['a-public','Publik','Untuk semua','PUBLIC',new Date(start-60000),new Date(start+60000),true],
     ['a-member','Member','Khusus member','MEMBER',new Date(start-60000),new Date(start+60000),true],
