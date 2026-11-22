@@ -37,7 +37,7 @@ function harness(options={}){
     DriveApp:{Access:{PRIVATE:'PRIVATE'},getFolderById:id=>{folderReads++;assert.equal(id,o.folderId);return folder;},
       getFileById:id=>{fileReads++;assert.equal(id,fileId);return file;}},
     Utilities:{base64Encode:bytes=>{assert.deepEqual(Array.from(bytes),o.fileBytes);return 'UEZERi0=';}},
-    requireSession_:()=>({role:o.role,actorId:o.role==='MEMBER'?'MPS-ABCDEF12':'ADMIN-TEST'}),
+    requireSession_:(token,roles)=>{if(!roles.includes(o.role))throw Error('ROLE_NOT_ALLOWED');return {role:o.role,actorId:o.role==='MEMBER'?'MPS-ABCDEF12':'ADMIN-TEST'};},
     legacySheet_:()=>{memberReads++;return memberSheet;},
     findRow_:(sheet,col,value)=>value==='MPS-ABCDEF12'?2:2,
     assertMembershipEntitlement_:()=>{if(!o.entitled)throw Error('ENTITLEMENT_DENIED');},
@@ -64,7 +64,7 @@ test('Learning download returns PDF bytes only after member session, entitlement
 test('invalid session is rejected before any catalog or Drive lookup',()=>{
   const h=harness({role:'INVALID'});
   // Session role is supplied by the session stub; enforce the accepted role list here.
-  assert.throws(()=>h.run(),/not a function|role/i);
+  assert.throws(()=>h.run(),/ROLE_NOT_ALLOWED/);
   assert.equal(h.stats().fileReads,0);
 });
 test('member entitlement and active status are checked before file access',()=>{
@@ -107,7 +107,7 @@ test('per-member download rate limit is enforced',()=>{
 });
 test('member content projection exposes only a download flag, never the Drive URL',()=>{
   const body=extract(code,'apiGetMemberContent');
-  assert.match(body,/hasDownload:\!\!String\(r\[6\]\|\|'\'\)\.trim\(\)/);
+  assert.ok(body.includes("hasDownload:!!String(r[6]||'').trim()"));
   assert.doesNotMatch(body,/resourceUrl:/);
 });
 test('member UI uses authenticated download API and does not create direct Learning links',()=>{
