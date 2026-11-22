@@ -145,6 +145,71 @@
   .mps-premium-hero .mps-gs-digital{font-size:8px!important}
 }
 
+
+/* DESKTOP HERO REBALANCE — restore visible world clocks and give copy/artwork breathing room. */
+@media(min-width:901px){
+  .mps-premium-hero{
+    display:grid!important;
+    grid-template-columns:minmax(0,.96fr) minmax(0,1.04fr)!important;
+    grid-template-rows:auto auto!important;
+    align-items:center!important;
+    justify-content:stretch!important;
+    column-gap:clamp(26px,4vw,64px)!important;
+    row-gap:24px!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    padding:clamp(42px,5vw,76px) clamp(28px,5vw,82px) 48px!important;
+  }
+  .mps-premium-hero .mps-premium-art-wrap{
+    position:absolute!important;
+    inset:0 0 auto auto!important;
+    width:61%!important;
+    height:clamp(520px,52vw,700px)!important;
+    max-height:none!important;
+    z-index:0!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+  }
+  .mps-premium-hero .mps-premium-art{
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    object-position:center right!important;
+  }
+  .mps-premium-hero .mps-premium-copy{
+    grid-column:1!important;
+    grid-row:1!important;
+    align-self:center!important;
+    width:100%!important;
+    max-width:680px!important;
+    margin:0!important;
+    padding:24px 0 24px clamp(4px,1vw,16px)!important;
+    text-align:left!important;
+    background:linear-gradient(90deg,rgba(3,7,16,.34),transparent)!important;
+  }
+  .mps-premium-hero .mps-premium-copy .hero-kicker{justify-content:flex-start!important}
+  .mps-premium-hero .mps-premium-copy h1{text-align:left!important}
+  .mps-premium-hero .mps-premium-copy .desc{margin-left:0!important;margin-right:0!important}
+  .mps-premium-hero .mps-premium-copy .hero-btns{justify-content:flex-start!important}
+  .mps-premium-hero .mps-global-sessions{
+    grid-column:1/-1!important;
+    grid-row:2!important;
+    position:relative!important;
+    top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;
+    transform:none!important;
+    justify-self:center!important;
+    align-self:start!important;
+    width:min(1050px,100%)!important;
+    max-width:1050px!important;
+    margin:0 auto!important;
+    padding:14px 16px!important;
+    overflow:hidden!important;
+  }
+}
+
 </style></head>
 <body>
 <nav class="navbar mps-home-nav" aria-label="Navigasi utama">
