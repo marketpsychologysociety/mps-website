@@ -753,6 +753,29 @@ function getOrCreatePrivateProofFile_(folder,blob,name,mime,expectedBytes) {
   }
 }
 
+function ensurePendingMemberId_(apps, appRow) {
+  const existing=String(apps.getRange(appRow,9).getDisplayValue()||'').trim().toUpperCase();
+  const members=legacySheet_();
+  if(existing) {
+    if(!/^MPS-[A-F0-9]{10}$/.test(existing)) throw new Error('ID Member sementara pada pengajuan tidak valid. Perlu rekonsiliasi Admin.');
+    if(findRow_(members,1,existing)) throw new Error('ID Member sementara sudah tercatat sebagai member. Perlu rekonsiliasi Admin.');
+    const duplicate=findRow_(apps,9,existing);
+    if(duplicate && duplicate!==appRow) throw new Error('ID Member sementara terduplikasi pada pengajuan lain.');
+    return existing;
+  }
+  for(let attempt=0;attempt<10;attempt++) {
+    const candidate='MPS-'+randomHex_(10);
+    if(findRow_(members,1,candidate)) continue;
+    const duplicate=findRow_(apps,9,candidate);
+    if(duplicate && duplicate!==appRow) continue;
+    apps.getRange(appRow,9).setValue(candidate);
+    if(String(apps.getRange(appRow,9).getDisplayValue()||'').trim().toUpperCase()!==candidate)
+      throw new Error('ID Member sementara gagal diverifikasi setelah disimpan.');
+    return candidate;
+  }
+  throw new Error('Gagal membuat ID Member sementara yang unik. Coba kembali.');
+}
+
 function apiSubmitDeposit(input) {
   input = input || {};
   const ref = clean_(input.applicationRef,40).toUpperCase();
@@ -795,7 +818,7 @@ function apiSubmitDeposit(input) {
     if (!folderId) throw new Error('Folder bukti belum dikonfigurasi.');
     const folder = DriveApp.getFolderById(folderId);
     assertMpsDriveFolderTreePrivate_(folder,'folder bukti deposit');
-    let linkInfo=null;
+    let linkInfo=null, memberId='';
     try {
       const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : 'webp';
       proofFile = getOrCreatePrivateProofFile_(folder,Utilities.newBlob(bytes,mime,'MPS-PROOF-'+ref+'.'+ext),'MPS-PROOF-'+ref+'.'+ext,mime,bytes);
@@ -808,6 +831,7 @@ function apiSubmitDeposit(input) {
       apps.getRange(row,10).setValue(now);
       apps.getRange(row,11).setValue('Menunggu Verifikasi Telegram');
       apps.getRange(row,15).setValue(now);
+      memberId=ensurePendingMemberId_(apps,row);
     } catch (writeError) {
       const rollbackErrors=[];
       if(!linkInfo && writeError && writeError.linkRollback) linkInfo=writeError.linkRollback;
@@ -848,7 +872,7 @@ function apiSubmitDeposit(input) {
       try { adminBackupSent = sendTelegramMessage_(adminChat,backupText); }
       catch (notifyError) { audit_('SYSTEM','', 'DEPOSIT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.'); }
     }
-    return {ok:true,applicationRef:ref,status:'Menunggu Validasi Admin',telegramLink:linkInfo?linkInfo.url:'',telegramLinkExpiresAt:linkInfo?linkInfo.expiresAt:'',telegramLinkAvailable:!!(linkInfo&&linkInfo.url),adminBackupSent:adminBackupSent};
+    return {ok:true,applicationRef:ref,memberId:memberId,status:'Menunggu Validasi Admin',telegramLink:linkInfo?linkInfo.url:'',telegramLinkExpiresAt:linkInfo?linkInfo.expiresAt:'',telegramLinkAvailable:!!(linkInfo&&linkInfo.url),adminBackupSent:adminBackupSent};
   } finally { lock.releaseLock(); }
 }
 function apiSubmitRegularPayment(input) {
@@ -881,7 +905,7 @@ function apiSubmitRegularPayment(input) {
     if(findRow_(regularSheet,1,ref)) throw new Error('Bukti pembayaran sudah diterima. Hubungi Admin untuk koreksi.');
     const folderId=prop_('MPS_PROOF_FOLDER_ID');if(!folderId)throw new Error('Folder bukti privat belum dikonfigurasi.');
     const folder=DriveApp.getFolderById(folderId);assertMpsDriveFolderTreePrivate_(folder,'folder bukti pembayaran QRIS');
-    let linkInfo=null;
+    let linkInfo=null,memberId='';
     try {
       const ext=mime==='image/jpeg'?'jpg':mime==='image/png'?'png':'webp';
       proofFile=getOrCreatePrivateProofFile_(folder,Utilities.newBlob(bytes,mime,'MPS-QRIS-'+ref+'.'+ext),'MPS-QRIS-'+ref+'.'+ext,mime,bytes);
@@ -894,6 +918,7 @@ function apiSubmitRegularPayment(input) {
       apps.getRange(appRow,8).setValue('Pembayaran Dikirim');
       apps.getRange(appRow,11).setValue('Menunggu Verifikasi Telegram');
       apps.getRange(appRow,15).setValue(now);
+      memberId=ensurePendingMemberId_(apps,appRow);
     } catch(writeError) {
       const rollbackErrors=[];
       if(!linkInfo && writeError && writeError.linkRollback) linkInfo=writeError.linkRollback;
@@ -918,7 +943,7 @@ function apiSubmitRegularPayment(input) {
     let adminBackupSent=false;const adminChat=prop_('MPS_TELEGRAM_CHAT_ID');
     if(adminChat){const app=apps.getRange(appRow,1,1,15).getValues()[0];const backupText=['MPS — PENDAFTARAN & PEMBAYARAN REGULAR BARU','Application Ref: '+ref,'Nama: '+clean_(app[2],60),'Telegram: @'+cleanUsername_(app[3]),'Negara: '+clean_(app[4],60),'Tujuan: '+clean_(app[5],160),'Paket: Regular Member','Pembayaran: Rp100.000','Tanggal pembayaran: '+date,'Status: Menunggu Validasi Admin'].join('\n');try{adminBackupSent=sendTelegramMessage_(adminChat,backupText);}catch(notifyError){audit_('SYSTEM','','REGULAR_PAYMENT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.');}}
     audit_('PUBLIC','', 'REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Fixed fee Rp100000; proof saved privately.');
-    return {ok:true,status:'Menunggu Validasi Pembayaran',telegramLink:linkInfo?linkInfo.url:'',telegramLinkAvailable:!!(linkInfo&&linkInfo.url),adminBackupSent:adminBackupSent};
+    return {ok:true,applicationRef:ref,memberId:memberId,status:'Menunggu Validasi Pembayaran',telegramLink:linkInfo?linkInfo.url:'',telegramLinkAvailable:!!(linkInfo&&linkInfo.url),adminBackupSent:adminBackupSent};
   } finally {lock.releaseLock();}
 }
 
@@ -1438,12 +1463,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
     }
 
     const memberSheet = legacySheet_();
-    let memberId='';
-    for(let attempt=0;attempt<5;attempt++) {
-      const candidate='MPS-'+randomHex_(10);
-      if(!findRow_(memberSheet,1,candidate)){memberId=candidate;break;}
-    }
-    if(!memberId) throw new Error('Gagal membuat ID Member unik. Coba kembali.');
+    const memberId=ensurePendingMemberId_(apps,ar);
     const ledger=sheet_('membershipLedger'), queue=sheet_('queue');
     const inviteIntent='VIP_INVITE:'+memberId;
     const queueExisted=!!findRow_(queue,2,inviteIntent);
