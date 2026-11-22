@@ -107,7 +107,7 @@ test('per-member download rate limit is enforced',()=>{
 });
 test('member content projection exposes only a download flag, never the Drive URL',()=>{
   const body=extract(code,'apiGetMemberContent');
-  assert.ok(body.includes("hasDownload:!!String(r[6]||'').trim()"));
+  assert.ok(body.includes('hasDownload:!!driveFileIdFromUrl_(r[6])'));
   assert.doesNotMatch(body,/resourceUrl:/);
 });
 test('member UI uses authenticated download API and does not create direct Learning links',()=>{
