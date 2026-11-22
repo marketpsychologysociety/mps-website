@@ -154,6 +154,7 @@ test('Admin rejection records rejection without issuing Member ID or VIP invite'
   assert.equal(result.ok,true);
   assert.equal(result.status,'Ditolak');
   assert.equal(h.apps.rows[1][7],'Ditolak');
+  assert.equal(h.plans.rows[1][7],'Ditolak');
   assert.equal(h.apps.rows[1][8],'');
   assert.equal(h.members.rows.length,1);
   assert.equal(h.stats().inviteQueued,0);
