@@ -20,7 +20,7 @@
 <nav class="navbar" aria-label="Navigasi utama">
   <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=mps-original-20261118" alt="Logo MPS"><span><strong>Market Psychology Society</strong><small>MPS · DISIPLIN DI ATAS IMPULS</small></span></a>
   <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks" type="button">☰</button>
-  <ul class="nav-links" id="navLinks"><li><a href="index.html">Beranda</a></li><li><a href="member-portal.html">Portal Anggota</a></li><li><a href="news-review.html">News &amp; Review</a></li><li><a href="education.html">Ruang Belajar</a></li><li><a href="journal.html" aria-current="page" class="active">Jurnal Perdagangan</a></li></ul>
+  <ul class="nav-links" id="navLinks"><li><a href="index.html">Beranda</a></li><li><a href="member-portal.html">Portal Anggota</a></li><li><a href="news-review.html">News &amp; Review</a></li><li><a href="education.html">Ruang Belajar</a></li><li><a href="journal.html" aria-current="page" class="active">Jurnal Perdagangan</a></li><li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button></li></ul>
 </nav>
 <header class="page-head">
   <div class="eyebrow">CATAT · EVALUASI · BERTUMBUH</div>
@@ -51,5 +51,27 @@
 </footer>
 <script src="config.js"></script>
 <script src="js/main.js"></script>
+<script>
+(()=>{
+  const btn=document.getElementById('installMpsApp');
+  const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(!('serviceWorker' in navigator))return;
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
+  if(!btn||isStandalone())return;
+  let installPrompt=null;
+  const ua=navigator.userAgent||'';
+  const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\\n1. Buka MPS melalui Safari.\\n2. Tekan tombol Bagikan.\\n3. Pilih “Tambahkan ke Layar Utama”.\\n4. Tekan “Tambahkan”.'));}
+  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
+  btn.addEventListener('click',async()=>{
+    if(isAppleMobile)return;
+    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Pasang aplikasi” atau “Tambahkan ke layar utama”.');return;}
+    installPrompt.prompt();
+    try{const choice=await installPrompt.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}
+    installPrompt=null;
+  });
+  window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
+})();
+</script>
 </body>
 </html>
