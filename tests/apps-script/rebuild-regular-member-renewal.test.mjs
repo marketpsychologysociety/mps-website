@@ -22,8 +22,7 @@ test('renewal period extends from future expiry, never shortens paid time',()=>{
  const late=ctx.calculateRenewalPeriod_(new Date(now-90*86400000),now);
  assert.equal(late.startAt.getTime(),now);
  assert.equal(late.endAt.getTime(),now+30*86400000);
- const missing=ctx.calculateRenewalPeriod_('',now);
- assert.equal(missing.startAt.getTime(),now);
+ assert.throws(()=>ctx.calculateRenewalPeriod_('',now),/tanggal masa aktif/i);
 });
 test('renewal schema is included in isolated provisioning and has fixed audit columns',()=>{
  assert.match(code,/renewals:\s*\{name:'MPS Membership Renewals', headers:\['Renewal Ref','Member ID','Submitted At','Amount IDR','Payment Date','Proof File ID','Status','Admin Note','Reviewed At','Period Start','Period End'\]\}/);
