@@ -103,3 +103,18 @@ test('renewal auditWarning reflects actual append success or failure',()=>{
  assert.match(body('apiSubmitMemberRenewal'),/const auditWarning=!audit_\(/);
  assert.match(body('apiAdminReviewRenewal'),/const auditWarning=!audit_\(/);
 });
+
+
+test('invalid or missing membership expiry fails closed instead of granting a fresh 30 days',()=>{
+ const ctx={Date,Number,Math};vm.createContext(ctx);vm.runInContext(body('calculateRenewalPeriod_'),ctx);
+ const now=Date.parse('2026-11-21T00:00:00Z');
+ for(const invalid of ['',null,'not-a-date',new Date(NaN)])
+  assert.throws(()=>ctx.calculateRenewalPeriod_(invalid,now),/tanggal masa aktif/i);
+ assert.throws(()=>ctx.calculateRenewalPeriod_(new Date(now),NaN),/tanggal masa aktif/i);
+});
+test('renewal eligibility requires a valid expiry timestamp even when ledger status says expired',()=>{
+ const state=body('memberRenewalAccessState_');
+ assert.ok(state.indexOf('if(!Number.isFinite(expiry)') < state.indexOf("const expired=status==='Kedaluwarsa'"));
+ assert.match(state,/Number\.isFinite\(Number\(nowMs\)\)/);
+ assert.match(state,/status==='Kedaluwarsa' \|\| \(status==='Aktif' && expiry<=Number\(nowMs\)\)/);
+});
