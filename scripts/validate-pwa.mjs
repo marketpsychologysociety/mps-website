@@ -76,9 +76,9 @@ for (const page of pages) {
 const legacyNewsNavPages = ['about.html','contact.html','education.html','member-portal.html','membership.html','rebate.html','rewards.html','system.html','terms.html','privacy.html'];
 for (const page of legacyNewsNavPages) {
   const html = read(page);
-  check(!/href=["']announcements\\.html["'][^>]*>\\s*Market News/i.test(html), page + ': legacy Market News navigation must not point to announcements');
-  check(!/href=["']announcements\\.html["'][^>]*>\\s*Economic Calendar/i.test(html), page + ': static announcements page must not be labeled as a live economic calendar');
-  check(/href=["']news-review\\.html["']/i.test(html), page + ': News & Review navigation link missing');
+  check(!html.includes('href="announcements.html">Market News'), page + ': legacy Market News navigation must not point to announcements');
+  check(!html.includes('href="announcements.html">Economic Calendar'), page + ': static announcements page must not be labeled as a live economic calendar');
+  check(html.includes('href="news-review.html"'), page + ': News & Review navigation link missing');
 }
 
 const newsReview = read('news-review.html');
