@@ -6,19 +6,28 @@
 
 This checklist records repository evidence only. A merged GitHub PR is not proof of GitHub Pages deployment, and CI success is not proof of Apps Script, Sheets, Drive, Telegram, or production behavior.
 
-## 1. Repository implementation status
+## 1. Repository implementation status — verified 22 November 2026
 
 | Work | Repository status | Release interpretation |
 |---|---|---|
-| PR #93 — clocks, watermark, event alarm UI, Journal and browser-level deterrents | Merged | In main; deployment and runtime behavior still need verification |
-| PR #98 — News & Review macro research center | Merged | In main; static research center, not a live news feed or live economic calendar |
-| PR #94 — PWA validation/experience work | Open; CI success per recorded audit | Not in main |
-| PR #95 — Regular Member renewal fail-closed correction | Open; CI success per recorded audit | Not in main; Apps Script runtime acceptance still required |
-| PR #96 — six public Learning reading modules and portal wording | Open; CI run 44969250907 succeeded | Not in main; public reading policy is correctly represented; PDF download remains intentionally unavailable in the public preview |
-| PR #97 — Learning PDF private file and ancestor-folder access checks | Open; CI run 44971207250 succeeded | Not in main; test harness uses mocked Drive, not live Apps Script/Drive |
-| PR #99 — sitewide News & Review navigation alignment | Open; CI run 44973218652 succeeded | Not in main; requires explicit merge approval |
+| PR #93 — clocks, watermark, event alarm UI, Journal and browser-level deterrents | Merged | In main; Android OS screenshot prevention is not provided by browser code |
+| PR #98 — News & Review macro research center | Merged | Static research center, not a live news feed or live economic calendar |
+| PR #102 — rebased PWA validation/Journal experience (supersedes PR #94) | Merged | In main; CI/Chromium checks passed, physical Android acceptance remains open |
+| PR #95 — Regular Member renewal fail-closed correction | Merged | Candidate source in main; actual Apps Script runtime acceptance remains open |
+| PR #96 and #101 — six public Learning modules and portal wording | Merged | Public reading content is in main; member PDF download is separately protected by the backend proxy |
+| PR #97 and #105 — private Learning PDF checks and authenticated download proxy | Merged | Source and synthetic security tests are in main; real Drive ACL/runtime acceptance remains open |
+| PR #99 — sitewide News & Review navigation alignment | Merged | In main; Pages publication still requires verification |
+| PR #100 — release-readiness gates documentation | Merged | Documentation only; does not certify production readiness |
+| PR #103 — incident and mitigation runbook | Merged | Operational guidance in main; real recovery drills remain open |
+| PR #106 — consistent rejected membership-plan state and rollback | Merged | Source and synthetic regression test are in main; live Sheets failure behavior remains unverified |
 
-No PR is merged by this document. PR merges remain subject to explicit owner approval.
+**Current repository checkpoint:** `main` = `571a6edccd9b43fbf8275dd28071ba75564215eb` (PR #106). No open pull requests were returned by the repository query during this audit.
+
+**CI evidence:** main-branch run [#44989104454](https://github.com/marketpsychologysociety/mps-website/actions/runs/44989104454) for the current checkpoint completed SUCCESS. The preceding main run [#44988901608](https://github.com/marketpsychologysociety/mps-website/actions/runs/44988901608), which includes the Learning PDF proxy change, also completed SUCCESS. These are repository automation results, not live Google Apps Script/Sheets/Drive/Telegram acceptance.
+
+**Source audit:** the v4.8.1 frontend's 29 distinct API calls all have matching backend function definitions. This confirms name-level coverage only; it does not prove correct runtime behavior or successful external service integration.
+
+The canonical Pages address recorded for this project is https://marketpsychologysociety.github.io/mps-website/index.html. A read-only scan of the homepage, News & Review, Journal, README, and v4.8.1 frontend found no obsolete `mafiapipssyndicate1.github.io` URL and no hard-coded Apps Script deployment URL. This limited scan does not prove the Pages site is currently deployed or connected to the intended Apps Script version.
 
 ## 2. Mandatory release gates
 
@@ -31,9 +40,9 @@ No PR is merged by this document. PR merges remain subject to explicit owner app
 
 ### B. Learning Center
 - [ ] Public visitors can read all six complete learning modules without login.
-- [ ] Member-only PDF/file downloads are not shown as available until the server endpoint is integrated and tested.
+- [x] Candidate frontend uses the authenticated download proxy and does not receive the raw Learning Drive URL; synthetic regression tests cover the path.\n- [ ] Confirm the download on a real isolated member session and Android device.
 - [ ] Live Drive test confirms the Learning folder, every PDF, and every ancestor folder are private.
-- [ ] Member download endpoint verifies active member session and status server-side; admin endpoint verifies admin authorization.
+- [x] Candidate member download endpoint verifies the member session, active status, entitlement, rate limit, and private PDF checks server-side; admin access is role-gated in source and synthetic tests.\n- [ ] Verify the endpoint against real isolated Apps Script and Drive resources before production use.
 - [ ] Confirm no public/guessable Drive URL or raw file ID can bypass authorization.
 
 ### C. Apps Script, database, and admin
@@ -76,4 +85,4 @@ No PR is merged by this document. PR merges remain subject to explicit owner app
 ## 4. Go / No-Go rule
 **GO** only when every mandatory checkbox above is complete, evidence is recorded, the final website commit is deployed and verified, and the owner approves release.
 
-**Current decision: NO-GO.** The repository contains useful merged work and several open PRs, but production deployment, Apps Script runtime, live storage permissions, complete member lifecycle, and end-to-end acceptance have not been verified in this audit.
+**Current decision: NO-GO.** The repository changes listed above are merged and the current main CI run is successful. No open PRs were found in this audit. Production deployment, live Apps Script runtime, Sheets persistence/locking, Drive ACL inheritance, Telegram delivery, physical Android behavior, and complete end-to-end member lifecycle have not been verified. Do not infer production readiness from merged PRs or CI.
