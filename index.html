@@ -26,6 +26,43 @@
 .mps-free-sample-card ol{padding-left:22px;line-height:1.9}
 .mps-free-sample-note{border-top:1px solid rgba(244,189,69,.2);padding-top:14px;font-size:12px}
 @media(max-width:680px){.mps-route-choice{grid-template-columns:1fr}.mps-route-choice-card .btn{width:100%}}
+
+/* MPS GLOBAL SESSIONS — neon world clocks */
+.mps-global-sessions{position:relative;isolation:isolate;overflow:hidden;padding:clamp(42px,6vw,76px) 18px;background:radial-gradient(ellipse at 50% 0%,rgba(28,104,155,.22),transparent 58%),linear-gradient(135deg,#070b17,#0a1020 55%,#090b16);border-top:1px solid rgba(65,220,255,.18);border-bottom:1px solid rgba(244,189,69,.18)}
+.mps-global-sessions:before{content:"";position:absolute;inset:0;z-index:-1;opacity:.2;background-image:linear-gradient(rgba(83,202,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(83,202,255,.08) 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(to bottom,black,transparent)}
+.mps-gs-head{display:flex;align-items:center;justify-content:center;gap:14px;text-align:left;margin:0 auto 12px}
+.mps-gs-logo{width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 0 12px rgba(69,218,255,.42))}
+.mps-gs-brand strong{display:block;color:#f7fbff;font-size:clamp(20px,3vw,30px);letter-spacing:.16em}
+.mps-gs-brand small{display:block;color:#73dfff;font-size:10px;letter-spacing:.22em;margin-top:4px}
+.mps-gs-title{text-align:center;color:#f4bd45;font-size:clamp(11px,1.5vw,14px);letter-spacing:.25em;font-weight:800;margin:20px 0 8px}
+.mps-gs-subtitle{text-align:center;color:#aabbd1;font-size:13px;margin:0 auto 30px;max-width:680px}
+.mps-gs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,24px);max-width:1050px;margin:auto}
+.mps-gs-card{--session:#43e8ff;position:relative;min-width:0;text-align:center;padding:clamp(14px,2vw,22px) 10px 18px;border:1px solid color-mix(in srgb,var(--session) 45%,transparent);border-radius:18px;background:linear-gradient(155deg,rgba(17,29,49,.92),rgba(6,11,22,.96));box-shadow:inset 0 0 24px color-mix(in srgb,var(--session) 8%,transparent),0 0 24px color-mix(in srgb,var(--session) 10%,transparent)}
+.mps-gs-card[data-session="london"]{--session:#f05bff}.mps-gs-card[data-session="newyork"]{--session:#f4bd45}
+.mps-gs-city{color:var(--session);font-size:clamp(11px,1.6vw,14px);font-weight:900;letter-spacing:.2em;text-shadow:0 0 12px color-mix(in srgb,var(--session) 70%,transparent)}
+.mps-gs-location{color:#d6e2f2;font-size:11px;letter-spacing:.16em;margin:5px 0 13px}
+.mps-gs-face{position:relative;width:min(100%,210px);aspect-ratio:1;margin:0 auto 14px;border-radius:50%;border:2px solid var(--session);background:radial-gradient(circle at center,rgba(12,28,46,.98) 0 52%,rgba(4,10,20,.98) 72%);box-shadow:0 0 9px var(--session),inset 0 0 22px color-mix(in srgb,var(--session) 22%,transparent),0 0 30px color-mix(in srgb,var(--session) 28%,transparent)}
+.mps-gs-face:before,.mps-gs-face:after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.mps-gs-face:before{inset:7px;border:1px dashed color-mix(in srgb,var(--session) 65%,transparent)}
+.mps-gs-face:after{inset:15px;border:1px solid color-mix(in srgb,var(--session) 22%,transparent)}
+.mps-gs-tick{position:absolute;left:50%;top:7px;width:2px;height:7px;background:var(--session);transform-origin:50% calc((min(100vw,210px) - 14px) / 2);opacity:.9}
+.mps-gs-hand{position:absolute;left:50%;bottom:50%;width:2px;border-radius:4px;background:#f4f8ff;transform-origin:50% 100%;transform:translateX(-50%) rotate(0deg);z-index:3;box-shadow:0 0 7px #fff}
+.mps-gs-hour{height:25%;width:4px;background:var(--session)}
+.mps-gs-minute{height:34%}
+.mps-gs-second{height:38%;width:1px;background:#fff;box-shadow:0 0 8px var(--session)}
+.mps-gs-pin{position:absolute;left:50%;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);z-index:4;box-shadow:0 0 9px var(--session)}
+.mps-gs-digital{color:#f6fbff;font:700 clamp(20px,3vw,26px)/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.06em;text-shadow:0 0 12px var(--session)}
+.mps-gs-date{color:#91a7c2;font-size:10px;margin-top:5px}
+.mps-gs-status{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:6px 11px;border-radius:99px;border:1px solid color-mix(in srgb,var(--session) 42%,transparent);color:var(--session);font-size:10px;font-weight:900;letter-spacing:.12em}
+.mps-gs-status i{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor}
+.mps-gs-status.is-closed{color:#8795a9;border-color:#465269}.mps-gs-status.is-closed i{box-shadow:none}
+.mps-gs-meta{color:#91a7c2;font-size:10px;margin-top:8px}
+.mps-gs-overlap{max-width:1050px;margin:22px auto 0;padding:13px 16px;text-align:center;border:1px solid rgba(244,189,69,.3);border-radius:12px;background:rgba(244,189,69,.06);color:#d9e3f1;font-size:12px}
+.mps-gs-overlap strong{color:#f4bd45;letter-spacing:.1em}
+.mps-gs-foot{text-align:center;color:#758ba7;font-size:10px;margin:15px 0 0}
+@media(max-width:620px){.mps-gs-grid{gap:8px}.mps-gs-card{padding:13px 5px 14px;border-radius:13px}.mps-gs-face{width:min(100%,112px);margin-bottom:10px}.mps-gs-face:before{inset:5px}.mps-gs-face:after{inset:10px}.mps-gs-tick{height:5px;top:5px}.mps-gs-location{font-size:9px;letter-spacing:.1em}.mps-gs-digital{font-size:clamp(13px,4vw,18px)}.mps-gs-status{font-size:8px;padding:5px 7px;letter-spacing:.06em}.mps-gs-meta{font-size:9px}.mps-gs-brand strong{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.mps-gs-face,.mps-gs-hand{transition:none!important}}
+
 </style></head>
 <body>
 <nav class="navbar mps-home-nav" aria-label="Navigasi utama">
@@ -60,6 +97,38 @@
   </div></div>
   <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
 </div>
+
+
+<section class="mps-global-sessions" id="mps-global-sessions" aria-labelledby="mps-gs-heading">
+  <div class="mps-gs-head">
+    <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
+    <div class="mps-gs-brand"><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></div>
+  </div>
+  <h2 class="mps-gs-title" id="mps-gs-heading">GLOBAL MARKET SESSIONS</h2>
+  <p class="mps-gs-subtitle">Tiga pusat aktivitas pasar dunia dalam satu panel waktu global. Jam mengikuti zona waktu lokal dan perubahan daylight saving time secara otomatis.</p>
+  <div class="mps-gs-grid">
+    <article class="mps-gs-card" data-session="tokyo" aria-label="Sesi Asia Tokyo">
+      <div class="mps-gs-city">ASIA</div><div class="mps-gs-location">TOKYO · UTC+9</div>
+      <div class="mps-gs-face" aria-hidden="true"><div class="mps-gs-ticks"></div><span class="mps-gs-hand mps-gs-hour"></span><span class="mps-gs-hand mps-gs-minute"></span><span class="mps-gs-hand mps-gs-second"></span><i class="mps-gs-pin"></i></div>
+      <div class="mps-gs-digital">--:--:--</div><div class="mps-gs-date">Memuat waktu lokal…</div>
+      <div class="mps-gs-status"><i></i><span>MEMUAT</span></div><div class="mps-gs-meta">Jam sesi: 09.00–18.00</div>
+    </article>
+    <article class="mps-gs-card" data-session="london" aria-label="Sesi Eropa London">
+      <div class="mps-gs-city">EUROPE</div><div class="mps-gs-location">LONDON · LOCAL TIME</div>
+      <div class="mps-gs-face" aria-hidden="true"><div class="mps-gs-ticks"></div><span class="mps-gs-hand mps-gs-hour"></span><span class="mps-gs-hand mps-gs-minute"></span><span class="mps-gs-hand mps-gs-second"></span><i class="mps-gs-pin"></i></div>
+      <div class="mps-gs-digital">--:--:--</div><div class="mps-gs-date">Memuat waktu lokal…</div>
+      <div class="mps-gs-status"><i></i><span>MEMUAT</span></div><div class="mps-gs-meta">Jam sesi: 08.00–17.00</div>
+    </article>
+    <article class="mps-gs-card" data-session="newyork" aria-label="Sesi Amerika New York">
+      <div class="mps-gs-city">NEW YORK</div><div class="mps-gs-location">NEW YORK · LOCAL TIME</div>
+      <div class="mps-gs-face" aria-hidden="true"><div class="mps-gs-ticks"></div><span class="mps-gs-hand mps-gs-hour"></span><span class="mps-gs-hand mps-gs-minute"></span><span class="mps-gs-hand mps-gs-second"></span><i class="mps-gs-pin"></i></div>
+      <div class="mps-gs-digital">--:--:--</div><div class="mps-gs-date">Memuat waktu lokal…</div>
+      <div class="mps-gs-status"><i></i><span>MEMUAT</span></div><div class="mps-gs-meta">Jam sesi: 08.00–17.00</div>
+    </article>
+  </div>
+  <div class="mps-gs-overlap" id="mps-gs-overlap"> <strong>MARKET OVERLAP</strong> · Memeriksa irisan sesi London dan New York…</div>
+  <p class="mps-gs-foot">Waktu ditampilkan berdasarkan zona waktu resmi masing-masing kota. Jam sesi adalah indikator jam kerja pasar FX, bukan jaminan likuiditas atau rekomendasi transaksi.</p>
+</section>
 
 <section class="mps-home-proof mps-home-stats" aria-label="Ringkasan fasilitas MPS">
   <div class="container mps-home-proof-grid">
@@ -318,5 +387,31 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+
+<script>
+(function(){
+  const zones={tokyo:{zone:'Asia/Tokyo',open:9,close:18},london:{zone:'Europe/London',open:8,close:17},newyork:{zone:'America/New_York',open:8,close:17}};
+  const two=n=>String(n).padStart(2,'0');
+  function parts(date,zone){const p=new Intl.DateTimeFormat('en-GB',{timeZone:zone,hour:'2-digit',minute:'2-digit',second:'2-digit',year:'numeric',month:'short',day:'2-digit',weekday:'short',hourCycle:'h23'}).formatToParts(date);return Object.fromEntries(p.map(x=>[x.type,x.value]));}
+  function buildTicks(card){const host=card.querySelector('.mps-gs-ticks');if(host.dataset.ready)return;host.dataset.ready='1';for(let i=0;i<12;i++){const tick=document.createElement('i');tick.className='mps-gs-tick';tick.style.transform='translateX(-50%) rotate('+i*30+'deg)';tick.style.transformOrigin='50% '+(card.querySelector('.mps-gs-face').clientWidth/2-7)+'px';host.appendChild(tick);}}
+  function update(){const now=new Date();let londonOpen=false,nyOpen=false;
+    Object.entries(zones).forEach(([key,cfg])=>{const card=document.querySelector('.mps-gs-card[data-session="'+key+'"]');if(!card)return;buildTicks(card);const p=parts(now,cfg.zone),h=Number(p.hour),m=Number(p.minute),s=Number(p.second),hour24=h%24;
+      card.querySelector('.mps-gs-digital').textContent=two(h)+':'+two(m)+':'+two(s);
+      card.querySelector('.mps-gs-date').textContent=p.weekday+', '+p.day+' '+p.month+' '+p.year;
+      const hourAngle=((hour24%12)+m/60+s/3600)*30,minuteAngle=(m+s/60)*6,secondAngle=s*6;
+      card.querySelector('.mps-gs-hour').style.transform='translateX(-50%) rotate('+hourAngle+'deg)';
+      card.querySelector('.mps-gs-minute').style.transform='translateX(-50%) rotate('+minuteAngle+'deg)';
+      card.querySelector('.mps-gs-second').style.transform='translateX(-50%) rotate('+secondAngle+'deg)';
+      const weekday=now.toLocaleDateString('en-US',{timeZone:cfg.zone,weekday:'short'});
+      const open=weekday!=='Sat'&&weekday!=='Sun'&&h>=cfg.open&&h<cfg.close;
+      const status=card.querySelector('.mps-gs-status');status.classList.toggle('is-closed',!open);status.querySelector('span').textContent=open?'SESSION OPEN':'SESSION CLOSED';
+      if(key==='london')londonOpen=open;if(key==='newyork')nyOpen=open;
+    });
+    const overlap=document.getElementById('mps-gs-overlap');if(overlap){overlap.innerHTML='<strong>MARKET OVERLAP</strong> · '+(londonOpen&&nyOpen?'LONDON × NEW YORK SEDANG BERSAMAAN OPEN':'Irisan London–New York belum berlangsung saat ini')+' · Waktu acuan WIB: '+new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now);}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{update();setInterval(update,1000);},{once:true});else{update();setInterval(update,1000);}
+})();
+</script>
+
 </body>
 </html>
