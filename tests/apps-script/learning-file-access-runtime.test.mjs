@@ -67,7 +67,8 @@ test('direct member file ID cannot bypass authentication or Published catalog st
 test('member file endpoint rejects non-private, misplaced, trashed, oversized, and non-PDF files',()=>{
   const cases=[
     [{privateFile:'ANYONE'},/Materi tidak tersedia untuk member ini/],
-    [{privateFolder:'ANYONE'},/Materi tidak tersedia untuk member ini/],\n    [{privateAncestor:'ANYONE'},/Materi tidak tersedia untuk member ini/],
+    [{privateFolder:'ANYONE'},/Materi tidak tersedia untuk member ini/],
+    [{privateAncestor:'ANYONE'},/Materi tidak tersedia untuk member ini/],
     [{inFolder:false},/Akses file tidak diizinkan/],
     [{trashed:true},/Materi tidak tersedia untuk member ini/],
     [{mime:'image/png'},/Materi tidak tersedia untuk member ini/],
