@@ -101,11 +101,28 @@
 .mps-premium-hero .mps-gs-status{margin-top:4px!important;padding:3px 6px!important;font-size:7px!important;letter-spacing:.06em!important;gap:4px!important}
 .mps-premium-hero .mps-gs-status i{width:5px!important;height:5px!important}
 .mps-premium-hero .mps-gs-meta{display:none!important}
-/* Desktop-only spacing: keep the session clocks clear of the hero copy. */
+/* Desktop: place the complete session panel in normal flow BELOW hero copy. */
 @media(min-width:701px){
-  .mps-premium-hero .mps-global-sessions{top:clamp(178px,25vw,220px)!important;width:min(680px,calc(100% - 96px))!important}
-  .mps-premium-hero .mps-gs-face{width:clamp(78px,8.5vw,94px)!important}
+  .mps-premium-hero{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important}
+  .mps-premium-hero .mps-premium-art-wrap{position:absolute!important;inset:0!important;pointer-events:none!important}
+  .mps-premium-hero .mps-premium-copy{position:relative!important;z-index:2!important;width:min(850px,100%)!important}
+  .mps-premium-hero .mps-global-sessions{
+    position:relative!important;z-index:2!important;top:auto!important;left:auto!important;transform:none!important;
+    width:min(920px,calc(100% - 36px))!important;margin:18px 0 0 auto!important;padding:14px 14px!important;
+    border:1px solid rgba(65,220,255,.2)!important;border-radius:18px!important;
+    background:linear-gradient(135deg,rgba(7,11,23,.94),rgba(10,16,32,.96))!important;overflow:hidden!important;
+  }
+  .mps-premium-hero .mps-global-sessions:before{display:block!important}
+  .mps-premium-hero .mps-gs-head{display:flex!important}
+  .mps-premium-hero .mps-gs-title,.mps-premium-hero .mps-gs-subtitle,
+  .mps-premium-hero .mps-gs-overlap,.mps-premium-hero .mps-gs-foot{display:block!important}
+  .mps-premium-hero .mps-gs-title{margin:12px 0 6px!important}
+  .mps-premium-hero .mps-gs-subtitle{margin:0 auto 16px!important}
+  .mps-premium-hero .mps-gs-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:clamp(6px,1vw,12px)!important}
+  .mps-premium-hero .mps-gs-card{padding:14px 8px 16px!important;border:1px solid color-mix(in srgb,var(--session) 45%,transparent)!important;border-radius:16px!important;background:linear-gradient(155deg,rgba(17,29,49,.92),rgba(6,11,22,.96))!important;box-shadow:inset 0 0 20px color-mix(in srgb,var(--session) 8%,transparent),0 0 20px color-mix(in srgb,var(--session) 9%,transparent)!important}
+  .mps-premium-hero .mps-gs-face{width:clamp(78px,8.5vw,100px)!important}
   .mps-premium-hero .mps-gs-tick{transform-origin:50% 39px!important}
+  .mps-premium-hero .mps-gs-meta{display:block!important}
 }
 @media(max-width:700px){
   .mps-premium-hero .mps-global-sessions{top:clamp(165px,38vw,205px)!important;width:calc(100% - 24px)!important}
@@ -142,6 +159,19 @@
 
 <header class="hero mps-home-hero mps-premium-hero">
   <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1b" alt=""></div>
+
+  <div class="hero-content reveal mps-premium-copy">
+    <div class="hero-kicker"><span></span> MASYARAKAT PSIKOLOGI PERDAGANGAN</div>
+    <h1>SELAMA INI KAMU BERTRANSAKSI,<br><span>SUDAH DAPAT APA SAJA?</span></h1>
+    <div class="tagline">TERHUBUNG. BELAJAR. BERTUMBUH. BERPRESTASI.</div>
+    <p class="desc">Sudah berapa lama kamu mengenal pasar, membuka grafik, mencoba strategi, dan melewati berbagai pengalaman? Selain hasil transaksi, apa yang ikut bertumbuh—ilmu, pengelolaan modal, psikologi, disiplin, relasi, dan cara mengambil keputusan?</p>
+    <p class="desc">MPS bukan sekadar tempat mencari sinyal atau mengejar janji keuntungan. Kami ingin membangun satu ekosistem yang memberi nilai nyata: ilmu, pengelolaan modal, psikologi, disiplin, perangkat analisis, relasi, dan kesempatan untuk berkembang bersama.</p>
+    <div class="hero-btns">
+      <a href="join.html" class="btn btn-gold">Jelajahi Keanggotaan <span aria-hidden="true">→</span></a>
+      <a href="#mps-benefit" class="btn btn-outline">Temukan Nilai MPS <span aria-hidden="true">▷</span></a>
+    </div>
+    <p class="hero-footnote">Belajar dari siapa saja tetap terbuka. Untuk menjadi bagian komunitas pelaku perdagangan aktif MPS, aktivitas perdagangan yang dihitung dalam keanggotaan menggunakan akun Exness yang terhubung melalui mitra MPS. Ketentuan lengkap berlaku.</p>
+  </div>
   <section class="mps-global-sessions" id="mps-global-sessions" data-mps-session-clocks aria-labelledby="mps-gs-heading">
   <div class="mps-gs-head">
     <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
@@ -172,18 +202,6 @@
   <div class="mps-gs-overlap" id="mps-gs-overlap"> <strong>MARKET OVERLAP</strong> · Memeriksa irisan sesi London dan New York…</div>
   <p class="mps-gs-foot">Waktu ditampilkan berdasarkan zona waktu resmi masing-masing kota. Jam sesi adalah indikator jam kerja pasar FX, bukan jaminan likuiditas atau rekomendasi transaksi.</p>
 </section>
-  <div class="hero-content reveal mps-premium-copy">
-    <div class="hero-kicker"><span></span> MASYARAKAT PSIKOLOGI PERDAGANGAN</div>
-    <h1>SELAMA INI KAMU BERTRANSAKSI,<br><span>SUDAH DAPAT APA SAJA?</span></h1>
-    <div class="tagline">TERHUBUNG. BELAJAR. BERTUMBUH. BERPRESTASI.</div>
-    <p class="desc">Sudah berapa lama kamu mengenal pasar, membuka grafik, mencoba strategi, dan melewati berbagai pengalaman? Selain hasil transaksi, apa yang ikut bertumbuh—ilmu, pengelolaan modal, psikologi, disiplin, relasi, dan cara mengambil keputusan?</p>
-    <p class="desc">MPS bukan sekadar tempat mencari sinyal atau mengejar janji keuntungan. Kami ingin membangun satu ekosistem yang memberi nilai nyata: ilmu, pengelolaan modal, psikologi, disiplin, perangkat analisis, relasi, dan kesempatan untuk berkembang bersama.</p>
-    <div class="hero-btns">
-      <a href="join.html" class="btn btn-gold">Jelajahi Keanggotaan <span aria-hidden="true">→</span></a>
-      <a href="#mps-benefit" class="btn btn-outline">Temukan Nilai MPS <span aria-hidden="true">▷</span></a>
-    </div>
-    <p class="hero-footnote">Belajar dari siapa saja tetap terbuka. Untuk menjadi bagian komunitas pelaku perdagangan aktif MPS, aktivitas perdagangan yang dihitung dalam keanggotaan menggunakan akun Exness yang terhubung melalui mitra MPS. Ketentuan lengkap berlaku.</p>
-  </div>
 </header>
 
 <div class="mps-ticker mps-home-ticker" aria-label="Informasi utama MPS">
