@@ -25,3 +25,8 @@ test('Admin UI is wired to the reviewed IB, approval, PIN, and VIP APIs',()=>{
   for(const api of ['apiAdminSetIbVerification','apiAdminReview','apiAdminIssuePin','apiAdminProcessVipQueue'])
     assert.ok(html.includes(api),'missing frontend call to '+api);
 });
+
+test('Admin application queue displays the pending Member ID returned by the backend',()=>{
+  assert.match(code,/memberId:String\(r\[8\]\|\|''\)/);
+  assert.ok(html.includes("ID Member: '+(item.memberId||'Belum diterbitkan')"));
+});
