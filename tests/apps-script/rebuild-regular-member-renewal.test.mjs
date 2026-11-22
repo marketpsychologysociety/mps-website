@@ -117,3 +117,22 @@ test('renewal eligibility requires a valid expiry timestamp even when ledger sta
  assert.match(state,/Number\.isFinite\(Number\(nowMs\)\)/);
  assert.match(state,/status==='Kedaluwarsa' \|\| \(status==='Aktif' && expiry<=Number\(nowMs\)\)/);
 });
+
+
+test('renewal access state accepts valid expired Regular member but rejects malformed ledger rows',()=>{
+ const stateSource=body('memberRenewalAccessState_');
+ function run({plan='REGULAR',status='Kedaluwarsa',expiry=new Date('2026-10-01T00:00:00Z'),memberStatus='Berhasil'}){
+  const legacy={getRange:()=>({getDisplayValue:()=>memberStatus})};
+  const ledger={getRange:()=>({getValues:()=>[['MPS-ABCDEF1234','APP-1',plan,status,new Date('2026-09-01T00:00:00Z'),expiry,'','']]})};
+  const ctx={Date,Number,legacySheet_:()=>legacy,sheet_:()=>ledger,findRow_:()=>2};
+  vm.createContext(ctx);vm.runInContext(stateSource,ctx);
+  return ctx.memberRenewalAccessState_('MPS-ABCDEF1234',Date.parse('2026-11-21T00:00:00Z'));
+ }
+ assert.equal(run().eligible,true);
+ assert.equal(run({status:'Aktif',expiry:new Date('2026-12-01T00:00:00Z')}).expired,false);
+ assert.throws(()=>run({expiry:null}),/tanggal kedaluwarsa/i);
+ assert.throws(()=>run({expiry:''}),/tanggal kedaluwarsa/i);
+ assert.throws(()=>run({expiry:'rusak'}),/tanggal kedaluwarsa/i);
+ assert.equal(run({plan:'ACTIVE_IB'}).eligible,false);
+ assert.throws(()=>run({memberStatus:'Ditolak'}),/status member tidak aktif/i);
+});
