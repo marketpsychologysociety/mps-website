@@ -858,6 +858,7 @@ function apiSubmitDeposit(input) {
       const backupText = [
         'MPS — DATA PENDAFTARAN & DEPOSIT BARU',
         'Application Ref: '+ref,
+        'ID Member: '+memberId,
         'Nama: '+clean_(apps.getRange(row,3).getDisplayValue(),60),
         'Telegram: @'+cleanUsername_(apps.getRange(row,4).getDisplayValue()),
         'Negara: '+clean_(apps.getRange(row,5).getDisplayValue(),60),
@@ -941,8 +942,8 @@ function apiSubmitRegularPayment(input) {
       throw writeError;
     }
     let adminBackupSent=false;const adminChat=prop_('MPS_TELEGRAM_CHAT_ID');
-    if(adminChat){const app=apps.getRange(appRow,1,1,15).getValues()[0];const backupText=['MPS — PENDAFTARAN & PEMBAYARAN REGULAR BARU','Application Ref: '+ref,'Nama: '+clean_(app[2],60),'Telegram: @'+cleanUsername_(app[3]),'Negara: '+clean_(app[4],60),'Tujuan: '+clean_(app[5],160),'Paket: Regular Member','Pembayaran: Rp100.000','Tanggal pembayaran: '+date,'Status: Menunggu Validasi Admin'].join('\n');try{adminBackupSent=sendTelegramMessage_(adminChat,backupText);}catch(notifyError){audit_('SYSTEM','','REGULAR_PAYMENT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.');}}
-    audit_('PUBLIC','', 'REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Fixed fee Rp100000; proof saved privately.');
+    if(adminChat){const app=apps.getRange(appRow,1,1,15).getValues()[0];const backupText=['MPS — PENDAFTARAN & PEMBAYARAN REGULAR BARU','Application Ref: '+ref,'ID Member: '+memberId,'Nama: '+clean_(app[2],60),'Telegram: @'+cleanUsername_(app[3]),'Negara: '+clean_(app[4],60),'Tujuan: '+clean_(app[5],160),'Paket: Regular Member','Pembayaran: Rp100.000','Tanggal pembayaran: '+date,'Status: Menunggu Validasi Admin'].join('\n');try{adminBackupSent=sendTelegramMessage_(adminChat,backupText);}catch(notifyError){audit_('SYSTEM','','REGULAR_PAYMENT_BACKUP_FAILED',ref,'WARNING','Telegram backup delivery failed.');}}
+    audit_('PUBLIC','', 'REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Fixed fee Rp100000; proof saved privately; pending Member ID reserved.');
     return {ok:true,applicationRef:ref,memberId:memberId,status:'Menunggu Validasi Pembayaran',telegramLink:linkInfo?linkInfo.url:'',telegramLinkAvailable:!!(linkInfo&&linkInfo.url),adminBackupSent:adminBackupSent};
   } finally {lock.releaseLock();}
 }
@@ -1502,7 +1503,7 @@ function apiAdminReview(session, applicationRef, decision, note) {
       }
       throw error;
     }
-    const auditWarning=auditBestEffort('APPLICATION_APPROVED','SUCCESS','Member ID issued after approval; VIP invite queued.');
+    const auditWarning=auditBestEffort('APPLICATION_APPROVED','SUCCESS','Previously issued pending Member ID activated after approval; VIP invite queued.');
     return {ok:true,status:'Disetujui',memberId:memberId,pinSetupRequired:true,vipInviteQueued:true,auditWarning:auditWarning};
   } finally { lock.releaseLock(); }
 }
