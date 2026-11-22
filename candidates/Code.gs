@@ -1583,7 +1583,7 @@ function listLearningFiles_(memberId,isAdmin) {
   const progressRows=memberId&&memberId!=='ADMIN-PREVIEW'?readMpsContentRows_(MPS_LEARNING_PROGRESS.sheet,MPS_LEARNING_PROGRESS.headers):[],progress={};
   progressRows.forEach(r=>{if(String(r['Member ID'])===String(memberId))progress[String(r['File ID'])]=r;});
   const items=[];while(files.hasNext()){
-    const f=files.next();if(f.getMimeType()!==MimeType.PDF||f.isTrashed()||f.getSize()>MPS.maxLearningFileBytes||String(f.getSharingAccess())!==String(DriveApp.Access.PRIVATE))continue;
+    const f=files.next();if(f.getMimeType()!==MimeType.PDF||f.isTrashed()||f.getSize()>MPS.maxLearningFileBytes)continue;try{assertMpsDriveFileTreePrivate_(f,'Learning PDF');}catch(_){continue;}
     const id=f.getId(),meta=catalog[id]||{},status=String(meta.Status||'Draft');if(!isAdmin&&status!=='Published')continue;
     const pr=progress[id]||{};items.push({id:id,name:String(meta.Title||f.getName()),originalName:f.getName(),size:f.getSize(),updated:formatDateForClient_(f.getLastUpdated()),category:String(meta.Category||'Uncategorized'),level:String(meta.Level||'All Levels'),description:String(meta.Description||''),sortOrder:Number(meta['Sort Order']||999),status:status,completed:String(pr.Completed)==='true'||pr.Completed===true});
   }
@@ -1764,9 +1764,10 @@ function apiGetLearningFile(session, fileId) {
   if(!visible)throw new Error('Materi tidak tersedia untuk member ini.');
   const folderId = getLearningFolderId_();
   const file = DriveApp.getFileById(id);
-  if (file.isTrashed() || file.getMimeType() !== MimeType.PDF || file.getSize() > MPS.maxLearningFileBytes || String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) {
+  if (file.isTrashed() || file.getMimeType() !== MimeType.PDF || file.getSize() > MPS.maxLearningFileBytes) {
     throw new Error('File tidak tersedia atau melebihi batas ukuran 8 MB.');
   }
+  assertMpsDriveFileTreePrivate_(file,'Learning PDF');
   let inFolder = false;
   const parents = file.getParents();
   while (parents.hasNext()) if (parents.next().getId() === folderId) inFolder = true;
@@ -1786,9 +1787,10 @@ function apiAdminGetLearningFile(session, fileId) {
   const folder = DriveApp.getFolderById(folderId);
   if(String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Folder Learning tidak PRIVATE. Akses file admin dihentikan sampai folder diamankan.');
   const file = DriveApp.getFileById(id);
-  if (file.isTrashed() || file.getMimeType() !== MimeType.PDF || file.getSize() > MPS.maxLearningFileBytes || String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE)) {
+  if (file.isTrashed() || file.getMimeType() !== MimeType.PDF || file.getSize() > MPS.maxLearningFileBytes) {
     throw new Error('File tidak tersedia atau melebihi batas ukuran 8 MB.');
   }
+  assertMpsDriveFileTreePrivate_(file,'Learning PDF');
   let inFolder = false;
   const parents = file.getParents();
   while (parents.hasNext()) if (parents.next().getId() === folderId) inFolder = true;
@@ -1799,6 +1801,26 @@ function apiAdminGetLearningFile(session, fileId) {
   return { ok: true, name: file.getName(), mimeType: 'application/pdf', base64: Utilities.base64Encode(bytes) };
 }
 
+
+function assertMpsDriveFileTreePrivate_(file,label) {
+  if(!file||typeof file.getId!=='function'||typeof file.getParents!=='function')
+    throw new Error('Struktur file '+String(label||'MPS')+' tidak dapat diverifikasi. Akses dihentikan.');
+  if(typeof file.getSharingAccess!=='function'||String(file.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+    throw new Error('File '+String(label||'MPS')+' tidak PRIVATE. Akses dihentikan.');
+  const seen={},stack=[],parents=file.getParents(),name=String(label||'MPS Drive file');
+  while(parents.hasNext())stack.push(parents.next());
+  while(stack.length){
+    const folder=stack.pop(),id=String(folder.getId()||'');
+    if(!id)throw new Error('ID folder induk '+name+' tidak dapat diverifikasi. Akses dihentikan.');
+    if(seen[id])continue;
+    seen[id]=true;
+    if(typeof folder.getSharingAccess!=='function'||String(folder.getSharingAccess())!==String(DriveApp.Access.PRIVATE))
+      throw new Error('Folder induk '+name+' atau rantai induknya tidak PRIVATE. Akses dihentikan.');
+    const ancestors=folder.getParents();
+    while(ancestors.hasNext())stack.push(ancestors.next());
+  }
+  return true;
+}
 
 function assertMpsDriveFolderTreePrivate_(folder,label) {
   if(!folder||typeof folder.getId!=='function'||typeof folder.getParents!=='function')throw new Error('Struktur folder '+String(label||'MPS')+' tidak dapat diverifikasi. Akses dihentikan.');
