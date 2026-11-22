@@ -67,6 +67,7 @@ function harness(plan='ACTIVE_IB',pendingMemberId=''){
     cleanUsername_:v=>String(v||'').replace(/^@/,'').trim().toLowerCase(),
     enforceRateLimit_:()=>{},
     LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(lockDepth,0);lockDepth++;},releaseLock:()=>{lockDepth--;}})},
+    rows_:sh=>sh.rows,
     sheet_:key=>{if(!sheetMap[key])throw new Error('unexpected sheet '+key);return sheetMap[key];},
     legacySheet_:()=>members,
     randomHex_:()=> 'ABCDEF1234',
@@ -188,4 +189,15 @@ test('payment submission reuses a pending Member ID already reserved for the app
   assert.equal(result.memberId,'MPS-1122334455');
   assert.equal(h.apps.rows[1][8],'MPS-1122334455');
   assert.equal(h.members.rows.length,1);
+});
+
+test('pending Member ID reservation fails closed on a duplicate application ID',()=>{
+  const h=harness('ACTIVE_IB','MPS-ABCDEF1234');
+  h.apps.rows.push([ref,new Date(),'Other','other_user','','','','Menunggu Pendaftaran','MPS-ABCDEF1234']);
+  assert.throws(()=>h.context.ensurePendingMemberId_(h.apps,2),/terduplikasi pada pengajuan lain/);
+});
+test('pending Member ID reservation fails closed if the ID already exists in the member database',()=>{
+  const h=harness('ACTIVE_IB','MPS-ABCDEF1234');
+  h.members.rows.push(['MPS-ABCDEF1234']);
+  assert.throws(()=>h.context.ensurePendingMemberId_(h.apps,2),/sudah tercatat sebagai member/);
 });
