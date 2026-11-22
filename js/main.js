@@ -164,6 +164,58 @@ document.addEventListener("DOMContentLoaded", function () {
 })();
 
 
+/* MPS hero world clocks: update the single static panel; never inject a second panel. */
+(() => {
+  const zones = [
+    {id:'tokyo',zone:'Asia/Tokyo',open:9,close:18},
+    {id:'london',zone:'Europe/London',open:8,close:17},
+    {id:'newyork',zone:'America/New_York',open:8,close:17}
+  ];
+  const mountClocks = () => {
+    const panel = document.querySelector('[data-mps-session-clocks]');
+    document.querySelectorAll('.mps-session-board').forEach(node => node.remove());
+    document.querySelectorAll('.mps-global-sessions').forEach(node => { if (node !== panel) node.remove(); });
+    if (!panel) return;
+    zones.forEach(({id}) => {
+      const card=panel.querySelector('[data-session="'+id+'"]'), face=card&&card.querySelector('.mps-gs-face');
+      if (!face) return;
+      const ticks=face.querySelector('.mps-gs-ticks');
+      if (ticks && !ticks.children.length) for(let n=0;n<12;n++){
+        const tick=document.createElement('i'); tick.className='mps-gs-tick';
+        tick.style.transform='translateX(-50%) rotate('+(n*30)+'deg)'; ticks.appendChild(tick);
+      }
+    });
+    const timeFmt=new Map(zones.map(z=>[z.id,new Intl.DateTimeFormat('en-GB',{timeZone:z.zone,hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'})]));
+    const dateFmt=new Map(zones.map(z=>[z.id,new Intl.DateTimeFormat('id-ID',{timeZone:z.zone,weekday:'short',day:'2-digit',month:'short',year:'numeric'})]));
+    const update=()=>{
+      const now=new Date();
+      zones.forEach(({id,zone,open,close})=>{
+        const card=panel.querySelector('[data-session="'+id+'"]'); if(!card)return;
+        const parts=Object.fromEntries(timeFmt.get(id).formatToParts(now).map(p=>[p.type,p.value]));
+        const hh=+parts.hour,mm=+parts.minute,ss=+parts.second;
+        const digital=card.querySelector('.mps-gs-digital'),date=card.querySelector('.mps-gs-date');
+        if(digital)digital.textContent=parts.hour+':'+parts.minute+':'+parts.second;
+        if(date)date.textContent=dateFmt.get(id).format(now);
+        const degrees={hour:(hh%12)*30+mm*.5,minute:mm*6+ss*.1,second:ss*6};
+        Object.entries(degrees).forEach(([hand,angle])=>{const el=card.querySelector('.mps-gs-'+hand);if(el)el.style.transform='translateX(-50%) rotate('+angle+'deg)';});
+        const weekday=new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short'}).format(now);
+        const openNow=!['Sat','Sun'].includes(weekday)&&hh>=open&&hh<close;
+        const status=card.querySelector('.mps-gs-status');
+        if(status){status.classList.toggle('is-closed',!openNow);const label=status.querySelector('span');if(label)label.textContent=openNow?'SESI BERLANGSUNG':'SESI TUTUP';}
+      });
+      const overlap=panel.querySelector('#mps-gs-overlap');
+      if(overlap){
+        const london=+new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',hourCycle:'h23'}).format(now);
+        const ny=+new Intl.DateTimeFormat('en-GB',{timeZone:'America/New_York',hour:'2-digit',hourCycle:'h23'}).format(now);
+        const weekday=now.getUTCDay()>0&&now.getUTCDay()<6;
+        overlap.innerHTML='<strong>MARKET OVERLAP</strong> · '+(weekday&&london>=13&&london<17&&ny>=8&&ny<12?'London dan New York sedang aktif bersamaan.':'Irisan sesi London dan New York belum berlangsung saat ini.');
+      }
+    };
+    update(); window.setInterval(update,1000);
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountClocks,{once:true});else mountClocks();
+})();
+
 /* MPS verified high-impact event alarm.
    The three world clocks are rendered once in index.html inside the hero mockup. */
 (() => {
