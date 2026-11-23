@@ -500,9 +500,6 @@ try {
   if (!iosInstructions.includes('Safari') || !iosInstructions.includes('Tambahkan ke Layar Utama')) failures.push('iOS install instructions are incomplete');
   await iosContext.close();
 
-  if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
-  await context.close();
-
   // Dedicated MPS Trading Calculator browser acceptance: live Indonesian number
   // grouping, decimal comma, tab navigation, and a deterministic calculation.
   const calculatorResponse = await page.goto(base + '/prototypes/mps-trading-calculator/', { waitUntil: 'domcontentloaded' });
@@ -529,6 +526,10 @@ try {
     if (!rrResult.includes('2')) failures.push('Risk–Reward calculator did not produce the expected 2:1 ratio: ' + rrResult);
     await page.screenshot({ path: path.join(root, 'test-artifacts/trading-calculator-desktop.png'), fullPage: true });
   }
+
+  if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
+  await context.close();
+
 
 } catch (error) {
   failures.push('Browser test setup/runtime error: ' + error.stack);
