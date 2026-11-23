@@ -333,7 +333,7 @@ document.addEventListener("DOMContentLoaded", function () {
       #mpsTradingAwareness .mps-ta-disclaimer{margin:16px 0;padding:13px 14px;border-left:3px solid #e45a55;border-radius:7px;background:rgba(228,90,85,.08);color:#e2d7d7;font-size:11px;line-height:1.7}
       #mpsTradingAwareness .mps-ta-confirm{display:flex;align-items:flex-start;gap:10px;margin:17px 0 13px;color:#dce5f1;font-size:12px;line-height:1.55;cursor:pointer}
       #mpsTradingAwareness .mps-ta-confirm input{width:18px;height:18px;flex:0 0 18px;margin:1px 0 0;accent-color:#f4bd45}
-      #mpsTradingAwareness .mps-ta-enter{display:block;width:100%;min-height:48px;border:1px solid #f4bd45;border-radius:999px;background:linear-gradient(135deg,#f4bd45,#d99a27);color:#17130a;font:900 12px/1.2 inherit;letter-spacing:.08em;cursor:pointer;transition:filter .2s,transform .2s}
+      #mpsTradingAwareness .mps-ta-enter{display:block;width:100%;min-height:48px;border:1px solid #f4bd45;border-radius:999px;background:linear-gradient(135deg,#f4bd45,#d99a27);color:#17130a;font-family:inherit;font-size:12px;font-weight:900;line-height:1.2;letter-spacing:.08em;cursor:pointer;transition:filter .2s,transform .2s}
       #mpsTradingAwareness .mps-ta-enter:disabled{filter:grayscale(.75);opacity:.45;cursor:not-allowed}
       #mpsTradingAwareness .mps-ta-enter:not(:disabled):active{transform:scale(.99)}
       #mpsTradingAwareness .mps-ta-foot{margin:12px 0 0;text-align:center;color:#77869c;font-size:9px;letter-spacing:.12em}
