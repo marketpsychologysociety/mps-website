@@ -49,6 +49,13 @@ for (const page of pages) {
   const html = read(page);
   check(!html.includes("\\\\n"), page + ': iOS install instructions contain a double-escaped newline');
   check((html.match(/rel=["']manifest["']/gi) || []).length === 1, page + ': expected exactly one manifest link');
+  const appleTouchLinks = [...html.matchAll(/<link\\b[^>]*rel=["']apple-touch-icon["'][^>]*>/gi)];
+  check(appleTouchLinks.length === 1, page + ': expected exactly one Apple touch icon link');
+  if (appleTouchLinks.length === 1) {
+    const iconHref = appleTouchLinks[0][0].match(/href=["']([^"']+)["']/i)?.[1] || '';
+    check(iconHref === './assets/mps-app-icon-512.png' && exists(iconHref.replace(/^\\.\\//, '')),
+      page + ': Apple touch icon must reference the existing 512px MPS PNG icon');
+  }
   check((html.match(/id=["']installMpsApp["']/gi) || []).length === 1, page + ': expected exactly one install button');
   check((html.match(/serviceWorker\.register\(/g) || []).length === 1, page + ': expected exactly one service worker registration');
   const ids = [...html.matchAll(/\bid=["']([^"']+)["']/gi)].map(match => match[1]);
