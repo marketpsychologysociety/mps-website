@@ -482,6 +482,12 @@ try {
   await iosContext.route('https://**/*', route => route.abort());
   const iosPage = await iosContext.newPage();
   await iosPage.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
+  // A fresh iOS context has its own sessionStorage; acknowledge the same warning.
+  if (await iosPage.locator('#mpsTradingAwareness').count()) {
+    await iosPage.locator('[data-mps-ta-check]').check();
+    await iosPage.locator('[data-mps-ta-enter]').click();
+    await iosPage.locator('#mpsTradingAwareness').waitFor({ state: 'detached' });
+  }
   await iosPage.locator('#navToggle').click();
   const iosInstallButton = iosPage.locator('#installMpsApp');
   if (!await iosInstallButton.isVisible()) failures.push('iOS Tambahkan ke Layar Utama helper button did not appear');
