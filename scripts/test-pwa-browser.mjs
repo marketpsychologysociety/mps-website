@@ -278,6 +278,13 @@ try {
   const mobileErrors = [];
   mobilePage.on('pageerror', error => mobileErrors.push(error.message));
   await mobilePage.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
+  // The home page intentionally requires acknowledgement of the Trading Awareness dialog.
+  // Complete that visible consent flow rather than bypassing or removing the warning.
+  if (await mobilePage.locator('#mpsTradingAwareness').count()) {
+    await mobilePage.locator('[data-mps-ta-check]').check();
+    await mobilePage.locator('[data-mps-ta-enter]').click();
+    await mobilePage.locator('#mpsTradingAwareness').waitFor({ state: 'detached' });
+  }
   await mobilePage.locator('#navToggle').click();
   const mobileMenu = await mobilePage.evaluate(() => ({
     open: document.getElementById('navLinks')?.classList.contains('open'),
