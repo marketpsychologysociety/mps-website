@@ -25,7 +25,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:
 @keyframes sirenSpin{to{transform:rotate(360deg)}}@keyframes sirenPulse{50%{filter:brightness(1.45);box-shadow:0 0 16px #ff344e,0 0 34px #ff344eaa}}@keyframes sirenRing{0%{transform:scale(.86);opacity:.7}100%{transform:scale(1.35);opacity:0}}@keyframes sirenSweep{0%{left:-45%}100%{left:130%}}
 @media(prefers-reduced-motion:reduce){.siren-alert,.siren-alert:after,.siren-lamp,.siren-lamp:before,.siren-lamp:after{animation:none;transform:none}}
 
-.hard-truth{position:relative;overflow:hidden;border:1px solid #ff718d;background:linear-gradient(145deg,#421d32,#201b35 72%,#172b43);border-radius:18px;padding:16px;margin:14px 0;box-shadow:0 0 0 1px #ff718d22,0 0 24px #ff527733,0 12px 30px #0007;transform-origin:center;animation:truthGlow 2.2s ease-in-out infinite,truthPulse 1.65s ease-in-out infinite}
+.hard-truth{position:relative;overflow:hidden;border:1px solid #ff718d;background:linear-gradient(145deg,#421d32,#201b35 72%,#172b43);border-radius:18px;padding:16px;margin:14px 0;box-shadow:0 0 0 1px #ff718d22,0 0 24px #ff527733,0 12px 30px #0007;transform-origin:center;}
 .hard-truth:before{content:"";position:absolute;inset:-60% auto -60% -45%;width:35%;transform:rotate(22deg);background:linear-gradient(90deg,transparent,#ffffff18,transparent);animation:truthSweep 6s ease-in-out infinite;pointer-events:none}
 .hard-truth .tag{font-size:10px;letter-spacing:.16em;font-weight:900;color:#ff9bab;position:relative}
 .truth-copy{position:relative;transition:opacity .35s ease,transform .35s ease}.truth-copy.switching{opacity:0;transform:translateY(7px)}
