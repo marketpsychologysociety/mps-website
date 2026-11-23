@@ -489,13 +489,6 @@ try {
 
   if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
   await context.close();
-} catch (error) {
-  failures.push('Browser test setup/runtime error: ' + error.stack);
-} finally {
-  if (browser) await browser.close();
-  await new Promise(resolve => server.close(resolve));
-}
-
 
   // Dedicated MPS Trading Calculator browser acceptance: live Indonesian number
   // grouping, decimal comma, tab navigation, and a deterministic calculation.
@@ -523,6 +516,15 @@ try {
     if (!rrResult.includes('2')) failures.push('Risk–Reward calculator did not produce the expected 2:1 ratio: ' + rrResult);
     await page.screenshot({ path: path.join(root, 'test-artifacts/trading-calculator-desktop.png'), fullPage: true });
   }
+
+} catch (error) {
+  failures.push('Browser test setup/runtime error: ' + error.stack);
+} finally {
+  if (browser) await browser.close();
+  await new Promise(resolve => server.close(resolve));
+}
+
+
 
 if (failures.length) {
   console.error('MPS PWA browser test FAILED');
