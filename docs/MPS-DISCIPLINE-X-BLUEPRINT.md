@@ -29,10 +29,28 @@ Menyediakan ruang kendali pribadi untuk:
 1. Beranda Disiplin
 2. Pemeriksaan Sebelum Trading
 3. Pengendali Risiko
-4. Catatan Transaksi
-5. Pemantau Psikologi
-6. Evaluasi Harian
-7. Laporan Perkembangan
+4. Pemantau Psikologi
+5. Evaluasi Harian
+6. Laporan Perkembangan
+
+## 3A. Pemisahan produk yang disetujui pengguna (23 November 2026)
+
+MPS Discipline X dan MPS Trading Journal adalah dua menu/ruang kerja yang berbeda. Keduanya dapat bertukar ringkasan yang diperlukan setelah backend aman tersedia, tetapi skor disiplin tidak pernah dihitung dari profit/loss.
+
+### MPS Discipline X
+Tetap menjadi menu unggulan untuk disiplin, psikologi, kesiapan, pengendalian risiko, evaluasi kebiasaan, dan perkembangan disiplin. Catatan di dalamnya hanya mencatat keputusan/kebiasaan disiplin; bukan formulir transaksi lengkap.
+
+### MPS Trading Journal
+Menu terpisah untuk pencatatan dan analisis transaksi, dengan modul:
+1. Ringkasan statistik.
+2. Catat transaksi dan alasan entry.
+3. Riwayat dan filter transaksi.
+4. Analisis dasar/metode entry.
+5. Laporan performa berdasarkan periode.
+
+Formulir transaksi mendukung beberapa dasar/metode sekaligus. Kategori dasar: Teknikal, Fundamental, Kombinasi, atau Belum ada analisis/entry spontan. Metode mencakup MPS Market Pulse, Heatmap, Chart Pattern, Candlestick Pattern, Price Action, ICT/SMC, Support/Resistance, Supply/Demand, Fibonacci, indikator, Breakout/Retest, berita ekonomi (NFP/CPI/FOMC), geopolitik, multi-timeframe, dan lainnya. Member harus dapat menulis alasan spesifik dan memilih bahwa transaksi dibatalkan/tidak jadi entry.
+
+Statistik: total transaksi selesai, Win, Loss, Break Even, posisi terbuka, transaksi dibatalkan, win rate, tren periode, dan ringkasan per metode. Transaksi terbuka dan dibatalkan tidak masuk penyebut win rate. Multi-metode berarti persentase penggunaan metode dapat melebihi 100%. Perbandingan metode bersifat deskriptif, bukan klaim kausal atau jaminan profit.
 
 ## 4. Rincian modul
 
@@ -61,19 +79,9 @@ Hasil: siap, perlu ditinjau, atau disarankan tidak trading. Sistem tidak mengiri
 - Jangan mengarang nilai pip, tick, contract size, konversi mata uang, atau leverage. Jika data instrumen tidak tersedia, minta input manual dan beri label estimasi.
 - Bukan jaminan hasil dan bukan pengganti verifikasi ukuran kontrak broker.
 
-### 4.4 Catatan Transaksi
-Kolom yang direncanakan:
-- Tanggal dan waktu.
-- Instrumen/pair.
-- Arah posisi.
-- Entry, Stop Loss, target, ukuran posisi.
-- Risiko yang direncanakan.
-- Alasan entry dan rujukan trading plan.
-- Hasil transaksi (opsional untuk analisis catatan, tidak memengaruhi skor disiplin).
-- Tangkapan layar sebelum/sesudah.
-- Emosi sebelum dan sesudah.
-- Apakah aturan dipatuhi dan pelajaran yang diperoleh.
-Member dapat menambah, mengedit, mencari, dan mengekspor catatan pribadinya.
+### 4.4 Catatan keputusan disiplin
+- Mencatat keputusan menunggu, membatalkan entry, berhenti sesuai batas, atau menjaga risiko.
+- Tidak menjadi jurnal transaksi atau sumber statistik Win/Loss; pencatatan transaksi berada di MPS Trading Journal.
 
 ### 4.5 Pemantau Psikologi
 Pilihan suasana hati:
