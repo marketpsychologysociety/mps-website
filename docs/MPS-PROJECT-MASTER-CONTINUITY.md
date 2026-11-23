@@ -158,3 +158,13 @@ For each substantial task, append:
 - Local browser/device execution was not available in this session; no claim of Android/browser runtime testing is made.
 - Production website, Apps Script, Sheets, Drive, member records, Telegram, and live access were not changed.
 - Current stage result: prototype source updated; UI/backend integration and production release remain NOT DONE / NO-GO pending isolated test implementation and real acceptance.
+
+
+### 2026-11-23 — MPS Trading Journal dipisahkan dari Discipline X
+- Keputusan pengguna: dua menu/ruang kerja terpisah. MPS Discipline X tetap menjadi menu unggulan untuk disiplin, psikologi, kesiapan, risiko, evaluasi kebiasaan, dan laporan disiplin. MPS Trading Journal menjadi ruang pencatatan transaksi dan statistik.
+- Prototype baru dibuat: `prototypes/mps-trading-journal/index.html`. Mencakup ringkasan Win/Loss/BE/Open, win rate, catat transaksi, dasar analisis Teknikal/Fundamental/Kombinasi, pilihan multi-metode (Pulse, Heatmap, chart/candlestick pattern, Price Action, ICT/SMC, indikator, berita, geopolitik, dll), alasan spesifik, riwayat, analisis metode, dan laporan periode.
+- Prototype Discipline X diperbarui: formulir transaksi lama dipindahkan keluar; ada tautan jelas ke MPS Trading Journal; catatan internal diubah menjadi komitmen/keputusan disiplin. Pengingat otomatis tetap ada.
+- Prototype bersifat statis/demo. Data hanya berada di memori halaman dan hilang saat refresh; belum ada login, penyimpanan backend, sinkronisasi lintas perangkat, lampiran privat, atau integrasi database.
+- Verifikasi source-level setelah perubahan: file Discipline X tidak lagi memuat formulir transaksi lama; tautan Journal terpasang; pengingat otomatis 6,5 detik tetap ada; struktur pemeriksaan/evaluasi/laporan disiplin tetap ada. Runtime Android dan deployment publik masih harus diverifikasi.
+- Tidak ada perubahan pada Apps Script produksi, spreadsheet, Drive, data member, Telegram, pembayaran, atau akses live.
+- Commit: prototype Journal `b5b82106106ba617f4f278c5c759cf072f0b6c9c`; pemisahan Discipline X `ddc703a51d34ea5f2120589c9b5a34a4b56e3541`. Blueprint diperbarui pada commit berikutnya.
