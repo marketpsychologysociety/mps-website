@@ -138,3 +138,13 @@ For each substantial task, append:
 - What was verified vs mocked/unverified
 - Data/security/production impact (explicitly state none if none)
 - Remaining blockers and next safe step
+
+
+## 2026-11-23 — MPS Discipline X prototype
+- User approved the MPS Discipline X direction: Neon Cyan + Purple + Gold; all interface text in Bahasa Indonesia; score based only on discipline and psychology (not profit/loss); journal fully private to each member.
+- Product blueprint created: `docs/MPS-DISCIPLINE-X-BLUEPRINT.md`.
+- Mobile-first static prototype created: `prototypes/mps-discipline-x/index.html`.
+- Prototype includes a simple home screen, pre-trade check, psychology monitor, nominal risk-boundary calculator, trade note, daily review, and progress report.
+- Prototype is explicitly labelled preview/demo; it does not authenticate users, save to a server, connect to Apps Script, or store member journal data.
+- It is an isolated repository artifact only. No production website integration, Apps Script, spreadsheet, Drive, member data, Telegram, or deployment configuration was changed.
+- Next safe step: review the mobile prototype visually and simplify any confusing wording/navigation before designing private backend storage and access-control. Do not claim the journal is live or private until backend authorization and cross-member isolation tests pass.
