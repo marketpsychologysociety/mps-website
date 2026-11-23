@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090f20">
+<title>MPS Discipline X — Pratinjau</title>
+<style>
+:root{color-scheme:dark;--bg:#080e1d;--panel:#111b30;--panel2:#17243b;--line:#293957;--cyan:#42dff2;--purple:#b59aff;--gold:#e8ca78;--muted:#9eacc4;--white:#f4f7ff;--green:#62d9ad;--red:#ff8297}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% -10%,#25305b 0,transparent 42%),var(--bg);color:var(--white);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:520px;margin:auto;min-height:100vh;padding:18px 15px 100px}
+.top{display:flex;justify-content:space-between;align-items:center;margin:4px 0 18px}.brand{font-weight:900;letter-spacing:.08em;color:var(--cyan);font-size:19px}.brand small{display:block;color:var(--purple);font-size:10px;letter-spacing:.14em}.demo{font-size:10px;border:1px solid #5c4b88;color:#d0baff;border-radius:99px;padding:5px 9px}
+.hero{background:linear-gradient(135deg,#142a42,#211b3d 75%,#2a2440);border:1px solid #41517a;border-radius:22px;padding:19px;box-shadow:0 12px 35px #0005}.eyebrow{color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.15em}.hero h1{font-size:25px;line-height:1.15;margin:8px 0;color:#fff}.hero p{margin:0;color:#c4d0e5;font-size:13px}.row{display:flex;gap:10px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.stat,.card{background:linear-gradient(160deg,#142139,#10192b);border:1px solid var(--line);border-radius:17px;padding:14px}.stat span{display:block;color:var(--muted);font-size:11px}.stat b{font-size:22px;display:block;margin-top:4px}.cyan{color:var(--cyan)}.purple{color:var(--purple)}.gold{color:var(--gold)}.muted{color:var(--muted)}.section-title{font-size:17px;margin:22px 2px 10px}.card{margin-bottom:11px}.card h3{margin:0 0 5px;font-size:15px}.card p{margin:0;color:var(--muted);font-size:12px}.progress{height:8px;background:#293751;border-radius:99px;overflow:hidden;margin:12px 0 5px}.progress i{display:block;width:40%;height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:99px}
+.primary{width:100%;border:0;border-radius:13px;padding:13px 15px;background:linear-gradient(90deg,#2cc9df,#9d83ed);color:#081321;font-weight:850;margin-top:10px}.secondary{border:1px solid #526386;background:#18243a;color:var(--white);border-radius:12px;padding:11px 13px}.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);padding:9px 8px calc(9px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);gap:3px;background:#0b1324f2;border-top:1px solid #30415f;backdrop-filter:blur(15px);z-index:5}.nav button{background:transparent;border:0;color:#9eacc4;font-size:10px;padding:7px 2px;border-radius:10px}.nav button.active{background:#192b42;color:var(--cyan)}.nav b{display:block;font-size:17px;margin-bottom:2px}
+.page{display:none}.page.active{display:block}.field{margin:13px 0}.field label{display:block;font-size:12px;color:#d8e3f5;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;border:1px solid #354765;border-radius:11px;background:#0c1628;color:white;padding:12px;outline:none}.field textarea{min-height:76px;resize:vertical}.choices{display:grid;grid-template-columns:1fr 1fr;gap:8px}.choice{border:1px solid #344563;background:#111e33;color:#dce7f8;padding:11px;border-radius:11px;text-align:left;font-size:12px}.choice.selected{border-color:var(--cyan);background:#153348;color:#fff;box-shadow:inset 0 0 0 1px #42dff255}.check{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #263651;font-size:13px}.check input{accent-color:#42dff2;width:18px;height:18px;margin:1px 0 0}.alert{border:1px solid #85495c;background:#321d2b;border-radius:14px;padding:13px;color:#ffd4dc;font-size:13px;margin-top:12px}.notice{border:1px solid #496b83;background:#10283a;border-radius:13px;padding:12px;color:#c7e8f2;font-size:12px;margin:10px 0}.hidden{display:none!important}.pill{display:inline-block;padding:4px 8px;border-radius:99px;font-size:10px;background:#20344a;color:var(--cyan)}.item{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #263651;font-size:13px}.item:last-child{border:0}.small{font-size:11px;color:var(--muted)}.reportbar{height:9px;border-radius:99px;background:#293751;margin:8px 0 14px;overflow:hidden}.reportbar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple))}.foot{text-align:center;color:#75849f;font-size:10px;margin:22px 0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><div class="brand">MPS DISCIPLINE X<small>PUSAT KENDALI DISIPLIN TRADING</small></div><span class="demo">PRATINJAU</span></header>
+
+<section id="beranda" class="page active">
+<div class="hero"><div class="eyebrow">RUANG KENDALI PRIBADI</div><h1>Disiplin dimulai<br>dari keputusan kecil.</h1><p>Catat rencana, jaga risiko, kenali emosi, dan evaluasi kebiasaan tradingmu.</p></div>
+<div class="stats"><div class="stat"><span>SKOR DISIPLIN</span><b class="cyan">—</b><small class="muted">Belum ada catatan</small></div><div class="stat"><span>CATATAN HARI INI</span><b class="purple">0</b><small class="muted">Belum diisi</small></div></div>
+<h2 class="section-title">Mulai dari sini</h2>
+<div class="card"><h3>① Periksa kesiapanmu</h3><p>Pastikan pikiran, rencana, dan batas risiko sudah jelas sebelum mengambil posisi.</p><button class="primary" onclick="show('periksa')">Mulai pemeriksaan</button></div>
+<div class="card"><h3>② Catat kondisi emosimu</h3><p>Kenali rasa takut, serakah, FOMO, atau keinginan membalas kerugian.</p><button class="secondary" onclick="show('emosi')">Catat emosi</button></div>
+<div class="card"><h3>③ Evaluasi hari ini</h3><p>Trading atau tidak trading, selalu ada hal yang bisa dipelajari.</p><button class="secondary" onclick="show('evaluasi')">Buka evaluasi</button></div>
+<div class="notice">Ingat: kamu tidak wajib trading setiap hari. Menunggu saat kondisi belum mendukung juga merupakan keputusan disiplin.</div>
+</section>
+
+<section id="periksa" class="page">
+<h2 class="section-title">Pemeriksaan Sebelum Trading</h2><p class="muted">Jawab dengan jujur. Tidak perlu terburu-buru.</p>
+<div class="card">
+<div class="field"><label>Bagaimana kondisi pikiranmu sekarang?</label><div class="choices" data-choice="mood"><button class="choice">Tenang dan fokus</button><button class="choice">Sedikit ragu</button><button class="choice">Takut atau cemas</button><button class="choice">Marah atau lelah</button></div></div>
+<div class="field"><label>Apakah alasan masuk posisi sudah sesuai rencana?</label><div class="choices" data-choice="plan"><button class="choice">Ya, sudah jelas</button><button class="choice">Belum yakin</button></div></div>
+<div class="field"><label>Apakah batas rugi (Stop Loss) sudah ditentukan?</label><div class="choices" data-choice="sl"><button class="choice">Sudah</button><button class="choice">Belum</button></div></div>
+<div class="field"><label>Apakah ukuran lot sesuai batas risiko?</label><div class="choices" data-choice="lot"><button class="choice">Sudah diperiksa</button><button class="choice">Belum diperiksa</button></div></div>
+<div class="field"><label>Apakah kamu sedang ingin membalas kerugian?</label><div class="choices" data-choice="revenge"><button class="choice">Tidak</button><button class="choice">Ya, ada dorongan</button></div></div>
+<button class="primary" onclick="checkReady()">Periksa kesiapan saya</button><div id="readyResult" class="hidden"></div>
+</div></section>
+
+<section id="emosi" class="page">
+<h2 class="section-title">Pemantau Psikologi</h2><p class="muted">Mengenali emosi adalah langkah awal mengendalikannya.</p>
+<div class="card"><div class="field"><label>Apa yang paling kamu rasakan?</label><div class="choices" data-choice="emotion"><button class="choice">Tenang</button><button class="choice">Takut</button><button class="choice">Serakah</button><button class="choice">FOMO</button><button class="choice">Marah</button><button class="choice">Lelah</button><button class="choice">Terlalu percaya diri</button><button class="choice">Bingung</button></div></div>
+<div class="field"><label>Apa pemicunya? (boleh dikosongkan)</label><textarea placeholder="Contoh: baru mengalami kerugian, takut tertinggal peluang..."></textarea></div>
+<div class="field"><label>Apakah kamu ingin menaikkan lot untuk menutup kerugian?</label><div class="choices" data-choice="raise"><button class="choice">Tidak</button><button class="choice">Ya</button></div></div>
+<div class="alert hidden" id="emotionAlert"><b>Berhenti sejenak.</b><br>Jangan menaikkan lot untuk mengejar kerugian. Jauhkan diri dari layar sementara dan evaluasi kembali saat pikiran lebih tenang.</div>
+<button class="primary" onclick="saveEmotion()">Simpan catatan emosi</button><p class="small" id="emotionSaved"></p></div></section>
+
+<section id="risiko" class="page">
+<h2 class="section-title">Pengendali Risiko</h2><p class="muted">Buat batas sebelum mengambil keputusan.</p>
+<div class="card"><div class="field"><label>Modal akun (angka saja)</label><input inputmode="decimal" id="capital" placeholder="Contoh: 10000000"></div>
+<div class="field"><label>Batas risiko per transaksi (%)</label><input inputmode="decimal" id="risk" placeholder="Contoh: 1"></div>
+<div class="field"><label>Batas kerugian harian (%)</label><input inputmode="decimal" id="daily" placeholder="Contoh: 2"></div>
+<button class="primary" onclick="calcRisk()">Hitung batas nominal</button><div id="riskResult" class="notice hidden"></div>
+<p class="small">Ini hanya menghitung batas nominal berdasarkan angka yang kamu masukkan. Bukan kalkulator lot atau jaminan hasil. Periksa kembali nilai kontrak dan perhitungan broker.</p></div></section>
+
+<section id="catatan" class="page">
+<h2 class="section-title">Catatan Transaksi</h2><p class="muted">Catat rencana dan pelajaran, bukan hanya hasil.</p>
+<div class="card"><div class="field"><label>Instrumen / pasangan</label><input placeholder="Contoh: XAUUSD"></div><div class="field"><label>Arah posisi</label><select><option>Pilih arah</option><option>Beli</option><option>Jual</option><option>Tidak jadi masuk posisi</option></select></div><div class="field"><label>Alasan mengambil keputusan</label><textarea placeholder="Apa alasan dan rencanamu?"></textarea></div><div class="field"><label>Apa yang kamu pelajari?</label><textarea placeholder="Tuliskan evaluasi singkat..."></textarea></div><button class="primary" onclick="demoSave('Catatan contoh sudah diisi. Pada versi aktif, catatan akan disimpan ke jurnal pribadi.')">Simpan catatan contoh</button><p class="small" id="noteSaved"></p></div>
+</section>
+
+<section id="evaluasi" class="page">
+<h2 class="section-title">Evaluasi Harian</h2><p class="muted">Tidak harus sempurna. Yang penting jujur dan mau memperbaiki diri.</p>
+<div class="card"><div class="field"><label>Bagaimana aktivitasmu hari ini?</label><div class="choices" data-choice="activity"><button class="choice">Trading</button><button class="choice">Tidak trading</button></div></div>
+<label class="check"><input type="checkbox"> Saya mengikuti rencana yang sudah dibuat.</label><label class="check"><input type="checkbox"> Saya menghormati batas risiko.</label><label class="check"><input type="checkbox"> Saya tidak mengejar kerugian.</label><label class="check"><input type="checkbox"> Saya berhenti saat seharusnya berhenti.</label>
+<div class="field"><label>Hal yang paling ingin saya perbaiki</label><textarea placeholder="Tuliskan satu hal untuk besok..."></textarea></div><button class="primary" onclick="demoSave('Evaluasi contoh selesai. Data belum dikirim atau disimpan ke server.')">Selesaikan evaluasi</button><p class="small" id="evalSaved"></p></div>
+</section>
+
+<section id="laporan" class="page">
+<h2 class="section-title">Laporan Perkembangan</h2><p class="muted">Lihat kebiasaan yang sedang kamu bangun.</p>
+<div class="card"><span class="pill">CONTOH TAMPILAN</span><h3 style="margin-top:12px">Perkembangan disiplin</h3><p>Grafik dan skor akan muncul setelah jurnal memiliki catatan yang cukup.</p><div class="notice">Belum ada data. Isi jurnal beberapa kali agar laporan pribadimu mulai terbentuk.</div></div>
+<div class="card"><h3>Yang akan dipantau</h3><div class="item"><span>Kepatuhan pada rencana</span><b class="cyan">—</b></div><div class="item"><span>Kepatuhan batas risiko</span><b class="cyan">—</b></div><div class="item"><span>Pengendalian emosi</span><b class="cyan">—</b></div><div class="item"><span>Konsistensi evaluasi</span><b class="cyan">—</b></div></div>
+</section>
+<p class="foot">MPS DISCIPLINE X • PRATINJAU DESAIN • BUKAN JURNAL AKTIF</p>
+</div>
+<nav class="nav">
+<button class="active" data-page="beranda" onclick="show('beranda',this)"><b>⌂</b>Beranda</button>
+<button data-page="periksa" onclick="show('periksa',this)"><b>✓</b>Periksa</button>
+<button data-page="risiko" onclick="show('risiko',this)"><b>◇</b>Risiko</button>
+<button data-page="catatan" onclick="show('catatan',this)"><b>▤</b>Catatan</button>
+<button data-page="laporan" onclick="show('laporan',this)"><b>▥</b>Laporan</button>
+</nav>
+<script>
+function show(id,btn){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));if(btn)btn.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
+document.querySelectorAll('[data-choice]').forEach(group=>group.querySelectorAll('.choice').forEach(b=>b.addEventListener('click',()=>{group.querySelectorAll('.choice').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')})));
+function selected(k){let g=document.querySelector('[data-choice="'+k+'"]');let b=g&&g.querySelector('.selected');return b?b.textContent.trim():''}
+function checkReady(){let missing=['mood','plan','sl','lot','revenge'].filter(k=>!selected(k));let risky=selected('revenge').startsWith('Ya')||selected('sl')==='Belum'||selected('lot')==='Belum diperiksa'||selected('mood')==='Marah atau lelah';let box=document.getElementById('readyResult');box.className=risky?'alert':'notice';box.textContent=missing.length?'Lengkapi semua pertanyaan terlebih dahulu.':risky?'JANGAN MEMAKSA. Ada hal penting yang belum aman. Berhenti sejenak dan periksa kembali rencana serta kondisi emosimu.':'Pemeriksaan awal selesai. Tetap patuhi rencana dan batas risiko. Ini bukan sinyal untuk membuka posisi.'}
+function saveEmotion(){let risk=selected('raise').startsWith('Ya');document.getElementById('emotionAlert').classList.toggle('hidden',!risk);document.getElementById('emotionSaved').textContent='Catatan contoh terisi. Belum disimpan ke server.'}
+function calcRisk(){let c=Number(document.getElementById('capital').value),r=Number(document.getElementById('risk').value),d=Number(document.getElementById('daily').value),o=document.getElementById('riskResult');if(!(c>0&&r>0&&r<=100&&d>0&&d<=100)){o.classList.remove('hidden');o.textContent='Masukkan modal dan persentase yang valid terlebih dahulu.';return}o.classList.remove('hidden');o.innerHTML='Batas risiko per transaksi: <b>Rp '+Math.round(c*r/100).toLocaleString('id-ID')+'</b><br>Batas kerugian harian: <b>Rp '+Math.round(c*d/100).toLocaleString('id-ID')+'</b><br><span class="small">Periksa kembali angka dan mata uang akunmu.</span>'}
+function demoSave(msg){let p=event.target.parentElement.querySelector('.small');p.textContent=msg}
+</script>
+</body></html>
