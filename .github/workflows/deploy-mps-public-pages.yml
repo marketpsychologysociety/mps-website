@@ -30,11 +30,15 @@ jobs:
           mkdir -p _site
           cp ./*.html config.js manifest.webmanifest sw.js _site/
           cp -R assets css js _site/
+          test -d prototypes/mps-discipline-x
+          mkdir -p _site/prototypes
+          cp -R prototypes/mps-discipline-x _site/prototypes/
           touch _site/.nojekyll
           test -s _site/index.html
+          test -s _site/prototypes/mps-discipline-x/index.html
           grep -q 'id="mps-global-sessions"' _site/index.html
           test -s _site/assets/logo.svg
-          echo "Built public site with MPS global session clocks."
+          echo "Built public site with MPS global session clocks and Discipline X preview."
           echo "Static files: $(find _site -type f | wc -l)"
 
       - name: Upload GitHub Pages artifact
