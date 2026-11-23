@@ -24,7 +24,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:
 <div class="stats"><div class="stat"><span>SKOR DISIPLIN</span><b class="cyan">—</b><small class="muted">Belum ada catatan</small></div><div class="stat"><span>CATATAN HARI INI</span><b class="purple">0</b><small class="muted">Belum diisi</small></div></div>
 <h2 class="section-title">Mulai dari sini</h2>
 <div class="card"><h3>① Periksa kesiapanmu</h3><p>Pastikan pikiran, rencana, dan batas risiko sudah jelas sebelum mengambil posisi.</p><button class="primary" onclick="show('periksa')">Mulai pemeriksaan</button></div>
-<div class="card"><h3>② Catat kondisi emosimu</h3><p>Kenali rasa takut, serakah, FOMO, atau keinginan membalas kerugian.</p><button class="secondary" onclick="show('emosi')">Catat emosi</button></div>
+<div class="card"><h3>② Catat kondisi emosimu</h3><p>Kenali rasa takut, serakah, Takut tertinggal peluang, atau keinginan membalas kerugian.</p><button class="secondary" onclick="show('emosi')">Catat emosi</button></div>
 <div class="card"><h3>③ Evaluasi hari ini</h3><p>Trading atau tidak trading, selalu ada hal yang bisa dipelajari.</p><button class="secondary" onclick="show('evaluasi')">Buka evaluasi</button></div>
 <div class="notice">Ingat: kamu tidak wajib trading setiap hari. Menunggu saat kondisi belum mendukung juga merupakan keputusan disiplin.</div>
 </section>
@@ -34,7 +34,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:
 <div class="card">
 <div class="field"><label>Bagaimana kondisi pikiranmu sekarang?</label><div class="choices" data-choice="mood"><button class="choice">Tenang dan fokus</button><button class="choice">Sedikit ragu</button><button class="choice">Takut atau cemas</button><button class="choice">Marah atau lelah</button></div></div>
 <div class="field"><label>Apakah alasan masuk posisi sudah sesuai rencana?</label><div class="choices" data-choice="plan"><button class="choice">Ya, sudah jelas</button><button class="choice">Belum yakin</button></div></div>
-<div class="field"><label>Apakah batas rugi (Stop Loss) sudah ditentukan?</label><div class="choices" data-choice="sl"><button class="choice">Sudah</button><button class="choice">Belum</button></div></div>
+<div class="field"><label>Apakah batas rugi sudah ditentukan?</label><div class="choices" data-choice="sl"><button class="choice">Sudah</button><button class="choice">Belum</button></div></div>
 <div class="field"><label>Apakah ukuran lot sesuai batas risiko?</label><div class="choices" data-choice="lot"><button class="choice">Sudah diperiksa</button><button class="choice">Belum diperiksa</button></div></div>
 <div class="field"><label>Apakah kamu sedang ingin membalas kerugian?</label><div class="choices" data-choice="revenge"><button class="choice">Tidak</button><button class="choice">Ya, ada dorongan</button></div></div>
 <button class="primary" onclick="checkReady()">Periksa kesiapan saya</button><div id="readyResult" class="hidden"></div>
@@ -42,7 +42,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:
 
 <section id="emosi" class="page">
 <h2 class="section-title">Pemantau Psikologi</h2><p class="muted">Mengenali emosi adalah langkah awal mengendalikannya.</p>
-<div class="card"><div class="field"><label>Apa yang paling kamu rasakan?</label><div class="choices" data-choice="emotion"><button class="choice">Tenang</button><button class="choice">Takut</button><button class="choice">Serakah</button><button class="choice">FOMO</button><button class="choice">Marah</button><button class="choice">Lelah</button><button class="choice">Terlalu percaya diri</button><button class="choice">Bingung</button></div></div>
+<div class="card"><div class="field"><label>Apa yang paling kamu rasakan?</label><div class="choices" data-choice="emotion"><button class="choice">Tenang</button><button class="choice">Takut</button><button class="choice">Serakah</button><button class="choice">Takut tertinggal peluang</button><button class="choice">Marah</button><button class="choice">Lelah</button><button class="choice">Terlalu percaya diri</button><button class="choice">Bingung</button></div></div>
 <div class="field"><label>Apa pemicunya? (boleh dikosongkan)</label><textarea placeholder="Contoh: baru mengalami kerugian, takut tertinggal peluang..."></textarea></div>
 <div class="field"><label>Apakah kamu ingin menaikkan lot untuk menutup kerugian?</label><div class="choices" data-choice="raise"><button class="choice">Tidak</button><button class="choice">Ya</button></div></div>
 <div class="alert hidden" id="emotionAlert"><b>Berhenti sejenak.</b><br>Jangan menaikkan lot untuk mengejar kerugian. Jauhkan diri dari layar sementara dan evaluasi kembali saat pikiran lebih tenang.</div>
@@ -58,7 +58,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:
 
 <section id="catatan" class="page">
 <h2 class="section-title">Catatan Transaksi</h2><p class="muted">Catat rencana dan pelajaran, bukan hanya hasil.</p>
-<div class="card"><div class="field"><label>Instrumen / pasangan</label><input placeholder="Contoh: XAUUSD"></div><div class="field"><label>Arah posisi</label><select><option>Pilih arah</option><option>Beli</option><option>Jual</option><option>Tidak jadi masuk posisi</option></select></div><div class="field"><label>Alasan mengambil keputusan</label><textarea placeholder="Apa alasan dan rencanamu?"></textarea></div><div class="field"><label>Apa yang kamu pelajari?</label><textarea placeholder="Tuliskan evaluasi singkat..."></textarea></div><button class="primary" onclick="demoSave('Catatan contoh sudah diisi. Pada versi aktif, catatan akan disimpan ke jurnal pribadi.')">Simpan catatan contoh</button><p class="small" id="noteSaved"></p></div>
+<div class="card"><div class="field"><label>Instrumen atau pasangan</label><input placeholder="Contoh: XAUUSD"></div><div class="field"><label>Arah posisi</label><select><option>Pilih arah</option><option>Beli</option><option>Jual</option><option>Tidak jadi masuk posisi</option></select></div><div class="field"><label>Alasan mengambil keputusan</label><textarea placeholder="Apa alasan dan rencanamu?"></textarea></div><div class="field"><label>Apa yang kamu pelajari?</label><textarea placeholder="Tuliskan evaluasi singkat..."></textarea></div><button class="primary" onclick="demoSave('Catatan contoh sudah diisi. Pada versi aktif, catatan akan disimpan ke jurnal pribadi.')">Simpan catatan contoh</button><p class="small" id="noteSaved"></p></div>
 </section>
 
 <section id="evaluasi" class="page">
