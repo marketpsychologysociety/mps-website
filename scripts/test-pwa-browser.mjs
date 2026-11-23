@@ -34,7 +34,7 @@ const server = http.createServer((req, res) => {
 
 const pages = [
   'index.html','about.html','announcements.html','contact.html','education.html','heatmap.html',
-  'join.html','deposit-confirmation.html','member-portal.html','membership.html',
+  'join.html','deposit-confirmation.html','member-portal.html','membership.html','journal.html','news-review.html',
   'privacy.html','rebate.html','rewards.html','system.html','terms.html'
 ];
 const failures = [];
@@ -61,7 +61,7 @@ try {
     const wrapStyle = getComputedStyle(wrap), artStyle = getComputedStyle(art);
     return {
       ok: box.width > 200 && box.height > 100 &&
-          wrapStyle.zIndex === '0' && artStyle.visibility === 'visible' &&
+          wrapStyle.zIndex === '1' && artStyle.visibility === 'visible' &&
           Number(artStyle.opacity) > 0,
       width: box.width, height: box.height,
       wrapperZ: wrapStyle.zIndex, visibility: artStyle.visibility,
@@ -125,10 +125,12 @@ try {
     const controls = await page.evaluate(() => ({
       installButton: !!document.getElementById('installMpsApp'),
       manifest: !!document.querySelector('link[rel="manifest"]'),
+      appleTouchIcon: !!document.querySelector('link[rel="apple-touch-icon"]'),
       controller: !!navigator.serviceWorker.controller
     }));
     if (!controls.installButton) failures.push(route + ': install button missing in DOM');
     if (!controls.manifest) failures.push(route + ': manifest link missing in DOM');
+    if (!controls.appleTouchIcon) failures.push(route + ': Apple touch icon link missing in DOM');
     if (!controls.controller) failures.push(route + ': page not controlled by service worker');
   }
 
