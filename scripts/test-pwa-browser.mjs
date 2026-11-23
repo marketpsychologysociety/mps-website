@@ -502,7 +502,7 @@ try {
 
   // Dedicated MPS Trading Calculator browser acceptance: live Indonesian number
   // grouping, decimal comma, tab navigation, and a deterministic calculation.
-  const calculatorResponse = await page.goto(base + '/prototypes/mps-trading-calculator/', { waitUntil: 'domcontentloaded' });
+  const calculatorResponse = await page.goto(base + '/prototypes/mps-trading-calculator/index.html', { waitUntil: 'domcontentloaded' });
   if (!calculatorResponse || calculatorResponse.status() !== 200) {
     failures.push('MPS Trading Calculator did not return HTTP 200');
   } else {
