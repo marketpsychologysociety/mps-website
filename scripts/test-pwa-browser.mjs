@@ -278,6 +278,13 @@ try {
   const mobileErrors = [];
   mobilePage.on('pageerror', error => mobileErrors.push(error.message));
   await mobilePage.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
+  // The home page intentionally requires acknowledgement of the Trading Awareness dialog.
+  // Complete that visible consent flow rather than bypassing or removing the warning.
+  if (await mobilePage.locator('#mpsTradingAwareness').count()) {
+    await mobilePage.locator('[data-mps-ta-check]').check();
+    await mobilePage.locator('[data-mps-ta-enter]').click();
+    await mobilePage.locator('#mpsTradingAwareness').waitFor({ state: 'detached' });
+  }
   await mobilePage.locator('#navToggle').click();
   const mobileMenu = await mobilePage.evaluate(() => ({
     open: document.getElementById('navLinks')?.classList.contains('open'),
@@ -475,6 +482,12 @@ try {
   await iosContext.route('https://**/*', route => route.abort());
   const iosPage = await iosContext.newPage();
   await iosPage.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
+  // A fresh iOS context has its own sessionStorage; acknowledge the same warning.
+  if (await iosPage.locator('#mpsTradingAwareness').count()) {
+    await iosPage.locator('[data-mps-ta-check]').check();
+    await iosPage.locator('[data-mps-ta-enter]').click();
+    await iosPage.locator('#mpsTradingAwareness').waitFor({ state: 'detached' });
+  }
   await iosPage.locator('#navToggle').click();
   const iosInstallButton = iosPage.locator('#installMpsApp');
   if (!await iosInstallButton.isVisible()) failures.push('iOS Tambahkan ke Layar Utama helper button did not appear');
@@ -487,14 +500,45 @@ try {
   if (!iosInstructions.includes('Safari') || !iosInstructions.includes('Tambahkan ke Layar Utama')) failures.push('iOS install instructions are incomplete');
   await iosContext.close();
 
+  // Dedicated MPS Trading Calculator browser acceptance: live Indonesian number
+  // grouping, decimal comma, tab navigation, and a deterministic calculation.
+  const calculatorResponse = await page.goto(base + '/prototypes/mps-trading-calculator/index.html', { waitUntil: 'domcontentloaded' });
+  if (!calculatorResponse || calculatorResponse.status() !== 200) {
+    failures.push('MPS Trading Calculator did not return HTTP 200');
+  } else {
+    const calculatorTabs = await page.locator('.tab').count();
+    if (calculatorTabs !== 8) failures.push('MPS Trading Calculator must expose all eight calculation modules');
+    const capitalInput = page.locator('#pCapital');
+    await capitalInput.fill('1000000');
+    const groupedCapital = await capitalInput.inputValue();
+    if (groupedCapital !== '1.000.000') failures.push('Live Indonesian thousand grouping failed for 1000000: ' + groupedCapital);
+    await capitalInput.fill('1234,5');
+    const groupedDecimal = await capitalInput.inputValue();
+    if (groupedDecimal !== '1.234,5') failures.push('Live Indonesian decimal-comma grouping failed for 1234,5: ' + groupedDecimal);
+    await capitalInput.fill('10000000');
+    await page.locator('[data-calc="position"]').click();
+    const positionResult = await page.locator('#out-position').innerText();
+    if (!positionResult.includes('100.000')) failures.push('Position risk calculator did not calculate the expected Rp100.000 risk budget: ' + positionResult);
+    await page.locator('[data-tab="rr"]').click();
+    if (await page.locator('#rr').evaluate(el => !el.classList.contains('active'))) failures.push('Risk–Reward tab did not activate');
+    await page.locator('[data-calc="rr"]').click();
+    const rrResult = await page.locator('#out-rr').innerText();
+    if (!rrResult.includes('2')) failures.push('Risk–Reward calculator did not produce the expected 2:1 ratio: ' + rrResult);
+    await page.screenshot({ path: path.join(root, 'test-artifacts/trading-calculator-desktop.png'), fullPage: true });
+  }
+
   if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
   await context.close();
+
+
 } catch (error) {
   failures.push('Browser test setup/runtime error: ' + error.stack);
 } finally {
   if (browser) await browser.close();
   await new Promise(resolve => server.close(resolve));
 }
+
+
 
 if (failures.length) {
   console.error('MPS PWA browser test FAILED');
