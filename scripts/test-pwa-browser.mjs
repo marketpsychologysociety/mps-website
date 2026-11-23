@@ -496,6 +496,34 @@ try {
   await new Promise(resolve => server.close(resolve));
 }
 
+
+  // Dedicated MPS Trading Calculator browser acceptance: live Indonesian number
+  // grouping, decimal comma, tab navigation, and a deterministic calculation.
+  const calculatorResponse = await page.goto(base + '/prototypes/mps-trading-calculator/', { waitUntil: 'domcontentloaded' });
+  if (!calculatorResponse || calculatorResponse.status() !== 200) {
+    failures.push('MPS Trading Calculator did not return HTTP 200');
+  } else {
+    const calculatorTabs = await page.locator('.tab').count();
+    if (calculatorTabs !== 8) failures.push('MPS Trading Calculator must expose all eight calculation modules');
+    const capitalInput = page.locator('#pCapital');
+    await capitalInput.fill('1000000');
+    const groupedCapital = await capitalInput.inputValue();
+    if (groupedCapital !== '1.000.000') failures.push('Live Indonesian thousand grouping failed for 1000000: ' + groupedCapital);
+    await capitalInput.fill('1234,5');
+    const groupedDecimal = await capitalInput.inputValue();
+    if (groupedDecimal !== '1.234,5') failures.push('Live Indonesian decimal-comma grouping failed for 1234,5: ' + groupedDecimal);
+    await capitalInput.fill('10000000');
+    await page.locator('[data-calc="position"]').click();
+    const positionResult = await page.locator('#out-position').innerText();
+    if (!positionResult.includes('100.000')) failures.push('Position risk calculator did not calculate the expected Rp100.000 risk budget: ' + positionResult);
+    await page.locator('[data-tab="rr"]').click();
+    if (await page.locator('#rr').evaluate(el => !el.classList.contains('active'))) failures.push('Risk–Reward tab did not activate');
+    await page.locator('[data-calc="rr"]').click();
+    const rrResult = await page.locator('#out-rr').innerText();
+    if (!rrResult.includes('2')) failures.push('Risk–Reward calculator did not produce the expected 2:1 ratio: ' + rrResult);
+    await page.screenshot({ path: path.join(root, 'test-artifacts/trading-calculator-desktop.png'), fullPage: true });
+  }
+
 if (failures.length) {
   console.error('MPS PWA browser test FAILED');
   for (const failure of failures) console.error(' - ' + failure);
