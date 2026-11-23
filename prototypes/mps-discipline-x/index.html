@@ -35,6 +35,9 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:
 @keyframes truthSweep{0%,65%{left:-45%;opacity:0}75%{opacity:1}100%{left:130%;opacity:0}}
 @keyframes truthBlink{50%{opacity:.35;transform:scale(.75)}}
 @media(prefers-reduced-motion:reduce){.hard-truth,.hard-truth:before,.truth-live i{animation:none}.truth-copy{transition:none}}
+/* Hard-truth card is intentionally fully static: no pulse, sweep, blink, or transition. */
+.hard-truth,.hard-truth *,.hard-truth:before,.hard-truth:after{animation:none!important;transition:none!important;transform:none!important}
+
 .hard-truth h3{font-size:16px;line-height:1.3;margin:7px 0;color:#fff}
 .hard-truth p{font-size:13px;color:#f0cbd3;margin:7px 0}
 .hard-truth .sting{font-size:14px;font-weight:850;color:#ffd77f;line-height:1.45}
