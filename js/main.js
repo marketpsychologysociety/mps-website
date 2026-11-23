@@ -303,3 +303,79 @@ document.addEventListener("DOMContentLoaded", function () {
   window.addEventListener('beforeprint', () => document.documentElement.classList.add('mps-print-guard'));
   window.addEventListener('afterprint', () => document.documentElement.classList.remove('mps-print-guard'));
 })();
+
+
+/* MPS TRADING AWARENESS — entry reminder on the public home page.
+   Acknowledgement is kept for this browser tab session only. */
+(() => {
+  'use strict';
+  const page = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  if (page !== 'index.html' && page !== '') return;
+  const storageKey = 'mpsTradingAwarenessAcknowledgedV1';
+  try { if (window.sessionStorage.getItem(storageKey) === 'yes') return; } catch (_) {}
+
+  const mount = () => {
+    if (document.getElementById('mpsTradingAwareness')) return;
+    const style = document.createElement('style');
+    style.id = 'mpsTradingAwarenessStyles';
+    style.textContent = `
+      #mpsTradingAwareness{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:18px;background:rgba(2,5,12,.88);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+      #mpsTradingAwareness[hidden]{display:none}
+      #mpsTradingAwareness .mps-ta-panel{position:relative;width:min(720px,100%);max-height:min(90dvh,900px);overflow:auto;border:1px solid rgba(244,189,69,.58);border-radius:20px;background:radial-gradient(ellipse at 50% 0%,rgba(244,189,69,.13),transparent 45%),linear-gradient(150deg,#111a2a,#070b14 72%);box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 35px rgba(244,189,69,.1);color:#edf2fa;padding:clamp(22px,4vw,36px)}
+      #mpsTradingAwareness .mps-ta-kicker{display:flex;align-items:center;justify-content:center;gap:9px;color:#f4bd45;font-size:10px;font-weight:900;letter-spacing:.2em;text-align:center}
+      #mpsTradingAwareness .mps-ta-symbol{display:grid;place-items:center;width:48px;height:48px;margin:17px auto 12px;border:1px solid rgba(244,189,69,.6);border-radius:50%;color:#f4bd45;font-size:25px;box-shadow:0 0 24px rgba(244,189,69,.15)}
+      #mpsTradingAwareness h2{margin:0;text-align:center;color:#fff;font-size:clamp(21px,4vw,30px);line-height:1.2;letter-spacing:.035em}
+      #mpsTradingAwareness .mps-ta-intro{max-width:570px;margin:12px auto 22px;text-align:center;color:#b8c4d5;font-size:13px;line-height:1.75}
+      #mpsTradingAwareness .mps-ta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+      #mpsTradingAwareness .mps-ta-item{min-width:0;padding:15px;border:1px solid rgba(148,163,184,.2);border-radius:13px;background:rgba(255,255,255,.035)}
+      #mpsTradingAwareness .mps-ta-item strong{display:block;margin-bottom:6px;color:#f4bd45;font-size:12px;letter-spacing:.045em}
+      #mpsTradingAwareness .mps-ta-item p{margin:0;color:#c2ccda;font-size:12px;line-height:1.65}
+      #mpsTradingAwareness .mps-ta-disclaimer{margin:16px 0;padding:13px 14px;border-left:3px solid #e45a55;border-radius:7px;background:rgba(228,90,85,.08);color:#e2d7d7;font-size:11px;line-height:1.7}
+      #mpsTradingAwareness .mps-ta-confirm{display:flex;align-items:flex-start;gap:10px;margin:17px 0 13px;color:#dce5f1;font-size:12px;line-height:1.55;cursor:pointer}
+      #mpsTradingAwareness .mps-ta-confirm input{width:18px;height:18px;flex:0 0 18px;margin:1px 0 0;accent-color:#f4bd45}
+      #mpsTradingAwareness .mps-ta-enter{display:block;width:100%;min-height:48px;border:1px solid #f4bd45;border-radius:999px;background:linear-gradient(135deg,#f4bd45,#d99a27);color:#17130a;font:900 12px/1.2 inherit;letter-spacing:.08em;cursor:pointer;transition:filter .2s,transform .2s}
+      #mpsTradingAwareness .mps-ta-enter:disabled{filter:grayscale(.75);opacity:.45;cursor:not-allowed}
+      #mpsTradingAwareness .mps-ta-enter:not(:disabled):active{transform:scale(.99)}
+      #mpsTradingAwareness .mps-ta-foot{margin:12px 0 0;text-align:center;color:#77869c;font-size:9px;letter-spacing:.12em}
+      @media(max-width:520px){#mpsTradingAwareness{padding:10px}#mpsTradingAwareness .mps-ta-panel{padding:20px 16px;border-radius:16px;max-height:94dvh}#mpsTradingAwareness .mps-ta-grid{grid-template-columns:1fr;gap:8px}#mpsTradingAwareness .mps-ta-item{padding:12px}#mpsTradingAwareness .mps-ta-intro{margin:9px auto 15px;font-size:12px}#mpsTradingAwareness .mps-ta-item p{font-size:11px}}
+      @media(prefers-reduced-motion:reduce){#mpsTradingAwareness *{transition:none!important;animation:none!important}}
+    `;
+    document.head.appendChild(style);
+    const overlay = document.createElement('div');
+    overlay.id = 'mpsTradingAwareness';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-labelledby','mpsTaTitle');
+    overlay.setAttribute('aria-describedby','mpsTaIntro');
+    overlay.innerHTML = `
+      <section class="mps-ta-panel" role="document">
+        <div class="mps-ta-kicker">MARKET PSYCHOLOGY SOCIETY <span aria-hidden="true">✦</span> TRADING AWARENESS</div>
+        <div class="mps-ta-symbol" aria-hidden="true">⚠</div>
+        <h2 id="mpsTaTitle">BACA SEBELUM ANDA TRADING</h2>
+        <p class="mps-ta-intro" id="mpsTaIntro">Sebelum melanjutkan, ingat bahwa tujuan utama proses trading bukan sekadar mencari entry, melainkan menjaga kualitas keputusan, disiplin, dan pengelolaan risiko.</p>
+        <div class="mps-ta-grid">
+          <article class="mps-ta-item"><strong>01 · PAHAMI RISIKO</strong><p>Trading memiliki risiko tinggi. Anda dapat kehilangan sebagian atau seluruh modal. Gunakan hanya dana yang sanggup Anda tanggung risikonya.</p></article>
+          <article class="mps-ta-item"><strong>02 · DISIPLIN DI ATAS EMOSI</strong><p>Ikuti rencana yang sudah dibuat. Hindari keputusan karena takut tertinggal peluang, serakah, panik, atau ingin membalas kerugian.</p></article>
+          <article class="mps-ta-item"><strong>03 · CATAT DALAM JURNAL</strong><p>Dokumentasikan alasan entry dan exit, kondisi emosi, ukuran risiko, hasil transaksi, serta evaluasi agar kesalahan dan kebiasaan dapat dipelajari.</p></article>
+          <article class="mps-ta-item"><strong>04 · KELOLA RISIKO</strong><p>Tentukan batas risiko dan titik pembatalan sebelum membuka posisi. Jangan memaksakan transaksi, overtrading, atau menambah risiko di luar rencana.</p></article>
+        </div>
+        <p class="mps-ta-disclaimer"><strong>Pengingat:</strong> Materi, analisis, dan sinyal MPS bersifat edukatif dan referensi, bukan jaminan keuntungan atau saran investasi personal. Setiap keputusan dan risiko transaksi menjadi tanggung jawab masing-masing pelaku perdagangan.</p>
+        <label class="mps-ta-confirm"><input type="checkbox" data-mps-ta-check><span>Saya telah membaca dan memahami bahwa trading memiliki risiko kerugian, serta berkomitmen mengutamakan disiplin, jurnal, dan manajemen risiko.</span></label>
+        <button class="mps-ta-enter" type="button" data-mps-ta-enter disabled>SAYA MEMAHAMI — LANJUTKAN KE MPS</button>
+        <p class="mps-ta-foot">TERHUBUNG · BELAJAR · BERTUMBUH · BERPRESTASI</p>
+      </section>`;
+    document.body.appendChild(overlay);
+    const check = overlay.querySelector('[data-mps-ta-check]');
+    const enter = overlay.querySelector('[data-mps-ta-enter]');
+    check.addEventListener('change', () => { enter.disabled = !check.checked; });
+    enter.addEventListener('click', () => {
+      if (!check.checked) return;
+      try { window.sessionStorage.setItem(storageKey,'yes'); } catch (_) {}
+      overlay.remove();
+      style.remove();
+    });
+    check.focus({preventScroll:true});
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',mount,{once:true});
+  else mount();
+})();
