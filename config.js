@@ -28,7 +28,7 @@ window.MPS_CONFIG = {
   },
   form: {
     endpoint: "",
-    fallbackNote: "Pendaftaran online belum terhubung. Silakan buka Portal Anggota MPS atau hubungi admin melalui Telegram resmi."
+    fallbackNote: "Pendaftaran online belum terhubung. Silakan buka Portal Anggota MPS atau hubungi admin melalui email resmi."
   },
   depositForm: {
     endpoint: "",
