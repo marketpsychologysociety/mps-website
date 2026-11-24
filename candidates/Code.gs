@@ -1587,7 +1587,7 @@ function apiAdminSaveLearningCatalog(session,payload) {
 }
 function apiAdminUploadLearningFile(session,payload) {
   requireSuperAdmin_(session);payload=payload||{};
-  const name=clean_(payload.name,120).replace(/[\\/:*?"<>|]/g,'_');
+  const name=clean_(payload.name,120).replace(/[\/:*?"<>|]/g,'_');
   const title=clean_(payload.title||name.replace(/\.pdf$/i,''),140),category=clean_(payload.category||'Other',60),level=clean_(payload.level||'All Levels',40),description=cleanNewsText_(payload.description,700),status=String(payload.status||'Draft'),order=Number(payload.sortOrder||999);
   if(!/\.pdf$/i.test(name)||!title||!['Published','Draft','Hidden'].includes(status)||!Number.isFinite(order)||order<0)throw new Error('Nama file, judul, status, atau urutan PDF tidak valid.');
   const encoded=String(payload.base64||'');if(!encoded||encoded.length>Math.ceil(MPS.maxLearningFileBytes*4/3)+16)throw new Error('Data PDF kosong atau melebihi batas 8 MB.');
@@ -5313,13 +5313,13 @@ function apiSubmitRegularPayment(data) {
   const amount=Number(String(data.amount||'').replace(/[^0-9]/g,''));
   if(amount!==100000)throw new Error('Pembayaran Regular harus tepat Rp100.000.');
   const dateText=clean_(data.paymentDate,20);
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateText))throw new Error('Tanggal pembayaran tidak valid.');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dateText))throw new Error('Tanggal pembayaran tidak valid.');
   const paymentDate=new Date(dateText+'T00:00:00+07:00');
   if(isNaN(paymentDate.getTime())||Utilities.formatDate(paymentDate,'Asia/Jakarta','yyyy-MM-dd')!==dateText||paymentDate.getTime()>Date.now()+86400000)throw new Error('Tanggal pembayaran tidak valid.');
   let mime=String(data.proofMimeType||'').toLowerCase().trim(),base64=String(data.proofBase64||'').trim();
   const match=base64.match(/^data:([^;,]+);base64,(.*)$/s);
   if(match){if(!mime)mime=match[1].toLowerCase();base64=match[2];}
-  if(!/^image\\/(jpeg|png|webp)$/.test(mime)||!base64||base64.length>7200000)throw new Error('Bukti harus JPG, PNG, atau WEBP maksimal 5 MB.');
+  if(!/^image\/(jpeg|png|webp)$/.test(mime)||!base64||base64.length>7200000)throw new Error('Bukti harus JPG, PNG, atau WEBP maksimal 5 MB.');
   let bytes;try{bytes=Utilities.base64Decode(base64);}catch(e){throw new Error('File bukti QRIS tidak dapat dibaca.');}
   if(!bytes||!bytes.length||bytes.length>MPS.maxProofBytes||!isValidImageSignature_(bytes,mime))throw new Error('Ukuran atau isi bukti QRIS tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(20000);
