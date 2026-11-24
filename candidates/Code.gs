@@ -5440,6 +5440,7 @@ function apiAdminListRegularPayments(session){
 function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
   const admin=requireAdmin_(session),key=clean_(paymentRef,48).toUpperCase(),action=String(decision||'').toLowerCase(),adminNote=clean_(note,500);
   if(!/^MPS-PAY-[A-F0-9]{20}$/.test(key)||!['approve','reject'].includes(action))throw new Error('Referensi atau keputusan pembayaran Regular tidak valid.');
+  consumeRateLimit_('mps_admin_regular_review_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),20,MPS.adminWindowSeconds,'Review pembayaran Regular terlalu sering. Coba lagi beberapa menit.');
   const lock=LockService.getScriptLock();lock.waitLock(20000);
   let apps=null,plans=null,payments=null,access=null,db=null,appRow=0,planRow=0,paymentRow=0,accessRow=0,memberRow=0,memberId='',appBefore=null,planBefore=null,paymentBefore=null,accessBefore=null,memberCreated=false;
   try{
@@ -5514,7 +5515,8 @@ function findPendingMpsRegularRenewalRow_(sh,memberId){
   return 0;
 }
 function apiGetRegularRenewalInfo(session){
-  const actor=requireMemberSessionIdentity_(session),plans=getMpsMembershipPlansSheet_(),planRow=actor.state.planRow;
+  const actor=requireMemberSessionIdentity_(session);consumeRateLimit_('mps_regular_renewal_info_'+sha256_(actor.memberId).slice(0,24),30,60,'Pemeriksaan masa aktif terlalu sering. Coba lagi sebentar.');
+  const plans=getMpsMembershipPlansSheet_(),planRow=actor.state.planRow;
   const plan=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
   const renewals=getMpsRegularRenewalsSheet_(),pendingRow=findPendingMpsRegularRenewalRow_(renewals,actor.memberId);
   const pending=pendingRow?renewals.getRange(pendingRow,1,1,MPS_REGULAR_RENEWALS.headers.length).getValues()[0]:null;
@@ -5575,6 +5577,7 @@ function apiAdminListRegularRenewals(session){
 function apiAdminReviewRegularRenewal(session,renewalRef,decision,note){
   const admin=requireAdmin_(session),key=clean_(renewalRef,48).toUpperCase(),action=String(decision||'').toLowerCase(),adminNote=clean_(note,500);
   if(!/^MPS-REN-[A-F0-9]{20}$/.test(key)||!['approve','reject'].includes(action))throw new Error('Referensi atau keputusan perpanjangan Regular tidak valid.');
+  consumeRateLimit_('mps_admin_regular_renewal_review_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),20,MPS.adminWindowSeconds,'Review perpanjangan Regular terlalu sering. Coba lagi beberapa menit.');
   const lock=LockService.getScriptLock();lock.waitLock(20000);
   let renewals=null,plans=null,members=null,row=0,planRow=0,memberRow=0,renewalBefore=null,planBefore=null,memberBefore=null,memberId='',periodStart=null,periodEnd=null;
   try{
