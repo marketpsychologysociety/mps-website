@@ -155,6 +155,17 @@ test('public static site support routes consistently to email while Telegram rem
   for(const page of [portal,join,privacy,terms])assert.doesNotMatch(page,/https:\/\/t\.me\/Ndhisolasi/);
 });
 
+
+test('backend, portal, and release documentation agree that pending Member ID is issued after proof and activated after approval',()=>{
+  assert.match(code,/ID Member sementara telah diterbitkan setelah bukti tersimpan/);
+  assert.doesNotMatch(code,/Member ID baru diterbitkan setelah persetujuan Admin/);
+  assert.match(html,/ID Member sementara diterbitkan setelah bukti tersimpan/);
+  assert.match(html,/ID Member sementara sudah diterbitkan setelah bukti deposit/);
+  const read=path=>readFileSync(fileURLToPath(new URL('../../'+path,import.meta.url)),'utf8');
+  assert.match(read('README.md'),/ID Member sementara diterbitkan setelah bukti deposit\/QRIS tersimpan/);
+  assert.match(read('member-portal.html'),/ID Anggota sementara diterbitkan setelah bukti deposit\/QRIS tersimpan/);
+});
+
 test('candidate backend, frontend, and public config report one consistent v4.8.1 release',()=>{
   assert.match(code,/version:\s*'4\.8\.1'/);
   assert.match(html,/<meta name="mps-version" content="4\.8\.1">/);
