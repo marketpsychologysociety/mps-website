@@ -3276,6 +3276,8 @@ function assertMpsTelegramWebhookStorageReady_() {
   if(!telegramLinks||telegramLinks.getLastRow()<1||telegramLinks.getLastColumn()!==telegramHeaders.length)throw new Error('Sheet Telegram Links belum siap; webhook tidak diaktifkan.');
   const actualLinks=telegramLinks.getRange(1,1,1,telegramHeaders.length).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
   if(telegramHeaders.some(function(h,i){return actualLinks[i]!==h;}))throw new Error('Header Telegram Links tidak cocok; webhook tidak diaktifkan.');
+  const workerReady=ScriptApp.getProjectTriggers().some(function(trigger){return trigger.getHandlerFunction()==='processMpsVipFollowupQueueScheduled_';});
+  if(!workerReady)throw new Error('Worker antrean Telegram 5-menit belum aktif. Jalankan PREPARE VIP TRANSITION STORAGE sebelum mengaktifkan webhook.');
   return true;
 }
 
