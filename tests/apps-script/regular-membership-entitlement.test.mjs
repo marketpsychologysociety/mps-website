@@ -103,3 +103,14 @@ test('public registration, QRIS submission and Admin review controls are wired t
   assert.match(source,/regularPayments:regularPayments/);
   assert.match(source,/function apiAdminGetDepositProof/);
 });
+
+test('Regular QRIS may be resubmitted only after Admin rejection and entitlement reads the latest payment row',()=>{
+  const submit=functionSource('apiSubmitRegularPayment');
+  const lookup=functionSource('findMpsRegularPaymentRow_');
+  assert.match(submit,/\['Menunggu Validasi','Disetujui','Berhasil'\]\.includes\(String\(previousPayment\[7\]/);
+  assert.match(submit,/String\(previousPayment\[7\]\|\|'\)!=='Ditolak'/);
+  assert.match(lookup,/for\(let i=values\.length-1;i>=0;i--\)/);
+  assert.match(source,/function findMpsRegularPaymentByRef_\(/);
+  assert.match(submit,/findMpsRegularPaymentByRef_\(getMpsRegularPaymentsSheet_\(\),paymentRef\)/);
+  assert.match(html,/BUAT ULANG LINK TELEGRAM/);
+});
