@@ -1279,12 +1279,6 @@ function apiMemberLogin(memberId, pin) {
   const key = 'member:' + sha256_(id).slice(0, 24);
   consumePersistentLoginRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds,'Terlalu banyak percobaan login untuk ID ini. Coba lagi 15 menit.');
   const r = sheet.getRange(row, 1, 1, MPS.headers.length).getValues()[0];
-  const regularState=String(r[MPS_COL.depositStatus-1])==='Tidak Berlaku - Regular QRIS'?mpsRegularMemberState_(r,false):{isRegular:false,active:false,expired:false};
-  const activeEntitlement=String(r[MPS_COL.depositStatus-1])==='Disetujui'||regularState.active;
-  const renewalOnly=!activeEntitlement&&regularState.isRegular&&regularState.expired;
-  if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || (!activeEntitlement&&!renewalOnly)) {
-    throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
-  }
   const pinProps = PropertiesService.getScriptProperties();
   const deliveryState = pinProps.getProperty('MPS_PIN_DELIVERY_STATE_' + id);
   if (deliveryState && deliveryState !== 'ACTIVE') {
@@ -1292,6 +1286,12 @@ function apiMemberLogin(memberId, pin) {
   }
   const stored = pinProps.getProperty(pinPropertyKey_(id));
   if (!stored || !verifyMemberPin_(id, pinText, stored)) {
+    throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
+  }
+  const regularState=String(r[MPS_COL.depositStatus-1])==='Tidak Berlaku - Regular QRIS'?mpsRegularMemberState_(r,false):{isRegular:false,active:false,expired:false};
+  const activeEntitlement=String(r[MPS_COL.depositStatus-1])==='Disetujui'||regularState.active;
+  const renewalOnly=!activeEntitlement&&regularState.isRegular&&regularState.expired;
+  if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || (!activeEntitlement&&!renewalOnly)) {
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   }
   // Penghitung per-ID persisten di Script Properties; tidak hilang saat cache dievikt.
