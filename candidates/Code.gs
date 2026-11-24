@@ -5542,7 +5542,7 @@ function apiSubmitRegularRenewal(session,data){
   let bytes;try{bytes=Utilities.base64Decode(base64);}catch(e){throw new Error('File bukti perpanjangan tidak dapat dibaca.');}
   if(!bytes||!bytes.length||bytes.length>MPS.maxProofBytes||!isValidImageSignature_(bytes,mime))throw new Error('Ukuran atau isi bukti perpanjangan tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(20000);
-  let proofFile=null,renewalRef='',renewalRow=0;
+  let proofFile=null,renewalRef='',renewalRow=0,committedResult=null,adminTelegramMessage='';
   try{
     const renewals=getMpsRegularRenewalsSheet_(),plans=getMpsMembershipPlansSheet_(),planRow=actor.state.planRow;
     if(findPendingMpsRegularRenewalRow_(renewals,memberId))throw new Error('Sudah ada perpanjangan Regular yang menunggu pemeriksaan Admin.');
@@ -5559,11 +5559,14 @@ function apiSubmitRegularRenewal(session,data){
     renewals.appendRow([renewalRef,memberId,applicationRef,new Date(),100000,dateText,proofFile.getId(),proofFile.getUrl(),'Menunggu Validasi','','','','',null,null]);
     renewalRow=findMpsRegularRenewalByRef_(renewals,renewalRef);if(!renewalRow)throw new Error('Penyimpanan bukti perpanjangan belum dapat diverifikasi; jangan kirim ulang sebelum Admin memeriksa antrean.');
     try{recordMpsAudit_('MEMBER',memberId,'REGULAR_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Bukti perpanjangan QRIS Rp100.000 tersimpan privat; menunggu pemeriksaan Admin.');}catch(auditErr){console.warn('Regular renewal audit write deferred: '+safeErrorMessage_(auditErr));}
-    return {ok:true,renewalRef:renewalRef,status:'Bukti perpanjangan tersimpan. Masa aktif hanya diperpanjang setelah Admin menyetujui pembayaran.'};
+    committedResult={ok:true,renewalRef:renewalRef,status:'Bukti perpanjangan tersimpan. Masa aktif hanya diperpanjang setelah Admin menyetujui pembayaran.'};
+    adminTelegramMessage='🔁 PERPANJANGAN REGULAR MPS\nMember ID: '+memberId+'\nApplication Ref: '+applicationRef+'\nRenewal Ref: '+renewalRef+'\nNama: '+String(actor.member[MPS_COL.nickname-1]||'')+'\nNominal: Rp100.000\nStatus: Menunggu Validasi Admin';
   }catch(err){
     if(proofFile){let linked=null;try{linked=!!findMpsRegularRenewalByRef_(getMpsRegularRenewalsSheet_(),renewalRef);}catch(checkErr){console.error('Regular renewal proof lookup uncertain; retain private file for reconciliation: '+safeErrorMessage_(checkErr));}if(linked===false)try{proofFile.setTrashed(true);}catch(cleanErr){console.error('Regular renewal proof cleanup failed: '+safeErrorMessage_(cleanErr));}}
     throw err;
   }finally{lock.releaseLock();}
+  if(committedResult&&adminTelegramMessage){let notified={ok:false};try{notified=sendTelegram_(adminTelegramMessage);}catch(tgErr){notified={ok:false};}committedResult.telegramNotified=!!notified.ok;if(!notified.ok)committedResult.telegramWarning='Bukti perpanjangan tersimpan, tetapi backup Telegram Admin gagal dikirim.';}
+  return committedResult||{ok:false,error:'Perpanjangan Regular tidak dapat dipastikan tersimpan.'};
 }
 function apiAdminListRegularRenewals(session){
   const admin=requireAdmin_(session),renewals=getMpsRegularRenewalsSheet_(),members=getMemberSheet_();
