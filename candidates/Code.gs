@@ -5313,7 +5313,6 @@ function apiSubmitRegularPayment(data) {
     try{
       payments.appendRow([paymentRef,ref,now,100000,dateText,proofFile.getId(),proofFile.getUrl(),'Menunggu Validasi','','','',now]);
       telegramLink=createMemberTelegramLink_('',ref,function(prepared){linkPrepared=prepared;});
-      expireOtherApplicationLinks_(ref,telegramLink.row);
       const memberId=ensurePendingMemberId_(apps,appRow);
       plans.getRange(planRow,8).setValue('Menunggu Validasi Pembayaran');
       plans.getRange(planRow,12).setValue(now);
@@ -5321,7 +5320,7 @@ function apiSubmitRegularPayment(data) {
       apps.getRange(appRow,9).setValue(memberId);
       apps.getRange(appRow,11).setValue('Menunggu Verifikasi Telegram');
       apps.getRange(appRow,15).setValue(now);
-      recordMpsAudit_('PUBLIC','APPLICATION','REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Bukti QRIS Rp100.000 tersimpan privat; terpisah dari deposit Exness.');
+      try{recordMpsAudit_('PUBLIC','APPLICATION','REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Bukti QRIS Rp100.000 tersimpan privat; terpisah dari deposit Exness.');}catch(auditErr){console.warn('Regular QRIS audit write deferred: '+safeErrorMessage_(auditErr));}
       return {ok:true,applicationRef:ref,paymentRef:paymentRef,memberId:memberId,status:'Bukti QRIS tersimpan. Verifikasi Telegram dan pemeriksaan Admin masih diperlukan.',telegramUrl:telegramLink.url,telegramExpiresAt:telegramLink.expiresAt};
     }catch(writeError){
       const rollbackErrors=[];
