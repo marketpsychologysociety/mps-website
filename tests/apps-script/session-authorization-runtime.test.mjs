@@ -27,7 +27,7 @@ function harness(){
     pinPropertyKey_:id=>'PIN_'+id,
     CacheService:{getScriptCache:()=>({get:key=>sessions.get(key)||null})},
     PropertiesService:{getScriptProperties:()=>({getProperty:key=>properties.get(key)||''})},
-    getMemberSheet_:()=>memberSheet,findMemberById_:()=>2
+    getMemberSheet_:()=>memberSheet,findMemberById_:()=>2,memberHasActiveEntitlement_:()=>false
   };
   vm.createContext(context);vm.runInContext(runtimeSource,context,{timeout:1000});
   function memberSession(token='member-session',id='MPS-ABCDEF12',pin='salt$hash'){
