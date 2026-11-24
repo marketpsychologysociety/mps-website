@@ -5360,6 +5360,12 @@ function apiSubmitRegularPayment(data) {
       if(rollbackErrors.length){const failure=new Error('Pengiriman QRIS gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Bukti dipertahankan privat untuk rekonsiliasi.');failure.preserveProofFile=true;throw failure;}
       throw writeError;
     }
+  }catch(err){
+    if(proofFile&&err.preserveProofFile!==true){
+      let linked=false;try{linked=!!findMpsRegularPaymentRow_(getMpsRegularPaymentsSheet_(),ref);}catch(checkErr){console.error('Regular proof cleanup lookup failed: '+safeErrorMessage_(checkErr));}
+      if(!linked)try{proofFile.setTrashed(true);}catch(cleanErr){console.error('Regular proof cleanup failed; manual reconciliation required: '+safeErrorMessage_(cleanErr));}
+    }
+    throw err;
   }finally{lock.releaseLock();}
 }
 
@@ -5401,9 +5407,9 @@ function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
       if(String(appBefore[10]||'')!=='Terverifikasi')throw new Error('Telegram pendaftar belum terverifikasi.');
       const proof=validateProofFileForApproval_(paymentBefore[6]);
       if(!paymentBefore[5]||String(proof.fileId)!==String(paymentBefore[5]))throw new Error('Bukti QRIS tidak cocok dengan file ID yang tersimpan.');
-      const accessSheet=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(accessSheet,ref);
+      access=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(access,ref);
       if(!accessRow)throw new Error('Relasi Telegram pendaftar tidak ditemukan.');
-      accessBefore=accessSheet.getRange(accessRow,1,1,11).getValues()[0];
+      accessBefore=access.getRange(accessRow,1,1,11).getValues()[0];
       if(!String(accessBefore[1]||'')||!String(accessBefore[2]||'')||String(appBefore[11]||'')!==String(accessBefore[1])||String(appBefore[12]||'')!==String(accessBefore[2]))throw new Error('Identitas Telegram belum cocok dengan catatan aplikasi dan chat bot.');
       db=getMemberSheet_();memberId=String(appBefore[8]||'').trim().toUpperCase()||ensurePendingMemberId_(apps,appRow);
       if(!/^MPS-[A-F0-9]{10}$/.test(memberId)||findMemberById_(db,memberId))throw new Error('ID Member sementara tidak valid atau sudah terpakai.');
@@ -5412,7 +5418,7 @@ function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
       row[14]='Tidak Berlaku - Regular QRIS';row[15]=sheetText_(adminNote);row[16]=now;row[17]=now;row[18]=String(accessBefore[2]);row[20]=now;row[24]=ref;row[29]='Menunggu Aktivasi';
       db.appendRow(row);memberCreated=true;memberRow=findMemberById_(db,memberId);
       if(!memberRow)throw new Error('Baris member Regular belum dapat diverifikasi setelah penyimpanan.');
-      accessSheet.getRange(accessRow,1).setValue(memberId);
+      access.getRange(accessRow,1).setValue(memberId);
       payments.getRange(paymentRow,8,1,5).setValues([['Disetujui',String(admin.actorId||admin.role),now,sheetText_(adminNote),now]]);
       plans.getRange(planRow,8).setValue('Menunggu Aktivasi');plans.getRange(planRow,12).setValue(now);
       apps.getRange(appRow,8).setValue('Menunggu Aktivasi');apps.getRange(appRow,9).setValue(memberId);apps.getRange(appRow,14).setValue(sheetText_(adminNote));apps.getRange(appRow,15).setValue(now);
