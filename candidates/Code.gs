@@ -696,7 +696,7 @@ function activateMemberAfterPin_(memberId) {
     try{
       memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberNext]);
       if(appRow){apps.getRange(appRow,8).setValue('Berhasil');apps.getRange(appRow,15).setValue(now);}
-      if(depRow){depSheet.getRange(depRow,10).setValue('Berhasil');depSheet.getRange(depRow,14).setValue(now);}\n      if(planRow){planSheet.getRange(planRow,8).setValue('Aktif');planSheet.getRange(planRow,9).setValue(now);planSheet.getRange(planRow,10).setValue(new Date(now.getTime()+30*86400000));planSheet.getRange(planRow,12).setValue(now);}
+      if(depRow){depSheet.getRange(depRow,10).setValue('Berhasil');depSheet.getRange(depRow,14).setValue(now);}\n      if(planRow&&String(planSnapshot[7]||'')==='Menunggu Aktivasi'){planSheet.getRange(planRow,8).setValue('Aktif');planSheet.getRange(planRow,9).setValue(now);planSheet.getRange(planRow,10).setValue(new Date(now.getTime()+30*86400000));planSheet.getRange(planRow,12).setValue(now);}
     }catch(writeErr){
       const rollbackErrors=[];
       if(depRow&&depSnapshot)try{depSheet.getRange(depRow,1,1,depSnapshot.length).setValues([depSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}\n      if(planRow&&planSnapshot)try{planSheet.getRange(planRow,1,1,planSnapshot.length).setValues([planSnapshot]);}catch(e){rollbackErrors.push('membership plan: '+safeErrorMessage_(e));}
@@ -2613,7 +2613,7 @@ function sendVipInvite_(memberId) {
     sh=getTelegramAccessSheet_();row=findTelegramAccessByMemberId_(sh,memberId);if(!row){cache.remove(busyKey);return {ok:false,error:'Akun Telegram member belum terhubung.'};}
     v=sh.getRange(row,1,1,11).getValues()[0];if(!v[1]||!v[2]||String(v[1])!==String(v[2])){cache.remove(busyKey);return {ok:false,error:'Identitas Telegram member tidak cocok.'};}
     const db=getMemberSheet_();memberRow=findMemberById_(db,memberId);if(!memberRow){cache.remove(busyKey);return {ok:false,error:'Data member tidak ditemukan.'};}
-    m=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||String(m[MPS_COL.depositStatus-1])!=='Disetujui'){cache.remove(busyKey);return {ok:false,error:'Undangan hanya untuk member Berhasil dengan deposit Disetujui.'};}
+    m=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||!memberHasActiveEntitlement_(m)){cache.remove(busyKey);return {ok:false,error:'Undangan hanya untuk member dengan keanggotaan aktif dan pembayaran/deposit yang disetujui.'};}
     previous=v.slice(6,11);previousLink=String(v[7]||'');previousDbInvite=m.slice(25,30);
   }finally{lock.releaseLock();}
   const busyKey='mps_vip_invite_busy_'+sha256_(memberId).slice(0,24),cache=CacheService.getScriptCache();
@@ -5416,7 +5416,7 @@ function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
       const now=new Date(),row=new Array(MPS.headers.length).fill('');
       row[0]=memberId;row[1]=appBefore[1];row[2]=sheetText_(appBefore[2]);row[3]=sheetText_(appBefore[3]||'');row[4]=sheetText_(appBefore[4]);row[5]=sheetText_(appBefore[5]);row[6]=sheetText_(appBefore[6]);row[7]='Menunggu Aktivasi';
       row[14]='Tidak Berlaku - Regular QRIS';row[15]=sheetText_(adminNote);row[16]=now;row[17]=now;row[18]=String(accessBefore[2]);row[20]=now;row[24]=ref;row[29]='Menunggu Aktivasi';
-      db.appendRow(row);memberCreated=true;memberRow=findMemberById_(db,memberId);
+      memberCreated=true;db.appendRow(row);memberRow=findMemberById_(db,memberId);
       if(!memberRow)throw new Error('Baris member Regular belum dapat diverifikasi setelah penyimpanan.');
       access.getRange(accessRow,1).setValue(memberId);
       payments.getRange(paymentRow,8,1,5).setValues([['Disetujui',String(admin.actorId||admin.role),now,sheetText_(adminNote),now]]);
@@ -5430,7 +5430,7 @@ function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
     }
   }catch(err){
     const rollbackErrors=[];
-    if(memberCreated&&db&&memberId){const mr=memberRow||findMemberById_(db,memberId);if(mr)try{db.deleteRow(mr);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}}
+    if(memberCreated&&db&&memberId){let mr=memberRow;try{if(!mr)mr=findMemberById_(db,memberId);}catch(findErr){rollbackErrors.push('pemeriksaan baris member: '+safeErrorMessage_(findErr));}if(mr)try{db.deleteRow(mr);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}}
     if(accessRow&&accessBefore&&access)try{access.getRange(accessRow,1,1,11).setValues([accessBefore]);}catch(e){rollbackErrors.push('Telegram access: '+safeErrorMessage_(e));}
     if(appRow&&appBefore&&apps)try{apps.getRange(appRow,1,1,appBefore.length).setValues([appBefore]);}catch(e){rollbackErrors.push('application: '+safeErrorMessage_(e));}
     if(planRow&&planBefore&&plans)try{plans.getRange(planRow,1,1,planBefore.length).setValues([planBefore]);}catch(e){rollbackErrors.push('membership plan: '+safeErrorMessage_(e));}
