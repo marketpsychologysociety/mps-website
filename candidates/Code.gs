@@ -5403,7 +5403,7 @@ function apiSubmitRegularPayment(data) {
       return {ok:true,applicationRef:ref,paymentRef:paymentRef,memberId:memberId,status:'Bukti QRIS tersimpan. Pembayaran menunggu pemeriksaan Admin.',telegramUrl:telegramLink?telegramLink.url:'',telegramExpiresAt:telegramLink?telegramLink.expiresAt:''};
     }catch(writeError){
       const rollbackErrors=[];
-      try{const pr=findMpsRegularPaymentRow_(payments,ref);if(pr)payments.deleteRow(pr);}catch(e){rollbackErrors.push('baris pembayaran: '+safeErrorMessage_(e));}
+      try{const pr=findMpsRegularPaymentByRef_(payments,paymentRef);if(pr)payments.deleteRow(pr);}catch(e){rollbackErrors.push('baris pembayaran: '+safeErrorMessage_(e));}
       if(linkPrepared&&linkPrepared.row)try{const links=getMpsMemberLinksSheet_();if(linkPrepared.row<=links.getLastRow())links.getRange(linkPrepared.row,4).setValue('Dibatalkan');}catch(e){rollbackErrors.push('tautan Telegram: '+safeErrorMessage_(e));}
       if(appBefore)try{apps.getRange(appRow,1,1,appBefore.length).setValues([appBefore]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
       if(planBefore)try{plans.getRange(planRow,1,1,planBefore.length).setValues([planBefore]);}catch(e){rollbackErrors.push('paket: '+safeErrorMessage_(e));}
