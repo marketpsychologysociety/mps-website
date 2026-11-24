@@ -174,34 +174,69 @@ function doPost(e) {
 /** Buat tautan verifikasi Telegram sekali pakai untuk pendaftaran publik. */
 function apiCreateTelegramLink(session, applicationRef) {
   requireAdmin_(session);
-  const key=clean_(applicationRef,40).toUpperCase();
+  const key=clean_(applicationRef,48).toUpperCase();
+  if(!key)throw new Error('Application Ref, Payment Ref, atau ID Member wajib diisi.');
   consumeRateLimit_('mps_tg_link_create_'+sha256_(key).slice(0,20),3,900,'Tautan Telegram terlalu sering dibuat. Coba lagi 15 menit.');
   const lock=LockService.getScriptLock();lock.waitLock(15000);
   try{
+    let appRef='',memberId='';
     if(/^MPS-PAY-[A-F0-9]{20}$/.test(key)){
-    const sheet=getMpsRegularPaymentsSheet_(),last=sheet.getLastRow();let row=0;
-    if(last>1){const refs=sheet.getRange(2,1,last-1,1).getDisplayValues();for(let i=0;i<refs.length;i++)if(String(refs[i][0]||'').toUpperCase()===key){row=i+2;break;}}
-    if(!row)throw new Error('Bukti pembayaran Regular tidak ditemukan.');
-    const payment=sheet.getRange(row,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];
-    if(String(payment[7]||'')!=='Menunggu Validasi')throw new Error('Bukti QRIS tidak lagi menunggu verifikasi.');
-    expectedFileId=String(payment[5]||'');proofUrl=String(payment[6]||'');
-  }else if(/^MPS-REN-[A-F0-9]{20}$/.test(key)){
-    const sheet=getMpsRegularRenewalsSheet_(),row=findMpsRegularRenewalByRef_(sheet,key);
-    if(!row)throw new Error('Bukti perpanjangan Regular tidak ditemukan.');
-    const renewal=sheet.getRange(row,1,1,MPS_REGULAR_RENEWALS.headers.length).getValues()[0];
-    if(String(renewal[8]||'')!=='Menunggu Validasi')throw new Error('Bukti perpanjangan tidak lagi menunggu verifikasi.');
-    expectedFileId=String(renewal[6]||'');proofUrl=String(renewal[7]||'');
-  }else if(/^MPS-APP-[A-F0-9]{20}$/.test(key)){
-      const apps=getMpsApplicationsSheet_(),ar=findMpsApplicationRow_(apps,key);if(!ar)throw new Error('Application Ref tidak ditemukan.');
-      const app=apps.getRange(ar,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];if(!['Deposit Dikirim','Menunggu Validasi Admin'].includes(String(app[7]||'')))throw new Error('Tautan hanya dapat dibuat untuk pengajuan deposit yang menunggu verifikasi.');
-      const link=createMemberTelegramLink_('',key);expireOtherApplicationLinks_(key,link.row);recordMpsAudit_(adminRole_(session),adminActorRef_(session),'TELEGRAM_LINK_RENEWED',key,'SUCCESS','Tautan Telegram pendaftaran diterbitkan ulang.');return link;
+      const payments=getMpsRegularPaymentsSheet_(),paymentRow=findMpsRegularPaymentByRef_(payments,key);
+      if(!paymentRow)throw new Error('Bukti pembayaran Regular tidak ditemukan.');
+      const payment=payments.getRange(paymentRow,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];
+      if(String(payment[7]||'')!=='Menunggu Validasi')throw new Error('Bukti QRIS tidak lagi menunggu verifikasi.');
+      appRef=String(payment[1]||'').toUpperCase();
+    }else if(/^MPS-REN-[A-F0-9]{20}$/.test(key)){
+      const renewals=getMpsRegularRenewalsSheet_(),renewalRow=findMpsRegularRenewalByRef_(renewals,key);
+      if(!renewalRow)throw new Error('Bukti perpanjangan Regular tidak ditemukan.');
+      const renewal=renewals.getRange(renewalRow,1,1,MPS_REGULAR_RENEWALS.headers.length).getValues()[0];
+      if(String(renewal[8]||'')!=='Menunggu Validasi')throw new Error('Bukti perpanjangan tidak lagi menunggu verifikasi.');
+      throw new Error('Perpanjangan Regular menggunakan akun Telegram member yang sudah terhubung. Tautan pendaftaran baru tidak diperlukan.');
+    }else if(/^MPS-APP-[A-F0-9]{20}$/.test(key)){
+      appRef=key;
+    }else if(/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(key)){
+      memberId=key;
+    }else{
+      throw new Error('Application Ref, Payment Ref, atau ID Member tidak valid.');
     }
-    const id=key;if(!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id))throw new Error('ID Member atau Application Ref tidak valid.');
-    const sheet=getMemberSheet_(),row=findMemberById_(sheet,id);if(!row)throw new Error('Member tidak ditemukan.');
-    const status=sheet.getRange(row,MPS_COL.registrationStatus,1,8).getDisplayValues()[0];if(status[0]==='Berhasil'||status[7]==='Disetujui')throw new Error('Member ini sudah aktif.');
-    const appSheet=getMpsApplicationsSheet_(),appRow=findMpsApplicationRowByMember_(appSheet,id),appRef=appRow?String(appSheet.getRange(appRow,1).getDisplayValue()||''):'';
-    const link=createMemberTelegramLink_(id,appRef);expireOtherMemberLinks_(id,link.row);recordMpsAudit_(adminRole_(session),adminActorRef_(session),'TELEGRAM_LINK_RENEWED',id,'SUCCESS','Tautan Telegram sekali pakai diterbitkan ulang.');return link;
-  }finally{lock.releaseLock();}
+    if(appRef){
+      const apps=getMpsApplicationsSheet_(),appRow=findMpsApplicationRow_(apps,appRef);
+      if(!appRow)throw new Error('Application Ref tidak ditemukan.');
+      const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
+      if(String(app[10]||'')==='Terverifikasi')throw new Error('Telegram pendaftar sudah terverifikasi.');
+      const plans=getMpsMembershipPlansSheet_(),planRow=findMpsPlanRow_(plans,appRef);
+      if(!planRow)throw new Error('Paket keanggotaan untuk pengajuan ini tidak ditemukan.');
+      const plan=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
+      if(String(plan[1]||'')==='REGULAR'){
+        const payments=getMpsRegularPaymentsSheet_(),paymentRow=findMpsRegularPaymentRow_(payments,appRef);
+        if(!paymentRow)throw new Error('Bukti pembayaran QRIS Regular belum ditemukan.');
+        const payment=payments.getRange(paymentRow,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];
+        if(Number(payment[3]||0)!==100000||String(payment[7]||'')!=='Menunggu Validasi'||!['Pembayaran Dikirim','Menunggu Verifikasi Telegram','Menunggu Validasi Admin'].includes(String(app[7]||'')))throw new Error('Tautan Telegram hanya dapat diterbitkan untuk pembayaran Regular yang menunggu verifikasi.');
+      }else if(String(plan[1]||'')==='ACTIVE_IB'){
+        const deposits=getMpsDepositsSheet_(),depositRow=findMpsDepositRow_(deposits,appRef);
+        if(!depositRow)throw new Error('Data deposit Exness tidak ditemukan.');
+        const deposit=deposits.getRange(depositRow,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
+        if(!['Deposit Dikirim','Menunggu Telegram','Menunggu Validasi Admin'].includes(String(app[7]||''))||!['Menunggu Telegram','Menunggu Validasi Admin'].includes(String(deposit[9]||'')))throw new Error('Tautan Telegram hanya dapat diterbitkan untuk deposit Active IB yang menunggu verifikasi.');
+      }else{
+        throw new Error('Jenis paket keanggotaan tidak dikenali.');
+      }
+      const link=createMemberTelegramLink_('',appRef);
+      expireOtherApplicationLinks_(appRef,link.row);
+      recordMpsAudit_(adminRole_(session),adminActorRef_(session),'TELEGRAM_LINK_RENEWED',appRef,'SUCCESS','Tautan Telegram pendaftaran diterbitkan ulang.');
+      return link;
+    }
+    const sheet=getMemberSheet_(),row=findMemberById_(sheet,memberId);
+    if(!row)throw new Error('Member tidak ditemukan.');
+    const status=sheet.getRange(row,MPS_COL.registrationStatus,1,8).getDisplayValues()[0];
+    if(status[0]==='Berhasil'||status[7]==='Disetujui')throw new Error('Member ini sudah aktif.');
+    const appSheet=getMpsApplicationsSheet_(),appRow=findMpsApplicationRowByMember_(appSheet,memberId),linkedAppRef=appRow?String(appSheet.getRange(appRow,1).getDisplayValue()||''):'';
+    const link=createMemberTelegramLink_(memberId,linkedAppRef);
+    expireOtherMemberLinks_(memberId,link.row);
+    recordMpsAudit_(adminRole_(session),adminActorRef_(session),'TELEGRAM_LINK_RENEWED',memberId,'SUCCESS','Tautan Telegram sekali pakai diterbitkan ulang.');
+    return link;
+  }finally{
+    lock.releaseLock();
+  }
 }
 
 function getMpsSheetStrict_(name, headers) {
