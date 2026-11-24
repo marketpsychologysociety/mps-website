@@ -124,6 +124,7 @@ test('expired Regular member receives renewal-only login and content gates remai
   const login=functionSource('apiMemberLogin'),identity=functionSource('requireMemberSessionIdentity_'),guard=functionSource('requireMember_');
   assert.match(login,/renewalOnly=!activeEntitlement&&regularState\.isRegular&&regularState\.expired/);
   assert.match(login,/membershipPlan:regularState\.isRegular\?'REGULAR':'ACTIVE_IB'/);
+  assert.ok(login.indexOf('verifyMemberPin_')<login.indexOf('mpsRegularMemberState_(r,false)'),'verify PIN before loading plan entitlement');
   assert.match(identity,/memberHasActiveEntitlement_|mpsRegularMemberState_/);
   assert.match(identity,/regularState\.active&&!state\.expired|!state\.active&&!state\.expired/);
   assert.match(guard,/memberHasActiveEntitlement_/);
