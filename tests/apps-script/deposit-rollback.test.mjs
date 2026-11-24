@@ -25,6 +25,7 @@ function makeSheet(rows,label,{failAt='',state}={}) {
   getLastRow:()=>rows.length,
   getRange(r,c,nr=1,nc=1){return{
    getValues:()=>Array.from({length:nr},(_,ri)=>(rows[r-1+ri]||[]).slice(c-1,c-1+nc)),
+   getDisplayValue:()=>String((rows[r-1]||[])[c-1]??''),
    getDisplayValues:()=>Array.from({length:nr},(_,ri)=>(rows[r-1+ri]||[]).slice(c-1,c-1+nc).map(v=>String(v??''))),
    setValue(v){if(!rows[r-1])rows[r-1]=[];rows[r-1][c-1]=v;if((Array.isArray(state.failAt)?state.failAt.includes(label):state.failAt===label)&&!state.failed.has(label)){state.failed.add(label);throw new Error('INJECTED_'+label+'_WRITE');}},
    setValues(values){values.forEach((line,ri)=>{if(!rows[r-1+ri])rows[r-1+ri]=[];line.forEach((v,ci)=>rows[r-1+ri][c-1+ci]=v);});if((Array.isArray(state.failAt)?state.failAt.includes('oldLinkRollback'):state.failAt==='oldLinkRollback')&&label==='links'&&r===2&&values[0][3]==='Menunggu'&&!state.failed.has('oldLinkRollback')){state.failed.add('oldLinkRollback');throw new Error('INJECTED_oldLinkRollback');}if((Array.isArray(state.failAt)?state.failAt.includes(label):state.failAt===label)&&!state.failed.has(label)){state.failed.add(label);throw new Error('INJECTED_'+label+'_WRITE');}}
@@ -51,7 +52,7 @@ function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>{if(key==='MPS_TELEGRAM_BOT_USERNAME'&&failBotProperty)throw new Error('INJECTED_BOT_PROPERTY_READ');return key==='MPS_PROOF_FOLDER_ID'?'proof-folder':key==='MPS_LEARNING_FOLDER_ID'?'learning-folder':key==='MPS_TELEGRAM_BOT_USERNAME'?'MPSBot':'';}})},
   DriveApp:{Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'},getFolderById:()=>folder},
   getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
-  getMpsMembershipPlansSheet_:()=>plans,findMpsPlanRow_:(sheet,ref)=>plans.rows.findIndex((row,i)=>i>0&&row[0]===ref),
+  getMpsMembershipPlansSheet_:()=>plans,findMpsPlanRow_:(sheet,ref)=>{const i=plans.rows.findIndex((row,n)=>n>0&&row[0]===ref);return i<0?0:i+1;},
   getMemberSheet_:()=>members,findMemberById_:(sheet,id)=>members.rows.findIndex((row,i)=>i>0&&row[0]===id),
   getMpsDepositsSheet_:()=>deposits,
   findMpsDepositRow_:(sheet,ref)=>{for(let i=1;i<depositsRows.length;i++)if(depositsRows[i][0]===ref)return i+1;return 0;},
