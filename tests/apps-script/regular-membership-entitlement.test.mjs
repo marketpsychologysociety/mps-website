@@ -66,7 +66,7 @@ test('Regular payment approval may issue PIN while activation is pending, withou
 test('Regular QRIS submission is fixed-fee, private-proof and isolated from Exness deposit storage',()=>{
   const submit=functionSource('apiSubmitRegularPayment');
   assert.match(submit,/amount!==100000/);
-  assert.match(submit,/MPS_REGULAR_PAYMENTS/);
+  assert.match(submit,/getMpsRegularPaymentsSheet_\(\)/);
   assert.match(submit,/MPS_MEMBERSHIP_PLANS/);
   assert.match(submit,/MPS_PROOF_FOLDER_ID/);
   assert.match(submit,/DriveApp\.Access\.PRIVATE/);
