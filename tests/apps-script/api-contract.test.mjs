@@ -381,7 +381,8 @@ test('admin and member sessions have explicit bounded cache lifetimes and creden
   const guardStart=code.indexOf('function requireMember_('),guardEnd=code.indexOf('\nfunction ',guardStart+1);
   const guard=code.slice(guardStart,guardEnd);
   assert.ok(guard.includes("sha256_(pinRecord).slice(0,32)"));
-  assert.ok(guard.includes("r[0] !== 'Berhasil' || r[7] !== 'Disetujui'"));
+  assert.ok(guard.includes("r[0] !== 'Berhasil' || (r[7]!=='Disetujui'&&!memberHasActiveEntitlement_"));
+  assert.ok(code.includes("function memberHasActiveEntitlement_(memberRow)"));
 });
 
 test('member-only Learning and VIP endpoints enforce authorization in backend, not only frontend',()=>{
