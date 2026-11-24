@@ -10,6 +10,10 @@ const start=source.indexOf('function saveDeposit_(sheet, data, onFileCreated, on
 const end=source.indexOf('function setupMPSStorage_(',start+1);
 assert.ok(start>=0&&end>start,'saveDeposit_ source boundaries must exist');
 const saveSource=source.slice(start,end);
+const idStart=source.indexOf('function ensurePendingMemberId_(apps, appRow) {');
+const idEnd=source.indexOf('\nfunction ',idStart+1);
+assert.ok(idStart>=0&&idEnd>idStart,'pending Member ID helper boundaries must exist');
+const idSource=source.slice(idStart,idEnd);
 const helperStart=source.indexOf('function assertMpsDriveFolderTreePrivate_(');
 const helperEnd=source.indexOf('\nfunction ',helperStart+1);
 assert.ok(helperStart>=0&&helperEnd>helperStart,'Drive ACL helper boundaries must exist');
@@ -33,18 +37,22 @@ function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={
  const state={failAt,failed:new Set()},now=new Date('2026-11-12T00:00:00Z');
  const appsRows=[new Array(15).fill(''),[appRef,now,'Member Test','@member_test','ID','Trading','', 'Menunggu Deposit','','','','','','',now]];
  const depositsRows=[new Array(14).fill('')];
+ const plansRows=[new Array(12).fill(''),[appRef,'ACTIVE_IB',now,0,'PENDING','','','Menunggu Deposit','','','',now]];
+ const memberRows=[new Array(30).fill('')];
  const linksRows=[new Array(11).fill(''),['old-hash',now,new Date(now.getTime()+600000),'Menunggu','',appRef,'','','','','']];
- const apps=makeSheet(appsRows,'app',{state}),deposits=makeSheet(depositsRows,'deposit',{state}),links=makeSheet(linksRows,'links',{state});
+ const apps=makeSheet(appsRows,'app',{state}),deposits=makeSheet(depositsRows,'deposit',{state}),plans=makeSheet(plansRows,'plans',{state}),members=makeSheet(memberRows,'members',{state}),links=makeSheet(linksRows,'links',{state});
  const file={trashed:false,setSharing(){},getSharingAccess:()=> 'PRIVATE',getUrl:()=> 'https://drive.google.test/private-proof',getId:()=> 'file-proof-123456789',setTrashed(v){this.trashed=v;}};
  const folder={getId:()=> 'proof-folder',getParents:()=>({hasNext:()=>false}),getSharingAccess:()=> 'PRIVATE',createFile:()=>file};
  const context={
   MPS:{minDeposit:1000000,maxProofBytes:5242880},
-  MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},MPS_MEMBER_LINKS:{headers:new Array(11)},
+  MPS_APPLICATIONS:{headers:new Array(15)},MPS_DEPOSITS:{headers:new Array(14)},MPS_MEMBER_LINKS:{headers:new Array(11)},MPS_MEMBERSHIP_PLANS:{headers:new Array(12)},
   clean_:v=>String(v??'').trim(),sheetText_:v=>String(v??''),validDate_:()=>true,isValidImageSignature_:()=>true,
   Utilities:{formatDate:()=> '2026-11-12',getUuid:()=> '12345678-1234-1234-1234-123456789abc',base64Decode:()=>new Uint8Array([1,2,3,4,5,6,7,8]),newBlob:()=>({getDataAsString:()=>''})},
   PropertiesService:{getScriptProperties:()=>({getProperty:key=>{if(key==='MPS_TELEGRAM_BOT_USERNAME'&&failBotProperty)throw new Error('INJECTED_BOT_PROPERTY_READ');return key==='MPS_PROOF_FOLDER_ID'?'proof-folder':key==='MPS_LEARNING_FOLDER_ID'?'learning-folder':key==='MPS_TELEGRAM_BOT_USERNAME'?'MPSBot':'';}})},
   DriveApp:{Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'},getFolderById:()=>folder},
   getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
+  getMpsMembershipPlansSheet_:()=>plans,findMpsPlanRow_:(sheet,ref)=>plans.rows.findIndex((row,i)=>i>0&&row[0]===ref),
+  getMemberSheet_:()=>members,findMemberById_:(sheet,id)=>members.rows.findIndex((row,i)=>i>0&&row[0]===id),
   getMpsDepositsSheet_:()=>deposits,
   findMpsDepositRow_:(sheet,ref)=>{for(let i=1;i<depositsRows.length;i++)if(depositsRows[i][0]===ref)return i+1;return 0;},
   getMpsMemberLinksSheet_:()=>links,
@@ -61,14 +69,17 @@ function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={
   vm.createContext(context);vm.runInContext(source.slice(linkStart,linkEnd),context,{timeout:1000});
  } else vm.createContext(context);
  vm.runInContext(driveAclSource,context,{timeout:1000});
+ vm.runInContext(idSource,context,{timeout:1000});
  vm.runInContext(saveSource,context,{timeout:1000});
  let uploaded=null,proofLinked=false;
  const payload={applicationRef:appRef,memberName:'Member Test',mt5Login:'12345678',accountType:'Standard',depositAmount:1000000,depositDate:'2026-11-11',proofMimeType:'image/png',proofBase64:'QUJDREVGR0g='};
- return {run:()=>context.saveDeposit_(null,payload,file=>{uploaded=file;},()=>{proofLinked=true;}),appsRows,depositsRows,linksRows,file,getUploaded:()=>uploaded,proofLinked:()=>proofLinked,state};
+ return {run:()=>context.saveDeposit_(null,payload,file=>{uploaded=file;},()=>{proofLinked=true;}),appsRows,depositsRows,plansRows,memberRows,linksRows,file,getUploaded:()=>uploaded,proofLinked:()=>proofLinked,state};
 }
 test('deposit success stores private proof, creates one-time link, and expires prior link',()=>{
  const h=depositHarness();const result=h.run();
  assert.equal(result.result.ok,true);assert.equal(h.proofLinked(),true);
+ assert.match(result.result.memberId,/^MPS-[A-F0-9]{10}$/);
+ assert.equal(h.appsRows[1][8],result.result.memberId,'Member ID is reserved after deposit proof is persisted');
  assert.equal(h.depositsRows.length,2);assert.equal(h.linksRows.length,3);
  assert.equal(h.linksRows[1][3],'Diganti');assert.equal(h.linksRows[2][3],'Menunggu');
  assert.equal(h.file.trashed,false);
