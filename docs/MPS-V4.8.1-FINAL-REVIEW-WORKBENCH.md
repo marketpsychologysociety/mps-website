@@ -12,3 +12,5 @@ This branch is isolated from production. It is the review candidate for the one-
 - Candidate Code.gs currently has registration and deposit flows with Rp500,000 minimum deposit, but the registration payload does not yet select a membership plan. Monthly Regular Member QRIS billing and authoritative Active IB status verification remain integration gates.
 - Do not merge or install into Apps Script until those gates are implemented and independently tested.
 - Existing production spreadsheet, Drive folders, Script Properties, Telegram bot, and Apps Script deployment must remain untouched.
+
+- Menu coverage test regex corrected after its first CI run exposed an escaping defect in the test itself.
