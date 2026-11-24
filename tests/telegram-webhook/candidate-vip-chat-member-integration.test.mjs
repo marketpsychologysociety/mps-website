@@ -259,7 +259,7 @@ test('sendVipInvite_ getChatMember observation never writes VIP status',()=>{
   CacheService:{getScriptCache:()=>({get:()=>null,put:()=>{},remove:()=>{}})},
   LockService:{getScriptLock:()=>({waitLock:()=>{locks++;},releaseLock:()=>{}})},
   getTelegramAccessSheet_:()=>access,findTelegramAccessByMemberId_:()=>2,
-  getMemberSheet_:()=>db,findMemberById_:()=>2,
+  getMemberSheet_:()=>db,findMemberById_:()=>2,memberHasActiveEntitlement_:()=>true,
   MPS:{headers:new Array(30)},MPS_COL:{registrationStatus:8,depositStatus:15},
   UrlFetchApp:{fetch:()=>({})},
   parseTelegramResponse_:()=>({ok:true,result:{status:'member',is_member:true}}),
