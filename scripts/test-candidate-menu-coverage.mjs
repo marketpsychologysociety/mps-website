@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 
 const html = fs.readFileSync('candidates/Index.html', 'utf8');
 const expected = ['home','register','deposit','dashboard','learning','pulse','calculator','vip','warning','news','advertise','admin'];
-const navPages = [...html.matchAll(/<button\\b[^>]*data-page="([^"]+)"/g)].map(m => m[1]);
-const sectionPages = [...html.matchAll(/<section\\b[^>]*id="page-([^"]+)"/g)].map(m => m[1]);
+const navPages = [...html.matchAll(/<button\b[^>]*data-page="([^"]+)"/g)].map(m => m[1]);
+const sectionPages = [...html.matchAll(/<section\b[^>]*id="page-([^"]+)"/g)].map(m => m[1]);
 
 for (const page of expected) {
   assert.ok(navPages.includes(page), 'Menu navigation missing: ' + page);
