@@ -373,7 +373,7 @@ test('unauthorized restricted member with is_member=true is also scheduled for r
  const access={getRange:()=>({getValues:()=>[accessData]})},db={getRange:()=>({getValues:()=>[memberData]})};
  const context={
   MPS:{headers:new Array(30)},MPS_COL:{id:1,registrationStatus:8,depositStatus:15,accountName:9,nickname:3},
-  getMpsExistingVipAccessSheetForTransition_:()=>access,getMemberSheet_:()=>db,
+  getMpsExistingVipAccessSheetForTransition_:()=>access,getMemberSheet_:()=>db,memberHasActiveEntitlement_:()=>false,
   findUniqueMpsTransitionRow_:()=>2,clean_:v=>String(v),isSafePublicIdentity_:()=>true
  };
  vm.createContext(context);vm.runInContext(resolverSource,context,{timeout:1000});
