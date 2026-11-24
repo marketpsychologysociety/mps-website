@@ -501,14 +501,17 @@ try {
   await iosContext.close();
 
   // Dedicated MPS Trading Calculator browser acceptance: live Indonesian number
-  // grouping, decimal comma, tab navigation, and a deterministic calculation.
+  // grouping, decimal comma, all ten current modules, tab navigation, and deterministic calculations.
   const calculatorResponse = await page.goto(base + '/prototypes/mps-trading-calculator/index.html', { waitUntil: 'domcontentloaded' });
   if (!calculatorResponse || calculatorResponse.status() !== 200) {
     failures.push('MPS Trading Calculator did not return HTTP 200');
   } else {
     const calculatorTabs = await page.locator('.tab').count();
-    if (calculatorTabs !== 8) failures.push('MPS Trading Calculator must expose all eight calculation modules');
-    const capitalInput = page.locator('#pCapital');
+    if (calculatorTabs !== 10) failures.push('MPS Trading Calculator must expose all ten current calculation modules; found ' + calculatorTabs);
+    const expectedTabs = ['budget','lot','pip','rr','convert','margin','growth','recovery','daily','cost'];
+    const actualTabs = await page.locator('.tab').evaluateAll(items => items.map(el => el.dataset.tab));
+    if (JSON.stringify(actualTabs) !== JSON.stringify(expectedTabs)) failures.push('MPS Trading Calculator tab order/IDs changed unexpectedly: ' + JSON.stringify(actualTabs));
+    const capitalInput = page.locator('#bCapital');
     await capitalInput.fill('1000000');
     const groupedCapital = await capitalInput.inputValue();
     if (groupedCapital !== '1.000.000') failures.push('Live Indonesian thousand grouping failed for 1000000: ' + groupedCapital);
@@ -516,15 +519,16 @@ try {
     const groupedDecimal = await capitalInput.inputValue();
     if (groupedDecimal !== '1.234,5') failures.push('Live Indonesian decimal-comma grouping failed for 1234,5: ' + groupedDecimal);
     await capitalInput.fill('10000000');
-    await page.locator('[data-calc="position"]').click();
-    const positionResult = await page.locator('#out-position').innerText();
-    if (!positionResult.includes('100.000')) failures.push('Position risk calculator did not calculate the expected Rp100.000 risk budget: ' + positionResult);
+    await page.locator('[data-calc="budget"]').click();
+    const budgetResult = await page.locator('#out-budget').innerText();
+    if (!budgetResult.includes('100.000')) failures.push('Budget calculator did not calculate the expected Rp100.000 risk budget: ' + budgetResult);
     await page.locator('[data-tab="rr"]').click();
     if (await page.locator('#rr').evaluate(el => !el.classList.contains('active'))) failures.push('Risk–Reward tab did not activate');
+    await page.locator('#qRatio').selectOption('2');
     await page.locator('[data-calc="rr"]').click();
     const rrResult = await page.locator('#out-rr').innerText();
-    if (!rrResult.includes('2')) failures.push('Risk–Reward calculator did not produce the expected 2:1 ratio: ' + rrResult);
-    await page.screenshot({ path: path.join(root, 'test-artifacts/trading-calculator-desktop.png'), fullPage: true });
+    if (!rrResult.includes('1 : 2')) failures.push('Risk–Reward calculator did not produce the expected 1:2 ratio: ' + rrResult);
+    await page.screenshot({ path: path.join(root, 'test-artifacts/trading-calculator-desktop.png', fullPage: true });
   }
 
   if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
