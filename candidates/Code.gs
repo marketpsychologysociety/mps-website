@@ -5370,7 +5370,7 @@ function apiSubmitRegularPayment(data) {
   let bytes;try{bytes=Utilities.base64Decode(base64);}catch(e){throw new Error('File bukti QRIS tidak dapat dibaca.');}
   if(!bytes||!bytes.length||bytes.length>MPS.maxProofBytes||!isValidImageSignature_(bytes,mime))throw new Error('Ukuran atau isi bukti QRIS tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(20000);
-  let proofFile=null,telegramLink=null,linkPrepared=null,paymentRef='',appRow=0,planRow=0,paymentRow=0,appBefore=null,planBefore=null,linkRowsBefore=[];
+  let proofFile=null,telegramLink=null,linkPrepared=null,paymentRef='',appRow=0,planRow=0,paymentRow=0,appBefore=null,planBefore=null,linkRowsBefore=[],committedResult=null,adminTelegramMessage='';
   try{
     const apps=getMpsApplicationsSheet_(),plans=getMpsMembershipPlansSheet_(),payments=getMpsRegularPaymentsSheet_();
     appRow=findMpsApplicationRow_(apps,ref);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
@@ -5400,7 +5400,8 @@ function apiSubmitRegularPayment(data) {
       apps.getRange(appRow,11).setValue(String(appBefore[10]||'')==='Terverifikasi'?'Terverifikasi':'Menunggu Verifikasi Telegram');
       apps.getRange(appRow,15).setValue(now);
       try{recordMpsAudit_('PUBLIC','APPLICATION','REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Bukti QRIS Rp100.000 tersimpan privat; terpisah dari deposit Exness.');}catch(auditErr){console.warn('Regular QRIS audit write deferred: '+safeErrorMessage_(auditErr));}
-      return {ok:true,applicationRef:ref,paymentRef:paymentRef,memberId:memberId,status:'Bukti QRIS tersimpan. Pembayaran menunggu pemeriksaan Admin.',telegramUrl:telegramLink?telegramLink.url:'',telegramExpiresAt:telegramLink?telegramLink.expiresAt:''};
+      committedResult={ok:true,applicationRef:ref,paymentRef:paymentRef,memberId:memberId,status:'Bukti QRIS tersimpan. Pembayaran menunggu pemeriksaan Admin.',telegramUrl:telegramLink?telegramLink.url:'',telegramExpiresAt:telegramLink?telegramLink.expiresAt:''};
+      adminTelegramMessage='💳 PEMBAYARAN REGULAR MPS\nApplication Ref: '+ref+'\nPayment Ref: '+paymentRef+'\nMember ID sementara: '+memberId+'\nNama: '+String(appBefore[2]||'')+'\nTelegram: '+String(appBefore[3]||'')+'\nNominal: Rp100.000\nStatus: Menunggu Validasi Admin';
     }catch(writeError){
       const rollbackErrors=[];
       try{const pr=findMpsRegularPaymentByRef_(payments,paymentRef);if(pr)payments.deleteRow(pr);}catch(e){rollbackErrors.push('baris pembayaran: '+safeErrorMessage_(e));}
@@ -5418,6 +5419,8 @@ function apiSubmitRegularPayment(data) {
     }
     throw err;
   }finally{lock.releaseLock();}
+  if(committedResult&&adminTelegramMessage){let notified={ok:false};try{notified=sendTelegram_(adminTelegramMessage);}catch(tgErr){notified={ok:false};}committedResult.telegramNotified=!!notified.ok;if(!notified.ok)committedResult.telegramWarning='Bukti QRIS tersimpan, tetapi backup Telegram Admin gagal dikirim.';}
+  return committedResult||{ok:false,error:'Pembayaran Regular tidak dapat dipastikan tersimpan.'};
 }
 
 /** Return the Admin-only QRIS review queue without exposing proof URLs or file IDs. */
