@@ -321,19 +321,19 @@ document.addEventListener("DOMContentLoaded", function () {
     style.textContent = `
       #mpsTradingAwareness{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:18px;background:rgba(2,5,12,.88);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
       #mpsTradingAwareness[hidden]{display:none}
-      #mpsTradingAwareness .mps-ta-panel{position:relative;width:min(720px,100%);max-height:min(90dvh,900px);overflow:auto;border:1px solid rgba(244,189,69,.58);border-radius:20px;background:radial-gradient(ellipse at 50% 0%,rgba(244,189,69,.13),transparent 45%),linear-gradient(150deg,#111a2a,#070b14 72%);box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 35px rgba(244,189,69,.1);color:#edf2fa;padding:clamp(22px,4vw,36px)}
-      #mpsTradingAwareness .mps-ta-kicker{display:flex;align-items:center;justify-content:center;gap:9px;color:#f4bd45;font-size:10px;font-weight:900;letter-spacing:.2em;text-align:center}
-      #mpsTradingAwareness .mps-ta-symbol{display:grid;place-items:center;width:48px;height:48px;margin:17px auto 12px;border:1px solid rgba(244,189,69,.6);border-radius:50%;color:#f4bd45;font-size:25px;box-shadow:0 0 24px rgba(244,189,69,.15)}
+      #mpsTradingAwareness .mps-ta-panel{position:relative;width:min(720px,100%);max-height:min(90dvh,900px);overflow:auto;border:1px solid rgba(255,55,72,.9);border-radius:20px;background:radial-gradient(ellipse at 50% 0%,rgba(255,35,55,.2),transparent 45%),linear-gradient(150deg,#111a2a,#070b14 72%);box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 42px rgba(255,35,55,.24);color:#edf2fa;padding:clamp(22px,4vw,36px)}
+      #mpsTradingAwareness .mps-ta-kicker{display:flex;align-items:center;justify-content:center;gap:9px;color:#ff4657;font-size:10px;font-weight:900;letter-spacing:.2em;text-align:center}
+      #mpsTradingAwareness .mps-ta-symbol{display:grid;place-items:center;width:48px;height:48px;margin:17px auto 12px;border:1px solid rgba(255,55,72,.9);border-radius:50%;color:#ff4657;font-size:25px;box-shadow:0 0 28px rgba(255,35,55,.32)}
       #mpsTradingAwareness h2{margin:0;text-align:center;color:#fff;font-size:clamp(21px,4vw,30px);line-height:1.2;letter-spacing:.035em}
       #mpsTradingAwareness .mps-ta-intro{max-width:570px;margin:12px auto 22px;text-align:center;color:#b8c4d5;font-size:13px;line-height:1.75}
       #mpsTradingAwareness .mps-ta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
-      #mpsTradingAwareness .mps-ta-item{min-width:0;padding:15px;border:1px solid rgba(148,163,184,.2);border-radius:13px;background:rgba(255,255,255,.035)}
-      #mpsTradingAwareness .mps-ta-item strong{display:block;margin-bottom:6px;color:#f4bd45;font-size:12px;letter-spacing:.045em}
+      #mpsTradingAwareness .mps-ta-item{min-width:0;padding:15px;border:1px solid rgba(255,75,90,.28);border-radius:13px;background:rgba(255,255,255,.035)}
+      #mpsTradingAwareness .mps-ta-item strong{display:block;margin-bottom:6px;color:#ff4657;font-size:12px;letter-spacing:.045em}
       #mpsTradingAwareness .mps-ta-item p{margin:0;color:#c2ccda;font-size:12px;line-height:1.65}
-      #mpsTradingAwareness .mps-ta-disclaimer{margin:16px 0;padding:13px 14px;border-left:3px solid #e45a55;border-radius:7px;background:rgba(228,90,85,.08);color:#e2d7d7;font-size:11px;line-height:1.7}
+      #mpsTradingAwareness .mps-ta-disclaimer{margin:16px 0;padding:13px 14px;border:1px solid rgba(255,55,72,.42);border-left:4px solid #ff354b;border-radius:7px;background:linear-gradient(110deg,rgba(255,38,58,.16),rgba(255,38,58,.055));color:#e2d7d7;font-size:11px;line-height:1.7}
       #mpsTradingAwareness .mps-ta-confirm{display:flex;align-items:flex-start;gap:10px;margin:17px 0 13px;color:#dce5f1;font-size:12px;line-height:1.55;cursor:pointer}
-      #mpsTradingAwareness .mps-ta-confirm input{width:18px;height:18px;flex:0 0 18px;margin:1px 0 0;accent-color:#f4bd45}
-      #mpsTradingAwareness .mps-ta-enter{display:block;width:100%;min-height:48px;border:1px solid #f4bd45;border-radius:999px;background:linear-gradient(135deg,#f4bd45,#d99a27);color:#17130a;font-family:inherit;font-size:12px;font-weight:900;line-height:1.2;letter-spacing:.08em;cursor:pointer;transition:filter .2s,transform .2s}
+      #mpsTradingAwareness .mps-ta-confirm input{width:18px;height:18px;flex:0 0 18px;margin:1px 0 0;accent-color:#ff4657}
+      #mpsTradingAwareness .mps-ta-enter{display:block;width:100%;min-height:48px;border:1px solid #ff354b;border-radius:999px;background:linear-gradient(135deg,#ff354b,#b5122a);color:#fff;font-family:inherit;font-size:12px;font-weight:900;line-height:1.2;letter-spacing:.08em;cursor:pointer;transition:filter .2s,transform .2s}
       #mpsTradingAwareness .mps-ta-enter:disabled{filter:grayscale(.75);opacity:.45;cursor:not-allowed}
       #mpsTradingAwareness .mps-ta-enter:not(:disabled):active{transform:scale(.99)}
       #mpsTradingAwareness .mps-ta-foot{margin:12px 0 0;text-align:center;color:#77869c;font-size:9px;letter-spacing:.12em}
@@ -349,9 +349,9 @@ document.addEventListener("DOMContentLoaded", function () {
     overlay.setAttribute('aria-describedby','mpsTaIntro');
     overlay.innerHTML = `
       <section class="mps-ta-panel" role="document">
-        <div class="mps-ta-kicker">MARKET PSYCHOLOGY SOCIETY <span aria-hidden="true">✦</span> TRADING AWARENESS</div>
+        <div class="mps-ta-kicker">MARKET PSYCHOLOGY SOCIETY <span aria-hidden="true">✦</span> PERINGATAN KESELAMATAN TRADING</div>
         <div class="mps-ta-symbol" aria-hidden="true">⚠</div>
-        <h2 id="mpsTaTitle">BACA SEBELUM ANDA TRADING</h2>
+        <h2 id="mpsTaTitle">PERINGATAN RISIKO PERDAGANGAN</h2>
         <p class="mps-ta-intro" id="mpsTaIntro">Sebelum melanjutkan, ingat bahwa tujuan utama proses trading bukan sekadar mencari entry, melainkan menjaga kualitas keputusan, disiplin, dan pengelolaan risiko.</p>
         <div class="mps-ta-grid">
           <article class="mps-ta-item"><strong>01 · PAHAMI RISIKO</strong><p>Trading memiliki risiko tinggi. Anda dapat kehilangan sebagian atau seluruh modal. Gunakan hanya dana yang sanggup Anda tanggung risikonya.</p></article>
