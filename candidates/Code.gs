@@ -697,10 +697,12 @@ function activateMemberAfterPin_(memberId) {
     try{
       memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberNext]);
       if(appRow){apps.getRange(appRow,8).setValue('Berhasil');apps.getRange(appRow,15).setValue(now);}
-      if(depRow){depSheet.getRange(depRow,10).setValue('Berhasil');depSheet.getRange(depRow,14).setValue(now);}\n      if(planRow&&String(planSnapshot[7]||'')==='Menunggu Aktivasi'){planSheet.getRange(planRow,8).setValue('Aktif');planSheet.getRange(planRow,9).setValue(now);planSheet.getRange(planRow,10).setValue(new Date(now.getTime()+30*86400000));planSheet.getRange(planRow,12).setValue(now);}
+      if(depRow){depSheet.getRange(depRow,10).setValue('Berhasil');depSheet.getRange(depRow,14).setValue(now);}
+      if(planRow&&String(planSnapshot[7]||'')==='Menunggu Aktivasi'){planSheet.getRange(planRow,8).setValue('Aktif');planSheet.getRange(planRow,9).setValue(now);planSheet.getRange(planRow,10).setValue(new Date(now.getTime()+30*86400000));planSheet.getRange(planRow,12).setValue(now);}
     }catch(writeErr){
       const rollbackErrors=[];
-      if(depRow&&depSnapshot)try{depSheet.getRange(depRow,1,1,depSnapshot.length).setValues([depSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}\n      if(planRow&&planSnapshot)try{planSheet.getRange(planRow,1,1,planSnapshot.length).setValues([planSnapshot]);}catch(e){rollbackErrors.push('membership plan: '+safeErrorMessage_(e));}
+      if(depRow&&depSnapshot)try{depSheet.getRange(depRow,1,1,depSnapshot.length).setValues([depSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
+      if(planRow&&planSnapshot)try{planSheet.getRange(planRow,1,1,planSnapshot.length).setValues([planSnapshot]);}catch(e){rollbackErrors.push('membership plan: '+safeErrorMessage_(e));}
       if(appRow&&appSnapshot)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
       if(memberRow&&memberBefore)try{memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberBefore]);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}
       if(rollbackErrors.length)throw new Error('Aktivasi gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
