@@ -41,11 +41,11 @@
     const url = cfg.links && cfg.links[key];
     if (url) {
       link.href = url;
-    } else if (key === "whatsapp" && cfg.links && cfg.links.telegram) {
-      // Avoid a dead "#" contact button when WhatsApp has not been configured.
-      link.href = cfg.links.telegram;
-      link.setAttribute("aria-label", "Hubungi MPS melalui Telegram");
-      link.title = "Hubungi MPS melalui Telegram";
+    } else if (key === "whatsapp" && cfg.links && cfg.links.email) {
+      // The former contact shortcut must never silently redirect users to a personal Telegram account.
+      link.href = cfg.links.email;
+      link.setAttribute("aria-label", "Hubungi MPS melalui Email");
+      link.title = "Hubungi MPS melalui Email";
     }
   });
   document.querySelectorAll("[data-rebate='max']").forEach(el => {
