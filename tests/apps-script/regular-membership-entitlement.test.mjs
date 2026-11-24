@@ -205,3 +205,43 @@ test('Regular activation loads and validates its plan ledger before setting the 
   assert.match(activation,/planSheet\.getRange\(planRow,10\)\.setValue\(new Date\(now\.getTime\(\)\+30\*86400000\)\)/);
   assert.match(activation,/if\(planRow&&String\(planSnapshot\[7\]\|\|'\)==='Menunggu Aktivasi'\)/);
 });
+
+test('Regular PIN confirmation activates the member and starts the 30-day ledger without touching Exness deposits',()=>{
+  const memberId='MPS-ABCDEF1234',ref='MPS-APP-0123456789ABCDEF0123';
+  const member=new Array(30).fill('');
+  member[0]=memberId;member[7]='Menunggu Aktivasi';member[14]='Tidak Berlaku - Regular QRIS';member[24]=ref;
+  const app=new Array(15).fill('');app[0]=ref;app[7]='Menunggu Aktivasi';app[8]=memberId;
+  const plan=[ref,'REGULAR',new Date(),100000,'NOT_REQUIRED','','','Menunggu Aktivasi',new Date(),'','',new Date()];
+  const members=[new Array(30).fill(''),member],apps=[new Array(15).fill(''),app],plans=[new Array(12).fill(''),plan];
+  const makeSheet=rows=>({getRange(r,c,n=1,w=1){return{
+    getValues:()=>Array.from({length:n},(_,i)=>rows[r-1+i].slice(c-1,c-1+w)),
+    setValue:v=>{rows[r-1][c-1]=v;},
+    setValues:values=>values.forEach((line,i)=>line.forEach((v,j)=>{rows[r-1+i][c-1+j]=v;}))
+  };}});
+  const memberSheet=makeSheet(members),appSheet=makeSheet(apps),planSheet=makeSheet(plans);
+  const ctx={
+    Date,Number,String,Array,
+    MPS:{headers:new Array(30)},
+    MPS_COL:{registrationStatus:8,depositStatus:15},
+    MPS_APPLICATIONS:{sheet:'MPS Applications',headers:new Array(15)},
+    MPS_MEMBERSHIP_PLANS:{headers:new Array(12)},
+    LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},
+    PropertiesService:{getScriptProperties:()=>({getProperty:key=>key==='MPS_PIN_DELIVERED_'+memberId?'1':key==='PIN_HASH_'+memberId?'salted-pin':''})},
+    getMemberSheet_:()=>memberSheet,findMemberById_:()=>2,
+    mpsRegularMemberState_:()=>({isRegular:true,approved:true,active:false,pending:true,planRow:2}),
+    getMpsMembershipPlansSheet_:()=>planSheet,findMpsPlanRow_:()=>2,
+    openDatabase_:()=>({getSheetByName:()=>({})}),
+    getMpsApplicationsSheet_:()=>appSheet,findMpsApplicationRowByMember_:()=>2,
+    getMpsDepositsSheet_:()=>{throw new Error('Regular activation must not access Exness deposits');},
+    pinPropertyKey_:()=> 'PIN_HASH_'+memberId,
+    removeMpsCacheBestEffort_:()=>true,safeErrorMessage_:e=>String(e&&e.message||e)
+  };
+  vm.createContext(ctx);vm.runInContext(functionSource('activateMemberAfterPin_'),ctx);
+  assert.equal(ctx.activateMemberAfterPin_(memberId),true);
+  assert.equal(members[1][7],'Berhasil');
+  assert.equal(apps[1][7],'Berhasil');
+  assert.equal(plans[1][7],'Aktif');
+  assert.ok(plans[1][9] instanceof Date);
+  assert.ok(plans[1][9].getTime()-plans[1][8].getTime()>=30*86400000-1000);
+  assert.equal(member[14],'Tidak Berlaku - Regular QRIS');
+});
