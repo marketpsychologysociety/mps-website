@@ -4037,6 +4037,74 @@ function apiAdminCreateBackup(session) {
   return {ok:true,backupId:copy.getId(),name:copy.getName(),url:copy.getUrl(),message:'Backup spreadsheet berhasil dibuat dan integritas Database Member diverifikasi. File asli tidak diubah.',auditWarning:auditWritten?'':'Penulisan atau pemeliharaan audit log tidak dapat dikonfirmasi; Super Admin perlu memeriksa MPS Audit Logs.'};
 }
 
+
+/**
+ * Creates a private recovery candidate from the last verified database backup.
+ * It NEVER changes MPS_SPREADSHEET_ID or overwrites the active database.
+ * This restores the spreadsheet only; Drive proof files, Learning assets,
+ * Script Properties, Apps Script source, triggers and Telegram webhook require
+ * their own recovery procedures.
+ */
+function apiAdminPrepareDatabaseRestore(session) {
+  requireSuperAdmin_(session);
+  consumeRateLimit_('mps_restore_candidate_global',1,21600,'Pembuatan kandidat pemulihan dibatasi satu kali per 6 jam.');
+  const props=PropertiesService.getScriptProperties();
+  const backupId=String(props.getProperty('MPS_LAST_BACKUP_ID')||'').trim();
+  const activeId=String(props.getProperty('MPS_SPREADSHEET_ID')||'').trim();
+  if(!backupId||!activeId)throw new Error('ID database aktif atau backup terakhir belum tersedia.');
+  if(backupId===activeId)throw new Error('Backup ID tidak boleh sama dengan database aktif.');
+  const backup=DriveApp.getFileById(backupId);
+  if(backup.getMimeType()!=='application/vnd.google-apps.spreadsheet'||!/^MPS DATABASE BACKUP /.test(backup.getName()))throw new Error('File terakhir bukan backup database MPS yang dikenali.');
+  if(String(backup.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Backup tidak PRIVATE. Kandidat pemulihan dibatalkan.');
+  const backupBook=SpreadsheetApp.openById(backupId),backupMembers=backupBook.getSheetByName(MPS.sheetName);
+  if(!backupMembers)throw new Error('Backup tidak memiliki sheet Database Member.');
+  const columns=backupMembers.getLastColumn(),rows=backupMembers.getLastRow();
+  const expected=columns===18?MPS.headers.slice(0,18):(columns===MPS.headers.length?MPS.headers.slice():null);
+  if(!expected||rows<1)throw new Error('Skema backup Database Member harus tepat 18 atau 30 kolom.');
+  const headers=backupMembers.getRange(1,1,1,columns).getDisplayValues()[0].map(v=>String(v||'').trim());
+  if(expected.some((h,i)=>headers[i]!==h))throw new Error('Header backup tidak cocok; pemulihan dibatalkan.');
+  const sheetMeta=backupBook.getSheets().map(sh=>({name:sh.getName(),rows:sh.getLastRow(),columns:sh.getLastColumn()}));
+  const range=backupMembers.getRange(1,1,rows,columns);
+  const fingerprint=sha256_(JSON.stringify({rows:rows,columns:columns,values:range.getValues(),formulas:range.getFormulas()}));
+  const stamp=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyyMMdd-HHmmss');
+  const candidate=backup.makeCopy('MPS DATABASE RESTORE CANDIDATE '+stamp);
+  try {
+    candidate.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+    if(String(candidate.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Kandidat pemulihan tidak dapat dipastikan PRIVATE.');
+    const restored=SpreadsheetApp.openById(candidate.getId()),restoredSheets=restored.getSheets();
+    if(restoredSheets.length!==sheetMeta.length)throw new Error('Jumlah sheet kandidat berbeda dari backup.');
+    sheetMeta.forEach(meta=>{
+      const sh=restored.getSheetByName(meta.name);
+      if(!sh||sh.getLastRow()!==meta.rows||sh.getLastColumn()!==meta.columns)throw new Error('Dimensi atau identitas sheet '+meta.name+' berbeda dari backup.');
+    });
+    const restoredMembers=restored.getSheetByName(MPS.sheetName);
+    if(!restoredMembers)throw new Error('Database Member tidak ditemukan pada kandidat pemulihan.');
+    const restoredHeaders=restoredMembers.getRange(1,1,1,columns).getDisplayValues()[0].map(v=>String(v||'').trim());
+    if(expected.some((h,i)=>restoredHeaders[i]!==h))throw new Error('Header kandidat pemulihan tidak cocok.');
+    const restoredRange=restoredMembers.getRange(1,1,rows,columns);
+    const restoredFingerprint=sha256_(JSON.stringify({rows:restoredMembers.getLastRow(),columns:restoredMembers.getLastColumn(),values:restoredRange.getValues(),formulas:restoredRange.getFormulas()}));
+    if(restoredFingerprint!==fingerprint)throw new Error('Fingerprint Database Member kandidat tidak sama dengan backup.');
+    if(String(candidate.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Privasi kandidat pemulihan berubah saat verifikasi.');
+    if(String(props.getProperty('MPS_SPREADSHEET_ID')||'')!==activeId)throw new Error('Database aktif berubah selama proses. Kandidat tidak diaktifkan.');
+  } catch(err) {
+    let cleanup='';try{candidate.setTrashed(true);}catch(cleanupErr){cleanup=' File kandidat gagal verifikasi mungkin masih ada di Drive; Super Admin wajib memeriksa.';}
+    throw new Error('Kandidat pemulihan tidak lolos verifikasi: '+safeErrorMessage_(err)+cleanup);
+  }
+  const previousId=props.getProperty('MPS_LAST_RESTORE_CANDIDATE_ID'),previousAt=props.getProperty('MPS_LAST_RESTORE_CANDIDATE_AT');
+  try {
+    props.setProperty('MPS_LAST_RESTORE_CANDIDATE_ID',candidate.getId());
+    props.setProperty('MPS_LAST_RESTORE_CANDIDATE_AT',new Date().toISOString());
+  } catch(err) {
+    const rollback=[];
+    try{if(previousId)props.setProperty('MPS_LAST_RESTORE_CANDIDATE_ID',previousId);else props.deleteProperty('MPS_LAST_RESTORE_CANDIDATE_ID');}catch(e){rollback.push('ID kandidat: '+safeErrorMessage_(e));}
+    try{if(previousAt)props.setProperty('MPS_LAST_RESTORE_CANDIDATE_AT',previousAt);else props.deleteProperty('MPS_LAST_RESTORE_CANDIDATE_AT');}catch(e){rollback.push('waktu kandidat: '+safeErrorMessage_(e));}
+    try{candidate.setTrashed(true);}catch(e){rollback.push('file kandidat: '+safeErrorMessage_(e));}
+    throw new Error('Kandidat dibuat tetapi metadata gagal disimpan. '+(rollback.length?'Rollback perlu rekonsiliasi: '+rollback.join('; '):'File kandidat dipindahkan ke Trash.')+' '+safeErrorMessage_(err));
+  }
+  const audit=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'DATABASE_RESTORE_CANDIDATE',candidate.getId(),'SUCCESS','Kandidat pemulihan spreadsheet dibuat dari backup terakhir; fingerprint Database Member dan privasi diverifikasi. Database aktif tidak diubah.');
+  return {ok:true,candidateId:candidate.getId(),name:candidate.getName(),url:candidate.getUrl(),activeDatabaseChanged:false,message:'Kandidat pemulihan spreadsheet berhasil dibuat dan diverifikasi. Database aktif tetap tidak berubah. Ini bukan pemulihan penuh: file bukti, Learning, Script Properties, source Apps Script, trigger, dan webhook Telegram tidak ikut dipulihkan.',auditWarning:audit?'':'Audit log perlu diperiksa Super Admin.'};
+}
+
 function assertSheetHeaders_(sheet,headers,name) {
   if(!sheet)return;
   if(sheet.getLastRow()<1)throw new Error('Header sheet '+name+' belum tersedia. Tidak ada data yang dihapus.');
