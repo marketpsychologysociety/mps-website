@@ -422,21 +422,36 @@ function registerMember_(sheet, data, onCommitStarted) {
   const country = clean_(data.country, 60);
   const goal = clean_(data.goal, 100);
   const note = clean_(data.note, 500);
+  const requestedPlan=String(data.membershipPlan||'ACTIVE_IB').trim().toUpperCase();
+  if(!['REGULAR','ACTIVE_IB'].includes(requestedPlan))throw new Error('Pilih jenis keanggotaan MPS yang valid.');
   if (!nickname || !country || !goal) throw new Error('Lengkapi nama panggilan, negara, dan tujuan bergabung.');
   if (telegram && !/^@[A-Za-z0-9_]{5,32}$/.test(telegram)) throw new Error('Username Telegram tidak valid.');
   const apps = getMpsApplicationsSheet_();
+  const plans=getMpsMembershipPlansSheet_();
   if(telegram){
     const memberSheet=getMemberSheet_(),existingMember=findMemberRow_(memberSheet,telegram);
     if(existingMember)throw new Error('Username Telegram sudah terhubung dengan data member MPS. Hubungi admin jika perlu memperbarui pendaftaran.');
     if(apps.getLastRow()>1){const pending=apps.getRange(2,4,apps.getLastRow()-1,5).getDisplayValues();for(let i=0;i<pending.length;i++){const saved=normalizeTelegram_(pending[i][0]),status=String(pending[i][4]||'');if(saved&&saved.toLowerCase()===telegram.toLowerCase()&&!['Deposit Ditolak','Ditolak','Dibatalkan'].includes(status))throw new Error('Username Telegram sudah digunakan pada pengajuan MPS yang masih berjalan.');}}
   }
   const applicationRef = 'MPS-APP-' + Utilities.getUuid().replace(/-/g, '').slice(0, 20).toUpperCase();
-  const now = new Date();
+  if(findMpsPlanRow_(plans,applicationRef))throw new Error('Application Ref bentrok dengan catatan paket yang sudah ada. Ulangi pendaftaran.');
+  const now = new Date(),monthlyFee=requestedPlan==='REGULAR'?100000:0;
+  const appRow=apps.getLastRow()+1,planRow=plans.getLastRow()+1;
   if(typeof onCommitStarted==='function')onCommitStarted();
-  apps.appendRow([applicationRef, now, sheetText_(nickname), sheetText_(telegram), sheetText_(country),
-    sheetText_(goal), sheetText_(note), 'Menunggu Deposit', '', '', 'Belum Terhubung', '', '', '', now]);
+  try {
+    apps.appendRow([applicationRef, now, sheetText_(nickname), sheetText_(telegram), sheetText_(country),
+      sheetText_(goal), sheetText_(note), 'Menunggu Deposit', '', '', 'Belum Terhubung', '', '', '', now]);
+    plans.appendRow([applicationRef,requestedPlan,now,monthlyFee,requestedPlan==='ACTIVE_IB'?'PENDING':'NOT_REQUIRED','','',requestedPlan==='REGULAR'?'Menunggu Pembayaran':'Menunggu Deposit','','','',now]);
+  } catch(writeError) {
+    // Compensate only the exact rows reserved by this locked request. Never
+    // clear a sheet or touch existing member rows.
+    try { const pr=findMpsPlanRow_(plans,applicationRef);if(pr)plans.deleteRow(pr); } catch(cleanPlanError) { console.error('MPS plan-row compensation requires reconciliation.'); }
+    try { const ar=findMpsApplicationRow_(apps,applicationRef);if(ar)apps.deleteRow(ar); } catch(cleanAppError) { console.error('MPS application-row compensation requires reconciliation.'); }
+    writeError.message='Pendaftaran belum dapat dipastikan tersimpan. Jika Application Ref sudah tercatat, Admin harus merekonsiliasi sebelum pengiriman ulang. '+String(writeError.message||writeError);
+    throw writeError;
+  }
   return {
-    result: { ok: true, applicationRef: applicationRef, status: 'Pendaftaran tersimpan. Silakan lanjutkan konfirmasi deposit menggunakan Application Ref ini.' },
+    result: { ok: true, applicationRef: applicationRef, membershipPlan:requestedPlan, status:requestedPlan==='REGULAR'?'Pendaftaran Regular tersimpan. Lanjutkan pembayaran QRIS Rp100.000 menggunakan Application Ref ini.':'Pendaftaran Active IB tersimpan. Lanjutkan konfirmasi deposit Exness minimal Rp500.000 menggunakan Application Ref ini.' },
     telegramMessage: ''
   };
 }
