@@ -84,6 +84,7 @@ test('Regular Admin review requires Telegram and proof, then stores a separate e
   assert.match(review,/MPS_MEMBERSHIP_PLANS/);
   assert.match(review,/Tidak Berlaku - Regular QRIS/);
   assert.match(review,/apiAdminIssuePin\(session,memberId\)/);
+  assert.match(review,/telegramSendToChat_\(chatId/);
   assert.doesNotMatch(review,/getMpsDepositsSheet_|MPS_DEPOSITS|depositRow/);
 });
 
@@ -150,6 +151,8 @@ test('Admin renewal approval verifies proof and extends from the later of now or
   assert.match(review,/periodEnd=new Date\(periodStart\.getTime\(\)\+30\*86400000\)/);
   assert.match(review,/setValue\('Aktif'\)|\['Aktif',now,periodEnd/);
   assert.match(review,/MPS_REGULAR_RENEWALS/);
+  assert.match(review,/telegramSendToChat_\(chatId/);
+  assert.match(html,/notificationWarning/);
   assert.doesNotMatch(review,/MPS_DEPOSITS|depositStatus-1\).*Disetujui/);
 });
 
