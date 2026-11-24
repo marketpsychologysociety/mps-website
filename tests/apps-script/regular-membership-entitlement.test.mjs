@@ -186,3 +186,12 @@ test('renewal-only member portal is wired to private QRIS proof and separate Adm
   assert.match(html,/tidak mendeteksi pembayaran otomatis/);
   assert.match(html,/renewalOnly/);
 });
+
+test('Regular QRIS activation does not require or create an Exness deposit row',()=>{
+  const activation=functionSource('activateMemberAfterPin_');
+  assert.match(activation,/const isRegularMember=String\(memberBefore\[MPS_COL\.depositStatus-1\]\)==='Tidak Berlaku - Regular QRIS'/);
+  assert.match(activation,/if\(applicationRef&&!isRegularMember\)\{/);
+  assert.match(activation,/depSheet=getMpsDepositsSheet_\(\);depRow=findMpsDepositRow_\(depSheet,applicationRef\)/);
+  assert.doesNotMatch(activation,/if\(applicationRef\)\{\s*depSheet=getMpsDepositsSheet_/);
+  assert.match(activation,/if\(planRow&&String\(planSnapshot\[7\]\|\|'\)==='Menunggu Aktivasi'\)/);
+});
