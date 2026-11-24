@@ -2013,6 +2013,8 @@ function setupTelegram_() {
   const vipChatId = String(props.getProperty('MPS_TELEGRAM_VIP_CHAT_ID') || '').trim();
   if (!/^-?\d+$/.test(adminChatId)) throw new Error('MPS_TELEGRAM_CHAT_ID admin wajib diisi manual dengan chat ID admin yang sudah diverifikasi.');
   if (vipChatId && !/^-?\d+$/.test(vipChatId)) throw new Error('MPS_TELEGRAM_VIP_CHAT_ID tidak valid.');
+  // Fail closed: never point Telegram at a deployment whose durable webhook/VIP stores are incomplete.
+  assertMpsTelegramWebhookStorageReady_();
   let webhookSecret = props.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET');
   if (!webhookSecret || webhookSecret.length < 32) {
     webhookSecret = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
@@ -3232,6 +3234,50 @@ function inspectMpsVipTransitionStorageSchemas_(ss,store) {
  * Read-only schema preflight for the explicit v4.8 member-sheet migration.
  * This function never writes, formats, migrates, provisions, or acquires a lock.
  */
+/**
+ * Strict preflight before installing the Telegram webhook.
+ * Unlike the read-only UI preflight, this requires every runtime dependency
+ * to exist already. It performs no creation, migration, or property writes.
+ */
+function assertMpsTelegramWebhookStorageReady_() {
+  const props=PropertiesService.getScriptProperties();
+  const spreadsheetId=String(props.getProperty('MPS_SPREADSHEET_ID')||'').trim();
+  if(!spreadsheetId)throw new Error('MPS_SPREADSHEET_ID belum dikonfigurasi; webhook tidak diaktifkan.');
+  const ss=SpreadsheetApp.openById(spreadsheetId);
+  const memberSheet=ss.getSheetByName(MPS.sheetName);
+  if(!memberSheet)throw new Error('Database Member belum tersedia; webhook tidak diaktifkan.');
+  validateHeaders_(memberSheet);
+  const required=[MPS_APPLICATIONS,MPS_DEPOSITS,MPS_MEMBER_LINKS,MPS_REQUEST_LEDGER,
+    MPS_MEMBERSHIP_PLANS,MPS_REGULAR_PAYMENTS,MPS_REGULAR_RENEWALS,
+    MPS_TELEGRAM_UPDATE_JOURNAL,MPS_VIP_FOLLOWUP_QUEUE];
+  required.forEach(function(def){
+    const sh=ss.getSheetByName(def.sheet);
+    if(!sh||sh.getLastRow()<1)throw new Error('Storage Telegram belum lengkap: '+def.sheet+' belum diprovisikan; webhook tidak diaktifkan.');
+    const actual=sh.getRange(1,1,1,def.headers.length).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+    if(def.headers.some(function(h,i){return actual[i]!==h;}))throw new Error('Header storage Telegram tidak cocok: '+def.sheet+'; webhook tidak diaktifkan.');
+  });
+  const store=createMpsGasVipTransitionStore_({spreadsheetId:spreadsheetId});
+  const storage=inspectMpsVipTransitionStorageSchemas_(ss,store);
+  if(!storage.ok)throw new Error('Storage transisi VIP tidak valid: '+storage.message+' Webhook tidak diaktifkan.');
+  const incomplete=storage.checks.filter(function(item){
+    if(!item.ok)return true;
+    if(item.name==='MPS Audit Logs'||item.name==='MPS VIP Ticker Events')return item.state!=='ALREADY_MIGRATED';
+    return item.state!=='LEGACY_READY';
+  });
+  if(incomplete.length)throw new Error('Storage webhook/VIP belum selesai dipersiapkan: '+incomplete.map(function(x){return x.name+' ('+x.state+')';}).join(', ')+'. Jalankan PREPARE VIP TRANSITION STORAGE dan ulangi preflight; webhook tidak diaktifkan.');
+  const vipAccess=ss.getSheetByName('VIP Access');
+  const vipHeaders=['ID Member','Telegram User ID','Chat ID','Username','Nama Depan','Terhubung','Status VIP','Invite Link','Invite Expiry','Joined At','Error Terakhir'];
+  if(!vipAccess||vipAccess.getLastRow()<1||vipAccess.getLastColumn()!==vipHeaders.length)throw new Error('Sheet VIP Access belum siap; webhook tidak diaktifkan.');
+  const actualVip=vipAccess.getRange(1,1,1,vipHeaders.length).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+  if(vipHeaders.some(function(h,i){return actualVip[i]!==h;}))throw new Error('Header VIP Access tidak cocok; webhook tidak diaktifkan.');
+  const telegramLinks=ss.getSheetByName('Telegram Links');
+  const telegramHeaders=['Token Hash','Dibuat','Kedaluwarsa','Status','Telegram User ID','Chat ID','Username','Nama Depan','Dikonsumsi'];
+  if(!telegramLinks||telegramLinks.getLastRow()<1||telegramLinks.getLastColumn()!==telegramHeaders.length)throw new Error('Sheet Telegram Links belum siap; webhook tidak diaktifkan.');
+  const actualLinks=telegramLinks.getRange(1,1,1,telegramHeaders.length).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+  if(telegramHeaders.some(function(h,i){return actualLinks[i]!==h;}))throw new Error('Header Telegram Links tidak cocok; webhook tidak diaktifkan.');
+  return true;
+}
+
 function apiAdminInspectMemberSchemaV480(session) {
   requireSuperAdmin_(session);
   const ss=openDatabase_();
