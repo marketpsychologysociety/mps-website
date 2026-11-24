@@ -176,5 +176,7 @@ test('renewal-only member portal is wired to private QRIS proof and separate Adm
   assert.match(html,/apiGetRegularRenewalInfo/);
   assert.match(html,/apiAdminReviewRegularRenewal/);
   assert.match(html,/id="adminRegularRenewals"/);
+  assert.match(html,/https:\/\/one\.toexness\.com\/a\/bdthbxwb2q\?platform=mobile/);
+  assert.match(html,/bukan dibayarkan kepada MPS/);
   assert.match(html,/renewalOnly/);
 });
