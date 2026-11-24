@@ -2398,7 +2398,7 @@ function processVipJoinRequest_(request,update) {
       Number.isSafeInteger(requestDate)&&requestDate>0&&Number.isFinite(inviteExpiry)&&inviteExpiry>requestDate;
     if(inviteBound&&/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(memberId)&&String(a[1])===userId&&String(a[2])===userId){
       const memberSheet=getMemberSheet_(),memberRow=findUniqueMpsTransitionRow_(memberSheet,MPS_COL.id,memberId);
-      if(memberRow){const m=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];allowed=String(m[MPS_COL.registrationStatus-1])==='Berhasil'&&String(m[MPS_COL.depositStatus-1])==='Disetujui';}
+      if(memberRow){const m=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];allowed=String(m[MPS_COL.registrationStatus-1])==='Berhasil'&&(String(m[MPS_COL.depositStatus-1])==='Disetujui'||memberHasActiveEntitlement_(m));}
     }
   }
   if(allowed){
@@ -2689,7 +2689,7 @@ function sendVipInvite_(memberId) {
     try{
       const freshSheet=getTelegramAccessSheet_(),freshRow=findTelegramAccessByMemberId_(freshSheet,memberId),freshDb=getMemberSheet_(),freshMember=findMemberById_(freshDb,memberId);
       if(!freshRow||!freshMember)throw new Error('Data member berubah saat undangan dibuat.');
-      const freshData=freshDb.getRange(freshMember,1,1,MPS.headers.length).getValues()[0];if(String(freshData[MPS_COL.registrationStatus-1])!=='Berhasil'||String(freshData[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('Status member berubah; undangan dibatalkan.');
+      const freshData=freshDb.getRange(freshMember,1,1,MPS.headers.length).getValues()[0];if(String(freshData[MPS_COL.registrationStatus-1])!=='Berhasil'||(String(freshData[MPS_COL.depositStatus-1])!=='Disetujui'&&!memberHasActiveEntitlement_(freshData)))throw new Error('Status member berubah; undangan dibatalkan.');
       freshSheet.getRange(freshRow,7,1,5).setValues([['Undangan antre',link,expiryDate,v[9],'']]);freshDb.getRange(freshMember,26,1,5).setValues([[link,expiryDate,freshData[27]||'',String(v[1]),'Undangan Antre']]);
     }catch(e){storeError=e;}finally{lk.releaseLock();}
     if(storeError){const revoked=revokeVipInviteLink_(group,link),restoreLock=LockService.getScriptLock();restoreLock.waitLock(10000);try{const restoreSheet=getTelegramAccessSheet_(),restoreRow=findTelegramAccessByMemberId_(restoreSheet,memberId);if(restoreRow&&String(restoreSheet.getRange(restoreRow,8).getDisplayValue()||'')===link)restoreSheet.getRange(restoreRow,7,1,5).setValues([previous]);const restoreDb=getMemberSheet_(),restoreMember=findMemberById_(restoreDb,memberId);if(restoreMember)restoreDb.getRange(restoreMember,26,1,5).setValues([previousDbInvite]);}finally{restoreLock.releaseLock();}if(!revoked)recordMpsAudit_('TELEGRAM',memberId,'VIP_INVITE_REVOKE_FAILED',memberId,'WARNING','Pembuatan undangan gagal dan pencabutan link Telegram juga gagal; admin perlu memeriksa.');throw storeError;}
@@ -2979,7 +2979,7 @@ function deliverMpsVipInviteTask_(task) {
   const a=access.getRange(accessRow,1,1,11).getValues()[0],m=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
   if(String(a[1])!==chatId||String(a[2])!==chatId||String(a[7])!==link)throw new Error('VIP_INVITE_TASK_NO_LONGER_CURRENT');
   if(String(a[6])==='Aktif'||String(m[29]||'')==='Aktif')return {ok:true,alreadyJoined:true};
-  if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||String(m[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('VIP_INVITE_MEMBER_NOT_ELIGIBLE');
+  if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||(String(m[MPS_COL.depositStatus-1])!=='Disetujui'&&!memberHasActiveEntitlement_(m)))throw new Error('VIP_INVITE_MEMBER_NOT_ELIGIBLE');
   const expiry=a[8] instanceof Date?a[8]:new Date(a[8]);
   if(!Number.isFinite(expiry.getTime())||expiry.getTime()<=Date.now())throw new Error('VIP_INVITE_LINK_EXPIRED');
   const message='🎉 Selamat! Keanggotaan MPS Anda telah disetujui.\nGunakan tautan berikut untuk meminta bergabung ke MPS VIP Community. Admin bot akan memverifikasi akun Telegram Anda.\nTautan berlaku sampai '+expiry.toLocaleString()+':\n'+link+'\nJangan bagikan tautan ini.';
