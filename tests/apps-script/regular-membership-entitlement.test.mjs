@@ -57,7 +57,7 @@ test('Regular payment approval may issue PIN while activation is pending, withou
   assert.equal(ctx.mpsRegularMemberState_(row,true).approved,true);
   assert.equal(ctx.mpsRegularMemberState_(row,false).active,false);
   const login=functionSource('apiMemberLogin');
-  assert.match(login,/memberHasActiveEntitlement_\(r\)/);
+  assert.match(login,/mpsRegularMemberState_\(r,false\)/);
   const issuePin=functionSource('apiAdminIssuePin');
   assert.match(issuePin,/memberHasApprovedPaymentForActivation_\(r\)/);
   assert.match(source,/row\[14\]='Tidak Berlaku - Regular QRIS'/);
