@@ -258,3 +258,16 @@ test('Telegram verification routes Regular QRIS to its payment ledger and Active
   assert.match(verify,/if\(planType==='ACTIVE_IB'\)\{\s*depSheet=getMpsDepositsSheet_\(\);depRow=findMpsDepositRow_\(depSheet,appRef\)/);
   assert.match(verify,/bukti pembayaran\/deposit sesuai paket/);
 });
+
+
+test('Admin Telegram link reissue correctly handles Regular application and payment references',()=>{
+  const linkSource=functionSource('apiCreateTelegramLink');
+  assert.match(linkSource,/if\(appRef\)\{/);
+  assert.match(linkSource,/String\(app\[7\]\|\|''\)\)\)/);
+  assert.match(linkSource,/Pembayaran Dikirim','Menunggu Verifikasi Telegram','Menunggu Validasi Admin/);
+  assert.match(linkSource,/findMpsRegularPaymentByRef_\(payments,key\)/);
+  assert.match(linkSource,/createMemberTelegramLink_\('',appRef\)/);
+  assert.match(linkSource,/expireOtherApplicationLinks_\(appRef,link\.row\)/);
+  assert.doesNotMatch(linkSource,/expectedFileId|proofUrl/);
+  assert.match(linkSource,/Perpanjangan Regular menggunakan akun Telegram member yang sudah terhubung/);
+});
