@@ -738,7 +738,7 @@ li {
   .float-chat {
     left: 13px;
     right: auto;
-    bottom: 13px;
+    bottom: 68px;
   }
 }
 @media (max-width: 380px) {
