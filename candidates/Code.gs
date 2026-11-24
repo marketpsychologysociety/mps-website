@@ -4258,7 +4258,7 @@ function syncMpsNewsCore_() {
   try {
     const q = '(war OR conflict OR sanctions OR Iran OR Iraq OR Israel OR Ukraine OR oil OR geopolitical)';
     const url = 'https://api.gdeltproject.org/api/v2/doc/doc?query='+encodeURIComponent(q)+'&mode=ArtList&format=json&maxrecords=20&sort=HybridRel';
-    const response = UrlFetchApp.fetch(url,{muteHttpExceptions:true,followRedirects:true,headers:{'User-Agent':'MPS-Market-Center/4.8.0'}});
+    const response = UrlFetchApp.fetch(url,{muteHttpExceptions:true,followRedirects:true,headers:{'User-Agent':'MPS-Market-Center/4.8.1'}});
     if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
       const data = JSON.parse(response.getContentText());
       (data.articles || []).forEach(function(a) {
