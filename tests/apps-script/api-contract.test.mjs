@@ -123,6 +123,17 @@ test('Public Center direct route is default-deny unless an exact backend Script 
   assert.match(response.value,/MPS_PUBLIC_CENTER_DATA/);
 });
 
+
+test('candidate backend, frontend, and public config report one consistent v4.8.1 release',()=>{
+  assert.match(code,/version:\s*'4\.8\.1'/);
+  assert.match(html,/<meta name="mps-version" content="4\.8\.1">/);
+  assert.match(html,/MPS frontend v4\.8\.1 candidate/);
+  const config=readFileSync(fileURLToPath(new URL('../../config.js',import.meta.url)),'utf8');
+  assert.match(config,/Konfigurasi publik MPS — v4\.8\.1/);
+  assert.doesNotMatch(code,/MPS-Market-Center\/4\.8\.0/);
+  assert.doesNotMatch(html,/<meta name="mps-version" content="4\.8\.0">/);
+});
+
 test('every literal frontend google.script.run API call has a matching backend function',()=>{
   assert.ok(calls.length>=40,'expected the complete frontend API inventory');
   const missing=calls.filter(name=>!definitions.has(name));
