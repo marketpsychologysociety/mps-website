@@ -275,7 +275,7 @@ function findMpsRequestLedgerRow_(sh,requestId) {
 function createMemberTelegramLink_(memberId,applicationRef,onPrepared) {
   // Resolve all configuration before the first persistent write. A missing or
   // unreadable bot setting must not leave a newly appended, unusable link row.
-  const bot=PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_BOT_USERNAME')||'MPS_Notificationnew_bot';
+  const bot=PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_BOT_USERNAME')||'';
   const botUsername=String(bot).replace(/^@/,'').trim();
   if(!/^[A-Za-z0-9_]{5,32}$/.test(botUsername))throw new Error('Konfigurasi username bot Telegram tidak valid.');
   const sh=getMpsMemberLinksSheet_();
