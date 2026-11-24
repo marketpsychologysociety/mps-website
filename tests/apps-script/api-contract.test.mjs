@@ -135,6 +135,14 @@ test('candidate portal has no stale deployment or former mafia-domain links and 
 });
 
 
+
+test('legacy public contact shortcut cannot silently fall back to a personal Telegram account',()=>{
+  const main=readFileSync(fileURLToPath(new URL('../../js/main.js',import.meta.url)),'utf8');
+  assert.match(main,/key === "whatsapp" && cfg\.links && cfg\.links\.email/);
+  assert.match(main,/Hubungi MPS melalui Email/);
+  assert.doesNotMatch(main,/link\.href = cfg\.links\.telegram/);
+});
+
 test('public static site support routes consistently to email while Telegram remains a member-verification channel',()=>{
   const read=path=>readFileSync(fileURLToPath(new URL('../../'+path,import.meta.url)),'utf8');
   const portal=read('member-portal.html'),join=read('join.html'),privacy=read('privacy.html'),terms=read('terms.html');
