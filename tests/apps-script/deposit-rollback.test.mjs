@@ -54,7 +54,7 @@ function depositHarness({failAt='',failBotProperty=false,realLinkHelper=false}={
   DriveApp:{Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'},getFolderById:()=>folder},
   getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
   getMpsMembershipPlansSheet_:()=>plans,findMpsPlanRow_:(sheet,ref)=>{const i=plans.rows.findIndex((row,n)=>n>0&&row[0]===ref);return i<0?0:i+1;},
-  getMemberSheet_:()=>members,findMemberById_:(sheet,id)=>members.rows.findIndex((row,i)=>i>0&&row[0]===id),
+  getMemberSheet_:()=>members,findMemberById_:(sheet,id)=>{const i=members.rows.findIndex((row,n)=>n>0&&row[0]===id);return i<0?0:i+1;},
   getMpsDepositsSheet_:()=>deposits,
   findMpsDepositRow_:(sheet,ref)=>{for(let i=1;i<depositsRows.length;i++)if(depositsRows[i][0]===ref)return i+1;return 0;},
   getMpsMemberLinksSheet_:()=>links,
