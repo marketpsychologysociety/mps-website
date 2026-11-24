@@ -23,7 +23,7 @@ Website publik MPS menggunakan HTML, CSS, dan JavaScript statis serta dipublikas
 3. Calon anggota mengirim konfirmasi deposit dan bukti melalui portal. Data deposit disimpan terpisah dari sheet Database Member selama proses pemeriksaan.
 4. Calon anggota menyelesaikan verifikasi Telegram.
 5. Admin memeriksa data dan dapat menyetujui atau menolak pengajuan.
-6. Member ID diterbitkan setelah persetujuan admin. Status member menjadi Berhasil setelah proses pengiriman dan penyimpanan PIN terkonfirmasi.
+6. ID Member sementara diterbitkan setelah bukti deposit/QRIS tersimpan. Setelah verifikasi Telegram dan persetujuan Admin, PIN diproses dan akses diaktifkan. Status member menjadi Berhasil hanya setelah pengiriman dan penyimpanan PIN terkonfirmasi.
 
 Minimum deposit yang ditampilkan saat ini adalah Rp500.000. Nominal lebih besar diperbolehkan. Deposit merupakan dana di akun trading milik calon anggota pada broker, bukan biaya pendaftaran atau pembayaran kepada MPS.
 
