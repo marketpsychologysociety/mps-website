@@ -3,8 +3,8 @@
  * Isolated VIP transition integration; do not deploy without owner approval and live GAS acceptance tests.
  */
 /**
- * MARKET PSYCHOLOGY SOCIETY — Backend v4.8.0 (reconstructed)
- * Rekonstruksi v4.8.0 berbasis source kompatibilitas v4.7.0 dan kandidat integrasi Calculator VIP. Mempertahankan spreadsheet, sheet, folder bukti,
+ * MARKET PSYCHOLOGY SOCIETY — Backend v4.8.1 candidate (reconstructed; GAS runtime acceptance pending)
+ * Kandidat v4.8.1 berbasis source kompatibilitas v4.7.0 dan kandidat integrasi Calculator VIP. Mempertahankan spreadsheet, sheet, folder bukti,
  * Script Properties, dan integrasi Telegram yang sudah ada.
  * Local static review and syntax checks are being performed; Apps Script runtime and Telegram delivery have not been tested.
  * Mempertahankan 30 kolom Database Member yang sudah ada; data deposit pending baru dipisahkan dari tabel member. Endpoint pembersihan data uji
@@ -13,7 +13,7 @@
  */
 
 const MPS = Object.freeze({
-  version: '4.8.0',
+  version: '4.8.1',
   sheetName: 'Database Member',
   summarySheetName: 'Ringkasan',
   headers: [
@@ -2042,7 +2042,7 @@ function setupTelegram_() {
   });
   const setResult = parseTelegramResponse_(setResp);
   if (!setResult.ok) throw new Error('Telegram menolak pemasangan webhook: ' + (setResult.description || 'kesalahan tidak diketahui'));
-  const test = sendTelegram_('✅ Koneksi webhook Telegram MPS v4.8.0 berhasil.');
+  const test = sendTelegram_('✅ Koneksi webhook Telegram MPS v4.8.1 berhasil.');
   if (!test.ok) throw new Error('Webhook aktif, tetapi pesan uji admin gagal: ' + test.error);
   recordMpsAudit_('ADMIN','TELEGRAM_SETUP','TELEGRAM_WEBHOOK_CONFIGURED','BOT','SUCCESS','Webhook Telegram diperbarui; URL dan token webhook tidak dicatat.');
   return { ok: true, message: vipChatId
@@ -3656,7 +3656,7 @@ function json_(value) {
 }
 
 /* ========================================================================
- * MPS PUBLIC & MEMBER INTELLIGENCE CENTER — v4.8.0
+ * MPS PUBLIC & MEMBER INTELLIGENCE CENTER — v4.8.1
  * Semua konten publik dipisahkan dari Database Member dan data Market Pulse.
  * Status akses hanya PUBLIC dan VIP. Admin adalah peran pengelola.
  * ====================================================================== */
@@ -4234,7 +4234,7 @@ function syncMpsNewsCore_() {
   let imported = 0, reviewed = 0, failed = [];
   sources.forEach(function(src) {
     try {
-      const response = UrlFetchApp.fetch(src.url,{muteHttpExceptions:true,followRedirects:true,headers:{'User-Agent':'MPS-Market-Center/4.8.0'}});
+      const response = UrlFetchApp.fetch(src.url,{muteHttpExceptions:true,followRedirects:true,headers:{'User-Agent':'MPS-Market-Center/4.8.1'}});
       if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) throw new Error('HTTP '+response.getResponseCode());
       const doc = XmlService.parse(response.getContentText());
       const root = doc.getRootElement();
