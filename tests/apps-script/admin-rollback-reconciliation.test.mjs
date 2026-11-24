@@ -228,7 +228,7 @@ for(const rollbackBoundary of ['access:2','links:2','apps:4','deposits:4']){
 
 function ambiguousMemberAppendHarness() {
  const appRef='MPS-APP-0123456789ABCDEF0123',chatId='987654321';
- const app=[appRef,new Date(),'Approval Test','@approval_test','ID','Trading','', 'Deposit Dikirim','','','Terverifikasi',chatId,chatId,'',''];
+ const app=[appRef,new Date(),'Approval Test','@approval_test','ID','Trading','', 'Deposit Dikirim','MPS-ABCDEF1234','','Terverifikasi',chatId,chatId,'',''];
  const deposit=[appRef,new Date(),'Approval Test','12345678','Standard',1000000,'2026-11-15','proof-file-id','https://drive.google.com/file/d/proof-file-id','Menunggu Telegram',chatId,chatId,'',''];
  const access=[appRef,chatId,chatId,'@approval_test','Approval Test',true,'Menunggu','','','',''];
  const dbRows=[new Array(30).fill('')];
@@ -271,7 +271,7 @@ test('admin approval re-discovers and deletes a member row when appendRow writes
 
 function adminApproveHarness(failAt=[]) {
  const appRef='MPS-APP-0123456789ABCDEF0123',chatId='987654321';
- const app=[appRef,new Date(),'Approval Test','@approval_test','ID','Trading','', 'Deposit Dikirim','','','Terverifikasi',chatId,chatId,'',''];
+ const app=[appRef,new Date(),'Approval Test','@approval_test','ID','Trading','', 'Deposit Dikirim','MPS-ABCDEF1234','','Terverifikasi',chatId,chatId,'',''];
  const deposit=[appRef,new Date(),'Approval Test','12345678','Standard',1000000,'2026-11-15','proof-file-id','https://drive.google.com/file/d/proof-file-id','Menunggu Telegram',chatId,chatId,'',''];
  const access=[appRef,chatId,chatId,'@approval_test','Approval Test',true,'Menunggu','','','',''];
  const original={app:app.slice(),deposit:deposit.slice(),access:access.slice()};
