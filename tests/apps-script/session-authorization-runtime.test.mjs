@@ -16,12 +16,11 @@ const runtimeSource=['requireMember_','getAdminSession_','requireSuperAdmin_'].m
 
 function harness(){
   const sessions=new Map(),properties=new Map();
-  const member=['MPS-ABCDEF12'];
   let registration='Berhasil',deposit='Disetujui';
-  const memberSheet={getRange:(row,col,nr,nc)=>({getDisplayValues:()=>[[registration,'','','','','','',deposit]]})};
+  const memberSheet={getRange:(row,col,nr,nc)=>({getDisplayValues:()=>[[registration,'','','','','','',deposit]],getValues:()=>{const values=new Array(30).fill('');values[7]=registration;values[14]=deposit;return [values]}})};
   const digest=value=>('H'+String(value).repeat(64)).slice(0,64);
   const context={
-    MPS_COL:{registrationStatus:8},MPS:{},
+    MPS_COL:{registrationStatus:8,depositStatus:15},MPS:{headers:new Array(30)},
     sha256_:digest,
     constantTimeEquals_:(a,b)=>String(a)===String(b),
     pinPropertyKey_:id=>'PIN_'+id,
