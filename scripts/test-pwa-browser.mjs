@@ -528,7 +528,7 @@ try {
     await page.locator('[data-calc="rr"]').click();
     const rrResult = await page.locator('#out-rr').innerText();
     if (!rrResult.includes('1 : 2')) failures.push('Risk–Reward calculator did not produce the expected 1:2 ratio: ' + rrResult);
-    await page.screenshot({ path: path.join(root, 'test-artifacts/trading-calculator-desktop.png', fullPage: true });
+    await page.screenshot({ path: path.join(root, 'test-artifacts/trading-calculator-desktop.png'), fullPage: true });
   }
 
   if (pageErrors.length) failures.push('Browser page errors: ' + pageErrors.join(' | '));
