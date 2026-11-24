@@ -246,7 +246,13 @@ function findMpsPlanRow_(sh,applicationRef) {
 function findMpsRegularPaymentRow_(sh,applicationRef) {
   if(!applicationRef||sh.getLastRow()<2)return 0;
   const values=sh.getRange(2,2,sh.getLastRow()-1,1).getDisplayValues();
-  for(let i=0;i<values.length;i++)if(String(values[i][0]||'').toUpperCase()===String(applicationRef).toUpperCase())return i+2;
+  for(let i=values.length-1;i>=0;i--)if(String(values[i][0]||'').toUpperCase()===String(applicationRef).toUpperCase())return i+2;
+  return 0;
+}
+function findMpsRegularPaymentByRef_(sh,paymentRef) {
+  if(!paymentRef||sh.getLastRow()<2)return 0;
+  const values=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();
+  for(let i=values.length-1;i>=0;i--)if(String(values[i][0]||'').toUpperCase()===String(paymentRef).toUpperCase())return i+2;
   return 0;
 }
 function findMpsRequestLedgerRow_(sh,requestId) {
@@ -5324,7 +5330,7 @@ function apiSubmitRegularPayment(data) {
   let bytes;try{bytes=Utilities.base64Decode(base64);}catch(e){throw new Error('File bukti QRIS tidak dapat dibaca.');}
   if(!bytes||!bytes.length||bytes.length>MPS.maxProofBytes||!isValidImageSignature_(bytes,mime))throw new Error('Ukuran atau isi bukti QRIS tidak valid.');
   const lock=LockService.getScriptLock();lock.waitLock(20000);
-  let proofFile=null,telegramLink=null,linkPrepared=null,appRow=0,planRow=0,paymentRow=0,appBefore=null,planBefore=null,linkRowsBefore=[];
+  let proofFile=null,telegramLink=null,linkPrepared=null,paymentRef='',appRow=0,planRow=0,paymentRow=0,appBefore=null,planBefore=null,linkRowsBefore=[];
   try{
     const apps=getMpsApplicationsSheet_(),plans=getMpsMembershipPlansSheet_(),payments=getMpsRegularPaymentsSheet_();
     appRow=findMpsApplicationRow_(apps,ref);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
@@ -5333,28 +5339,28 @@ function apiSubmitRegularPayment(data) {
     planBefore=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
     if(String(planBefore[1]||'')!=='REGULAR'||Number(planBefore[3]||0)!==100000)throw new Error('QRIS hanya untuk Regular Member dengan biaya Rp100.000.');
     if(!['Menunggu Pembayaran','Pembayaran Ditolak'].includes(String(appBefore[7]||'')))throw new Error('Pengajuan tidak berada pada tahap pembayaran Regular.');
-    if(findMpsRegularPaymentRow_(payments,ref))throw new Error('Bukti pembayaran QRIS sudah tercatat. Hubungi Admin jika perlu koreksi.');
+    const previousPaymentRow=findMpsRegularPaymentRow_(payments,ref);if(previousPaymentRow){const previousPayment=payments.getRange(previousPaymentRow,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];if(['Menunggu Validasi','Disetujui','Berhasil'].includes(String(previousPayment[7]||'')))throw new Error('Bukti pembayaran QRIS sudah tercatat atau sedang diverifikasi.');if(String(previousPayment[7]||'')!=='Ditolak')throw new Error('Riwayat pembayaran Regular perlu rekonsiliasi Admin sebelum pengiriman ulang.');}
     const folderId=PropertiesService.getScriptProperties().getProperty('MPS_PROOF_FOLDER_ID'),learningId=PropertiesService.getScriptProperties().getProperty('MPS_LEARNING_FOLDER_ID');
     if(!folderId||folderId===learningId)throw new Error('Folder bukti privat belum dikonfigurasi secara terpisah.');
     const folder=DriveApp.getFolderById(folderId);assertMpsDriveFolderTreePrivate_(folder,'folder bukti pembayaran QRIS');
     const ext=mime==='image/jpeg'?'.jpg':mime==='image/png'?'.png':'.webp';
-    const paymentRef='MPS-PAY-'+Utilities.getUuid().replace(/-/g,'').slice(0,20).toUpperCase();
+    paymentRef='MPS-PAY-'+Utilities.getUuid().replace(/-/g,'').slice(0,20).toUpperCase();
     proofFile=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-QRIS-'+paymentRef+ext));
     proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Privasi file bukti QRIS tidak dapat dipastikan.');
     const now=new Date();
     try{
       payments.appendRow([paymentRef,ref,now,100000,dateText,proofFile.getId(),proofFile.getUrl(),'Menunggu Validasi','','','',now]);
-      telegramLink=createMemberTelegramLink_('',ref,function(prepared){linkPrepared=prepared;});
+      if(String(appBefore[10]||'')!=='Terverifikasi')telegramLink=createMemberTelegramLink_('',ref,function(prepared){linkPrepared=prepared;});
       const memberId=ensurePendingMemberId_(apps,appRow);
       plans.getRange(planRow,8).setValue('Menunggu Validasi Pembayaran');
       plans.getRange(planRow,12).setValue(now);
       apps.getRange(appRow,8).setValue('Pembayaran Dikirim');
       apps.getRange(appRow,9).setValue(memberId);
-      apps.getRange(appRow,11).setValue('Menunggu Verifikasi Telegram');
+      apps.getRange(appRow,11).setValue(String(appBefore[10]||'')==='Terverifikasi'?'Terverifikasi':'Menunggu Verifikasi Telegram');
       apps.getRange(appRow,15).setValue(now);
       try{recordMpsAudit_('PUBLIC','APPLICATION','REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Bukti QRIS Rp100.000 tersimpan privat; terpisah dari deposit Exness.');}catch(auditErr){console.warn('Regular QRIS audit write deferred: '+safeErrorMessage_(auditErr));}
-      return {ok:true,applicationRef:ref,paymentRef:paymentRef,memberId:memberId,status:'Bukti QRIS tersimpan. Verifikasi Telegram dan pemeriksaan Admin masih diperlukan.',telegramUrl:telegramLink.url,telegramExpiresAt:telegramLink.expiresAt};
+      return {ok:true,applicationRef:ref,paymentRef:paymentRef,memberId:memberId,status:'Bukti QRIS tersimpan. Pembayaran menunggu pemeriksaan Admin.',telegramUrl:telegramLink?telegramLink.url:'',telegramExpiresAt:telegramLink?telegramLink.expiresAt:''};
     }catch(writeError){
       const rollbackErrors=[];
       try{const pr=findMpsRegularPaymentRow_(payments,ref);if(pr)payments.deleteRow(pr);}catch(e){rollbackErrors.push('baris pembayaran: '+safeErrorMessage_(e));}
@@ -5367,7 +5373,7 @@ function apiSubmitRegularPayment(data) {
     }
   }catch(err){
     if(proofFile&&err.preserveProofFile!==true){
-      let linked=false;try{linked=!!findMpsRegularPaymentRow_(getMpsRegularPaymentsSheet_(),ref);}catch(checkErr){console.error('Regular proof cleanup lookup failed: '+safeErrorMessage_(checkErr));}
+      let linked=false;try{linked=!!findMpsRegularPaymentByRef_(getMpsRegularPaymentsSheet_(),paymentRef);}catch(checkErr){console.error('Regular proof cleanup lookup failed: '+safeErrorMessage_(checkErr));}
       if(!linked)try{proofFile.setTrashed(true);}catch(cleanErr){console.error('Regular proof cleanup failed; manual reconciliation required: '+safeErrorMessage_(cleanErr));}
     }
     throw err;
