@@ -5496,8 +5496,11 @@ function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
   }finally{lock.releaseLock();}
   removeMpsCacheBestEffort_('mps_public_dashboard_v480','regular payment review');
   if(action==='reject'){
+    const chatId=String(appBefore&&appBefore[12]||'');let notificationWarning='';
+    if(chatId){let sent={ok:false};try{sent=telegramSendToChat_(chatId,'❌ PEMBAYARAN REGULAR MPS DITOLAK\nApplication Ref: '+String(appBefore[0]||'')+'\nCatatan Admin: '+(adminNote||'Tidak ada catatan')+'\nSilakan periksa catatan dan kirim ulang bukti pembayaran yang benar.');}catch(tgErr){sent={ok:false};}if(!sent.ok)notificationWarning='Telegram member belum mengonfirmasi pemberitahuan penolakan.';}
+    else notificationWarning='Chat Telegram member tidak tersedia untuk pemberitahuan penolakan.';
     const auditOk=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'REGULAR_PAYMENT_REJECTED',key,'SUCCESS','Pembayaran QRIS ditolak; tidak ada deposit Exness yang diubah.');
-    return {ok:true,status:'Pembayaran Regular ditolak.',auditWarning:auditOk?'':'Audit log perlu diperiksa.'};
+    return {ok:true,status:'Pembayaran Regular ditolak.',notificationWarning:notificationWarning,auditWarning:auditOk?'':'Audit log perlu diperiksa.'};
   }
   let pinResult;try{pinResult=apiAdminIssuePin(session,memberId);}catch(pinErr){pinResult={ok:false,message:'Pembayaran disetujui, tetapi penerbitan PIN tertunda: '+safeErrorMessage_(pinErr)};}
   const auditOk=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'REGULAR_PAYMENT_APPROVED',key,pinResult&&pinResult.ok?'SUCCESS':'PARTIAL','Pembayaran QRIS disetujui terpisah dari deposit Exness; PIN dan aktivasi '+(pinResult&&pinResult.ok?'terkonfirmasi':'masih tertunda')+'.');
@@ -5620,5 +5623,8 @@ function apiAdminReviewRegularRenewal(session,renewalRef,decision,note){
   }finally{lock.releaseLock();}
   removeMpsCacheBestEffort_('mps_public_dashboard_v480','regular renewal review');
   const audit=recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'REGULAR_RENEWAL_APPROVED':'REGULAR_RENEWAL_REJECTED',key,'SUCCESS',action==='approve'?'Masa aktif Regular diperpanjang 30 hari setelah pembayaran disetujui.':'Bukti perpanjangan Regular ditolak.');
-  return {ok:true,status:action==='approve'?'Perpanjangan disetujui. Masa aktif Regular diperbarui sampai '+formatDateForClient_(periodEnd)+'.':'Bukti perpanjangan ditolak.',auditWarning:audit?'':'Audit log perlu diperiksa.'};
+  const chatId=String(memberBefore&&memberBefore[18]||'');let notificationWarning='';
+  if(chatId){let sent={ok:false};try{sent=telegramSendToChat_(chatId,action==='approve'?'✅ PERPANJANGAN REGULAR MPS DISETUJUI\nMember ID: '+memberId+'\nMasa aktif sampai: '+formatDateForClient_(periodEnd):'❌ PERPANJANGAN REGULAR MPS DITOLAK\nMember ID: '+memberId+'\nCatatan Admin: '+(adminNote||'Tidak ada catatan'));}catch(tgErr){sent={ok:false};}if(!sent.ok)notificationWarning='Telegram member belum mengonfirmasi pemberitahuan perpanjangan.';
+  }else notificationWarning='Chat Telegram member tidak tersedia untuk pemberitahuan perpanjangan.';
+  return {ok:true,status:action==='approve'?'Perpanjangan disetujui. Masa aktif Regular diperbarui sampai '+formatDateForClient_(periodEnd)+'.':'Bukti perpanjangan ditolak.',notificationWarning:notificationWarning,auditWarning:audit?'':'Audit log perlu diperiksa.'};
 }
