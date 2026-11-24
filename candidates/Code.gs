@@ -3246,6 +3246,7 @@ function assertMpsTelegramWebhookStorageReady_() {
   const ss=SpreadsheetApp.openById(spreadsheetId);
   const memberSheet=ss.getSheetByName(MPS.sheetName);
   if(!memberSheet)throw new Error('Database Member belum tersedia; webhook tidak diaktifkan.');
+  if(memberSheet.getLastColumn()!==MPS.headers.length)throw new Error('Database Member harus tepat 30 kolom sebelum webhook diaktifkan.');
   validateHeaders_(memberSheet);
   const required=[MPS_APPLICATIONS,MPS_DEPOSITS,MPS_MEMBER_LINKS,MPS_REQUEST_LEDGER,
     MPS_MEMBERSHIP_PLANS,MPS_REGULAR_PAYMENTS,MPS_REGULAR_RENEWALS,
