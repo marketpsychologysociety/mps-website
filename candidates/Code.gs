@@ -174,7 +174,14 @@ function apiCreateTelegramLink(session, applicationRef) {
   consumeRateLimit_('mps_tg_link_create_'+sha256_(key).slice(0,20),3,900,'Tautan Telegram terlalu sering dibuat. Coba lagi 15 menit.');
   const lock=LockService.getScriptLock();lock.waitLock(15000);
   try{
-    if(/^MPS-APP-[A-F0-9]{20}$/.test(key)){
+    if(/^MPS-PAY-[A-F0-9]{20}$/.test(key)){
+    const sheet=getMpsRegularPaymentsSheet_(),last=sheet.getLastRow();let row=0;
+    if(last>1){const refs=sheet.getRange(2,1,last-1,1).getDisplayValues();for(let i=0;i<refs.length;i++)if(String(refs[i][0]||'').toUpperCase()===key){row=i+2;break;}}
+    if(!row)throw new Error('Bukti pembayaran Regular tidak ditemukan.');
+    const payment=sheet.getRange(row,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];
+    if(String(payment[7]||'')!=='Menunggu Validasi')throw new Error('Bukti QRIS tidak lagi menunggu verifikasi.');
+    expectedFileId=String(payment[5]||'');proofUrl=String(payment[6]||'');
+  }else if(/^MPS-APP-[A-F0-9]{20}$/.test(key)){
       const apps=getMpsApplicationsSheet_(),ar=findMpsApplicationRow_(apps,key);if(!ar)throw new Error('Application Ref tidak ditemukan.');
       const app=apps.getRange(ar,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];if(!['Deposit Dikirim','Menunggu Validasi Admin'].includes(String(app[7]||'')))throw new Error('Tautan hanya dapat dibuat untuk pengajuan deposit yang menunggu verifikasi.');
       const link=createMemberTelegramLink_('',key);expireOtherApplicationLinks_(key,link.row);recordMpsAudit_(adminRole_(session),adminActorRef_(session),'TELEGRAM_LINK_RENEWED',key,'SUCCESS','Tautan Telegram pendaftaran diterbitkan ulang.');return link;
@@ -5257,4 +5264,89 @@ function mpsEvaluateVipInactivityPolicy_(input) {
     automaticActionAllowed: false,
     reason: daysInactive >= 60 ? 'VERIFIED_60_DAY_INACTIVITY_REQUIRES_SEPARATE_APPROVED_REVIEW' : 'VERIFIED_EXECUTED_TRADE_ACTIVITY'
   };
+}
+
+
+/**
+ * Submit a first-time Regular QRIS payment. This is intentionally separate
+ * from saveDeposit_ and MPS Deposit Applications: QRIS is not an Exness deposit.
+ * The caller must already have a REGULAR plan and a pending Application Ref.
+ */
+function apiSubmitRegularPayment(data) {
+  data=data&&typeof data==='object'?data:{};
+  const ref=clean_(data.applicationRef,48).toUpperCase();
+  if(!/^MPS-APP-[A-F0-9]{20}$/.test(ref))throw new Error('Application Ref tidak valid.');
+  consumePersistentBucketRateLimit_('public_regular_payment_global',300,600,'Pengiriman bukti QRIS terlalu sering. Coba lagi beberapa menit.');
+  consumeRateLimit_('mps_regular_payment_'+sha256_(ref).slice(0,24),3,3600,'Bukti pembayaran untuk pengajuan ini terlalu sering dikirim.');
+  const amount=Number(String(data.amount||'').replace(/[^0-9]/g,''));
+  if(amount!==100000)throw new Error('Pembayaran Regular harus tepat Rp100.000.');
+  const dateText=clean_(data.paymentDate,20);
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateText))throw new Error('Tanggal pembayaran tidak valid.');
+  const paymentDate=new Date(dateText+'T00:00:00+07:00');
+  if(isNaN(paymentDate.getTime())||Utilities.formatDate(paymentDate,'Asia/Jakarta','yyyy-MM-dd')!==dateText||paymentDate.getTime()>Date.now()+86400000)throw new Error('Tanggal pembayaran tidak valid.');
+  let mime=String(data.proofMimeType||'').toLowerCase().trim(),base64=String(data.proofBase64||'').trim();
+  const match=base64.match(/^data:([^;,]+);base64,(.*)$/s);
+  if(match){if(!mime)mime=match[1].toLowerCase();base64=match[2];}
+  if(!/^image\\/(jpeg|png|webp)$/.test(mime)||!base64||base64.length>7200000)throw new Error('Bukti harus JPG, PNG, atau WEBP maksimal 5 MB.');
+  let bytes;try{bytes=Utilities.base64Decode(base64);}catch(e){throw new Error('File bukti QRIS tidak dapat dibaca.');}
+  if(!bytes||!bytes.length||bytes.length>MPS.maxProofBytes||!isValidImageSignature_(bytes,mime))throw new Error('Ukuran atau isi bukti QRIS tidak valid.');
+  const lock=LockService.getScriptLock();lock.waitLock(20000);
+  let proofFile=null,telegramLink=null,linkPrepared=null,appRow=0,planRow=0,paymentRow=0,appBefore=null,planBefore=null,linkRowsBefore=[];
+  try{
+    const apps=getMpsApplicationsSheet_(),plans=getMpsMembershipPlansSheet_(),payments=getMpsRegularPaymentsSheet_();
+    appRow=findMpsApplicationRow_(apps,ref);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
+    planRow=findMpsPlanRow_(plans,ref);if(!planRow)throw new Error('Paket keanggotaan belum tercatat.');
+    appBefore=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
+    planBefore=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
+    if(String(planBefore[1]||'')!=='REGULAR'||Number(planBefore[3]||0)!==100000)throw new Error('QRIS hanya untuk Regular Member dengan biaya Rp100.000.');
+    if(!['Menunggu Pembayaran','Pembayaran Ditolak'].includes(String(appBefore[7]||'')))throw new Error('Pengajuan tidak berada pada tahap pembayaran Regular.');
+    if(findMpsRegularPaymentRow_(payments,ref))throw new Error('Bukti pembayaran QRIS sudah tercatat. Hubungi Admin jika perlu koreksi.');
+    const folderId=PropertiesService.getScriptProperties().getProperty('MPS_PROOF_FOLDER_ID'),learningId=PropertiesService.getScriptProperties().getProperty('MPS_LEARNING_FOLDER_ID');
+    if(!folderId||folderId===learningId)throw new Error('Folder bukti privat belum dikonfigurasi secara terpisah.');
+    const folder=DriveApp.getFolderById(folderId);assertMpsDriveFolderTreePrivate_(folder,'folder bukti pembayaran QRIS');
+    const ext=mime==='image/jpeg'?'.jpg':mime==='image/png'?'.png':'.webp';
+    const paymentRef='MPS-PAY-'+Utilities.getUuid().replace(/-/g,'').slice(0,20).toUpperCase();
+    proofFile=folder.createFile(Utilities.newBlob(bytes,mime,'MPS-QRIS-'+paymentRef+ext));
+    proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
+    if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Privasi file bukti QRIS tidak dapat dipastikan.');
+    const now=new Date();
+    try{
+      payments.appendRow([paymentRef,ref,now,100000,dateText,proofFile.getId(),proofFile.getUrl(),'Menunggu Validasi','','','',now]);
+      telegramLink=createMemberTelegramLink_('',ref,function(prepared){linkPrepared=prepared;});
+      expireOtherApplicationLinks_(ref,telegramLink.row);
+      const memberId=ensurePendingMemberId_(apps,appRow);
+      plans.getRange(planRow,8).setValue('Menunggu Validasi Pembayaran');
+      plans.getRange(planRow,12).setValue(now);
+      apps.getRange(appRow,8).setValue('Pembayaran Dikirim');
+      apps.getRange(appRow,9).setValue(memberId);
+      apps.getRange(appRow,11).setValue('Menunggu Verifikasi Telegram');
+      apps.getRange(appRow,15).setValue(now);
+      recordMpsAudit_('PUBLIC','APPLICATION','REGULAR_PAYMENT_SUBMITTED',ref,'SUCCESS','Bukti QRIS Rp100.000 tersimpan privat; terpisah dari deposit Exness.');
+      return {ok:true,applicationRef:ref,paymentRef:paymentRef,memberId:memberId,status:'Bukti QRIS tersimpan. Verifikasi Telegram dan pemeriksaan Admin masih diperlukan.',telegramUrl:telegramLink.url,telegramExpiresAt:telegramLink.expiresAt};
+    }catch(writeError){
+      const rollbackErrors=[];
+      try{const pr=findMpsRegularPaymentRow_(payments,ref);if(pr)payments.deleteRow(pr);}catch(e){rollbackErrors.push('baris pembayaran: '+safeErrorMessage_(e));}
+      if(linkPrepared&&linkPrepared.row)try{const links=getMpsMemberLinksSheet_();if(linkPrepared.row<=links.getLastRow())links.getRange(linkPrepared.row,4).setValue('Dibatalkan');}catch(e){rollbackErrors.push('tautan Telegram: '+safeErrorMessage_(e));}
+      if(appBefore)try{apps.getRange(appRow,1,1,appBefore.length).setValues([appBefore]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
+      if(planBefore)try{plans.getRange(planRow,1,1,planBefore.length).setValues([planBefore]);}catch(e){rollbackErrors.push('paket: '+safeErrorMessage_(e));}
+      if(!rollbackErrors.length&&proofFile)try{proofFile.setTrashed(true);}catch(e){rollbackErrors.push('file bukti: '+safeErrorMessage_(e));}
+      if(rollbackErrors.length){const failure=new Error('Pengiriman QRIS gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Bukti dipertahankan privat untuk rekonsiliasi.');failure.preserveProofFile=true;throw failure;}
+      throw writeError;
+    }
+  }finally{lock.releaseLock();}
+}
+
+/** Return the Admin-only QRIS review queue without exposing proof URLs or file IDs. */
+function apiAdminListRegularPayments(session){
+  const admin=requireAdmin_(session);
+  consumeRateLimit_('mps_admin_regular_queue_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),20,60,'Antrean pembayaran Regular terlalu sering diminta.');
+  const payments=getMpsRegularPaymentsSheet_(),apps=getMpsApplicationsSheet_();
+  const appRows={};if(apps.getLastRow()>1)apps.getRange(2,1,apps.getLastRow()-1,MPS_APPLICATIONS.headers.length).getValues().forEach(a=>{appRows[String(a[0]||'')]=a;});
+  const out=[];
+  if(payments.getLastRow()>1)payments.getRange(2,1,payments.getLastRow()-1,MPS_REGULAR_PAYMENTS.headers.length).getValues().forEach(p=>{
+    if(String(p[7]||'')!=='Menunggu Validasi')return;
+    const a=appRows[String(p[1]||'')];if(!a)return;
+    out.push({paymentRef:String(p[0]||''),applicationRef:String(p[1]||''),submittedAt:formatDateForClient_(p[2]),amount:Number(p[3]||0),paymentDate:String(p[4]||''),nickname:String(a[2]||''),telegram:String(a[3]||''),telegramStatus:String(a[10]||'Belum Terhubung'),memberId:String(a[8]||''),status:String(p[7]||'')});
+  });
+  return out.reverse();
 }
