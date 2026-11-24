@@ -114,3 +114,44 @@ test('Regular QRIS may be resubmitted only after Admin rejection and entitlement
   assert.match(submit,/findMpsRegularPaymentByRef_\(getMpsRegularPaymentsSheet_\(\),paymentRef\)/);
   assert.match(html,/BUAT ULANG LINK TELEGRAM/);
 });
+
+test('expired Regular member receives renewal-only login and content gates remain active',()=>{
+  const login=functionSource('apiMemberLogin'),identity=functionSource('requireMemberSessionIdentity_'),guard=functionSource('requireMember_');
+  assert.match(login,/renewalOnly=!activeEntitlement&&regularState\.isRegular&&regularState\.expired/);
+  assert.match(login,/membershipPlan:regularState\.isRegular\?'REGULAR':'ACTIVE_IB'/);
+  assert.match(identity,/memberHasActiveEntitlement_|mpsRegularMemberState_/);
+  assert.match(identity,/regularState\.active&&!state\.expired|!state\.active&&!state\.expired/);
+  assert.match(guard,/memberHasActiveEntitlement_/);
+  assert.match(source,/function MPS_REGULAR_RENEWALS|const MPS_REGULAR_RENEWALS/);
+});
+
+test('Regular monthly renewal is session-bound, private, fixed-fee and pending Admin approval',()=>{
+  const submit=functionSource('apiSubmitRegularRenewal'),info=functionSource('apiGetRegularRenewalInfo');
+  assert.match(submit,/requireMemberSessionIdentity_\(session\)/);
+  assert.match(submit,/amount!==100000/);
+  assert.match(submit,/MPS_PROOF_FOLDER_ID/);
+  assert.match(submit,/DriveApp\.Access\.PRIVATE/);
+  assert.match(submit,/findPendingMpsRegularRenewalRow_/);
+  assert.match(submit,/Menunggu Validasi/);
+  assert.match(info,/pendingRef/);
+  assert.doesNotMatch(submit,/getMpsDepositsSheet_|MPS_DEPOSITS|saveDeposit_/);
+});
+
+test('Admin renewal approval verifies proof and extends from the later of now or current expiry',()=>{
+  const review=functionSource('apiAdminReviewRegularRenewal');
+  assert.match(review,/validateProofFileForApproval_/);
+  assert.match(review,/periodStart=expiry\.getTime\(\)>now\.getTime\(\)\?expiry:now/);
+  assert.match(review,/periodEnd=new Date\(periodStart\.getTime\(\)\+30\*86400000\)/);
+  assert.match(review,/setValue\('Aktif'\)|\['Aktif',now,periodEnd/);
+  assert.match(review,/MPS_REGULAR_RENEWALS/);
+  assert.doesNotMatch(review,/MPS_DEPOSITS|depositStatus-1\).*Disetujui/);
+});
+
+test('Admin renewal proof and queue APIs are exposed without exposing proof URLs in queue data',()=>{
+  const queue=functionSource('apiAdminListRegularRenewals');
+  assert.match(source,/MPS_REGULAR_RENEWALS,MPS_NEWS_ANALYSIS/);
+  assert.match(source,/regularRenewals:regularRenewals/);
+  assert.match(queue,/renewalRef/);
+  assert.doesNotMatch(queue,/proofUrl|Proof URL|Proof File ID/);
+  assert.match(source,/MPS-REN-\[A-F0-9\]\{20\}/);
+});
