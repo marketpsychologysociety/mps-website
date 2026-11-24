@@ -68,6 +68,7 @@ test('Telegram webhook cannot be activated until all persistent registration and
  assert.match(guard,/memberSheet\.getLastColumn\(\)!==MPS\.headers\.length/);
  assert.match(guard,/MPS Audit Logs/);
  assert.match(guard,/MPS VIP Ticker Events/);
+ assert.match(guard,/processMpsVipFollowupQueueScheduled_/);
  assert.match(candidateIndex,/const prepared=!!\(preflight&&preflight\.state==='READY_30'/);
  assert.match(candidateIndex,/PREPARE VIP TRANSITION STORAGE dan verifikasi ulang seluruh skema/);
 });
