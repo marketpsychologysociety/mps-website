@@ -5401,7 +5401,7 @@ function apiSubmitRegularPayment(data) {
     }
   }catch(err){
     if(proofFile&&err.preserveProofFile!==true){
-      let linked=false;try{linked=!!findMpsRegularPaymentByRef_(getMpsRegularPaymentsSheet_(),paymentRef);}catch(checkErr){console.error('Regular proof cleanup lookup failed: '+safeErrorMessage_(checkErr));}
+      let linked=null;try{linked=!!findMpsRegularPaymentByRef_(getMpsRegularPaymentsSheet_(),paymentRef);}catch(checkErr){console.error('Regular proof cleanup lookup failed: '+safeErrorMessage_(checkErr));}
       if(linked===false)try{proofFile.setTrashed(true);}catch(cleanErr){console.error('Regular proof cleanup failed; manual reconciliation required: '+safeErrorMessage_(cleanErr));}
     }
     throw err;
