@@ -128,6 +128,9 @@ test('expired Regular member receives renewal-only login and content gates remai
   assert.match(identity,/memberHasActiveEntitlement_|mpsRegularMemberState_/);
   assert.match(identity,/regularState\.active&&!state\.expired|!state\.active&&!state\.expired/);
   assert.match(guard,/memberHasActiveEntitlement_/);
+  assert.match(functionSource('deliverMpsVipInviteTask_'),/memberHasActiveEntitlement_/);
+  assert.match(functionSource('sendVipInvite_'),/memberHasActiveEntitlement_/);
+  assert.match(functionSource('processMpsVipChatMemberEvent_'),/memberHasActiveEntitlement_/);
   assert.match(source,/function MPS_REGULAR_RENEWALS|const MPS_REGULAR_RENEWALS/);
 });
 
