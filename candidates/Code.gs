@@ -1178,7 +1178,7 @@ function apiAdminRetryVipInvite(session, memberId) {
   const row = findMemberById_(sheet, memberKey);
   if (!row) throw new Error('Member tidak ditemukan.');
   const r = sheet.getRange(row,1,1,MPS.headers.length).getValues()[0];
-  if (String(r[MPS_COL.registrationStatus-1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus-1]) !== 'Disetujui') throw new Error('Undangan VIP hanya dapat dikirim untuk member yang sudah Berhasil.');
+  if (String(r[MPS_COL.registrationStatus-1]) !== 'Berhasil' || (String(r[MPS_COL.depositStatus-1])!=='Disetujui'&&!memberHasActiveEntitlement_(r))) throw new Error('Undangan VIP hanya dapat dikirim untuk member dengan keanggotaan aktif.');
   let result;try{result=sendVipInvite_(memberKey);}catch(err){result={ok:false,error:safeErrorMessage_(err)};}
   if(result.ok&&result.queued){try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('VIP invite retry queue drain deferred: '+safeErrorMessage_(queueErr));}}
   const auditStatus=result.queued?'QUEUED':result.ok?'SUCCESS':'DELIVERY_FAILED';
