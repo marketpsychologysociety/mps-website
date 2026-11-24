@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050914">
+  <meta name="mps-version" content="4.8.1-rebuild">
+  <title>Market Psychology Society</title>
+  <style>
+    :root{--bg:#07111e;--navy:#0b1a2b;--panel:#11243a;--gold:#d8b45a;--gold2:#f1d994;--red:#b83b43;--text:#f4f1e8;--muted:#aab6c5;--line:rgba(216,180,90,.22)}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#1b3048 0,var(--bg) 45%);color:var(--text);font:15px Inter,system-ui,Arial,sans-serif}
+    a{color:var(--gold2)}button,input,select,textarea{font:inherit}button{cursor:pointer}
+    .wrap{width:min(1120px,calc(100% - 28px));margin:auto}.top{position:sticky;top:0;z-index:5;background:#07111eed;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+    .navrow{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:14px}.brand{font-weight:900;letter-spacing:1.5px}.brand span{display:block;color:var(--gold);font-size:10px;letter-spacing:3px;margin-top:4px}
+    nav{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}nav button{border:0;background:transparent;color:#d4dbe4;padding:9px 11px;border-radius:30px;font-size:12px}nav button:hover{background:#d8b45a18;color:var(--gold2)}
+    main{padding:26px 0 60px}.page{display:none}.page.active{display:block}.hero{padding:55px 0 38px;display:grid;grid-template-columns:1.2fr .8fr;gap:25px;align-items:center}
+    .eyebrow{color:var(--gold);font-size:11px;letter-spacing:3px;font-weight:800}.hero h1{font-size:clamp(38px,6vw,66px);line-height:1.02;margin:14px 0}.hero h1 em{color:var(--gold);font-style:normal}.hero p,.muted{color:var(--muted);line-height:1.75}
+    .seal{width:min(290px,70vw);aspect-ratio:1;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;margin:auto;box-shadow:0 0 65px #d8b45a20,inset 0 0 45px #d8b45a12;color:var(--gold2);font: bold 64px Georgia}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.btn{border:1px solid var(--gold);border-radius:99px;padding:12px 19px;background:linear-gradient(135deg,var(--gold2),#a97a2d);color:#101a27;font-size:12px;font-weight:900}.btn.secondary{background:transparent;color:var(--gold2)}.btn.red{background:linear-gradient(135deg,#e77b7f,var(--red));border-color:#e77b7f;color:white}.btn:disabled{opacity:.55}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}.card,.panel{background:linear-gradient(145deg,#142a42,#0d1d30);border:1px solid var(--line);border-radius:17px;padding:20px}.card h3{margin:0 0 8px;color:var(--gold2)}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.7}
+    h2{margin:0 0 8px}.panel{margin:14px 0}.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-top:16px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:#d9e0e9;font-weight:700}.field input,.field select,.field textarea{width:100%;background:#081624;border:1px solid #ffffff25;border-radius:10px;padding:12px;color:var(--text);min-width:0}.field textarea{min-height:90px}.field input:focus,.field select:focus,.field textarea:focus{outline:1px solid var(--gold)}
+    .notice{padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--gold2);background:#d8b45a10;font-size:12px;line-height:1.65;margin:12px 0}.notice.error{color:#ffc5c7;border-color:#b83b4380;background:#b83b4318}.notice.success{color:#b9f0d0;border-color:#72c69a80;background:#72c69a16}
+    .hidden{display:none!important}.result{overflow-wrap:anywhere;font-size:13px}.item{padding:14px 0;border-bottom:1px solid var(--line)}.item:last-child{border:0}.item small{color:var(--muted)}.item p{color:var(--muted);font-size:13px;line-height:1.6}.footer{border-top:1px solid var(--line);padding:25px 0;color:var(--muted);font-size:11px;text-align:center}
+    .admin-dashboard-tools{display:grid;gap:14px}.admin-dashboard-tools>.panel{margin:0}.admin-dashboard-tools #adminQueue{display:grid;gap:10px}.admin-dashboard-tools #adminQueue .btn{margin:4px 6px 4px 0}@media(max-width:760px){.navrow{align-items:flex-start;padding:12px 0;flex-direction:column}nav{justify-content:flex-start}nav button{padding:8px}.hero{grid-template-columns:1fr;padding:35px 0}.seal{width:190px}.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.field.full{grid-column:auto}}
+  </style>
+
+<style id="mps-neon-control-room">
+/* MPS neon Control Room — visual-only layer */
+#adminDashboard{padding:18px 0 42px}
+#adminDashboard>.panel{position:relative;overflow:hidden;padding:clamp(18px,3vw,32px);border:1px solid rgba(82,225,255,.38);border-radius:24px;background:radial-gradient(ellipse at 92% 0,rgba(27,214,255,.13),transparent 42%),radial-gradient(ellipse at 0 100%,rgba(191,91,255,.10),transparent 38%),linear-gradient(145deg,#101f35 0%,#081321 65%,#101a31 100%);box-shadow:0 0 0 1px rgba(216,180,90,.10),0 18px 55px rgba(0,0,0,.35),0 0 34px rgba(36,204,255,.10)}
+#adminDashboard>.panel:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#42e8ff,#a46bff,#e8c66b,#42e8ff);background-size:220% 100%;animation:mpsNeonFlow 7s linear infinite}
+#adminDashboard .eyebrow{color:#58e8ff;letter-spacing:3px;font-size:10px;font-weight:900;text-shadow:0 0 14px rgba(66,232,255,.6)}
+#adminDashboardTitle{font-size:clamp(25px,5vw,36px);font-weight:900;letter-spacing:.2px;color:#f7f3e9;text-shadow:0 0 22px rgba(70,216,255,.22);margin:8px 0}
+#adminDashboardRole{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid rgba(90,236,185,.35);border-radius:30px;background:rgba(39,214,155,.08);color:#9ff5d2;font-size:12px}
+#adminDashboardRole:before{content:"";width:7px;height:7px;border-radius:50%;background:#4df0ad;box-shadow:0 0 12px #4df0ad}
+#adminDashboard .actions{gap:10px;margin:20px 0 24px}
+#adminDashboard .btn{min-height:43px;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+#adminDashboard .btn:hover{transform:translateY(-2px);filter:brightness(1.12);box-shadow:0 0 18px rgba(69,221,255,.22)}
+#adminDashboard .btn.secondary{border:1px solid rgba(68,225,255,.55);background:linear-gradient(135deg,rgba(24,151,190,.18),rgba(111,73,180,.16));color:#9deeff;box-shadow:inset 0 0 16px rgba(65,220,255,.05)}
+#adminDashboard .btn.red{border-color:#ff6b8b;background:linear-gradient(135deg,#ff6484,#a72b55);color:#fff;box-shadow:0 0 18px rgba(255,72,124,.18)}
+#adminDashboardContent{gap:16px}
+#adminDashboardContent>.panel{position:relative;margin:0!important;padding:clamp(16px,2.5vw,24px);border:1px solid rgba(94,206,255,.22);border-radius:19px;background:linear-gradient(145deg,rgba(20,43,67,.96),rgba(9,23,39,.98));box-shadow:0 10px 28px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.025)}
+#adminDashboardContent>.panel:before{content:"";display:block;width:44px;height:3px;margin-bottom:13px;border-radius:5px;background:linear-gradient(90deg,#42e8ff,#a66bff);box-shadow:0 0 12px rgba(66,232,255,.5)}
+#adminDashboardContent h3{color:#f1d994;font-size:17px;letter-spacing:.2px}
+#adminQueue{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px;border:1px solid rgba(66,232,255,.28);border-radius:19px;background:radial-gradient(ellipse at 100% 0,rgba(63,215,255,.10),transparent 45%),rgba(5,15,28,.72)}
+#adminQueue:before{content:"OPERATIONS CONSOLE";grid-column:1/-1;color:#58e8ff;font-size:10px;font-weight:900;letter-spacing:2.4px}
+#adminQueue>.btn{width:100%;min-height:48px;margin:0!important;white-space:normal;line-height:1.35;border-radius:12px}
+#adminQueue>.notice{grid-column:1/-1;margin:0}
+#adminQueue>.item{grid-column:1/-1;padding:16px;border:1px solid rgba(216,180,90,.24);border-radius:14px;background:linear-gradient(145deg,rgba(18,39,60,.95),rgba(8,21,36,.95))}
+#adminQueue>.item strong{color:#f4d98f}
+#adminQueue>.item p{color:#c1cedb;font-size:13px;line-height:1.65}
+#adminQueue pre{grid-column:1/-1;max-width:100%;overflow:auto;margin:0;border:1px solid rgba(66,232,255,.22);background:#061321;color:#b8edff;font:11px/1.6 ui-monospace,monospace}
+#adminDashboardContent .form{gap:14px}
+#adminDashboardContent .field label{color:#b8d9e9;letter-spacing:.2px}
+#adminDashboardContent .field input,#adminDashboardContent .field select,#adminDashboardContent .field textarea{border:1px solid rgba(102,198,235,.25);border-radius:12px;background:#071525;color:#f5f5f5;box-shadow:inset 0 1px 8px rgba(0,0,0,.2)}
+#adminDashboardContent .field input:focus,#adminDashboardContent .field select:focus,#adminDashboardContent .field textarea:focus{outline:0;border-color:#4be5ff;box-shadow:0 0 0 3px rgba(75,229,255,.12),0 0 18px rgba(75,229,255,.12)}
+#adminDashboardContent .field button.btn{margin:4px 8px 4px 0}
+#announcementAdminList,#contentAdminList{display:grid;gap:10px;margin-top:14px}
+#announcementAdminList>*,#contentAdminList>*{padding:13px;border:1px solid rgba(105,197,240,.2);border-radius:12px;background:rgba(4,17,30,.55)}
+#adminLoginPanel{padding:clamp(18px,3vw,30px);border:1px solid rgba(66,232,255,.32);border-radius:20px;background:radial-gradient(ellipse at 100% 0,rgba(66,232,255,.10),transparent 42%),linear-gradient(145deg,#12263d,#081522)}
+#adminLoginPanel h2,#adminLoginPanel h3{color:#f1d994}
+#adminLoginPanel .divider{border-color:rgba(66,232,255,.2)!important}
+#adminLoginPanel .field input{border-color:rgba(102,198,235,.25);background:#071525;border-radius:12px}
+#adminLoginPanel .field input:focus{outline:0;border-color:#4be5ff;box-shadow:0 0 0 3px rgba(75,229,255,.12)}
+#adminLoginPanel .btn{width:100%;min-height:46px;background:linear-gradient(110deg,#f5dc91,#b98636);box-shadow:0 0 18px rgba(226,185,88,.16)}
+#adminLoginPanel #superAdminLogin .btn{background:linear-gradient(110deg,#ff7893,#a52e61);border-color:#ff7893;box-shadow:0 0 18px rgba(255,83,136,.18)}
+@keyframes mpsNeonFlow{to{background-position:220% 0}}
+@media(max-width:620px){
+ #adminDashboard{padding:10px 0 28px}
+ #adminDashboard>.panel{padding:16px;border-radius:18px}
+ #adminDashboard .actions{display:grid;grid-template-columns:1fr 1fr}
+ #adminDashboard .actions .btn{padding:11px 9px;font-size:10px}
+ #adminQueue{grid-template-columns:1fr;padding:12px}
+ #adminQueue:before,#adminQueue>.notice{grid-column:1}
+ #adminQueue>.btn{min-height:46px}
+ #adminDashboardContent>.panel{padding:15px}
+ #adminDashboardContent .field.full{grid-column:1/-1}
+}
+@media(prefers-reduced-motion:reduce){#adminDashboard>.panel:before{animation:none}#adminDashboard .btn{transition:none}}
+</style>
+
+
+<style id="mps-full-site-neon-theme">
+/* MPS SITE-WIDE DESIGN ALIGNMENT — adapted from GitHub css/style.css for Apps Script markup.
+   Visual-only: no navigation, forms, API calls, authentication, or data behavior changed. */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+:root{
+ --bg:#050914;--panel:#101a2c;--panel2:#142039;
+ --gold:#f4bd45;--gold2:#e64bd4;--cyan:#27dfff;
+ --text:#e9eef8;--muted:#aebbd0;--line:rgba(244,189,69,.22);
+ --mps-blue:#39c8ff;--mps-pink:#ff4fd8;--mps-green:#55f0a5;
+}
+html{background:var(--bg);scroll-behavior:smooth}
+body{
+ position:relative;isolation:isolate;min-height:100vh;
+ background:
+  radial-gradient(ellipse at 12% 0,rgba(244,189,69,.09),transparent 34%),
+  radial-gradient(ellipse at 88% 12%,rgba(39,223,255,.13),transparent 38%),
+  radial-gradient(ellipse at 70% 75%,rgba(230,75,212,.055),transparent 38%),
+  linear-gradient(145deg,#050914 0%,#0a1221 52%,#070b16 100%)!important;
+ color:var(--text);font-family:Inter,system-ui,Arial,sans-serif;
+}
+body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.22;background-image:linear-gradient(rgba(39,223,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(39,223,255,.025) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(to bottom,black,transparent 78%)}
+a{color:var(--cyan)}
+.wrap{width:min(1120px,calc(100% - 30px))}
+.top{
+ background:rgba(5,9,20,.94)!important;
+ border-bottom:1px solid rgba(244,189,69,.38)!important;
+ box-shadow:0 5px 26px rgba(0,0,0,.35),0 1px 16px rgba(39,223,255,.08);
+ backdrop-filter:blur(14px);
+}
+.navrow{min-height:76px;gap:16px}
+.brand{
+ display:flex;flex-direction:column;gap:3px;flex-shrink:0;
+ color:var(--gold2);font:800 20px/1.1 Cinzel,Georgia,serif;
+ letter-spacing:2px;text-shadow:0 0 13px rgba(244,189,69,.2);
+}
+.brand span{font:700 9px/1.4 Inter,Arial,sans-serif;letter-spacing:2.2px;color:var(--gold);text-shadow:0 0 10px rgba(244,189,69,.22)}
+nav{gap:5px}
+nav button{
+ border:1px solid transparent;border-radius:6px;
+ color:#d4d0c5;padding:9px 10px;font:700 10px/1.3 Inter,Arial,sans-serif;
+ letter-spacing:.25px;transition:background .2s,border-color .2s,color .2s,box-shadow .2s;
+}
+nav button:hover,nav button:focus-visible{
+ color:#fff0a6;background:linear-gradient(110deg,rgba(244,189,69,.10),rgba(39,223,255,.08));
+ border-color:rgba(39,223,255,.36);box-shadow:0 0 14px rgba(39,223,255,.10);
+}
+main{padding:28px 0 64px}
+.page.active{animation:mpsPageIn .35s ease both}
+@keyframes mpsPageIn{from{opacity:.65;transform:translateY(5px)}to{opacity:1;transform:none}}
+.hero{
+ position:relative;isolation:isolate;overflow:hidden;
+ min-height:410px;padding:58px 0 42px;
+ background:
+  radial-gradient(ellipse at 18% 22%,rgba(244,189,69,.16),transparent 35%),
+  radial-gradient(ellipse at 84% 22%,rgba(39,223,255,.18),transparent 40%),
+  radial-gradient(ellipse at 72% 82%,rgba(255,79,216,.10),transparent 36%),
+  linear-gradient(145deg,#050914,#0b1729 52%,#080b18);
+ border:1px solid rgba(39,223,255,.28);border-radius:18px;
+ box-shadow:0 18px 48px rgba(0,0,0,.30),0 0 30px rgba(39,223,255,.07),inset 0 0 40px rgba(244,189,69,.025);
+}
+.hero:after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(115deg,transparent 20%,rgba(244,189,69,.045) 45%,transparent 60%,rgba(39,223,255,.05) 80%,transparent)}
+.eyebrow{color:#fff0a6!important;font-size:10px;letter-spacing:2.5px;text-shadow:0 0 12px rgba(244,189,69,.35)}
+.hero h1{
+ font:800 clamp(34px,6vw,62px)/1.08 Cinzel,Georgia,serif;
+ letter-spacing:1px;color:var(--gold);
+ background:linear-gradient(100deg,#fff4b8 0%,#ffd65a 24%,#fffbe0 43%,#39c8ff 72%,#ff4fd8 100%);
+ background-size:190% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+ filter:drop-shadow(0 0 12px rgba(244,189,69,.18));
+}
+.hero h1 em{color:var(--cyan);-webkit-text-fill-color:var(--cyan)}
+.hero p,.muted{color:var(--muted)}
+.seal{
+ border:1px solid rgba(244,189,69,.78);color:#fff0a6;
+ background:radial-gradient(circle,rgba(39,223,255,.12),rgba(5,9,20,.3) 68%);
+ box-shadow:0 0 0 8px rgba(39,223,255,.025),0 0 36px rgba(39,223,255,.18),0 0 65px rgba(244,189,69,.13),inset 0 0 45px rgba(39,223,255,.10);
+ font:800 62px Cinzel,Georgia,serif;text-shadow:0 0 20px rgba(39,223,255,.5);
+}
+.actions{gap:12px}
+.btn{
+ position:relative;isolation:isolate;overflow:hidden;
+ border:1px solid var(--gold);border-radius:999px;
+ padding:12px 20px;background:linear-gradient(115deg,#8e1019 0%,#d7192d 38%,#27dfff 72%,#ff4fd8 100%);
+ background-size:180% 180%;color:#fff8e8;font:800 11px/1.3 Inter,Arial,sans-serif;
+ letter-spacing:.7px;text-transform:uppercase;
+ box-shadow:0 0 0 1px rgba(239,195,87,.18),0 0 14px rgba(220,25,43,.22),0 0 20px rgba(39,223,255,.10);
+ transition:transform .2s,filter .2s,box-shadow .2s;
+}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 0 20px rgba(39,223,255,.24),0 8px 24px rgba(0,0,0,.25)}
+.btn.secondary{background:linear-gradient(135deg,rgba(16,26,44,.85),rgba(20,32,57,.9));border-color:rgba(39,223,255,.65);color:#8ceeff;box-shadow:inset 0 0 15px rgba(39,223,255,.05),0 0 14px rgba(39,223,255,.08)}
+.btn.red{background:linear-gradient(135deg,#ff5268,#8e1019);border-color:#ff777d;color:white}
+.btn:disabled{opacity:.55;transform:none;filter:none}
+.grid{gap:16px}
+.card,.panel{
+ position:relative;background:linear-gradient(145deg,rgba(20,32,57,.96),rgba(10,16,30,.98));
+ border:1px solid rgba(39,223,255,.24);border-radius:12px;
+ box-shadow:0 10px 28px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.025);
+}
+.card{transition:transform .22s,border-color .22s,box-shadow .22s}
+.card:hover{transform:translateY(-3px);border-color:rgba(244,189,69,.55);box-shadow:0 0 22px rgba(39,223,255,.12),0 14px 30px rgba(0,0,0,.3)}
+.card h3,h2,h3{color:#fff0a6}
+.card h3{font:700 15px/1.4 Cinzel,Georgia,serif;text-shadow:0 0 12px rgba(244,189,69,.16)}
+.card p,.item p{color:var(--muted)}
+h2{font:700 clamp(22px,3.5vw,30px)/1.25 Cinzel,Georgia,serif}
+h3{font-family:Cinzel,Georgia,serif}
+.form{gap:14px}
+.field label{color:#cfe1f4;font-size:12px;letter-spacing:.25px}
+.field input,.field select,.field textarea{
+ border:1px solid rgba(39,223,255,.25);border-radius:8px;
+ background:#080e1b;color:var(--text);padding:13px;
+ box-shadow:inset 0 1px 8px rgba(0,0,0,.22);
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+ outline:0;border-color:var(--cyan);
+ box-shadow:0 0 0 3px rgba(39,223,255,.11),0 0 16px rgba(39,223,255,.10);
+}
+.notice{border:1px solid rgba(244,189,69,.28);border-left:3px solid var(--gold);border-radius:8px;background:rgba(39,223,255,.065);color:#d7d0bc}
+.notice.error{border-color:rgba(255,82,104,.6);background:rgba(220,38,38,.09);color:#ffcccc}
+.notice.success{border-color:rgba(85,240,165,.45);background:rgba(85,240,165,.07);color:#c8f0d2}
+.item{border-color:rgba(39,223,255,.18)}
+.footer{border-color:rgba(244,189,69,.28);background:linear-gradient(180deg,rgba(5,9,20,.1),#050914);color:var(--muted)}
+#adminLoginPanel{background:radial-gradient(ellipse at 100% 0,rgba(39,223,255,.10),transparent 42%),linear-gradient(145deg,#101a2c,#080e1b)}
+#adminDashboard>.panel{border-color:rgba(39,223,255,.42)}
+#adminDashboardContent>.panel{border-color:rgba(39,223,255,.26)}
+:focus-visible{outline:2px solid var(--gold2);outline-offset:3px}
+@media(max-width:760px){
+ .navrow{gap:10px}
+ .brand{font-size:18px}
+ nav{gap:3px}
+ nav button{padding:8px 9px;font-size:10px}
+ main{padding-top:18px}
+ .hero{padding:35px 18px 28px;min-height:0;border-radius:14px}
+ .hero h1{font-size:clamp(32px,9vw,46px)}
+ .seal{width:170px;font-size:48px}
+ .grid{gap:12px}
+ .card,.panel{padding:17px}
+ .actions .btn{min-height:44px}
+}
+@media(max-width:420px){
+ .wrap{width:calc(100% - 22px)}
+ .brand{font-size:16px;letter-spacing:1.3px}
+ .brand span{font-size:8px;letter-spacing:1.5px}
+ nav button{padding:7px 8px;font-size:9px}
+ .hero h1{font-size:31px}
+ .hero .actions{display:grid;grid-template-columns:1fr}
+ .hero .actions .btn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ .page.active,.card,.btn{animation:none!important;transition:none!important}
+ .card:hover,.btn:hover{transform:none}
+}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap navrow">
+  <div class="brand">MPS <span>MARKET PSYCHOLOGY SOCIETY</span></div>
+  <nav aria-label="Navigasi">
+    <button onclick="go('home')">Beranda</button><button onclick="go('register')">Daftar</button><button onclick="go('deposit')">Deposit</button><button onclick="go('member')">Member</button><button onclick="go('learning')">Learning</button><button onclick="go('pulse')">Market Pulse</button><button onclick="go('calculator')">Calculator</button><button onclick="go('vip')">VIP</button><button onclick="go('news')">News & Review</button><button onclick="go('advertise')">Advertise</button><button onclick="go('admin')">Admin</button>
+  </nav>
+</div></header>
+<main class="wrap">
+  <section id="home" class="page active">
+    <div class="hero"><div><div class="eyebrow">Discipline • Mindset • Community</div><h1>Trade with <em>discipline.</em><br>Grow with clarity.</h1>
+      <p>Komunitas pembelajaran psikologi trading, money management, dan disiplin. MPS tidak menjanjikan keuntungan dan tidak meminta password trading atau OTP.</p>
+      <div class="actions"><button class="btn" onclick="go('register')">GABUNG MPS</button><button class="btn secondary" onclick="go('member')">AREA MEMBER</button></div></div><div class="seal">MPS</div></div>
+    <div class="grid"><article class="card"><h3>Money Management</h3><p>Bangun kebiasaan mengelola risiko dan modal secara terukur.</p></article><article class="card"><h3>Trading Psychology</h3><p>Latih disiplin, kesabaran, dan pengambilan keputusan.</p></article><article class="card"><h3>Member Community</h3><p>Belajar dan berdiskusi bersama komunitas MPS.</p></article></div>
+    <div class="notice">Keanggotaan Regular: Rp100.000/bulan melalui QRIS. Active IB Member: tanpa iuran bulanan selama status Exness IB aktif dan syarat MPS terpenuhi. Deposit minimal awal Rp500.000 dilakukan ke akun Exness milik member melalui referral resmi MPS, bukan dibayarkan kepada MPS. Tidak tersedia free trial.<p><a href="https://one.toexness.com/a/bdthbxwb2q?platform=mobile" target="_blank" rel="noopener noreferrer" style="color:#f3c96a;font-weight:800">BUKA REFERRAL RESMI EXNESS MPS</a></p></div><div id="vipTicker" class="notice" aria-live="polite">Member VIP: menampilkan anggota yang telah terverifikasi bergabung.</div><div id="announcementPublic" class="notice hidden"></div>
+  </section>
+  <section id="register" class="page"><div class="panel"><div class="eyebrow">MEMBERSHIP</div><h2>Pendaftaran MPS</h2><p class="muted">Pendaftaran awal menghasilkan Application Ref. ID Member baru diterbitkan setelah deposit diverifikasi dan disetujui Admin.</p>
+    <form id="registerForm" class="form">
+      <div class="field"><label>Nama panggilan</label><input name="nickname" required maxlength="60"></div>
+      <div class="field"><label>Username Telegram (tanpa @)</label><input name="telegramUsername" required maxlength="40" placeholder="username"></div>
+      <div class="field"><label>Negara</label><input name="country" required value="Indonesia"></div>
+      <div class="field full"><label>Jenis keanggotaan</label><select name="plan" required><option value="">Pilih keanggotaan</option><option value="REGULAR">Regular Member — Rp100.000/bulan (QRIS ditampilkan pada tahap pembayaran)</option><option value="ACTIVE_IB">Active IB Member — tanpa iuran bulanan selama status IB Exness aktif dan terverifikasi</option></select></div>
+      <div class="field"><label>Tujuan bergabung</label><select name="goal" required><option value="">Pilih tujuan</option><option>Belajar money management</option><option>Membangun psikologi trading</option><option>Melatih disiplin trading</option><option>Belajar dan berdiskusi bersama</option></select></div>
+      <div class="field full"><label>Catatan (opsional)</label><textarea name="note" maxlength="1000"></textarea></div>
+      <div class="field full"><button class="btn" type="submit">KIRIM PENDAFTARAN</button></div>
+    </form><div id="registerResult" class="notice hidden result"></div>
+  </div></section>
+  <section id="deposit" class="page"><div class="panel"><div class="eyebrow">DEPOSIT VERIFICATION</div><h2>Form deposit</h2><p class="muted">Form deposit Exness khusus Active IB Member. Regular Member cukup mengirim bukti pembayaran QRIS Rp100.000. Bukti disimpan di folder Drive privat MPS.</p>
+    <form id="depositForm" class="form hidden">
+      <div class="field full"><label>Application Ref</label><input name="applicationRef" required placeholder="MPS-APP-..."></div>
+      <div class="field"><label>Nama sesuai akun</label><input name="accountName" required></div><div class="field"><label>Login MT5</label><input name="mt5Login" required></div>
+      <div class="field"><label>Jenis akun</label><select name="accountType" required><option value="">Pilih</option><option>Standard</option><option>Pro</option><option>Raw Spread</option><option>Lainnya</option></select></div>
+      <div class="field"><label>Deposit pertama (IDR)</label><input name="amount" type="text" inputmode="numeric" autocomplete="off" placeholder="500.000" required aria-describedby="depositAmountHint"><small id="depositAmountHint" class="muted">Masukkan nominal rupiah, contoh: 500.000 (minimal Rp500.000).</small></div>
+      <div class="field"><label>Tanggal deposit</label><input name="depositDate" type="date" required></div>
+      <div class="field"><label>Bukti deposit (JPG/PNG/WEBP, maks 5 MB)</label><input name="proof" type="file" accept="image/jpeg,image/png,image/webp" required></div>
+      <div class="field full"><button class="btn" type="submit">KIRIM DATA DEPOSIT</button></div>
+    </form><div id="depositResult" class="notice hidden result"></div><div id="regularPaymentPanel" class="panel hidden" style="margin-top:16px"><h3>Pembayaran Regular Member</h3><p class="muted">QRIS hanya untuk Regular Member. Bayar tepat Rp100.000, lalu unggah bukti. Jangan kirim pembayaran ke rekening lain.</p><img src="https://raw.githubusercontent.com/marketpsychologysociety/mps-website/main/rebuild/v4.8.1/assets/qris-regular.png" alt="QRIS resmi MPS Regular Member" style="display:block;width:min(100%,320px);margin:12px auto;border-radius:14px;background:#fff;padding:10px"><p style="text-align:center;font-weight:800;color:#e6b85d">Rp100.000 / bulan</p><form id="regularPaymentForm" class="form"><div class="field"><label>Application Ref</label><input name="applicationRef" required></div><div class="field"><label>Tanggal pembayaran</label><input name="paymentDate" type="date" required></div><div class="field"><label>Bukti pembayaran (JPG/PNG/WEBP, maks 5 MB)</label><input name="proof" type="file" accept="image/jpeg,image/png,image/webp" required></div><div class="field full"><button class="btn">KIRIM BUKTI QRIS</button></div></form><div id="regularPaymentResult" class="notice hidden"></div></div>
+  </div></section>
+  <section id="member" class="page"><div class="panel"><div class="eyebrow">MEMBER ACCESS</div><h2>Masuk Member</h2>
+    <form id="memberLogin" class="form"><div class="field"><label>ID Member</label><input name="memberId" required></div><div class="field"><label>PIN 6 digit</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></div><div class="field full"><button class="btn">MASUK</button></div></form>
+    <div id="memberResult" class="notice hidden"></div><div id="announcementMember" class="notice hidden"></div><div id="memberTools" class="actions hidden"><button class="btn secondary" onclick="memberSection('dashboard')">Dashboard</button><button class="btn secondary" onclick="memberSection('learning')">Learning</button><button class="btn secondary" onclick="memberSection('pulse')">Market Pulse</button><button class="btn secondary" onclick="memberSection('news')">News</button><button class="btn red" onclick="logout()">Keluar</button></div>
+     <div id="memberRenewalPanel" class="panel hidden"><h3>Perpanjangan Regular Member</h3><p id="memberRenewalStatus" class="muted">Memeriksa status keanggotaan...</p><div id="memberRenewalPending" class="notice hidden"></div><div id="memberRenewalPayment" class="hidden"><p class="muted">Bayar tepat Rp100.000 melalui QRIS resmi MPS. Masa aktif bertambah 30 hari setelah Admin menyetujui bukti pembayaran.</p><img src="https://raw.githubusercontent.com/marketpsychologysociety/mps-website/main/rebuild/v4.8.1/assets/qris-regular.png" alt="QRIS resmi MPS Regular Member" style="display:block;width:min(100%,300px);margin:12px auto;border-radius:14px;background:#fff;padding:10px"><form id="memberRenewalForm" class="form"><div class="field"><label>Tanggal pembayaran</label><input name="paymentDate" type="date" required></div><div class="field"><label>Bukti QRIS (JPG/PNG/WEBP, maks 5 MB)</label><input name="proof" type="file" accept="image/jpeg,image/png,image/webp" required></div><div class="field full"><button class="btn">KIRIM BUKTI PERPANJANGAN</button></div></form><div id="memberRenewalResult" class="notice hidden"></div></div></div>
+     <div id="memberContent" class="panel hidden"></div>
+  </div></section>
+  <section id="learning" class="page"><div class="panel"><div class="eyebrow">PREMIUM LEARNING</div><h2>Learning Center</h2><p class="muted">Materi pembelajaran tersedia setelah autentikasi member. Silakan masuk melalui Area Member.</p><button class="btn" onclick="go('member')">MASUK MEMBER</button></div></section>
+  <section id="pulse" class="page"><div class="panel"><div class="eyebrow">MEMBER ONLY</div><h2>MPS Market Pulse</h2><p class="muted">Preview publik. Data lengkap hanya untuk member aktif.</p><div class="notice">Sumber data: Binance Spot PAXGUSDT sebagai proxy pasar emas, timeframe M5, zona WIB. Ini bukan feed XAUUSD broker Forex.</div>
+    <div class="pulse-preview" style="margin:18px 0;padding:16px;border:1px solid #c59b45;border-radius:16px;background:linear-gradient(145deg,#071421,#101f30);overflow:hidden">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><strong style="color:#f2ca72;letter-spacing:2px">MPS MARKET PULSE</strong><span style="font-size:11px;color:#f2ca72;border:1px solid #8c6a32;padding:5px 9px;border-radius:20px">PUBLIC PREVIEW</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:end;margin:18px 0 8px"><div><small style="color:#9eafc0">GOLD MARKET PROXY</small><div style="font-size:22px;font-weight:800;color:#fff">PAXGUSDT</div></div><div style="font-size:12px;color:#9eafc0">TIMEFRAME M5 · WIB</div></div>
+      <svg viewBox="0 0 640 190" role="img" aria-label="Ilustrasi grafik Market Pulse statis, bukan data harga live" style="display:block;width:100%;height:auto;background:linear-gradient(180deg,#0b1d2d,#081421);border-radius:10px">
+        <g stroke="#ffffff18" stroke-width="1"><path d="M0 35H640M0 75H640M0 115H640M0 155H640"/><path d="M80 0V190M180 0V190M280 0V190M380 0V190M480 0V190M580 0V190"/></g>
+        <path d="M0 142 L42 128 L76 136 L110 105 L145 118 L178 90 L214 102 L248 72 L280 84 L316 57 L350 69 L384 43 L418 58 L454 32 L488 48 L522 25 L558 40 L592 18 L640 31" fill="none" stroke="#e6b85d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M0 142 L42 128 L76 136 L110 105 L145 118 L178 90 L214 102 L248 72 L280 84 L316 57 L350 69 L384 43 L418 58 L454 32 L488 48 L522 25 L558 40 L592 18 L640 31 L640 190 L0 190Z" fill="#d9a94d" opacity=".10"/>
+        <text x="18" y="178" fill="#8295a8" font-size="11">STATIC VISUAL PREVIEW · NO LIVE PRICE</text>
+      </svg>
+      <div style="display:flex;justify-content:space-between;gap:10px;margin-top:12px;color:#9eafc0;font-size:11px"><span>Market structure</span><span>Liquidity</span><span>Momentum</span><span style="color:#e6b85d">Member Only</span></div>
+    </div><button class="btn" onclick="go('member')">AKSES MEMBER</button></div></section>
+  <section id="calculator" class="page"><div class="panel"><div class="eyebrow">RISK MANAGEMENT</div><h2>Risk Calculator</h2><p class="muted">Kalkulator estimasi ukuran posisi. Masukkan nilai per lot sesuai spesifikasi instrumen dan broker Anda.</p>
+    <form id="riskForm" class="form">
+      <div class="field"><label>Modal (IDR)</label><input name="capital" type="number" min="1" required></div>
+      <div class="field"><label>Risiko (%)</label><input name="risk" type="number" min="0.01" max="100" step="0.01" value="1" required></div>
+      <div class="field"><label>Jarak Stop Loss (point)</label><input name="stop" type="number" min="0.0001" step="any" required></div>
+      <div class="field"><label>Nilai per point per 1 lot (IDR)</label><input name="value" type="number" min="0.0001" step="any" required></div>
+      <div class="field full"><button class="btn">HITUNG UKURAN POSISI</button></div>
+    </form><div id="riskResult" class="notice hidden"></div>
+  </div></section>
+  <section id="vip" class="page"><div class="panel"><div class="eyebrow">MPS MEMBERSHIP</div><h2>VIP Community</h2>
+    <div class="grid"><article class="card"><h3>Regular Member</h3><p>Rp100.000 per bulan melalui QRIS. Aktivasi setelah pembayaran diverifikasi Admin.</p></article><article class="card"><h3>Active IB Member</h3><p>Tanpa iuran bulanan selama status Exness IB terverifikasi aktif dan seluruh syarat MPS dipenuhi.</p></article></div>
+    <p class="muted">Deposit pertama minimal Rp500.000 dilakukan ke akun Exness milik Anda sendiri melalui referral resmi MPS, bukan dibayarkan kepada MPS. Tidak tersedia free trial.</p>
+    <p><a href="https://one.toexness.com/a/bdthbxwb2q?platform=mobile" target="_blank" rel="noopener noreferrer">Buka referral resmi Exness MPS</a></p>
+    <p class="muted">Status IB dan rebate belum diverifikasi otomatis oleh portal ini. Jangan pernah membagikan password trading atau OTP.</p><button class="btn" onclick="go('register')">DAFTAR MPS</button>
+  </div></section>
+  <section id="advertise" class="page"><div class="panel"><div class="eyebrow">PARTNERSHIP</div><h2>Advertise with MPS</h2><p class="muted">Ruang kerja sama dan promosi untuk brand yang relevan dengan edukasi finansial dan trading. Seluruh materi promosi wajib melalui persetujuan Admin MPS.</p><p class="muted">Informasi paket, jadwal, dan persetujuan iklan dikelola Admin. Portal ini belum memproses pembayaran atau pemesanan iklan secara otomatis.</p><button class="btn secondary" onclick="go('admin')">HUBUNGI ADMIN</button></div></section>
+  <section id="news" class="page"><div class="panel"><div class="eyebrow">MARKET INTELLIGENCE</div><h2>News & Review</h2><p class="muted">Analisis berita makroekonomi dan risiko pasar tersedia di area member. Tidak ada jaminan hasil trading.</p><button class="btn" onclick="go('member')">AKSES MEMBER</button></div></section>
+  <section id="admin" class="page"><div class="panel"><div id="adminLoginPanel"><div class="eyebrow">CONTROL ROOM</div><h2>Admin MPS</h2><form id="adminLogin" class="form"><div class="field full"><label>Password Admin</label><input name="password" type="password" required autocomplete="current-password"></div><div class="field full"><label>Kode Google Authenticator (6 digit)</label><input name="totpCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code"></div><div class="field full"><button class="btn">MASUK ADMIN</button></div></form><div id="adminResult" class="notice hidden"></div>
+    <div class="divider" style="margin:22px 0;border-top:1px solid #ffffff22"></div>
+    <h3>Super Admin</h3><p class="muted">Akses terpisah dengan password dan Google Authenticator Super Admin.</p>
+    <form id="superAdminLogin" class="form"><div class="field full"><label>Password Super Admin</label><input name="password" type="password" required autocomplete="current-password"></div><div class="field full"><label>Kode Google Authenticator Super Admin</label><input name="totpCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code"></div><div class="field full"><button class="btn red">MASUK SUPER ADMIN</button></div></form></div>
+    <div id="adminQueue" class="hidden"></div>
+    <div class="panel" style="margin-top:18px"><h3>Pengumuman Terjadwal</h3>
+      <form id="announcementForm" class="form">
+        <input type="hidden" name="id">
+        <div class="field full"><label>Judul</label><input name="title" maxlength="120" required></div>
+        <div class="field full"><label>Isi pengumuman</label><textarea name="body" maxlength="1200" required></textarea></div>
+        <div class="field"><label>Audiens</label><select name="audience"><option value="PUBLIC">Publik</option><option value="MEMBER">Member</option></select></div>
+        <div class="field"><label>Status</label><select name="active"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+        <div class="field"><label>Mulai</label><input name="startAt" type="datetime-local" required></div>
+        <div class="field"><label>Selesai</label><input name="endAt" type="datetime-local" required></div>
+        <div class="field full"><button class="btn" type="submit">SIMPAN PENGUMUMAN</button><button class="btn secondary" type="button" onclick="resetAnnouncementForm()">BARU</button></div>
+      </form><div id="announcementAdminList"></div>
+    </div>
+    <div class="panel" style="margin-top:18px"><h3>Materi Learning & News</h3>
+      <form id="contentForm" class="form">
+        <input type="hidden" name="id">
+        <div class="field"><label>Jenis konten</label><select name="section"><option value="learning">Learning</option><option value="news">News & Review</option></select></div>
+        <div class="field"><label>Kategori / Topik</label><input name="category" maxlength="80"></div>
+        <div class="field full"><label>Judul</label><input name="title" maxlength="160" required></div>
+        <div class="field full"><label>Isi materi / ulasan</label><textarea name="body" maxlength="6000" required></textarea></div>
+        <div class="field"><label>Nama sumber (News)</label><input name="sourceName" maxlength="120"></div>
+        <div class="field"><label>URL PDF Google Drive privat / sumber (HTTPS)</label><input name="resourceUrl" type="url" maxlength="500"></div>
+        <div class="field"><label>Tanggal publikasi (News)</label><input name="publishedAt" type="datetime-local"></div>
+        <div class="field"><label>Urutan (Learning)</label><input name="sortOrder" type="number" value="0"></div>
+        <div class="field"><label>Status publikasi</label><select name="published"><option value="true">Terbit</option><option value="false">Draft / Nonaktif</option></select></div>
+        <div class="field full"><button class="btn" type="submit">SIMPAN KONTEN</button><button class="btn secondary" type="button" onclick="resetContentForm()">BARU</button></div>
+      </form><div id="contentAdminList"></div>
+    </div></div></section>
+<section id="adminDashboard" class="page"><div class="panel"><div class="eyebrow">SECURE CONTROL ROOM</div><h2 id="adminDashboardTitle">Dashboard Admin</h2><p id="adminDashboardRole" class="muted">Sesi admin aktif.</p><div class="actions"><button class="btn secondary" type="button" onclick="go('home')">KEMBALI KE BERANDA</button><button class="btn red" type="button" onclick="adminLogout()">LOGOUT</button></div><div id="adminDashboardContent" class="admin-dashboard-tools"></div></div></section>
+</main>
+<footer class="footer"><div class="wrap">MARKET PSYCHOLOGY SOCIETY • Trade responsibly. Learn continuously.</div></footer>
+<script>
+let adminSession='',memberSession='';
+// Navigation invariant: switching sections must never clear the in-memory Admin session. Only explicit adminLogout() may do that. Returning to Admin in the same tab restores the existing dashboard without another credential prompt.
+function go(id){if(id==='admin'&&typeof adminSession!=='undefined'&&adminSession){id='adminDashboard';}document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));window.scrollTo({top:0,behavior:'smooth'});}
+function formatRupiahDigits(value){const digits=String(value==null?'':value).replace(/[^0-9]/g,'');return digits?Number(digits).toLocaleString('id-ID'):'';}
+function bindRupiahInput(input){if(!input||input.dataset.rupiahBound==='1')return;input.dataset.rupiahBound='1';input.addEventListener('input',()=>{const position=input.selectionStart||input.value.length,digitsBefore=input.value.slice(0,position).replace(/[^0-9]/g,'').length;input.value=formatRupiahDigits(input.value);let cursor=0,count=0;while(cursor<input.value.length&&count<digitsBefore){if(/[0-9]/.test(input.value[cursor]))count++;cursor++;}try{input.setSelectionRange(cursor,cursor);}catch(_){}});input.addEventListener('blur',()=>{input.value=formatRupiahDigits(input.value);});}
+function show(id,msg,type){const el=document.getElementById(id);el.className='notice '+(type||'')+' result';el.textContent=msg;el.classList.remove('hidden');}
+function runApi(name,args){return new Promise((resolve,reject)=>{if(typeof google==='undefined'||!google.script||!google.script.run){reject(new Error('Backend Apps Script belum terhubung.'));return;}google.script.run.withSuccessHandler(resolve).withFailureHandler(e=>reject(new Error(e.message||String(e))))[name](...args);});}
+document.getElementById('riskForm').addEventListener('submit',e=>{e.preventDefault();const f=e.target,capital=Number(f.elements.capital.value),risk=Number(f.elements.risk.value),stop=Number(f.elements.stop.value),value=Number(f.elements.value.value);const out=document.getElementById('riskResult');if(!(capital>0&&risk>0&&risk<=100&&stop>0&&value>0)){show('riskResult','Periksa kembali semua nilai input.','error');return;}const riskMoney=capital*risk/100,lots=riskMoney/(stop*value);show('riskResult','Batas risiko: Rp'+riskMoney.toLocaleString('id-ID')+' • Estimasi ukuran posisi: '+lots.toFixed(4)+' lot. Sesuaikan dengan spesifikasi kontrak broker.','success');});
+document.getElementById('registerForm').addEventListener('submit',async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));try{const r=await runApi('apiRegister',[f]);show('registerResult','Pendaftaran tersimpan. Application Ref: '+r.applicationRef+'. Simpan kode ini.','success');if(r.plan==='REGULAR'){document.getElementById('depositForm').classList.add('hidden');const p=document.getElementById('regularPaymentPanel');p.classList.remove('hidden');document.querySelector('#regularPaymentForm [name=applicationRef]').value=r.applicationRef;const b=document.createElement('button');b.type='button';b.className='btn secondary';b.textContent='LANJUT KE PEMBAYARAN QRIS';b.onclick=()=>{go('deposit');p.scrollIntoView({behavior:'smooth'});};document.getElementById('registerResult').appendChild(b);}else{const d=document.getElementById('depositForm');d.classList.remove('hidden');d.elements.applicationRef.value=r.applicationRef;const b=document.createElement('button');b.type='button';b.className='btn secondary';b.textContent='LANJUT VERIFIKASI DEPOSIT EXNESS';b.onclick=()=>{go('deposit');};document.getElementById('registerResult').appendChild(b);}e.target.reset();}catch(x){show('registerResult',x.message,'error');}});
+document.getElementById('regularPaymentForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.target,file=f.elements.proof.files[0];if(!file){show('regularPaymentResult','Pilih bukti pembayaran.','error');return;}if(file.size>5*1024*1024){show('regularPaymentResult','Ukuran bukti maksimal 5 MB.','error');return;}try{const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});const data={applicationRef:f.elements.applicationRef.value,paymentDate:f.elements.paymentDate.value,amount:100000,proofMime:file.type,proofBase64:base64};const r=await runApi('apiSubmitRegularPayment',[data]);show('regularPaymentResult','Bukti QRIS diterima. ID Member: '+r.memberId+'. Status: '+r.status+'. PIN akan diberikan setelah Admin menyetujui pengajuan.'+(r.telegramLinkAvailable?' Tautan verifikasi Telegram tersedia.':' Tautan Telegram belum dibuat karena username bot TEST belum dikonfigurasi Admin. Jangan kirim ulang bukti; minta Admin TEST mengatur bot dan membuat tautan.'),'success');if(r.telegramLinkAvailable){const a=document.createElement('a');a.href=r.telegramLink;a.target='_blank';a.rel='noopener noreferrer';a.textContent=' HUBUNGKAN TELEGRAM';a.style.cssText='display:inline-block;margin-top:10px;color:#f3c96a;font-weight:800';document.getElementById('regularPaymentResult').appendChild(a);}f.reset();}catch(x){show('regularPaymentResult',x.message,'error');}});
+bindRupiahInput(document.querySelector('#depositForm [name=amount]'));
+document.getElementById('depositForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.target, file=f.elements.proof.files[0];if(!file){show('depositResult','Pilih bukti deposit.','error');return;}if(file.size>5*1024*1024){show('depositResult','Ukuran bukti maksimal 5 MB.','error');return;}try{const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});const data={applicationRef:f.elements.applicationRef.value,accountName:f.elements.accountName.value,mt5Login:f.elements.mt5Login.value,accountType:f.elements.accountType.value,amount:String(f.elements.amount.value||'').replace(/[^0-9]/g,''),depositDate:f.elements.depositDate.value,proofMime:file.type,proofBase64:base64};const r=await runApi('apiSubmitDeposit',[data]);show('depositResult','Data deposit terkirim. ID Member: '+r.memberId+'. Status: '+r.status+'. PIN akan diberikan setelah Admin menyetujui pengajuan.'+(r.telegramLinkAvailable?' Buka Telegram untuk verifikasi username dalam 24 jam.':' Verifikasi Telegram belum tersedia; bot username perlu dikonfigurasi Admin.'),'success');if(r.telegramLinkAvailable){const box=document.getElementById('depositResult');const a=document.createElement('a');a.href=r.telegramLink;a.target='_blank';a.rel='noopener noreferrer';a.textContent=' HUBUNGKAN TELEGRAM';a.style.cssText='display:inline-block;margin-top:10px;color:#f3c96a;font-weight:800';box.appendChild(document.createElement('br'));box.appendChild(a);}f.reset();}catch(x){show('depositResult',x.message,'error');}});
+document.getElementById('memberLogin').addEventListener('submit',async e=>{e.preventDefault();const f=e.target;try{const r=await runApi('apiMemberLogin',[f.elements.memberId.value,f.elements.pin.value]);memberSession=r.session;document.getElementById('memberTools').classList.remove('hidden');show('memberResult','Login berhasil. Akses member aktif.','success');await loadPublicAnnouncements(memberSession,'announcementMember');await loadMemberRenewalInfo();f.reset();}catch(x){show('memberResult',x.message,'error');}});
+
+async function loadMemberRenewalInfo(){
+ const panel=document.getElementById('memberRenewalPanel'),status=document.getElementById('memberRenewalStatus'),pending=document.getElementById('memberRenewalPending'),payment=document.getElementById('memberRenewalPayment');
+ try{
+  const info=await runApi('apiGetMemberRenewalInfo',[memberSession]);
+  if(!info.eligible){panel.classList.add('hidden');return;}
+  panel.classList.remove('hidden');pending.classList.add('hidden');payment.classList.add('hidden');
+  status.textContent=info.expired?'Masa aktif Regular telah berakhir. Akses materi terkunci sampai perpanjangan disetujui.':'Masa aktif Regular berlaku sampai '+(info.expiresAt?new Date(info.expiresAt).toLocaleDateString('id-ID'):'tanggal belum tersedia')+'. Anda dapat memperpanjang lebih awal.';
+  if(info.pendingRenewal){pending.textContent='Bukti perpanjangan '+info.pendingRenewal.renewalRef+' sudah diterima dan sedang menunggu validasi Admin. Jangan mengirim bukti kedua.';pending.classList.remove('hidden');}
+  else payment.classList.remove('hidden');
+ }catch(e){panel.classList.add('hidden');show('memberResult',e.message,'error');}
+}
+document.getElementById('memberRenewalForm').addEventListener('submit',async e=>{
+ e.preventDefault();const f=e.target,file=f.elements.proof.files[0];
+ if(!file){show('memberRenewalResult','Pilih bukti pembayaran QRIS.','error');return;}
+ if(file.size>5*1024*1024){show('memberRenewalResult','Ukuran bukti maksimal 5 MB.','error');return;}
+ try{
+  const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file);});
+  const result=await runApi('apiSubmitMemberRenewal',[memberSession,{paymentDate:f.elements.paymentDate.value,amount:100000,proofMime:file.type,proofBase64:base64}]);
+  show('memberRenewalResult','Bukti perpanjangan diterima. Referensi: '+result.renewalRef+'. Status: '+result.status+'. Admin akan memeriksa pembayaran.','success');
+  f.reset();await loadMemberRenewalInfo();
+ }catch(x){show('memberRenewalResult',x.message,'error');}
+});
+async function downloadLearningMaterial(contentId,button){
+ const original=button.textContent;button.disabled=true;button.textContent='MENYIAPKAN PDF...';
+ try{
+  const result=await runApi('apiDownloadLearningMaterial',[memberSession,contentId]);
+  if(!result||result.ok!==true||!result.base64)throw new Error('File PDF tidak dapat disiapkan.');
+  const raw=atob(result.base64),bytes=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+  const blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob);
+  const link=document.createElement('a');link.href=url;link.download=result.name||'MPS-Learning.pdf';link.style.display='none';
+  document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  button.textContent='PDF BERHASIL DISIAPKAN';
+ }catch(error){show('memberResult',error.message,'error');button.textContent=original;button.disabled=false;}
+}
+async function memberSection(section){try{const r=await runApi('apiGetMemberContent',[memberSession,section]);const el=document.getElementById('memberContent');el.classList.remove('hidden');el.innerHTML='';if(section==='pulse'){const p=document.createElement('p');p.textContent='Sumber: '+r.source+' | Timeframe: '+r.timeframe+' | Zona: '+r.timezone+'. '+r.disclaimer;el.appendChild(p);if(Array.isArray(r.data)&&r.data.length){const latest=r.data[r.data.length-1],q=document.createElement('strong');q.textContent='PAXGUSDT terakhir: '+latest.close+' USDT';el.appendChild(q);const list=document.createElement('p');list.textContent='Candles M5 tersedia: '+r.data.length;el.appendChild(list);}else{const q=document.createElement('p');q.textContent=r.error||'Data belum tersedia.';el.appendChild(q);}return;}if(section==='learning'||section==='news'){if(!r.items||!r.items.length){el.textContent='Belum ada konten yang dipublikasikan.';return;}r.items.forEach(item=>{const card=document.createElement('article');card.className='card';const h=document.createElement('h3');h.textContent=item.title;const meta=document.createElement('small');meta.textContent=item.category||item.topic||'';const body=document.createElement('p');body.textContent=item.body;card.append(h,meta,body);if(section==='learning'&&item.hasDownload){const a=document.createElement('button');a.type='button';a.className='btn secondary';a.textContent='UNDUH PDF PRIVAT';a.addEventListener('click',()=>downloadLearningMaterial(item.id,a));card.appendChild(a);}else if(section==='news'&&item.sourceUrl){const a=document.createElement('a');a.href=item.sourceUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent=item.sourceName?'Sumber: '+item.sourceName:'Buka sumber';a.style.color='#f3c96a';card.appendChild(a);}el.appendChild(card);});return;}el.textContent='Dashboard member.';}catch(x){show('memberResult',x.message,'error');}}
+async function logout(){try{await runApi('apiLogout',[memberSession]);}catch(_){}memberSession='';document.getElementById('memberTools').classList.add('hidden');document.getElementById('memberRenewalPanel').classList.add('hidden');document.getElementById('memberContent').classList.add('hidden');show('memberResult','Sesi telah ditutup.','success');}
+document.getElementById('adminLogin').addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;if(b)b.disabled=true;try{const r=await runApi('apiAdminLogin',[e.target.elements.password.value,e.target.elements.totpCode.value]);adminSession=r.session;e.target.reset();await loadAdmin();await loadAnnouncementsAdmin();await loadAdminContent();enterAdminDashboard('ADMIN');}catch(x){show('adminResult',x.message,'error');}finally{if(b)b.disabled=false;}});
+document.getElementById('superAdminLogin').addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;if(b)b.disabled=true;try{const r=await runApi('apiSuperAdminLogin',[e.target.elements.password.value,e.target.elements.totpCode.value]);adminSession=r.session;e.target.reset();await loadAdmin();await loadAnnouncementsAdmin();await loadAdminContent();enterAdminDashboard('SUPER ADMIN');}catch(x){show('adminResult',x.message,'error');}finally{if(b)b.disabled=false;}});
+function enterAdminDashboard(role){const host=document.getElementById('adminDashboardContent');if(!host.dataset.ready){['adminQueue','announcementForm','contentForm'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const panel=id==='adminQueue'?el:el.closest('.panel');if(panel&&!host.contains(panel))host.appendChild(panel);});host.dataset.ready='1';}document.getElementById('adminLoginPanel').classList.add('hidden');document.getElementById('adminDashboardTitle').textContent=role==='SUPER ADMIN'?'Dashboard Super Admin':'Dashboard Admin';document.getElementById('adminDashboardRole').textContent='Login berhasil • Hak akses: '+role;go('adminDashboard');}
+async function adminLogout(){const token=adminSession;adminSession='';try{if(token)await runApi('apiLogout',[token]);}catch(_){}document.getElementById('adminLoginPanel').classList.remove('hidden');document.getElementById('adminResult').classList.add('hidden');go('admin');}
+function resetAnnouncementForm(){const f=document.getElementById('announcementForm');f.reset();f.elements.id.value='';}
+function setAnnouncementForm(a){const f=document.getElementById('announcementForm');f.elements.id.value=a.id;f.elements.title.value=a.title;f.elements.body.value=a.body;f.elements.audience.value=a.audience;f.elements.active.value=String(a.active);const localValue=v=>{const d=new Date(v);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};f.elements.startAt.value=localValue(a.startAt);f.elements.endAt.value=localValue(a.endAt);window.scrollTo({top:document.getElementById('announcementForm').getBoundingClientRect().top+window.scrollY,behavior:'smooth'});}
+async function loadAnnouncementsAdmin(){try{const items=await runApi('apiAdminListAnnouncements',[adminSession]);const root=document.getElementById('announcementAdminList');root.innerHTML='';items.forEach(a=>{const p=document.createElement('p');p.textContent=a.title+' • '+a.audience+' • '+(a.active?'Aktif':'Nonaktif');const b=document.createElement('button');b.className='btn secondary';b.textContent='Edit';b.onclick=()=>setAnnouncementForm(a);root.append(p,b);});}catch(e){show('adminResult',e.message,'error');}}
+function resetContentForm(){const f=document.getElementById('contentForm');f.reset();f.elements.id.value='';f.elements.published.value='true';}
+async function loadAdminContent(){try{const f=document.getElementById('contentForm'),section=f.elements.section.value,items=await runApi('apiAdminListContent',[adminSession,section]),root=document.getElementById('contentAdminList');root.innerHTML='';items.forEach(a=>{const p=document.createElement('p');p.textContent=a.title+' • '+(a.published?'Terbit':'Draft');const b=document.createElement('button');b.className='btn secondary';b.textContent='Edit';b.onclick=()=>{f.elements.id.value=a.id;f.elements.title.value=a.title;f.elements.category.value=a.category||a.topic||'';f.elements.body.value=a.body;f.elements.resourceUrl.value=a.resourceUrl||a.sourceUrl||'';f.elements.sourceName.value=a.sourceName||'';f.elements.published.value=String(a.published);f.elements.sortOrder.value=a.sortOrder||0;if(a.publishedAt){const d=new Date(a.publishedAt);f.elements.publishedAt.value=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}else f.elements.publishedAt.value='';};root.append(p,b);});}catch(e){show('adminResult',e.message,'error');}}
+document.getElementById('contentForm').elements.section.addEventListener('change',loadAdminContent);
+document.getElementById('contentForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.target,section=f.elements.section.value;try{const local=f.elements.publishedAt.value;const payload={id:f.elements.id.value,title:f.elements.title.value,body:f.elements.body.value,category:f.elements.category.value,topic:f.elements.category.value,resourceUrl:f.elements.resourceUrl.value,sourceUrl:f.elements.resourceUrl.value,sourceName:f.elements.sourceName.value,publishedAt:local?new Date(local).toISOString():'',sortOrder:f.elements.sortOrder.value,published:f.elements.published.value==='true'};await runApi('apiAdminSaveContent',[adminSession,section,payload]);show('adminResult','Konten berhasil disimpan.','success');resetContentForm();await loadAdminContent();}catch(x){show('adminResult',x.message,'error');}});
+document.getElementById('announcementForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.target;try{const payload={id:f.elements.id.value,title:f.elements.title.value,body:f.elements.body.value,audience:f.elements.audience.value,active:f.elements.active.value==='true',startAt:new Date(f.elements.startAt.value).toISOString(),endAt:new Date(f.elements.endAt.value).toISOString()};await runApi('apiAdminSaveAnnouncement',[adminSession,payload]);show('adminResult','Pengumuman berhasil disimpan.','success');resetAnnouncementForm();await loadAnnouncementsAdmin();}catch(x){show('adminResult',x.message,'error');}});
+async function loadPublicAnnouncements(session,targetId){try{const items=await runApi('apiGetAnnouncements',[session||'']);const root=document.getElementById(targetId);root.innerHTML='';const dismissed=(sessionStorage.getItem('mps-announcement-dismissed')||'').split(',').filter(Boolean);const item=items.find(x=>!dismissed.includes(x.id));if(!item){root.classList.add('hidden');return;}const h=document.createElement('strong');h.textContent=item.title;const p=document.createElement('p');p.textContent=item.body;const close=document.createElement('button');close.className='btn secondary';close.textContent='Tutup';close.onclick=()=>{const all=new Set(dismissed);all.add(item.id);sessionStorage.setItem('mps-announcement-dismissed',Array.from(all).join(','));root.classList.add('hidden');};root.append(h,p,close);root.classList.remove('hidden');}catch(_){const root=document.getElementById(targetId);if(root)root.classList.add('hidden');}}
+async function loadPublicVipTicker(){try{const items=await runApi('apiGetPublicVipTicker',[]);const el=document.getElementById('vipTicker');if(!items.length){el.textContent='Belum ada anggota VIP yang terverifikasi bergabung.';return;}el.textContent='Member VIP terbaru: '+items.map(x=>x.nickname).join(' • ');}catch(_){const el=document.getElementById('vipTicker');if(el)el.textContent='Informasi anggota VIP belum tersedia.';}}
+loadPublicVipTicker();loadPublicAnnouncements('','announcementPublic');
+
+async function loadAdminRenewals(){
+ try{
+  const items=await runApi('apiAdminListRenewals',[adminSession]);
+  let root=document.getElementById('adminRenewalQueue');
+  if(!root){root=document.createElement('div');root.id='adminRenewalQueue';root.className='item';document.getElementById('adminQueue').appendChild(root);}
+  root.innerHTML='';const title=document.createElement('h3');title.textContent='PERPANJANGAN REGULAR MEMBER';root.appendChild(title);
+  const pending=items.filter(x=>x.status==='Menunggu Validasi');
+  const summary=document.createElement('p');summary.textContent='Menunggu validasi: '+pending.length+' • Total riwayat: '+items.length;root.appendChild(summary);
+  if(!pending.length){const empty=document.createElement('p');empty.textContent='Tidak ada bukti perpanjangan yang menunggu validasi.';root.appendChild(empty);return;}
+  pending.forEach(item=>{
+   const box=document.createElement('div');box.className='item';
+   const h=document.createElement('strong');h.textContent=item.nickname+' • '+item.memberId;
+   const p=document.createElement('p');p.textContent='Ref: '+item.renewalRef+' | Pembayaran: Rp'+Number(item.amount).toLocaleString('id-ID')+' | Tanggal: '+item.paymentDate+' | Expiry saat ini: '+(item.currentExpiry?new Date(item.currentExpiry).toLocaleDateString('id-ID'):'belum tercatat');
+   const proof=document.createElement('a');proof.href='https://drive.google.com/open?id='+encodeURIComponent(item.proofFileId);proof.target='_blank';proof.rel='noopener noreferrer';proof.textContent='Buka bukti QRIS';proof.style.cssText='display:block;color:#f3c96a;margin:8px 0';
+   const note=document.createElement('input');note.placeholder='Catatan Admin';note.style.cssText='width:100%;padding:10px;background:#081624;color:#fff;border:1px solid #ffffff33;border-radius:8px';
+   const actions=document.createElement('div');actions.className='actions';
+   [['Setujui','APPROVE'],['Tolak','REJECT']].forEach(([label,decision])=>{const b=document.createElement('button');b.className='btn '+(decision==='REJECT'?'red':'');b.textContent=label;b.onclick=async()=>{if(!confirm(label+' perpanjangan '+item.renewalRef+'?'))return;try{const result=await runApi('apiAdminReviewRenewal',[adminSession,item.renewalRef,decision,note.value]);alert('Perpanjangan '+result.status+'. Member ID tetap '+result.memberId+'.'+(result.expiresAt?' Masa aktif sampai '+new Date(result.expiresAt).toLocaleDateString('id-ID'):''));await loadAdminRenewals();}catch(x){alert(x.message);}};actions.appendChild(b);});
+   box.append(h,p,proof,note,actions);root.appendChild(box);
+  });
+ }catch(e){const root=document.getElementById('adminQueue');if(root){const error=document.createElement('p');error.className='notice error';error.textContent='Gagal memuat perpanjangan: '+e.message;root.appendChild(error);}}
+}
+async function loadAdmin(){try{const response=await runApi('apiAdminList',[adminSession]);if(!Array.isArray(response))throw new Error('Respons apiAdminList bukan daftar yang valid (diterima: '+(response===null?'null':typeof response)+'). Periksa API dan skema sheet TEST.');const items=response;const root=document.getElementById('adminQueue');root.classList.remove('hidden');root.innerHTML='';const refresh=document.createElement('button');refresh.className='btn secondary';refresh.textContent='PERBARUI DAFTAR PENGAJUAN';refresh.onclick=async()=>{refresh.disabled=true;refresh.textContent='MEMPERBARUI...';try{await loadAdmin();}finally{}};root.appendChild(refresh);const worker=document.createElement('button');worker.className='btn secondary';worker.textContent='PROSES UNDANGAN VIP';worker.onclick=async()=>{try{const wr=await runApi('apiAdminProcessVipQueue',[adminSession]);alert('Tugas undangan diproses: '+wr.processed+'.\\n'+(wr.results||[]).map(x=>x.intent+': '+x.status+(x.nextAttemptAt?' • coba lagi '+x.nextAttemptAt:'')).join('\\n'));}catch(x){alert(x.message);}};root.appendChild(worker);const retry=document.createElement('button');retry.className='btn secondary';retry.textContent='ULANGI UPDATE TELEGRAM GAGAL';retry.onclick=async()=>{try{const rr=await runApi('apiAdminRetryTelegramFailures',[adminSession]);alert('Update Telegram yang dicoba ulang: '+rr.processed); }catch(x){alert(x.message);}};root.appendChild(retry);const health=document.createElement('button');health.className='btn secondary';health.textContent='STATUS SISTEM';health.onclick=async()=>{try{const h=await runApi('apiAdminSystemHealth',[adminSession]);const p=document.createElement('pre');p.className='notice';p.style.whiteSpace='pre-wrap';p.textContent=JSON.stringify(h,null,2);root.prepend(p);}catch(x){alert(x.message);}};root.appendChild(health);const vipStatus=document.createElement('button');vipStatus.className='btn secondary';vipStatus.textContent='STATUS ANTREAN VIP & REKONSILIASI';vipStatus.onclick=async()=>{try{const items=await runApi('apiAdminListVipQueue',[adminSession]);const p=document.createElement('pre');p.className='notice';p.style.whiteSpace='pre-wrap';p.textContent=items.map(x=>x.intent+' | '+x.state+' | attempts '+x.attempts+' | '+(x.lastErrorCode||'—')+' | next '+(x.nextAttemptAt||'—')).join('\\n')||'Antrean VIP kosong.';root.prepend(p);}catch(x){alert(x.message);}};root.appendChild(vipStatus);const audit=document.createElement('button');audit.className='btn secondary';audit.textContent='LIHAT AUDIT LOG';audit.onclick=async()=>{try{const rows=await runApi('apiAdminGetAudit',[adminSession]);const p=document.createElement('pre');p.className='notice';p.style.whiteSpace='pre-wrap';p.textContent=rows.map(x=>x.at+' | '+x.role+' | '+x.action+' | '+x.outcome+' | '+x.target+' | '+x.details).join('\\n')||'Belum ada audit log.';root.prepend(p);}catch(x){alert(x.message);}};root.appendChild(audit);await loadAdminRenewals();if(!items.length){const empty=document.createElement('p');empty.textContent='Belum ada pengajuan.';root.appendChild(empty);return;}items.forEach(item=>{const box=document.createElement('div');box.className='item';const title=document.createElement('strong');title.textContent=item.nickname+' • '+item.applicationRef;const detail=document.createElement('p');detail.textContent='Paket: '+(item.plan==='REGULAR'?'Regular Member':'Active IB Member')+' | Iuran: Rp'+Number(item.monthlyFee||0).toLocaleString('id-ID')+'/bulan | Status: '+item.status+' | Pembayaran QRIS: '+(item.regularPaymentStatus||'—')+' | Deposit Exness: Rp'+Number(item.amount||0).toLocaleString('id-ID')+' | Verifikasi Telegram: '+item.telegramStatus+' | Verifikasi IB: '+(item.ibVerificationStatus||'Belum');if(item.proofFileId){const proof=document.createElement('a');proof.href='https://drive.google.com/open?id='+encodeURIComponent(item.proofFileId);proof.target='_blank';proof.rel='noopener noreferrer';proof.textContent='Buka bukti deposit';proof.style.cssText='display:block;color:#f3c96a;margin:8px 0';box.appendChild(proof);}if(item.regularPaymentProofId){const qproof=document.createElement('a');qproof.href='https://drive.google.com/open?id='+encodeURIComponent(item.regularPaymentProofId);qproof.target='_blank';qproof.rel='noopener noreferrer';qproof.textContent='Buka bukti pembayaran QRIS Regular';qproof.style.cssText='display:block;color:#f3c96a;margin:8px 0';box.appendChild(qproof);}const note=document.createElement('input');note.placeholder='Catatan admin';note.style.cssText='width:100%;padding:10px;background:#081624;color:#fff;border:1px solid #ffffff33;border-radius:8px';const actions=document.createElement('div');actions.className='actions';if(item.plan==='ACTIVE_IB' && item.status!=='Disetujui' && item.status!=='Ditolak'){const ib=document.createElement('button');ib.className='btn secondary';ib.textContent=item.ibVerificationStatus==='Terverifikasi'?'Batalkan Verifikasi IB':'Verifikasi Exness IB';ib.onclick=async()=>{const note=prompt('Catatan pemeriksaan bukti/status Exness IB:');if(note===null)return;if(!note.trim()){alert('Catatan pemeriksaan wajib diisi.');return;}try{const ir=await runApi('apiAdminSetIbVerification',[adminSession,item.applicationRef,item.ibVerificationStatus==='Terverifikasi'?'UNVERIFY':'VERIFY',note]);alert('Status IB: '+ir.status);await loadAdmin();}catch(x){alert(x.message);}};actions.appendChild(ib);}if((item.depositStatus||item.regularPaymentStatus) && item.telegramStatus!=='Terhubung'){const linkBtn=document.createElement('button');linkBtn.className='btn secondary';linkBtn.textContent='Buat / Buat Ulang Link Telegram';linkBtn.onclick=async()=>{try{const lr=await runApi('apiAdminReissueTelegramLink',[adminSession,item.applicationRef]);prompt('Link verifikasi Telegram (salin dan kirim ke pendaftar):',lr.telegramLink);}catch(x){alert(x.message);}};actions.appendChild(linkBtn);} [['Setujui','APPROVE'],['Tolak','REJECT']].forEach(([label,decision])=>{const b=document.createElement('button');b.className='btn '+(decision==='REJECT'?'red':'');b.textContent=label;b.onclick=async()=>{if(!confirm(label+' pengajuan '+item.applicationRef+'?'))return;try{const r=await runApi('apiAdminReview',[adminSession,item.applicationRef,decision,note.value]);let vipMsg='';if(decision==='APPROVE'){try{const vr=await runApi('apiAdminProcessVipQueue',[adminSession]);vipMsg=' • Antrean undangan VIP diproses: '+vr.processed;}catch(vx){vipMsg=' • Antrean VIP tersimpan, pengiriman tertunda: '+vx.message;}}alert('Status: '+r.status+(r.memberId?' • ID Member: '+r.memberId:'')+vipMsg);await loadAdmin();}catch(x){alert(x.message);}};actions.appendChild(b);});if(item.memberId && item.status==='Disetujui'){
+ const pinBtn=document.createElement('button');pinBtn.className='btn secondary';pinBtn.textContent='Buat / Reset PIN';pinBtn.onclick=async()=>{if(!confirm('Buat PIN baru untuk '+item.memberId+'? PIN lama langsung tidak berlaku.'))return;try{const pr=await runApi('apiAdminIssuePin',[adminSession,item.memberId]);alert(pr.pinDelivered?'PIN baru berhasil dikirim ke Telegram member yang sudah terverifikasi.':'PIN sementara untuk '+pr.memberId+': '+pr.pin+'\n\nKirim secara pribadi setelah verifikasi identitas. PIN hanya ditampilkan sekali.');}catch(x){alert(x.message);}};actions.appendChild(pinBtn);
+ }
+ box.append(title,detail,note,actions);root.appendChild(box);});}catch(x){const root=document.getElementById('adminQueue');if(root){root.classList.remove('hidden');root.innerHTML='';const error=document.createElement('div');error.className='notice error';error.textContent='Gagal memuat daftar pengajuan: '+(x&&x.message?x.message:String(x));const retry=document.createElement('button');retry.className='btn secondary';retry.textContent='MUAT ULANG DAFTAR PENGAJUAN';retry.onclick=()=>loadAdmin();root.append(error,retry);}else{show('adminResult',x&&x.message?x.message:String(x),'error');}}}
+const serverInitialPage='<?= initialPage ?>';if(document.getElementById(serverInitialPage))go(serverInitialPage);
+</script>
+</body></html>
