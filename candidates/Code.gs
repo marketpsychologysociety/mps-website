@@ -833,7 +833,19 @@ function apiAdminGetDepositProof(session,applicationRefOrMemberId) {
   consumeRateLimit_('mps_admin_proof_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),8,60,'Permintaan bukti deposit terlalu sering. Coba lagi sebentar.');
   const key=clean_(applicationRefOrMemberId,48).toUpperCase();
   let proofUrl='',expectedFileId='';
-  if(/^MPS-APP-[A-F0-9]{20}$/.test(key)){
+  if(/^MPS-PAY-[A-F0-9]{20}$/.test(key)){
+    const sheet=getMpsRegularPaymentsSheet_(),row=findMpsRegularPaymentByRef_(sheet,key);
+    if(!row)throw new Error('Bukti pembayaran Regular tidak ditemukan.');
+    const payment=sheet.getRange(row,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];
+    if(String(payment[7]||'')!=='Menunggu Validasi')throw new Error('Bukti QRIS tidak lagi menunggu verifikasi.');
+    expectedFileId=String(payment[5]||'');proofUrl=String(payment[6]||'');
+  }else if(/^MPS-REN-[A-F0-9]{20}$/.test(key)){
+    const sheet=getMpsRegularRenewalsSheet_(),row=findMpsRegularRenewalByRef_(sheet,key);
+    if(!row)throw new Error('Bukti perpanjangan Regular tidak ditemukan.');
+    const renewal=sheet.getRange(row,1,1,MPS_REGULAR_RENEWALS.headers.length).getValues()[0];
+    if(String(renewal[8]||'')!=='Menunggu Validasi')throw new Error('Bukti perpanjangan tidak lagi menunggu verifikasi.');
+    expectedFileId=String(renewal[6]||'');proofUrl=String(renewal[7]||'');
+  }else if(/^MPS-APP-[A-F0-9]{20}$/.test(key)){
     const sheet=getMpsDepositsSheet_(),row=findMpsDepositRow_(sheet,key);
     if(!row)throw new Error('Data konfirmasi deposit tidak ditemukan.');
     const dep=sheet.getRange(row,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
