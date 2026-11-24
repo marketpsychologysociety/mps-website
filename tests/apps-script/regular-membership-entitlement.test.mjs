@@ -23,6 +23,7 @@ function entitlementContext({planStatus='Aktif',paymentStatus='Disetujui',expiry
   const payment=['MPS-PAY-0123456789ABCDEF0123',ref,new Date(),100000,'2026-11-24','file-id','https://drive.google.com/file/d/file-id/view',paymentStatus,'Admin',new Date(),'',''];
   const ctx={
     Date,Number,
+    MPS_MEMBERSHIP_PLANS:{headers:new Array(12)},MPS_REGULAR_PAYMENTS:{headers:new Array(12)},
     getMpsMembershipPlansSheet_:()=>sheet(plan),
     findMpsPlanRow_:()=>2,
     getMpsRegularPaymentsSheet_:()=>sheet(payment),
