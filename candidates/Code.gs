@@ -698,7 +698,9 @@ function activateMemberAfterPin_(memberId) {
       if(!['Menunggu Aktivasi','Berhasil'].includes(String(appSnapshot[7]||'')))throw new Error('Status aplikasi tidak mengizinkan aktivasi member.');
       const applicationRef=String(appSnapshot[0]||memberApplicationRef);
       if(memberApplicationRef&&applicationRef!==memberApplicationRef)throw new Error('Application Ref pada database dan sheet aplikasi tidak cocok.');
-      if(applicationRef){
+      // Active IB must reconcile its Exness deposit row. Regular QRIS has a
+      // separate payment ledger and must never require or fabricate an Exness deposit.
+      if(applicationRef&&!isRegularMember){
         depSheet=getMpsDepositsSheet_();depRow=findMpsDepositRow_(depSheet,applicationRef);
         if(!depRow&&memberApplicationRef)throw new Error('Data deposit tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
         if(depRow){
