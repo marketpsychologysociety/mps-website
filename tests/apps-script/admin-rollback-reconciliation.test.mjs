@@ -252,7 +252,7 @@ function ambiguousMemberAppendHarness() {
   Utilities:{getUuid:()=> '12345678-1234-1234-1234-123456789abc'},
   getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
   getMpsDepositsSheet_:()=>deposits,findMpsDepositRow_:()=>2,
-  getMemberSheet_:()=>db,findMemberById_:(sheet,id)=>{for(let i=1;i<dbRows.length;i++)if(String(dbRows[i][0])===String(id))return i+1;return 0;},
+  getMemberSheet_:()=>db,ensurePendingMemberId_:(apps,row)=>{apps.getRange(row,9).setValue('MPS-ABCDEF1234');return 'MPS-ABCDEF1234';},findMemberById_:(sheet,id)=>{for(let i=1;i<dbRows.length;i++)if(String(dbRows[i][0])===String(id))return i+1;return 0;},
   ensureUniqueMt5_:()=>true,validateProofFileForApproval_:()=>({fileId:'proof-file-id'}),
   getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByMemberId_:()=>2,
   enqueueMpsAdminDecisionIntent_:()=>({ok:true}),sheetText_:v=>String(v??''),safeErrorMessage_:e=>String(e&&e.message||e),console
@@ -298,7 +298,7 @@ function adminApproveHarness(failAt=[]) {
   Utilities:{getUuid:()=> '12345678-1234-1234-1234-123456789abc'},
   getMpsApplicationsSheet_:()=>apps,findMpsApplicationRow_:()=>2,
   getMpsDepositsSheet_:()=>deposits,findMpsDepositRow_:()=>2,
-  getMemberSheet_:()=>db,findMemberById_:(sheet,id)=>{for(let i=1;i<dbRows.length;i++)if(String(dbRows[i][0])===String(id))return i+1;return 0;},
+  getMemberSheet_:()=>db,ensurePendingMemberId_:(apps,row)=>{apps.getRange(row,9).setValue('MPS-ABCDEF1234');return 'MPS-ABCDEF1234';},findMemberById_:(sheet,id)=>{for(let i=1;i<dbRows.length;i++)if(String(dbRows[i][0])===String(id))return i+1;return 0;},
   ensureUniqueMt5_:()=>true,validateProofFileForApproval_:()=>({fileId:'proof-file-id'}),
   getTelegramAccessSheet_:()=>accessSheet,findTelegramAccessByMemberId_:()=>2,
   enqueueMpsAdminDecisionIntent_:()=>({ok:true}),
