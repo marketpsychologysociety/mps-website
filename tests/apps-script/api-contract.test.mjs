@@ -140,6 +140,8 @@ test('candidate backend, frontend, and public config report one consistent v4.8.
   assert.match(html,/MPS frontend v4\.8\.1 candidate/);
   const config=readFileSync(fileURLToPath(new URL('../../config.js',import.meta.url)),'utf8');
   assert.match(config,/Konfigurasi publik MPS — v4\.8\.1/);
+  assert.match(config,/hubungi admin melalui email resmi/);
+  assert.doesNotMatch(config,/hubungi admin melalui Telegram resmi/);
   assert.doesNotMatch(code,/MPS-Market-Center\/4\.8\.0/);
   assert.doesNotMatch(html,/<meta name="mps-version" content="4\.8\.0">/);
 });
