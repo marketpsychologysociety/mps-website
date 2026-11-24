@@ -2758,7 +2758,7 @@ function resolveMpsVipChatMemberTransition_(tx,input) {
     const db=getMemberSheet_(),memberRow=findUniqueMpsTransitionRow_(db,MPS_COL.id,memberId);
     if(memberRow){
       const m=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
-      allowed=String(m[MPS_COL.registrationStatus-1])==='Berhasil'&&String(m[MPS_COL.depositStatus-1])==='Disetujui';
+      allowed=String(m[MPS_COL.registrationStatus-1])==='Berhasil'&&(String(m[MPS_COL.depositStatus-1])==='Disetujui'||memberHasActiveEntitlement_(m));
       if(allowed)memberName=clean_(m[MPS_COL.accountName-1]||m[MPS_COL.nickname-1]||'Member MPS',100)||'Member MPS';
     }
   }
