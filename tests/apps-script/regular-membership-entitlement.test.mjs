@@ -112,6 +112,8 @@ test('Regular QRIS may be resubmitted only after Admin rejection and entitlement
   assert.match(lookup,/for\(let i=values\.length-1;i>=0;i--\)/);
   assert.match(source,/function findMpsRegularPaymentByRef_\(/);
   assert.match(submit,/findMpsRegularPaymentByRef_\(getMpsRegularPaymentsSheet_\(\),paymentRef\)/);
+  assert.match(submit,/findMpsRegularPaymentByRef_\(payments,paymentRef\)/);
+  assert.doesNotMatch(submit,/findMpsRegularPaymentRow_\(payments,ref\);if\(pr\)payments\.deleteRow/);
   assert.match(html,/BUAT ULANG LINK TELEGRAM/);
 });
 
