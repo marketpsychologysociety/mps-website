@@ -667,7 +667,8 @@ function activateMemberAfterPin_(memberId) {
     memberSheet=getMemberSheet_();memberRow=findMemberById_(memberSheet,memberId);
     if(!memberRow)throw new Error('Data member tidak ditemukan saat aktivasi.');
     memberBefore=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
-    const regularState=mpsRegularMemberState_(memberBefore,true);
+    const isRegularMember=String(memberBefore[MPS_COL.depositStatus-1])==='Tidak Berlaku - Regular QRIS';
+    const regularState=isRegularMember?mpsRegularMemberState_(memberBefore,true):{isRegular:false,approved:false};
     if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui'&&!regularState.approved)throw new Error('Pembayaran atau deposit belum disetujui; aktivasi ditolak.');
     if(PropertiesService.getScriptProperties().getProperty('MPS_PIN_DELIVERED_'+memberId)!=='1')throw new Error('Pengiriman PIN belum terkonfirmasi.');
     const memberApplicationRef=String(memberBefore[24]||'');
@@ -1197,7 +1198,7 @@ function apiAdminIssuePin(session, memberId) {
   try{
     const sheet=getMemberSheet_(),row=findMemberById_(sheet,memberKey);if(!row)throw new Error('Member tidak ditemukan.');
     const r=sheet.getRange(row,1,1,MPS.headers.length).getValues()[0];
-    if(!['Berhasil','Menunggu Aktivasi'].includes(String(r[MPS_COL.registrationStatus-1]))||!memberHasApprovedPaymentForActivation_(r))throw new Error('PIN hanya dapat diterbitkan setelah pembayaran Regular atau deposit Exness disetujui Admin.');
+    if(!['Berhasil','Menunggu Aktivasi'].includes(String(r[MPS_COL.registrationStatus-1]))||(String(r[MPS_COL.depositStatus-1])!=='Disetujui'&&!memberHasApprovedPaymentForActivation_(r)))throw new Error('PIN hanya dapat diterbitkan setelah pembayaran Regular atau deposit Exness disetujui Admin.');
     const access=getTelegramAccessSheet_(),ar=findTelegramAccessByMemberId_(access,memberKey);if(!ar)throw new Error('Telegram member belum terhubung.');
     const telegramRow=access.getRange(ar,1,1,11).getValues()[0];chatId=String(telegramRow[2]||'');if(!chatId||String(telegramRow[1]||'')!==chatId)throw new Error('Identitas Telegram member tidak cocok.');
     const cached=CacheService.getScriptCache().get(pendingKey);
@@ -1248,7 +1249,7 @@ function apiMemberLogin(memberId, pin) {
   const key = 'member:' + sha256_(id).slice(0, 24);
   consumePersistentLoginRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds,'Terlalu banyak percobaan login untuk ID ini. Coba lagi 15 menit.');
   const r = sheet.getRange(row, 1, 1, MPS.headers.length).getValues()[0];
-  if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || !memberHasActiveEntitlement_(r)) {
+  if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || (String(r[MPS_COL.depositStatus - 1])!=='Disetujui'&&!memberHasActiveEntitlement_(r))) {
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   }
   const pinProps = PropertiesService.getScriptProperties();
@@ -1451,7 +1452,7 @@ function requireMember_(session) {
   const row = findMemberById_(sheet, id);
   if (!row) throw new Error('Akses member tidak ditemukan.');
   const r = sheet.getRange(row, MPS_COL.registrationStatus, 1, 8).getDisplayValues()[0];
-  if (r[0] !== 'Berhasil' || !memberHasActiveEntitlement_(sheet.getRange(row,1,1,MPS.headers.length).getValues()[0])) throw new Error('Akses Learning tidak aktif atau masa keanggotaan Regular telah berakhir.');
+  if (r[0] !== 'Berhasil' || (r[7]!=='Disetujui'&&!memberHasActiveEntitlement_(sheet.getRange(row,1,1,MPS.headers.length).getValues()[0]))) throw new Error('Akses Learning tidak aktif atau masa keanggotaan Regular telah berakhir.');
   return { memberId: id, row: row };
 }
 
@@ -2617,7 +2618,7 @@ function sendVipInvite_(memberId) {
     sh=getTelegramAccessSheet_();row=findTelegramAccessByMemberId_(sh,memberId);if(!row){cache.remove(busyKey);return {ok:false,error:'Akun Telegram member belum terhubung.'};}
     v=sh.getRange(row,1,1,11).getValues()[0];if(!v[1]||!v[2]||String(v[1])!==String(v[2])){cache.remove(busyKey);return {ok:false,error:'Identitas Telegram member tidak cocok.'};}
     const db=getMemberSheet_();memberRow=findMemberById_(db,memberId);if(!memberRow){cache.remove(busyKey);return {ok:false,error:'Data member tidak ditemukan.'};}
-    m=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||!memberHasActiveEntitlement_(m)){cache.remove(busyKey);return {ok:false,error:'Undangan hanya untuk member dengan keanggotaan aktif dan pembayaran/deposit yang disetujui.'};}
+    m=db.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];if(String(m[MPS_COL.registrationStatus-1])!=='Berhasil'||(String(m[MPS_COL.depositStatus-1])!=='Disetujui'&&!memberHasActiveEntitlement_(m))){cache.remove(busyKey);return {ok:false,error:'Undangan hanya untuk member dengan keanggotaan aktif dan pembayaran/deposit yang disetujui.'};}
     previous=v.slice(6,11);previousLink=String(v[7]||'');previousDbInvite=m.slice(25,30);
   }finally{lock.releaseLock();}
   const busyKey='mps_vip_invite_busy_'+sha256_(memberId).slice(0,24),cache=CacheService.getScriptCache();
