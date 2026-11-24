@@ -203,7 +203,7 @@ test('Regular activation loads and validates its plan ledger before setting the 
   assert.match(activation,/planSnapshot=planSheet\.getRange\(planRow,1,1,MPS_MEMBERSHIP_PLANS\.headers\.length\)\.getValues\(\)\[0\]/);
   assert.ok(activation.includes("!['Menunggu Aktivasi','Aktif'].includes(String(planSnapshot[7]||''))"));
   assert.match(activation,/planSheet\.getRange\(planRow,10\)\.setValue\(new Date\(now\.getTime\(\)\+30\*86400000\)\)/);
-  assert.match(activation,/if\(planRow&&String\(planSnapshot\[7\]\|\|'\)==='Menunggu Aktivasi'\)/);
+  assert.ok(activation.includes("if(planRow&&String(planSnapshot[7]||'')==='Menunggu Aktivasi')"));
 });
 
 test('Regular PIN confirmation activates the member and starts the 30-day ledger without touching Exness deposits',()=>{
