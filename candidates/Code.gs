@@ -5501,8 +5501,13 @@ function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
     return {ok:true,status:'Pembayaran Regular ditolak.',notificationWarning:notification&&notification.ok?'':'Pemberitahuan Telegram masuk antrean atau perlu diperiksa Admin.',auditWarning:auditOk?'':'Audit log perlu diperiksa.'};
   }
   let pinResult;try{pinResult=apiAdminIssuePin(session,memberId);}catch(pinErr){pinResult={ok:false,message:'Pembayaran disetujui, tetapi penerbitan PIN tertunda: '+safeErrorMessage_(pinErr)};}
+  let notification={ok:false};try{
+    if(pinResult&&pinResult.ok)notification=enqueueMpsAdminDecisionNotices_(String(appBefore[0]||''),memberId,'approve',String(appBefore[12]||''));
+    else notification=enqueueMpsVipFollowup_({taskKey:'regular-payment-admin-alert:'+sha256_(key).slice(0,40),intentKey:'regular-payment-admin-alert:'+sha256_(key).slice(0,40),action:'ADMIN_ALERT',alertText:'MPS: pembayaran Regular disetujui, tetapi penerbitan PIN/aktivasi masih tertunda. Payment Ref: '+key+'. Member ID: '+memberId+'.'});
+    runMpsVipFollowupQueue_(5);
+  }catch(queueErr){console.error('Regular approval notice queue deferred: '+safeErrorMessage_(queueErr));}
   const auditOk=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'REGULAR_PAYMENT_APPROVED',key,pinResult&&pinResult.ok?'SUCCESS':'PARTIAL','Pembayaran QRIS disetujui terpisah dari deposit Exness; PIN dan aktivasi '+(pinResult&&pinResult.ok?'terkonfirmasi':'masih tertunda')+'.');
-  return {ok:true,memberId:memberId,status:pinResult&&pinResult.ok?'Pembayaran disetujui. PIN dikirim dan aktivasi diproses.':'Pembayaran disetujui. PIN/aktivasi masih tertunda; gunakan terbitkan ulang PIN setelah pemeriksaan.',pinWarning:pinResult&&!pinResult.ok?pinResult.message:'',auditWarning:auditOk?'':'Audit log perlu diperiksa.'};
+  return {ok:true,memberId:memberId,status:pinResult&&pinResult.ok?'Pembayaran disetujui. PIN dikirim dan aktivasi diproses.':'Pembayaran disetujui. PIN/aktivasi masih tertunda; gunakan terbitkan ulang PIN setelah pemeriksaan.',pinWarning:pinResult&&!pinResult.ok?pinResult.message:'',notificationWarning:notification&&notification.ok?'':'Pemberitahuan Telegram masuk antrean atau perlu diperiksa Admin.',auditWarning:auditOk?'':'Audit log perlu diperiksa.'};
 }
 
 
