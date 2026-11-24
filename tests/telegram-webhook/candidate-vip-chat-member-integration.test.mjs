@@ -57,6 +57,21 @@ test('candidate Code.gs compiles and removes every legacy status-handler callsit
  const invite=extract('sendVipInvite_','isSafePublicIdentity_');
  assert.equal(invite.includes("setValue('Aktif'"),false);
 });
+
+test('Telegram webhook cannot be activated until all persistent registration and VIP transition stores are prepared',()=>{
+ const setup=extract('setupTelegram_','createMpsTelegramGasJournal_');
+ const guard=extract('assertMpsTelegramWebhookStorageReady_','apiAdminInspectMemberSchemaV480');
+ const guardCall=setup.indexOf('assertMpsTelegramWebhookStorageReady_()');
+ const webhookCall=setup.indexOf("setWebhook");
+ assert.ok(guardCall>=0&&webhookCall>guardCall,'storage guard must run before Telegram setWebhook');
+ for(const name of ['MPS_APPLICATIONS','MPS_DEPOSITS','MPS_MEMBER_LINKS','MPS_REQUEST_LEDGER','MPS_MEMBERSHIP_PLANS','MPS_REGULAR_PAYMENTS','MPS_REGULAR_RENEWALS','MPS_TELEGRAM_UPDATE_JOURNAL','MPS_VIP_FOLLOWUP_QUEUE'])assert.ok(guard.includes(name),'missing webhook storage dependency '+name);
+ assert.match(guard,/memberSheet\.getLastColumn\(\)!==MPS\.headers\.length/);
+ assert.match(guard,/MPS Audit Logs/);
+ assert.match(guard,/MPS VIP Ticker Events/);
+ assert.match(candidateIndex,/const prepared=!!\(preflight&&preflight\.state==='READY_30'/);
+ assert.match(candidateIndex,/PREPARE VIP TRANSITION STORAGE dan verifikasi ulang seluruh skema/);
+});
+
 test('chat_member ingress passes the complete original update and event to durable handler',()=>{
  const calls=[];
  const context={
