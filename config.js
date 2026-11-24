@@ -1,4 +1,4 @@
-/* Konfigurasi publik MPS — v4.8.0.
+/* Konfigurasi publik MPS — v4.8.1.
    The endpoint is public routing information, not a secret.
    Never put passwords, bot tokens, PINs, or secret API keys in this file. */
 window.MPS_CONFIG = {
