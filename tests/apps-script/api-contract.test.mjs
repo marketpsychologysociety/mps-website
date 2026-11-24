@@ -134,6 +134,19 @@ test('candidate portal has no stale deployment or former mafia-domain links and 
   assert.doesNotMatch(html,/https:\/\/t\.me\/Ndhisolasi/);
 });
 
+
+test('public static site support routes consistently to email while Telegram remains a member-verification channel',()=>{
+  const read=path=>readFileSync(fileURLToPath(new URL('../../'+path,import.meta.url)),'utf8');
+  const portal=read('member-portal.html'),join=read('join.html'),privacy=read('privacy.html'),terms=read('terms.html');
+  assert.match(portal,/v4\.8\.1/);
+  assert.match(portal,/Hubungi admin melalui email resmi MPS/);
+  assert.doesNotMatch(portal,/Hubungi admin melalui kanal Telegram resmi MPS/);
+  assert.match(join,/hubungi admin melalui email resmi/);
+  assert.match(privacy,/mailto:ndhisolasi\.music@gmail\.com/);
+  assert.match(terms,/mailto:ndhisolasi\.music@gmail\.com/);
+  for(const page of [portal,join,privacy,terms])assert.doesNotMatch(page,/https:\/\/t\.me\/Ndhisolasi/);
+});
+
 test('candidate backend, frontend, and public config report one consistent v4.8.1 release',()=>{
   assert.match(code,/version:\s*'4\.8\.1'/);
   assert.match(html,/<meta name="mps-version" content="4\.8\.1">/);
