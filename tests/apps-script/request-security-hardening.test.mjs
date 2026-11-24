@@ -137,10 +137,22 @@ test('Super Admin read-only configuration diagnostic reports request ledger sche
 });
 
 test('all aggregate public/login throttles use a fixed persistent allow-listed bucket',()=>{
-  assert.match(source,/const allowed=\['member_login_global','public_submit_register','public_submit_deposit','ad_request_global','public_status_global'\]/);
+  assert.match(source,/const allowed=\['member_login_global','public_submit_register','public_submit_deposit','public_regular_payment_global','public_regular_renewal_global','ad_request_global','public_status_global'\]/);
   assert.match(source,/consumePersistentBucketRateLimit_\('member_login_global',600,60/);
   assert.match(source,/consumePersistentBucketRateLimit_\('public_submit_' \+ action/);
   assert.match(source,/consumePersistentBucketRateLimit_\('ad_request_global',30,3600/);
+});
+
+
+test('Regular first-payment and renewal aggregate buckets are allow-listed and independently persistent',()=>{
+  const h=limiterHarness();
+  h.run('public_regular_payment_global',2,600,'payment blocked');
+  h.run('public_regular_renewal_global',2,600,'renewal blocked');
+  h.run('public_regular_payment_global',2,600,'payment blocked');
+  h.run('public_regular_renewal_global',2,600,'renewal blocked');
+  assert.throws(()=>h.run('public_regular_payment_global',2,600,'payment blocked'),/payment blocked/);
+  assert.throws(()=>h.run('public_regular_renewal_global',2,600,'renewal blocked'),/renewal blocked/);
+  assert.equal(h.shared.size,2);
 });
 
 test('member recovery challenge replacement is serialized and ambiguous Telegram delivery preserves the code',()=>{
