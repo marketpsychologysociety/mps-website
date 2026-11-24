@@ -71,6 +71,7 @@ test('Telegram webhook cannot be activated until all persistent registration and
  assert.match(guard,/processMpsVipFollowupQueueScheduled_/);
  assert.match(candidateIndex,/const prepared=!!\(preflight&&preflight\.state==='READY_30'/);
  assert.match(candidateIndex,/PREPARE VIP TRANSITION STORAGE dan verifikasi ulang seluruh skema/);
+ assert.match(candidateIndex,/if\(!r\|\|r\.ok!==true\)throw new Error/);
 });
 
 test('chat_member ingress passes the complete original update and event to durable handler',()=>{
