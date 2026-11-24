@@ -136,6 +136,8 @@ test('Regular monthly renewal is session-bound, private, fixed-fee and pending A
   assert.match(submit,/MPS_PROOF_FOLDER_ID/);
   assert.match(submit,/DriveApp\.Access\.PRIVATE/);
   assert.match(submit,/findPendingMpsRegularRenewalRow_/);
+  assert.match(submit,/sendTelegram_\(adminTelegramMessage\)/);
+  assert.match(submit,/telegramWarning/);
   assert.match(submit,/Menunggu Validasi/);
   assert.match(info,/pendingRef/);
   assert.doesNotMatch(submit,/getMpsDepositsSheet_|MPS_DEPOSITS|saveDeposit_/);
