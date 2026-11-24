@@ -1229,17 +1229,17 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
   let result;
   if(action==='approve'){
     try{result=apiAdminIssuePin(session,memberId);}catch(pinErr){result={ok:false,delivered:false,message:'Persetujuan dan penerbitan Member ID tersimpan, tetapi proses pengiriman PIN belum berhasil dijalankan: '+safeErrorMessage_(pinErr)};}
-    if(result.ok){result.status='Pendaftaran disetujui. Member ID diterbitkan: '+memberId+'. PIN terkirim dan akun aktif.';if(result.inviteQueued)result.vipInviteStatus='Undangan VIP masuk antrean; pengiriman menunggu konfirmasi Telegram.';else if(result.inviteSent===false)result.vipInviteWarning=result.message||'PIN terkirim, tetapi undangan VIP belum berhasil dikirim.';}
-    else {result.status='Persetujuan admin tersimpan dan Member ID diterbitkan: '+memberId+'. Aktivasi masih tertunda; gunakan Kirim Ulang PIN setelah memeriksa Telegram.';result.pinWarning=result.message||'Pengiriman PIN belum terkonfirmasi.';}
+    if(result.ok){result.status='Pendaftaran disetujui. ID Member sementara '+memberId+' diaktifkan; PIN terkirim dan akun aktif.';if(result.inviteQueued)result.vipInviteStatus='Undangan VIP masuk antrean; pengiriman menunggu konfirmasi Telegram.';else if(result.inviteSent===false)result.vipInviteWarning=result.message||'PIN terkirim, tetapi undangan VIP belum berhasil dikirim.';}
+    else {result.status='Persetujuan admin tersimpan. ID Member sementara '+memberId+' telah disahkan; aktivasi masih tertunda. Gunakan Kirim Ulang PIN setelah memeriksa Telegram.';result.pinWarning=result.message||'Pengiriman PIN belum terkonfirmasi.';}
     result.memberId=memberId;
     telegramMessage='✅ PENGAJUAN MPS DISETUJUI\nApplication Ref: '+applicationRef+'\nMember ID: '+memberId+'\nNama: '+nickname+'\nStatus aktivasi: '+(result.ok?'Berhasil':'Menunggu Aktivasi');
   }else{
-    result={ok:true,status:'Pengajuan deposit ditolak. Member ID tidak diterbitkan.',applicationRef:applicationRef};
+    result={ok:true,status:'Pengajuan deposit ditolak. ID Member sementara tidak diaktifkan.',applicationRef:applicationRef};
     telegramMessage='❌ PENGAJUAN DEPOSIT MPS DITOLAK\nApplication Ref: '+applicationRef+'\nNama: '+nickname+(note?'\nCatatan: '+note:'');
   }
   try{runMpsVipFollowupQueue_(5);}catch(queueErr){console.error('Admin decision intent drain deferred: '+safeErrorMessage_(queueErr));}
   const auditStatus=action==='reject'?'SUCCESS':(result.ok&&result.inviteSent!==false&&!result.inviteQueued?'SUCCESS':'PARTIAL');
-  const auditDetails=action==='approve'?'Member ID '+memberId+' diterbitkan setelah approval; aktivasi PIN '+(result.ok?'selesai':'tertunda')+'; undangan VIP '+(result.inviteQueued?'masuk antrean dan menunggu konfirmasi':result.inviteSent?'berhasil dikirim':'belum berhasil atau belum dikonfirmasi')+'.':'Pengajuan ditolak tanpa menerbitkan Member ID.';
+  const auditDetails=action==='approve'?'ID Member sementara '+memberId+' diaktifkan setelah approval; aktivasi PIN '+(result.ok?'selesai':'tertunda')+'; undangan VIP '+(result.inviteQueued?'masuk antrean dan menunggu konfirmasi':result.inviteSent?'berhasil dikirim':'belum berhasil atau belum dikonfirmasi')+'.':'Pengajuan ditolak tanpa menerbitkan Member ID.';
   if(!recordMpsAudit_(adminRole_(session),adminActorRef_(session),action==='approve'?'APPLICATION_APPROVED':'APPLICATION_REJECTED',applicationRef,auditStatus,auditDetails))result.auditWarning='Perubahan tersimpan, tetapi audit log gagal ditulis. Super Admin perlu memeriksa MPS Audit Logs.';
   return result;
 }
@@ -2546,7 +2546,7 @@ function verifyTelegramApplication_(linkRow,link,msg,update) {
       if(!replayAppRow)throw new Error('Rekonsiliasi tautan gagal: Application Ref tidak ditemukan.');
       const replayApp=replayApps.getRange(replayAppRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
       if(String(replayApp[0]||'')!==appRef||String(replayApp[10]||'')!=='Terverifikasi'||String(replayApp[11]||'')!==userId||String(replayApp[12]||'')!==chatId)throw new Error('Rekonsiliasi tautan gagal: pengajuan tidak terikat pada identitas Telegram yang sama.');
-      enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. Member ID baru diterbitkan setelah persetujuan Admin.');
+      enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. ID Member sementara telah diterbitkan setelah bukti tersimpan; PIN dan aktivasi tetap menunggu persetujuan Admin.');
       return true;
     }
     if(String(fresh[3])!=='Menunggu'||!(fresh[2] instanceof Date)||fresh[2].getTime()<=Date.now())throw new Error('Tautan verifikasi kedaluwarsa atau sudah digunakan.');
@@ -2579,7 +2579,7 @@ function verifyTelegramApplication_(linkRow,link,msg,update) {
     linkSheet.getRange(actualLinkRow,4).setValue('Terverifikasi');linkSheet.getRange(actualLinkRow,7,1,5).setValues([[userId,chatId,sheetText_(username),sheetText_(first),now]]);
     appSheet.getRange(appRow,11,1,3).setValues([['Terverifikasi',userId,chatId]]);appSheet.getRange(appRow,8).setValue('Menunggu Validasi Admin');appSheet.getRange(appRow,15).setValue(now);
     if(planType==='ACTIVE_IB')depSheet.getRange(depRow,10,1,4).setValues([['Menunggu Validasi Admin',userId,chatId,now]]);
-    enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. Member ID baru diterbitkan setelah persetujuan Admin.');
+    enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. ID Member sementara telah diterbitkan setelah bukti tersimpan; PIN dan aktivasi tetap menunggu persetujuan Admin.');
     committed=true;
   }catch(err){
     const rollbackErrors=[];
