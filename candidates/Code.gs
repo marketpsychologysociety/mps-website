@@ -5402,7 +5402,7 @@ function apiSubmitRegularPayment(data) {
   }catch(err){
     if(proofFile&&err.preserveProofFile!==true){
       let linked=false;try{linked=!!findMpsRegularPaymentByRef_(getMpsRegularPaymentsSheet_(),paymentRef);}catch(checkErr){console.error('Regular proof cleanup lookup failed: '+safeErrorMessage_(checkErr));}
-      if(!linked)try{proofFile.setTrashed(true);}catch(cleanErr){console.error('Regular proof cleanup failed; manual reconciliation required: '+safeErrorMessage_(cleanErr));}
+      if(linked===false)try{proofFile.setTrashed(true);}catch(cleanErr){console.error('Regular proof cleanup failed; manual reconciliation required: '+safeErrorMessage_(cleanErr));}
     }
     throw err;
   }finally{lock.releaseLock();}
@@ -5544,7 +5544,7 @@ function apiSubmitRegularRenewal(session,data){
     try{recordMpsAudit_('MEMBER',memberId,'REGULAR_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Bukti perpanjangan QRIS Rp100.000 tersimpan privat; menunggu pemeriksaan Admin.');}catch(auditErr){console.warn('Regular renewal audit write deferred: '+safeErrorMessage_(auditErr));}
     return {ok:true,renewalRef:renewalRef,status:'Bukti perpanjangan tersimpan. Masa aktif hanya diperpanjang setelah Admin menyetujui pembayaran.'};
   }catch(err){
-    if(proofFile){let linked=false;try{linked=!!findMpsRegularRenewalByRef_(getMpsRegularRenewalsSheet_(),renewalRef);}catch(checkErr){console.error('Regular renewal proof lookup failed: '+safeErrorMessage_(checkErr));}if(!linked)try{proofFile.setTrashed(true);}catch(cleanErr){console.error('Regular renewal proof cleanup failed: '+safeErrorMessage_(cleanErr));}}
+    if(proofFile){let linked=null;try{linked=!!findMpsRegularRenewalByRef_(getMpsRegularRenewalsSheet_(),renewalRef);}catch(checkErr){console.error('Regular renewal proof lookup uncertain; retain private file for reconciliation: '+safeErrorMessage_(checkErr));}if(linked===false)try{proofFile.setTrashed(true);}catch(cleanErr){console.error('Regular renewal proof cleanup failed: '+safeErrorMessage_(cleanErr));}}
     throw err;
   }finally{lock.releaseLock();}
 }
@@ -5552,10 +5552,11 @@ function apiAdminListRegularRenewals(session){
   const admin=requireAdmin_(session),renewals=getMpsRegularRenewalsSheet_(),members=getMemberSheet_();
   consumeRateLimit_('mps_admin_regular_renewals_'+sha256_(String(admin.actorId||admin.role)).slice(0,20),20,60,'Antrean perpanjangan Regular terlalu sering diminta.');
   const memberMap={};if(members.getLastRow()>1)members.getRange(2,1,members.getLastRow()-1,MPS.headers.length).getValues().forEach(m=>{memberMap[String(m[0]||'').toUpperCase()]=m;});
-  const out=[];if(renewals.getLastRow()>1)renewals.getRange(2,1,renewals.getLastRow()-1,MPS_REGULAR_RENEWALS.headers.length).getValues().forEach(r=>{
+  const out=[],plans=getMpsMembershipPlansSheet_();if(renewals.getLastRow()>1)renewals.getRange(2,1,renewals.getLastRow()-1,MPS_REGULAR_RENEWALS.headers.length).getValues().forEach(r=>{
     if(String(r[8]||'')!=='Menunggu Validasi')return;
     const m=memberMap[String(r[1]||'').toUpperCase()];if(!m)return;
-    out.push({renewalRef:String(r[0]||''),memberId:String(r[1]||''),applicationRef:String(r[2]||''),nickname:String(m[MPS_COL.nickname-1]||''),telegram:String(m[MPS_COL.telegram-1]||''),submittedAt:formatDateForClient_(r[3]),amount:Number(r[4]||0),paymentDate:String(r[5]||''),status:String(r[8]||''),membershipExpiry:formatDateForClient_(getMpsMembershipPlansSheet_().getRange(findMpsPlanRow_(getMpsMembershipPlansSheet_(),String(r[2]||'')),10).getValue())});
+    const planRow=findMpsPlanRow_(plans,String(r[2]||'')),expiry=planRow?plans.getRange(planRow,10).getValue():'';
+    out.push({renewalRef:String(r[0]||''),memberId:String(r[1]||''),applicationRef:String(r[2]||''),nickname:String(m[MPS_COL.nickname-1]||''),telegram:String(m[MPS_COL.telegram-1]||''),submittedAt:formatDateForClient_(r[3]),amount:Number(r[4]||0),paymentDate:String(r[5]||''),status:String(r[8]||''),membershipExpiry:formatDateForClient_(expiry)});
   });
   return out.reverse();
 }
@@ -5574,6 +5575,7 @@ function apiAdminReviewRegularRenewal(session,renewalRef,decision,note){
     plans=getMpsMembershipPlansSheet_();planRow=findMpsPlanRow_(plans,String(renewalBefore[2]||''));if(!planRow)throw new Error('Paket Regular member tidak ditemukan.');
     planBefore=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
     if(String(planBefore[1]||'')!=='REGULAR'||Number(planBefore[3]||0)!==100000)throw new Error('Paket atau nominal Regular tidak cocok.');
+    const currentState=mpsRegularMemberState_(memberBefore,false);if(!currentState.isRegular||(!currentState.active&&!currentState.expired)||String(planBefore[7]||'')!=='Aktif')throw new Error('Masa aktif atau status paket Regular tidak memenuhi syarat perpanjangan.');
     if(action==='approve'){
       if(Number(renewalBefore[4]||0)!==100000)throw new Error('Nominal perpanjangan harus tepat Rp100.000.');
       const paidDate=String(renewalBefore[5]||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(paidDate))throw new Error('Tanggal pembayaran perpanjangan tidak valid.');
