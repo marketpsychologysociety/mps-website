@@ -25,7 +25,7 @@ Website publik MPS menggunakan HTML, CSS, dan JavaScript statis serta dipublikas
 5. Admin memeriksa data dan dapat menyetujui atau menolak pengajuan.
 6. Member ID diterbitkan setelah persetujuan admin. Status member menjadi Berhasil setelah proses pengiriman dan penyimpanan PIN terkonfirmasi.
 
-Minimum deposit yang ditampilkan saat ini adalah Rp1.000.000. Nominal lebih besar diperbolehkan. Deposit merupakan dana di akun trading milik calon anggota pada broker, bukan biaya pendaftaran atau pembayaran kepada MPS.
+Minimum deposit yang ditampilkan saat ini adalah Rp500.000. Nominal lebih besar diperbolehkan. Deposit merupakan dana di akun trading milik calon anggota pada broker, bukan biaya pendaftaran atau pembayaran kepada MPS.
 
 ## Integrasi portal
 
