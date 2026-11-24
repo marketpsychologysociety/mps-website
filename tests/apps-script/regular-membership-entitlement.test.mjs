@@ -71,6 +71,8 @@ test('Regular QRIS submission is fixed-fee, private-proof and isolated from Exne
   assert.match(submit,/MPS_PROOF_FOLDER_ID/);
   assert.match(submit,/DriveApp\.Access\.PRIVATE/);
   assert.match(submit,/createMemberTelegramLink_/);
+  assert.match(submit,/sendTelegram_\(adminTelegramMessage\)/);
+  assert.match(submit,/telegramWarning/);
   assert.doesNotMatch(submit,/getMpsDepositsSheet_|MPS_DEPOSITS|saveDeposit_/);
 });
 
