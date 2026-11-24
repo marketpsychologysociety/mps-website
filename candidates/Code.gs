@@ -2509,18 +2509,31 @@ function verifyTelegramApplication_(linkRow,link,msg,update) {
       if(!replayAppRow)throw new Error('Rekonsiliasi tautan gagal: Application Ref tidak ditemukan.');
       const replayApp=replayApps.getRange(replayAppRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
       if(String(replayApp[0]||'')!==appRef||String(replayApp[10]||'')!=='Terverifikasi'||String(replayApp[11]||'')!==userId||String(replayApp[12]||'')!==chatId)throw new Error('Rekonsiliasi tautan gagal: pengajuan tidak terikat pada identitas Telegram yang sama.');
-      enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti deposit. Member ID baru diterbitkan setelah persetujuan admin.');
+      enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. Member ID baru diterbitkan setelah persetujuan Admin.');
       return true;
     }
     if(String(fresh[3])!=='Menunggu'||!(fresh[2] instanceof Date)||fresh[2].getTime()<=Date.now())throw new Error('Tautan verifikasi kedaluwarsa atau sudah digunakan.');
     appSheet=getMpsApplicationsSheet_();appRow=findMpsApplicationRow_(appSheet,appRef);if(!appRow)throw new Error('Application Ref tidak ditemukan.');
     appSnapshot=appSheet.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
-    if(!['Deposit Dikirim','Menunggu Validasi Admin'].includes(String(appSnapshot[7]||'')))throw new Error('Pendaftaran tidak sedang menunggu verifikasi Telegram.');
+    const plans=getMpsMembershipPlansSheet_(),planRow=findMpsPlanRow_(plans,appRef);
+    if(!planRow)throw new Error('Ledger paket pendaftaran tidak ditemukan.');
+    const plan=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0],planType=String(plan[1]||'');
+    if(!['REGULAR','ACTIVE_IB'].includes(planType))throw new Error('Jenis paket pendaftaran tidak valid.');
+    const allowedAppStatuses=planType==='REGULAR'?['Pembayaran Dikirim','Menunggu Validasi Admin']:['Deposit Dikirim','Menunggu Validasi Admin'];
+    if(!allowedAppStatuses.includes(String(appSnapshot[7]||'')))throw new Error('Pendaftaran tidak sedang menunggu verifikasi Telegram.');
     const supplied=normalizeTelegram_(msg.from.username?'@'+msg.from.username:'');const registered=normalizeTelegram_(appSnapshot[3]||'');
     if(registered&&registered.replace(/^@/,'').toLowerCase()!==supplied.replace(/^@/,'').toLowerCase())throw new Error('Username Telegram berbeda dari data pendaftaran. Hubungi admin untuk koreksi.');
-    depSheet=getMpsDepositsSheet_();depRow=findMpsDepositRow_(depSheet,appRef);if(!depRow)throw new Error('Data deposit tidak ditemukan.');
-    depSnapshot=depSheet.getRange(depRow,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
-    if(!['Menunggu Telegram','Menunggu Validasi Admin'].includes(String(depSnapshot[9]||'')))throw new Error('Status deposit tidak mengizinkan verifikasi Telegram.');
+    if(planType==='ACTIVE_IB'){
+      depSheet=getMpsDepositsSheet_();depRow=findMpsDepositRow_(depSheet,appRef);if(!depRow)throw new Error('Data deposit Exness tidak ditemukan.');
+      depSnapshot=depSheet.getRange(depRow,1,1,MPS_DEPOSITS.headers.length).getValues()[0];
+      if(!['Menunggu Telegram','Menunggu Validasi Admin'].includes(String(depSnapshot[9]||'')))throw new Error('Status deposit Exness tidak mengizinkan verifikasi Telegram.');
+    }else{
+      if(Number(plan[3]||0)!==100000||String(plan[7]||'')!=='Menunggu Validasi Pembayaran')throw new Error('Paket Regular belum memiliki pembayaran QRIS yang menunggu validasi.');
+      const regularPayments=getMpsRegularPaymentsSheet_(),regularPaymentRow=findMpsRegularPaymentRow_(regularPayments,appRef);
+      if(!regularPaymentRow)throw new Error('Bukti pembayaran QRIS Regular tidak ditemukan.');
+      const regularPayment=regularPayments.getRange(regularPaymentRow,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];
+      if(Number(regularPayment[3]||0)!==100000||String(regularPayment[7]||'')!=='Menunggu Validasi')throw new Error('Status bukti QRIS Regular tidak mengizinkan verifikasi Telegram.');
+    }
     access=getTelegramAccessSheet_();const existingUser=findTelegramAccessByUserId_(access,userId);
     if(existingUser){const old=access.getRange(existingUser,1,1,11).getValues()[0];if(String(old[0])!==appRef)throw new Error('Akun Telegram ini sudah terhubung ke pengajuan lain.');accessRow=existingUser;accessSnapshot=old;}
     else{accessRow=findTelegramAccessByMemberId_(access,appRef);if(accessRow){accessSnapshot=access.getRange(accessRow,1,1,11).getValues()[0];if(String(accessSnapshot[1]||'')&&String(accessSnapshot[1])!==userId)throw new Error('Pengajuan ini sudah terhubung ke akun Telegram lain.');}}
@@ -2528,8 +2541,8 @@ function verifyTelegramApplication_(linkRow,link,msg,update) {
     if(accessRow)access.getRange(accessRow,1,1,11).setValues([rowData]);else{access.appendRow(rowData);accessRow=access.getLastRow();accessCreated=true;}
     linkSheet.getRange(actualLinkRow,4).setValue('Terverifikasi');linkSheet.getRange(actualLinkRow,7,1,5).setValues([[userId,chatId,sheetText_(username),sheetText_(first),now]]);
     appSheet.getRange(appRow,11,1,3).setValues([['Terverifikasi',userId,chatId]]);appSheet.getRange(appRow,8).setValue('Menunggu Validasi Admin');appSheet.getRange(appRow,15).setValue(now);
-    depSheet.getRange(depRow,10,1,4).setValues([['Menunggu Validasi Admin',userId,chatId,now]]);
-    enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti deposit. Member ID baru diterbitkan setelah persetujuan admin.');
+    if(planType==='ACTIVE_IB')depSheet.getRange(depRow,10,1,4).setValues([['Menunggu Validasi Admin',userId,chatId,now]]);
+    enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. Member ID baru diterbitkan setelah persetujuan Admin.');
     committed=true;
   }catch(err){
     const rollbackErrors=[];
