@@ -53,7 +53,8 @@ test('restore preparation creates and verifies a private candidate without switc
   const backupId='backup-sheet-id',candidateId='restore-candidate-id';
   const headers=Array.from({length:30},(_,i)=>'HEADER_'+i);
   const data=[headers.slice(0,18),Array.from({length:18},(_,i)=>'VALUE_'+i)];
-  const makeSheet=rows=>({
+  const makeSheet=(rows,name='Database Member')=>({
+    getName:()=>name,
     getLastRow:()=>rows.length,
     getLastColumn:()=>rows[0].length,
     getRange(r,c,n=1,w=1){return{
@@ -63,7 +64,7 @@ test('restore preparation creates and verifies a private candidate without switc
     }}
   });
   const backupSheet=makeSheet(data.map(r=>r.slice())),candidateSheet=makeSheet(data.map(r=>r.slice()));
-  const book=sheet=>({getSheets:()=>[sheet],getSheetByName:name=>name==='Database Member'?sheet:null});
+  const book=sheet=>({getSheets:()=>[sheet],getSheetByName:name=>name===sheet.getName()?sheet:null});
   const backupBook=book(backupSheet),candidateBook=book(candidateSheet);
   const propsMap={MPS_LAST_BACKUP_ID:backupId,MPS_SPREADSHEET_ID:'active-db-id'};
   const props={getProperty:key=>propsMap[key]||null,setProperty:(k,v)=>{propsMap[k]=String(v)},deleteProperty:k=>{delete propsMap[k]}};
