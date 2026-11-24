@@ -255,6 +255,6 @@ test('Telegram verification routes Regular QRIS to its payment ledger and Active
   assert.match(verify,/getMpsRegularPaymentsSheet_\(\)/);
   assert.match(verify,/Menunggu Validasi Pembayaran/);
   assert.match(verify,/if\(planType==='ACTIVE_IB'\)depSheet\.getRange/);
-  assert.doesNotMatch(verify,/depSheet=getMpsDepositsSheet_\(\);depRow=findMpsDepositRow_\(depSheet,appRef\);if\(!depRow\)/);
+  assert.match(verify,/if\(planType==='ACTIVE_IB'\)\{\s*depSheet=getMpsDepositsSheet_\(\);depRow=findMpsDepositRow_\(depSheet,appRef\)/);
   assert.match(verify,/bukti pembayaran\/deposit sesuai paket/);
 });
