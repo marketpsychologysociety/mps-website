@@ -192,7 +192,7 @@ test('in-lock resolver selects ACTIVE with real safe member name and ticker only
  const access={getRange:()=>({getValues:()=>[accessData]})},db={getRange:()=>({getValues:()=>[memberData]})};
  const context={
   MPS:{headers:new Array(30)},MPS_COL:{id:1,registrationStatus:8,depositStatus:15,accountName:9,nickname:3},
-  getMpsExistingVipAccessSheetForTransition_:()=>access,getMemberSheet_:()=>db,
+  getMpsExistingVipAccessSheetForTransition_:()=>access,getMemberSheet_:()=>db,memberHasActiveEntitlement_:()=>true,
   findUniqueMpsTransitionRow_:(sheet,col,value)=>sheet===access?2:2,
   clean_:v=>String(v),isSafePublicIdentity_:()=>true
  };
@@ -207,7 +207,7 @@ test('unauthorized active member is DENIED and ticker is suppressed',()=>{
  const access={getRange:()=>({getValues:()=>[accessData]})},db={getRange:()=>({getValues:()=>[memberData]})};
  const context={
   MPS:{headers:new Array(30)},MPS_COL:{id:1,registrationStatus:8,depositStatus:15,accountName:9,nickname:3},
-  getMpsExistingVipAccessSheetForTransition_:()=>access,getMemberSheet_:()=>db,
+  getMpsExistingVipAccessSheetForTransition_:()=>access,getMemberSheet_:()=>db,memberHasActiveEntitlement_:()=>false,
   findUniqueMpsTransitionRow_:()=>2,clean_:v=>String(v),isSafePublicIdentity_:()=>true
  };
  vm.createContext(context);vm.runInContext(resolverSource,context,{timeout:1000});
