@@ -632,14 +632,42 @@ function findMpsDepositRow_(sh,ref) {
   if(!ref||sh.getLastRow()<2)return 0;const values=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();
   for(let i=0;i<values.length;i++)if(String(values[i][0]||'').toUpperCase()===String(ref).toUpperCase())return i+2;return 0;
 }
+
+/** Membership entitlement helpers: Regular QRIS is never represented as an Exness deposit. */
+function mpsRegularMemberState_(memberRow,allowPendingActivation){
+  const ref=String(memberRow&&memberRow[24]||'').trim().toUpperCase();
+  if(!/^MPS-APP-[A-F0-9]{20}$/.test(ref))return {isRegular:false,active:false,approved:false};
+  const plans=getMpsMembershipPlansSheet_(),planRow=findMpsPlanRow_(plans,ref);
+  if(!planRow)return {isRegular:false,active:false,approved:false};
+  const plan=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
+  if(String(plan[1]||'')!=='REGULAR')return {isRegular:false,active:false,approved:false};
+  const payments=getMpsRegularPaymentsSheet_(),paymentRow=findMpsRegularPaymentRow_(payments,ref);
+  if(!paymentRow)return {isRegular:true,active:false,approved:false,planRow:planRow};
+  const payment=payments.getRange(paymentRow,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];
+  const approved=Number(payment[3]||0)===100000&&['Disetujui','Berhasil'].includes(String(payment[7]||''));
+  const planStatus=String(plan[7]||'');
+  const pending=approved&&planStatus==='Menunggu Aktivasi';
+  const expiry=plan[9] instanceof Date?plan[9]:new Date(plan[9]);
+  const active=approved&&planStatus==='Aktif'&&Number.isFinite(expiry.getTime())&&expiry.getTime()>Date.now();
+  return {isRegular:true,active:active,approved:approved&&(active||(allowPendingActivation&&pending)),pending:pending,expired:approved&&planStatus==='Aktif'&&Number.isFinite(expiry.getTime())&&expiry.getTime()<=Date.now(),planRow:planRow,paymentRow:paymentRow,expiry:expiry};
+}
+function memberHasActiveEntitlement_(memberRow){
+  if(String(memberRow[MPS_COL.depositStatus-1]||'')==='Disetujui')return true;
+  return mpsRegularMemberState_(memberRow,false).active;
+}
+function memberHasApprovedPaymentForActivation_(memberRow){
+  if(String(memberRow[MPS_COL.depositStatus-1]||'')==='Disetujui')return true;
+  return mpsRegularMemberState_(memberRow,true).approved;
+}
+
 function activateMemberAfterPin_(memberId) {
   const lock=LockService.getScriptLock();lock.waitLock(15000);
-  let memberSheet=null,memberRow=0,memberBefore=null,apps=null,appRow=0,appSnapshot=null,depSheet=null,depRow=0,depSnapshot=null;
+  let memberSheet=null,memberRow=0,memberBefore=null,apps=null,appRow=0,appSnapshot=null,depSheet=null,depRow=0,depSnapshot=null,planSheet=null,planSnapshot=null,planRow=0;
   try{
     memberSheet=getMemberSheet_();memberRow=findMemberById_(memberSheet,memberId);
     if(!memberRow)throw new Error('Data member tidak ditemukan saat aktivasi.');
     memberBefore=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
-    if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('Deposit belum disetujui; aktivasi ditolak.');
+    const regularState=mpsRegularMemberState_(memberBefore,true);\n    if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui'&&!regularState.approved)throw new Error('Pembayaran atau deposit belum disetujui; aktivasi ditolak.');
     if(PropertiesService.getScriptProperties().getProperty('MPS_PIN_DELIVERED_'+memberId)!=='1')throw new Error('Pengiriman PIN belum terkonfirmasi.');
     const memberApplicationRef=String(memberBefore[24]||'');
     const existingApplicationSheet=openDatabase_().getSheetByName(MPS_APPLICATIONS.sheet);
@@ -668,10 +696,10 @@ function activateMemberAfterPin_(memberId) {
     try{
       memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberNext]);
       if(appRow){apps.getRange(appRow,8).setValue('Berhasil');apps.getRange(appRow,15).setValue(now);}
-      if(depRow){depSheet.getRange(depRow,10).setValue('Berhasil');depSheet.getRange(depRow,14).setValue(now);}
+      if(depRow){depSheet.getRange(depRow,10).setValue('Berhasil');depSheet.getRange(depRow,14).setValue(now);}\n      if(planRow){planSheet.getRange(planRow,8).setValue('Aktif');planSheet.getRange(planRow,9).setValue(now);planSheet.getRange(planRow,10).setValue(new Date(now.getTime()+30*86400000));planSheet.getRange(planRow,12).setValue(now);}
     }catch(writeErr){
       const rollbackErrors=[];
-      if(depRow&&depSnapshot)try{depSheet.getRange(depRow,1,1,depSnapshot.length).setValues([depSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}
+      if(depRow&&depSnapshot)try{depSheet.getRange(depRow,1,1,depSnapshot.length).setValues([depSnapshot]);}catch(e){rollbackErrors.push('deposit: '+safeErrorMessage_(e));}\n      if(planRow&&planSnapshot)try{planSheet.getRange(planRow,1,1,planSnapshot.length).setValues([planSnapshot]);}catch(e){rollbackErrors.push('membership plan: '+safeErrorMessage_(e));}
       if(appRow&&appSnapshot)try{apps.getRange(appRow,1,1,appSnapshot.length).setValues([appSnapshot]);}catch(e){rollbackErrors.push('aplikasi: '+safeErrorMessage_(e));}
       if(memberRow&&memberBefore)try{memberSheet.getRange(memberRow,1,1,MPS.headers.length).setValues([memberBefore]);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}
       if(rollbackErrors.length)throw new Error('Aktivasi gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
@@ -773,7 +801,7 @@ function apiAdminList(session) {
     if(member.depositStatus==='Menunggu verifikasi')deposits.push(member);
   });
   registrations.reverse();deposits.reverse();history.reverse();
-  return {ok:true,registrations:registrations,deposits:deposits,members:deposits,history:history,totalMembers:history.length,totalApplications:appRows.length};
+  const regularPayments=apiAdminListRegularPayments(session);\n  return {ok:true,registrations:registrations,deposits:deposits,regularPayments:regularPayments,members:deposits,history:history,totalMembers:history.length,totalApplications:appRows.length};
 }
 
 
@@ -1165,7 +1193,7 @@ function apiAdminIssuePin(session, memberId) {
   try{
     const sheet=getMemberSheet_(),row=findMemberById_(sheet,memberKey);if(!row)throw new Error('Member tidak ditemukan.');
     const r=sheet.getRange(row,1,1,MPS.headers.length).getValues()[0];
-    if(!['Berhasil','Menunggu Aktivasi'].includes(String(r[MPS_COL.registrationStatus-1]))||String(r[MPS_COL.depositStatus-1])!=='Disetujui')throw new Error('PIN hanya dapat diterbitkan untuk member yang disetujui admin dan deposit Disetujui.');
+    if(!['Berhasil','Menunggu Aktivasi'].includes(String(r[MPS_COL.registrationStatus-1]))||!memberHasApprovedPaymentForActivation_(r))throw new Error('PIN hanya dapat diterbitkan setelah pembayaran Regular atau deposit Exness disetujui Admin.');
     const access=getTelegramAccessSheet_(),ar=findTelegramAccessByMemberId_(access,memberKey);if(!ar)throw new Error('Telegram member belum terhubung.');
     const telegramRow=access.getRange(ar,1,1,11).getValues()[0];chatId=String(telegramRow[2]||'');if(!chatId||String(telegramRow[1]||'')!==chatId)throw new Error('Identitas Telegram member tidak cocok.');
     const cached=CacheService.getScriptCache().get(pendingKey);
@@ -1216,7 +1244,7 @@ function apiMemberLogin(memberId, pin) {
   const key = 'member:' + sha256_(id).slice(0, 24);
   consumePersistentLoginRateLimit_(key,MPS.loginMaxAttempts,MPS.loginWindowSeconds,'Terlalu banyak percobaan login untuk ID ini. Coba lagi 15 menit.');
   const r = sheet.getRange(row, 1, 1, MPS.headers.length).getValues()[0];
-  if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || String(r[MPS_COL.depositStatus - 1]) !== 'Disetujui') {
+  if (String(r[MPS_COL.registrationStatus - 1]) !== 'Berhasil' || !memberHasActiveEntitlement_(r)) {
     throw new Error('ID Member atau PIN salah, atau akses belum aktif.');
   }
   const pinProps = PropertiesService.getScriptProperties();
@@ -1419,7 +1447,7 @@ function requireMember_(session) {
   const row = findMemberById_(sheet, id);
   if (!row) throw new Error('Akses member tidak ditemukan.');
   const r = sheet.getRange(row, MPS_COL.registrationStatus, 1, 8).getDisplayValues()[0];
-  if (r[0] !== 'Berhasil' || r[7] !== 'Disetujui') throw new Error('Akses Learning tidak aktif.');
+  if (r[0] !== 'Berhasil' || !memberHasActiveEntitlement_(sheet.getRange(row,1,1,MPS.headers.length).getValues()[0])) throw new Error('Akses Learning tidak aktif atau masa keanggotaan Regular telah berakhir.');
   return { memberId: id, row: row };
 }
 
@@ -5348,4 +5376,68 @@ function apiAdminListRegularPayments(session){
     out.push({paymentRef:String(p[0]||''),applicationRef:String(p[1]||''),submittedAt:formatDateForClient_(p[2]),amount:Number(p[3]||0),paymentDate:String(p[4]||''),nickname:String(a[2]||''),telegram:String(a[3]||''),telegramStatus:String(a[10]||'Belum Terhubung'),memberId:String(a[8]||''),status:String(p[7]||'')});
   });
   return out.reverse();
+}
+
+
+/** Dedicated Admin decision for first-time Regular QRIS payment; never touches Exness deposit rows. */
+function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
+  const admin=requireAdmin_(session),key=clean_(paymentRef,48).toUpperCase(),action=String(decision||'').toLowerCase(),adminNote=clean_(note,500);
+  if(!/^MPS-PAY-[A-F0-9]{20}$/.test(key)||!['approve','reject'].includes(action))throw new Error('Referensi atau keputusan pembayaran Regular tidak valid.');
+  const lock=LockService.getScriptLock();lock.waitLock(20000);
+  let apps=null,plans=null,payments=null,access=null,db=null,appRow=0,planRow=0,paymentRow=0,accessRow=0,memberRow=0,memberId='',appBefore=null,planBefore=null,paymentBefore=null,accessBefore=null,memberCreated=false;
+  try{
+    apps=getMpsApplicationsSheet_();plans=getMpsMembershipPlansSheet_();payments=getMpsRegularPaymentsSheet_();
+    paymentRow=0;if(payments.getLastRow()>1){const refs=payments.getRange(2,1,payments.getLastRow()-1,1).getDisplayValues();for(let i=0;i<refs.length;i++)if(String(refs[i][0]||'').toUpperCase()===key){paymentRow=i+2;break;}}
+    if(!paymentRow)throw new Error('Pembayaran Regular tidak ditemukan.');
+    paymentBefore=payments.getRange(paymentRow,1,1,MPS_REGULAR_PAYMENTS.headers.length).getValues()[0];
+    if(String(paymentBefore[7]||'')!=='Menunggu Validasi')throw new Error('Pembayaran Regular sudah diproses atau tidak lagi menunggu validasi.');
+    const ref=String(paymentBefore[1]||'').toUpperCase();
+    appRow=findMpsApplicationRow_(apps,ref);planRow=findMpsPlanRow_(plans,ref);
+    if(!appRow||!planRow)throw new Error('Relasi Application Ref atau paket Regular tidak ditemukan.');
+    appBefore=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
+    planBefore=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
+    if(String(planBefore[1]||'')!=='REGULAR'||Number(planBefore[3]||0)!==100000||Number(paymentBefore[3]||0)!==100000)throw new Error('Nominal atau jenis paket Regular tidak cocok.');
+    if(action==='approve'){
+      if(String(appBefore[10]||'')!=='Terverifikasi')throw new Error('Telegram pendaftar belum terverifikasi.');
+      const proof=validateProofFileForApproval_(paymentBefore[6]);
+      if(!paymentBefore[5]||String(proof.fileId)!==String(paymentBefore[5]))throw new Error('Bukti QRIS tidak cocok dengan file ID yang tersimpan.');
+      const accessSheet=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(accessSheet,ref);
+      if(!accessRow)throw new Error('Relasi Telegram pendaftar tidak ditemukan.');
+      accessBefore=accessSheet.getRange(accessRow,1,1,11).getValues()[0];
+      if(!String(accessBefore[1]||'')||!String(accessBefore[2]||'')||String(appBefore[11]||'')!==String(accessBefore[1])||String(appBefore[12]||'')!==String(accessBefore[2]))throw new Error('Identitas Telegram belum cocok dengan catatan aplikasi dan chat bot.');
+      db=getMemberSheet_();memberId=String(appBefore[8]||'').trim().toUpperCase()||ensurePendingMemberId_(apps,appRow);
+      if(!/^MPS-[A-F0-9]{10}$/.test(memberId)||findMemberById_(db,memberId))throw new Error('ID Member sementara tidak valid atau sudah terpakai.');
+      const now=new Date(),row=new Array(MPS.headers.length).fill('');
+      row[0]=memberId;row[1]=appBefore[1];row[2]=sheetText_(appBefore[2]);row[3]=sheetText_(appBefore[3]||'');row[4]=sheetText_(appBefore[4]);row[5]=sheetText_(appBefore[5]);row[6]=sheetText_(appBefore[6]);row[7]='Menunggu Aktivasi';
+      row[14]='Tidak Berlaku - Regular QRIS';row[15]=sheetText_(adminNote);row[16]=now;row[17]=now;row[18]=String(accessBefore[2]);row[20]=now;row[24]=ref;row[29]='Menunggu Aktivasi';
+      db.appendRow(row);memberCreated=true;memberRow=findMemberById_(db,memberId);
+      if(!memberRow)throw new Error('Baris member Regular belum dapat diverifikasi setelah penyimpanan.');
+      accessSheet.getRange(accessRow,1).setValue(memberId);
+      payments.getRange(paymentRow,8,1,5).setValues([['Disetujui',String(admin.actorId||admin.role),now,sheetText_(adminNote),now]]);
+      plans.getRange(planRow,8).setValue('Menunggu Aktivasi');plans.getRange(planRow,12).setValue(now);
+      apps.getRange(appRow,8).setValue('Menunggu Aktivasi');apps.getRange(appRow,9).setValue(memberId);apps.getRange(appRow,14).setValue(sheetText_(adminNote));apps.getRange(appRow,15).setValue(now);
+    }else{
+      const now=new Date();
+      payments.getRange(paymentRow,8,1,5).setValues([['Ditolak',String(admin.actorId||admin.role),now,sheetText_(adminNote),now]]);
+      plans.getRange(planRow,8).setValue('Pembayaran Ditolak');plans.getRange(planRow,11).setValue(sheetText_(adminNote));plans.getRange(planRow,12).setValue(now);
+      apps.getRange(appRow,8).setValue('Pembayaran Ditolak');apps.getRange(appRow,14).setValue(sheetText_(adminNote));apps.getRange(appRow,15).setValue(now);
+    }
+  }catch(err){
+    const rollbackErrors=[];
+    if(memberCreated&&db&&memberId){const mr=memberRow||findMemberById_(db,memberId);if(mr)try{db.deleteRow(mr);}catch(e){rollbackErrors.push('member: '+safeErrorMessage_(e));}}
+    if(accessRow&&accessBefore&&access)try{access.getRange(accessRow,1,1,11).setValues([accessBefore]);}catch(e){rollbackErrors.push('Telegram access: '+safeErrorMessage_(e));}
+    if(appRow&&appBefore&&apps)try{apps.getRange(appRow,1,1,appBefore.length).setValues([appBefore]);}catch(e){rollbackErrors.push('application: '+safeErrorMessage_(e));}
+    if(planRow&&planBefore&&plans)try{plans.getRange(planRow,1,1,planBefore.length).setValues([planBefore]);}catch(e){rollbackErrors.push('membership plan: '+safeErrorMessage_(e));}
+    if(paymentRow&&paymentBefore&&payments)try{payments.getRange(paymentRow,1,1,paymentBefore.length).setValues([paymentBefore]);}catch(e){rollbackErrors.push('regular payment: '+safeErrorMessage_(e));}
+    if(rollbackErrors.length)throw new Error('Verifikasi pembayaran Regular gagal dan rollback tidak lengkap ('+rollbackErrors.join('; ')+'). Hentikan pemrosesan ulang dan lakukan rekonsiliasi manual.');
+    throw err;
+  }finally{lock.releaseLock();}
+  removeMpsCacheBestEffort_('mps_public_dashboard_v480','regular payment review');
+  if(action==='reject'){
+    const auditOk=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'REGULAR_PAYMENT_REJECTED',key,'SUCCESS','Pembayaran QRIS ditolak; tidak ada deposit Exness yang diubah.');
+    return {ok:true,status:'Pembayaran Regular ditolak.',auditWarning:auditOk?'':'Audit log perlu diperiksa.'};
+  }
+  let pinResult;try{pinResult=apiAdminIssuePin(session,memberId);}catch(pinErr){pinResult={ok:false,message:'Pembayaran disetujui, tetapi penerbitan PIN tertunda: '+safeErrorMessage_(pinErr)};}
+  const auditOk=recordMpsAudit_(adminRole_(session),adminActorRef_(session),'REGULAR_PAYMENT_APPROVED',key,pinResult&&pinResult.ok?'SUCCESS':'PARTIAL','Pembayaran QRIS disetujui terpisah dari deposit Exness; PIN dan aktivasi '+(pinResult&&pinResult.ok?'terkonfirmasi':'masih tertunda')+'.');
+  return {ok:true,memberId:memberId,status:pinResult&&pinResult.ok?'Pembayaran disetujui. PIN dikirim dan aktivasi diproses.':'Pembayaran disetujui. PIN/aktivasi masih tertunda; gunakan terbitkan ulang PIN setelah pemeriksaan.',pinWarning:pinResult&&!pinResult.ok?pinResult.message:'',auditWarning:auditOk?'':'Audit log perlu diperiksa.'};
 }
