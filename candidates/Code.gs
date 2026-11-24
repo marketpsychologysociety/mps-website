@@ -667,7 +667,8 @@ function activateMemberAfterPin_(memberId) {
     memberSheet=getMemberSheet_();memberRow=findMemberById_(memberSheet,memberId);
     if(!memberRow)throw new Error('Data member tidak ditemukan saat aktivasi.');
     memberBefore=memberSheet.getRange(memberRow,1,1,MPS.headers.length).getValues()[0];
-    const regularState=mpsRegularMemberState_(memberBefore,true);\n    if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui'&&!regularState.approved)throw new Error('Pembayaran atau deposit belum disetujui; aktivasi ditolak.');
+    const regularState=mpsRegularMemberState_(memberBefore,true);
+    if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui'&&!regularState.approved)throw new Error('Pembayaran atau deposit belum disetujui; aktivasi ditolak.');
     if(PropertiesService.getScriptProperties().getProperty('MPS_PIN_DELIVERED_'+memberId)!=='1')throw new Error('Pengiriman PIN belum terkonfirmasi.');
     const memberApplicationRef=String(memberBefore[24]||'');
     const existingApplicationSheet=openDatabase_().getSheetByName(MPS_APPLICATIONS.sheet);
@@ -801,7 +802,8 @@ function apiAdminList(session) {
     if(member.depositStatus==='Menunggu verifikasi')deposits.push(member);
   });
   registrations.reverse();deposits.reverse();history.reverse();
-  const regularPayments=apiAdminListRegularPayments(session);\n  return {ok:true,registrations:registrations,deposits:deposits,regularPayments:regularPayments,members:deposits,history:history,totalMembers:history.length,totalApplications:appRows.length};
+  const regularPayments=apiAdminListRegularPayments(session);
+  return {ok:true,registrations:registrations,deposits:deposits,regularPayments:regularPayments,members:deposits,history:history,totalMembers:history.length,totalApplications:appRows.length};
 }
 
 
