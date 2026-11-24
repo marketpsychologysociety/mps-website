@@ -22,6 +22,7 @@ const appRef='MPS-APP-0123456789ABCDEF0123';
 
 function makeSheet(rows,label,{failAt='',state}={}) {
  return {
+  rows,
   getLastRow:()=>rows.length,
   getRange(r,c,nr=1,nc=1){return{
    getValues:()=>Array.from({length:nr},(_,ri)=>(rows[r-1+ri]||[]).slice(c-1,c-1+nc)),
