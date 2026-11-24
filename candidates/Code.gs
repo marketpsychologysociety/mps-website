@@ -689,6 +689,13 @@ function activateMemberAfterPin_(memberId) {
     if(String(memberBefore[MPS_COL.depositStatus-1])!=='Disetujui'&&!regularState.approved)throw new Error('Pembayaran atau deposit belum disetujui; aktivasi ditolak.');
     if(PropertiesService.getScriptProperties().getProperty('MPS_PIN_DELIVERED_'+memberId)!=='1')throw new Error('Pengiriman PIN belum terkonfirmasi.');
     const memberApplicationRef=String(memberBefore[24]||'');
+    if(isRegularMember){
+      planSheet=getMpsMembershipPlansSheet_();
+      planRow=Number(regularState.planRow||findMpsPlanRow_(planSheet,memberApplicationRef));
+      if(!planRow)throw new Error('Ledger paket Regular tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
+      planSnapshot=planSheet.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
+      if(String(planSnapshot[0]||'')!==memberApplicationRef||String(planSnapshot[1]||'')!=='REGULAR'||Number(planSnapshot[3]||0)!==100000||!['Menunggu Aktivasi','Aktif'].includes(String(planSnapshot[7]||'')))throw new Error('Status atau relasi ledger Regular tidak cocok; aktivasi dibatalkan.');
+    }
     const existingApplicationSheet=openDatabase_().getSheetByName(MPS_APPLICATIONS.sheet);
     if(existingApplicationSheet){apps=getMpsApplicationsSheet_();appRow=findMpsApplicationRowByMember_(apps,memberId);}
     if(memberApplicationRef&&!appRow)throw new Error('Data aplikasi member tidak ditemukan; aktivasi dibatalkan tanpa mengubah status member.');
