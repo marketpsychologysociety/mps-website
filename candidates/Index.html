@@ -230,7 +230,7 @@
         <div class="field" style="margin-top:12px"><input id="adminMemberSearch" type="search" placeholder="Cari ID, nama, atau @username..."></div>
         <div id="adminHistory" class="list" style="margin-top:12px"></div>
         <div class="divider" style="height:1px;background:var(--line);margin:22px 0"></div>
-        <h3>Terbitkan ulang PIN member</h3><p class="muted" style="font-size:12px">Hanya untuk member berstatus Berhasil. PIN lama tetap berlaku jika pengiriman PIN baru gagal. PIN baru menggantikan PIN lama hanya setelah Telegram mengonfirmasi pengiriman.</p>
+        <h3>Terbitkan ulang PIN member</h3><p class="muted" style="font-size:12px">Untuk member yang pembayaran/depositnya sudah disetujui. PIN baru menggantikan PIN lama hanya setelah Telegram mengonfirmasi pengiriman; aktivasi Regular mengikuti masa aktif paket.</p>
         <form id="reissuePinForm"><div class="form-grid"><div class="field"><label>ID Member *</label><input name="memberId" required placeholder="MPS-XXXXXXXX atau MPS-XXXXXXXXXX"></div></div><div class="actions"><button class="btn secondary" type="submit" id="reissuePinSubmit">KIRIM PIN BARU KE TELEGRAM MEMBER</button></div></form><div id="reissuePinResult" class="notice hidden"></div>
         <form id="retryVipInviteForm" style="margin-top:12px"><div class="form-grid"><div class="field"><label>ID Member untuk kirim ulang undangan VIP *</label><input name="memberId" required placeholder="MPS-XXXXXXXX atau MPS-XXXXXXXXXX"></div></div><div class="actions"><button class="btn secondary" type="submit">KIRIM ULANG UNDANGAN VIP</button></div></form><div id="retryVipInviteResult" class="notice hidden"></div>
         <div data-super-admin-only>
@@ -623,7 +623,7 @@
           '\nDeposit: '+(m.amount?'Rp'+Number(m.amount).toLocaleString('id-ID'):'Belum tercatat')+
           '\nTerakhir diperbarui: '+(m.updatedAt||'—')+(m.adminNote?'\nCatatan admin: '+m.adminNote:''));
         const status=document.createElement('span');status.className='muted';status.textContent=(m.registrationStatus||'Status belum tersedia')+' / '+(m.depositStatus||'Belum ada deposit');card.append(status);
-        if(m.registrationStatus==='Menunggu Aktivasi'&&m.depositStatus==='Disetujui'){
+        if(m.registrationStatus==='Menunggu Aktivasi'&&(m.depositStatus==='Disetujui'||m.depositStatus==='Tidak Berlaku - Regular QRIS')){
           const retry=document.createElement('button');retry.className='btn secondary';retry.textContent='KIRIM ULANG PIN & LANJUTKAN AKTIVASI';retry.addEventListener('click',async()=>{if(!confirm('Kirim ulang PIN ke Telegram member dan lanjutkan aktivasi?'))return;setBusy(retry,true);try{const r=await api('apiAdminIssuePin',state.adminSession,m.memberId);showToast((r.message||'Proses PIN selesai.')+(r.auditWarning?' '+r.auditWarning:''));await loadAdminQueue();await loadDashboard()}catch(e){showToast(e.message)}finally{setBusy(retry,false,'KIRIM ULANG PIN & LANJUTKAN AKTIVASI')}});card.append(retry);
         }
         el.append(card);
