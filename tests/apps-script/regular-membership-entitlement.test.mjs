@@ -245,3 +245,16 @@ test('Regular PIN confirmation activates the member and starts the 30-day ledger
   assert.ok(plans[1][9].getTime()-plans[1][8].getTime()>=30*86400000-1000);
   assert.equal(member[14],'Tidak Berlaku - Regular QRIS');
 });
+
+test('Telegram verification routes Regular QRIS to its payment ledger and Active IB to Exness deposit ledger',()=>{
+  const verify=functionSource('verifyTelegramApplication_');
+  assert.match(verify,/findMpsPlanRow_\(plans,appRef\)/);
+  assert.match(verify,/planType==='REGULAR'\?\['Pembayaran Dikirim','Menunggu Validasi Admin'\]:\['Deposit Dikirim','Menunggu Validasi Admin'\]/);
+  assert.match(verify,/if\(planType==='ACTIVE_IB'\)\{/);
+  assert.match(verify,/getMpsDepositsSheet_\(\)/);
+  assert.match(verify,/getMpsRegularPaymentsSheet_\(\)/);
+  assert.match(verify,/Menunggu Validasi Pembayaran/);
+  assert.match(verify,/if\(planType==='ACTIVE_IB'\)depSheet\.getRange/);
+  assert.doesNotMatch(verify,/depSheet=getMpsDepositsSheet_\(\);depRow=findMpsDepositRow_\(depSheet,appRef\);if\(!depRow\)/);
+  assert.match(verify,/bukti pembayaran\/deposit sesuai paket/);
+});
