@@ -3472,7 +3472,7 @@ function clearPersistentLoginRateLimit_(key) {
 
 function consumePersistentBucketRateLimit_(bucket, maxAttempts, windowSeconds, message) {
   // Fixed allow-list prevents attacker-controlled Script Properties growth.
-  const allowed=['member_login_global','public_submit_register','public_submit_deposit','ad_request_global','public_status_global'];
+  const allowed=['member_login_global','public_submit_register','public_submit_deposit','public_regular_payment_global','public_regular_renewal_global','ad_request_global','public_status_global'];
   if(allowed.indexOf(String(bucket))<0)throw new Error('Rate-limit bucket tidak dikenal.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
