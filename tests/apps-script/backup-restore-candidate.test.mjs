@@ -48,3 +48,46 @@ test('restore candidate never changes the active spreadsheet ID or claims a full
   assert.match(html,/id="prepareDatabaseRestore"/);
   assert.match(html,/apiAdminPrepareDatabaseRestore/);
 });
+
+test('restore preparation creates and verifies a private candidate without switching the active database',()=>{
+  const backupId='backup-sheet-id',candidateId='restore-candidate-id';
+  const headers=Array.from({length:30},(_,i)=>'HEADER_'+i);
+  const data=[headers.slice(0,18),Array.from({length:18},(_,i)=>'VALUE_'+i)];
+  const makeSheet=rows=>({
+    getLastRow:()=>rows.length,
+    getLastColumn:()=>rows[0].length,
+    getRange(r,c,n=1,w=1){return{
+      getDisplayValues:()=>Array.from({length:n},(_,i)=>rows[r-1+i].slice(c-1,c-1+w).map(v=>String(v??''))),
+      getValues:()=>Array.from({length:n},(_,i)=>rows[r-1+i].slice(c-1,c-1+w)),
+      getFormulas:()=>Array.from({length:n},()=>Array.from({length:w},()=>'')),
+    }}
+  });
+  const backupSheet=makeSheet(data.map(r=>r.slice())),candidateSheet=makeSheet(data.map(r=>r.slice()));
+  const book=sheet=>({getSheets:()=>[sheet],getSheetByName:name=>name==='Database Member'?sheet:null});
+  const backupBook=book(backupSheet),candidateBook=book(candidateSheet);
+  const propsMap={MPS_LAST_BACKUP_ID:backupId,MPS_SPREADSHEET_ID:'active-db-id'};
+  const props={getProperty:key=>propsMap[key]||null,setProperty:(k,v)=>{propsMap[k]=String(v)},deleteProperty:k=>{delete propsMap[k]}};
+  let candidatePrivate=false,candidateTrashed=false;
+  const candidate={getId:()=>candidateId,getName:()=> 'MPS DATABASE RESTORE CANDIDATE 20261125-120000',getUrl:()=> 'https://docs.google.com/spreadsheets/d/'+candidateId, getSharingAccess:()=>candidatePrivate?'PRIVATE':'PRIVATE',setSharing:(access,permission)=>{candidatePrivate=access==='PRIVATE'&&permission==='NONE'},setTrashed:v=>{candidateTrashed=v}};
+  const backup={getId:()=>backupId,getName:()=> 'MPS DATABASE BACKUP 20261125-110000',getMimeType:()=> 'application/vnd.google-apps.spreadsheet',getSharingAccess:()=> 'PRIVATE',makeCopy:()=>candidate};
+  const ctx={
+    Date,Number,String,Array,JSON,
+    MPS:{headers,sheetName:'Database Member'},
+    DriveApp:{getFileById:id=>id===backupId?backup:candidate,Access:{PRIVATE:'PRIVATE'},Permission:{NONE:'NONE'}},
+    SpreadsheetApp:{openById:id=>id===backupId?backupBook:candidateBook},
+    PropertiesService:{getScriptProperties:()=>props},
+    Utilities:{formatDate:()=> '20261125-120000'},
+    requireSuperAdmin_:()=>({role:'SUPER_ADMIN',actorId:'SUPER_ADMIN'}),
+    consumeRateLimit_:()=>true,sha256_:value=>String(value),
+    recordMpsAudit_:()=>true,adminRole_:()=> 'SUPER_ADMIN',adminActorRef_:()=> 'SUPER_ADMIN',
+    safeErrorMessage_:e=>String(e&&e.message||e),console
+  };
+  vm.createContext(ctx);vm.runInContext(functionSource('apiAdminPrepareDatabaseRestore'),ctx);
+  const result=ctx.apiAdminPrepareDatabaseRestore('admin-session');
+  assert.equal(result.ok,true);
+  assert.equal(result.activeDatabaseChanged,false);
+  assert.equal(propsMap.MPS_SPREADSHEET_ID,'active-db-id');
+  assert.equal(propsMap.MPS_LAST_RESTORE_CANDIDATE_ID,candidateId);
+  assert.equal(candidatePrivate,true);
+  assert.equal(candidateTrashed,false);
+});
