@@ -195,3 +195,13 @@ test('Regular QRIS activation does not require or create an Exness deposit row',
   assert.doesNotMatch(activation,/if\(applicationRef\)\{\s*depSheet=getMpsDepositsSheet_/);
   assert.match(activation,/if\(planRow&&String\(planSnapshot\[7\]\|\|'\)==='Menunggu Aktivasi'\)/);
 });
+
+test('Regular activation loads and validates its plan ledger before setting the 30-day entitlement',()=>{
+  const activation=functionSource('activateMemberAfterPin_');
+  assert.match(activation,/planSheet=getMpsMembershipPlansSheet_\(\)/);
+  assert.match(activation,/planRow=Number\(regularState\.planRow\|\|findMpsPlanRow_\(planSheet,memberApplicationRef\)\)/);
+  assert.match(activation,/planSnapshot=planSheet\.getRange\(planRow,1,1,MPS_MEMBERSHIP_PLANS\.headers\.length\)\.getValues\(\)\[0\]/);
+  assert.match(activation,/\['Menunggu Aktivasi','Aktif'\]\.includes\(String\(planSnapshot\[7\]\|\|'\)\)/);
+  assert.match(activation,/planSheet\.getRange\(planRow,10\)\.setValue\(new Date\(now\.getTime\(\)\+30\*86400000\)\)/);
+  assert.match(activation,/if\(planRow&&String\(planSnapshot\[7\]\|\|'\)==='Menunggu Aktivasi'\)/);
+});
