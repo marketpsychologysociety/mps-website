@@ -5407,6 +5407,7 @@ function apiAdminReviewRegularPayment(session,paymentRef,decision,note){
     appBefore=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
     planBefore=plans.getRange(planRow,1,1,MPS_MEMBERSHIP_PLANS.headers.length).getValues()[0];
     if(String(planBefore[1]||'')!=='REGULAR'||Number(planBefore[3]||0)!==100000||Number(paymentBefore[3]||0)!==100000)throw new Error('Nominal atau jenis paket Regular tidak cocok.');
+    const paidDate=String(paymentBefore[4]||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(paidDate)){throw new Error('Tanggal pembayaran QRIS tidak valid.');}const paidDateValue=new Date(paidDate+'T00:00:00+07:00');if(isNaN(paidDateValue.getTime())||Utilities.formatDate(paidDateValue,'Asia/Jakarta','yyyy-MM-dd')!==paidDate||paidDateValue.getTime()>Date.now()+86400000)throw new Error('Tanggal pembayaran QRIS tidak valid.');
     if(action==='approve'){
       if(String(appBefore[10]||'')!=='Terverifikasi')throw new Error('Telegram pendaftar belum terverifikasi.');
       const proof=validateProofFileForApproval_(paymentBefore[6]);
