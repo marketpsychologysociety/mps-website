@@ -119,6 +119,8 @@ jobs:
         run: node --test tests/apps-script/admin-rollback-reconciliation.test.mjs
       - name: Run Regular QRIS membership entitlement and approval regression tests
         run: node --test tests/apps-script/regular-membership-entitlement.test.mjs
+      - name: Run non-destructive database restore candidate regression tests
+        run: node --test tests/apps-script/backup-restore-candidate.test.mjs
       - name: Run MPS MARKET PULSE XAUUSD M5 dataset conversion and authorization tests
         run: node --test tests/apps-script/market-pulse-dataset.test.mjs
       - name: Run isolated Learning folder ancestor ACL tests
