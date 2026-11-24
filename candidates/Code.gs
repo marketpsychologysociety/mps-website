@@ -67,6 +67,18 @@ const MPS_REQUEST_LEDGER = Object.freeze({
   headers: ['Request ID','Fingerprint','Status','Started At','Completed At','Action','Application Ref','Member ID','Result Status']
 });
 
+// Membership plan and Regular QRIS records are isolated from the legacy member
+// row and broker-deposit table. They are keyed by Application Ref and never
+// alter the existing 30-column Database Member schema.
+const MPS_MEMBERSHIP_PLANS = Object.freeze({
+  sheet: 'MPS Membership Plans',
+  headers: ['Application Ref','Plan','Created At','Monthly Fee IDR','IB Verification Status','Verified By','Verified At','Status','Last Checked At','Next Review At','Admin Note','Updated At']
+});
+const MPS_REGULAR_PAYMENTS = Object.freeze({
+  sheet: 'MPS Regular Payments',
+  headers: ['Payment Ref','Application Ref','Submitted At','Amount IDR','Payment Date','Proof File ID','Proof URL','Status','Reviewed By','Reviewed At','Admin Note','Updated At']
+});
+
 /**
  * Public Center is default-deny at the backend. The public config.js flag is
  * only a UI switch and must never authorize this route by itself.
@@ -216,6 +228,20 @@ function findMpsApplicationRowByMember_(sh,id) {
 }
 function getMpsMemberLinksSheet_() { return getMpsSheetStrict_(MPS_MEMBER_LINKS.sheet,MPS_MEMBER_LINKS.headers); }
 function getMpsRequestLedgerSheet_() { return getMpsSheetStrict_(MPS_REQUEST_LEDGER.sheet,MPS_REQUEST_LEDGER.headers); }
+function getMpsMembershipPlansSheet_() { return getMpsSheetStrict_(MPS_MEMBERSHIP_PLANS.sheet,MPS_MEMBERSHIP_PLANS.headers); }
+function getMpsRegularPaymentsSheet_() { return getMpsSheetStrict_(MPS_REGULAR_PAYMENTS.sheet,MPS_REGULAR_PAYMENTS.headers); }
+function findMpsPlanRow_(sh,applicationRef) {
+  if(!applicationRef||sh.getLastRow()<2)return 0;
+  const values=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();
+  for(let i=0;i<values.length;i++)if(String(values[i][0]||'').toUpperCase()===String(applicationRef).toUpperCase())return i+2;
+  return 0;
+}
+function findMpsRegularPaymentRow_(sh,applicationRef) {
+  if(!applicationRef||sh.getLastRow()<2)return 0;
+  const values=sh.getRange(2,2,sh.getLastRow()-1,1).getDisplayValues();
+  for(let i=0;i<values.length;i++)if(String(values[i][0]||'').toUpperCase()===String(applicationRef).toUpperCase())return i+2;
+  return 0;
+}
 function findMpsRequestLedgerRow_(sh,requestId) {
   if(!requestId||sh.getLastRow()<2)return 0;
   const values=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();
@@ -3574,7 +3600,7 @@ function apiAdminInitializeContent(session) {
   Object.keys(MPS_CONTENT).forEach(function(k) {
     if (!/Headers$/.test(k)) definitions.push({name:MPS_CONTENT[k],headers:MPS_CONTENT[k.replace('Sheet','Headers')]});
   });
-  [MPS_APPLICATIONS,MPS_DEPOSITS,MPS_MEMBER_LINKS,MPS_REQUEST_LEDGER,MPS_NEWS_ANALYSIS,MPS_ANNOUNCEMENTS,MPS_SITE_SETTINGS,MPS_LEARNING_CATALOG,MPS_LEARNING_PROGRESS,MPS_AUDIT_LOGS,MPS_VIP_TICKER_EVENTS,MPS_AD_PACKAGES,MPS_AD_REQUESTS,MPS_APPROVED_ADS].forEach(function(def){definitions.push({name:def.sheet,headers:def.headers});});
+  [MPS_APPLICATIONS,MPS_DEPOSITS,MPS_MEMBER_LINKS,MPS_REQUEST_LEDGER,MPS_MEMBERSHIP_PLANS,MPS_REGULAR_PAYMENTS,MPS_NEWS_ANALYSIS,MPS_ANNOUNCEMENTS,MPS_SITE_SETTINGS,MPS_LEARNING_CATALOG,MPS_LEARNING_PROGRESS,MPS_AUDIT_LOGS,MPS_VIP_TICKER_EVENTS,MPS_AD_PACKAGES,MPS_AD_REQUESTS,MPS_APPROVED_ADS].forEach(function(def){definitions.push({name:def.sheet,headers:def.headers});});
   definitions.push({name:'VIP Access',headers:['ID Member','Telegram User ID','Chat ID','Username','Nama Depan','Terhubung','Status VIP','Invite Link','Invite Expiry','Joined At','Error Terakhir']});
   definitions.push({name:'Telegram Links',headers:['Token Hash','Dibuat','Kedaluwarsa','Status','Telegram User ID','Chat ID','Username','Nama Depan','Dikonsumsi']});
   provisionMpsSheets_(definitions);
