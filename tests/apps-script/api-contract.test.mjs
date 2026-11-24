@@ -671,3 +671,13 @@ test('direct Market Pulse API calls reject missing or invalid member/Admin sessi
   assert.equal(folderLookups,0,'unauthenticated direct API calls must not reach Drive');
   assert.equal(rateCalls,0,'authorization must run before the per-principal throttle');
 });
+
+test('Telegram deep links fail closed unless an explicit bot username is configured',()=>{
+  const start=code.indexOf('function createMemberTelegramLink_(');
+  const end=code.indexOf('\nfunction ',start+1);
+  assert.ok(start>=0&&end>start,'Telegram link helper must exist');
+  const helper=code.slice(start,end);
+  assert.match(helper,/getProperty\('MPS_TELEGRAM_BOT_USERNAME'\)\s*\|\|\s*''/);
+  assert.doesNotMatch(helper,/MPS_Notificationnew_bot/,'isolated tests must never silently fall back to the production bot username');
+  assert.match(helper,/if\(!\/\^\[A-Za-z0-9_\]\{5,32\}\$\/\.test\(botUsername\)\)throw new Error/);
+});
