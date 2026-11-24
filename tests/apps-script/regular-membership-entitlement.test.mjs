@@ -155,3 +155,17 @@ test('Admin renewal proof and queue APIs are exposed without exposing proof URLs
   assert.doesNotMatch(queue,/proofUrl|Proof URL|Proof File ID/);
   assert.match(source,/MPS-REN-\[A-F0-9\]\{20\}/);
 });
+
+test('renewal-only member portal is wired to private QRIS proof and separate Admin queue',()=>{
+  const proof=functionSource('apiAdminGetDepositProof'),list=functionSource('apiAdminList');
+  assert.match(proof,/MPS-REN-\[A-F0-9\]\{20\}/);
+  assert.match(proof,/getMpsRegularRenewalsSheet_/);
+  assert.match(list,/regularRenewals:regularRenewals/);
+  assert.match(html,/id="page-regular-renewal"/);
+  assert.match(html,/id="regularRenewalForm"/);
+  assert.match(html,/apiSubmitRegularRenewal/);
+  assert.match(html,/apiGetRegularRenewalInfo/);
+  assert.match(html,/apiAdminReviewRegularRenewal/);
+  assert.match(html,/id="adminRegularRenewals"/);
+  assert.match(html,/renewalOnly/);
+});
