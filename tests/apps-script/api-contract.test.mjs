@@ -29,7 +29,7 @@ test('member self-service recovery is MT5-bound, Telegram-confirmed, rate-limite
   assert.match(html,/LUPA PIN \/ ID MEMBER\?/);
   assert.match(html,/apiMemberRecoveryStart/);
   assert.match(html,/apiMemberRecoveryComplete/);
-  assert.match(html,/https:\/\/t\.me\/Ndhisolasi/);
+  assert.match(html,/mailto:ndhisolasi\.music@gmail\.com/);
 });
 test('recovery Telegram destination requires one unique private-chat link with a verified link timestamp',()=>{
   const name='findUniqueTelegramAccessForRecovery_';
@@ -123,6 +123,16 @@ test('Public Center direct route is default-deny unless an exact backend Script 
   assert.match(response.value,/MPS_PUBLIC_CENTER_DATA/);
 });
 
+
+
+test('candidate portal has no stale deployment or former mafia-domain links and uses the verified current public site',()=>{
+  assert.match(html,/https:\/\/marketpsychologysociety\.github\.io\/mps-website\/index\.html/);
+  assert.match(html,/href="\?page=register"/);
+  assert.match(html,/mailto:ndhisolasi\.music@gmail\.com/);
+  assert.doesNotMatch(html,/mafiapipssyndicate1\.github\.io/);
+  assert.doesNotMatch(html,/script\.google\.com\/macros\/s\//);
+  assert.doesNotMatch(html,/https:\/\/t\.me\/Ndhisolasi/);
+});
 
 test('candidate backend, frontend, and public config report one consistent v4.8.1 release',()=>{
   assert.match(code,/version:\s*'4\.8\.1'/);
