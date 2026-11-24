@@ -411,7 +411,7 @@ function submitCore_(data) {
   }
   if(result&&result.ok){
     if(action==='register')recordMpsAudit_('PUBLIC','APPLICATION','REGISTRATION_SUBMITTED',result.applicationRef,'SUCCESS','Pendaftaran awal disimpan; belum ada Member ID dan tidak ada notifikasi Telegram admin.');
-    else if(action==='deposit')recordMpsAudit_('PUBLIC','APPLICATION','DEPOSIT_SUBMITTED',result.applicationRef,'SUCCESS','Konfirmasi deposit dan bukti tersimpan; Member ID belum diterbitkan, tautan Telegram dibuat.');
+    else if(action==='deposit')recordMpsAudit_('PUBLIC','APPLICATION','DEPOSIT_SUBMITTED',result.applicationRef,'SUCCESS','Bukti deposit tersimpan; ID Member sementara diterbitkan; PIN dan aktivasi tetap menunggu persetujuan Admin.');
   }
   return result || { ok: false, error: 'Permintaan tidak dapat diproses.' };
 }
@@ -440,7 +440,7 @@ function registerMember_(sheet, data, onCommitStarted) {
   if(typeof onCommitStarted==='function')onCommitStarted();
   try {
     apps.appendRow([applicationRef, now, sheetText_(nickname), sheetText_(telegram), sheetText_(country),
-      sheetText_(goal), sheetText_(note), 'Menunggu Deposit', '', '', 'Belum Terhubung', '', '', '', now]);
+      sheetText_(goal), sheetText_(note), requestedPlan==='REGULAR'?'Menunggu Pembayaran':'Menunggu Deposit', '', '', 'Belum Terhubung', '', '', '', now]);
     plans.appendRow([applicationRef,requestedPlan,now,monthlyFee,requestedPlan==='ACTIVE_IB'?'PENDING':'NOT_REQUIRED','','',requestedPlan==='REGULAR'?'Menunggu Pembayaran':'Menunggu Deposit','','','',now]);
   } catch(writeError) {
     // Compensate only the exact rows reserved by this locked request. Never
@@ -456,6 +456,34 @@ function registerMember_(sheet, data, onCommitStarted) {
   };
 }
 
+function ensurePendingMemberId_(apps, appRow) {
+  const existing=String(apps.getRange(appRow,9).getDisplayValue()||'').trim().toUpperCase();
+  const members=getMemberSheet_();
+  if(existing){
+    if(!/^MPS-[A-F0-9]{10}$/.test(existing))throw new Error('ID Member sementara tidak valid. Perlu rekonsiliasi Admin.');
+    if(findMemberById_(members,existing))throw new Error('ID Member sementara sudah tercatat sebagai member. Perlu rekonsiliasi Admin.');
+    if(apps.getLastRow()>1){
+      const ids=apps.getRange(2,9,apps.getLastRow()-1,1).getDisplayValues();
+      for(let i=0;i<ids.length;i++)if(i+2!==appRow&&String(ids[i][0]||'').trim().toUpperCase()===existing)throw new Error('ID Member sementara terduplikasi pada pengajuan lain.');
+    }
+    return existing;
+  }
+  for(let attempt=0;attempt<10;attempt++){
+    const candidate='MPS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
+    if(findMemberById_(members,candidate))continue;
+    let duplicate=false;
+    if(apps.getLastRow()>1){
+      const ids=apps.getRange(2,9,apps.getLastRow()-1,1).getDisplayValues();
+      duplicate=ids.some((row,i)=>i+2!==appRow&&String(row[0]||'').trim().toUpperCase()===candidate);
+    }
+    if(duplicate)continue;
+    apps.getRange(appRow,9).setValue(candidate);
+    if(String(apps.getRange(appRow,9).getDisplayValue()||'').trim().toUpperCase()!==candidate)throw new Error('ID Member sementara gagal diverifikasi setelah disimpan.');
+    return candidate;
+  }
+  throw new Error('Gagal membuat ID Member sementara yang unik. Coba kembali.');
+}
+
 function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted) {
   const applicationRef=clean_(data.applicationRef,40).toUpperCase(),accountName=clean_(data.memberName,80),mt5=clean_(data.mt5Login,20),accountType=clean_(data.accountType,40),amount=Number(data.depositAmount),dateText=clean_(data.depositDate,10);
   if(!/^MPS-APP-[A-F0-9]{20}$/.test(applicationRef)||!accountName||!/^[0-9]{4,20}$/.test(mt5)||!accountType||!Number.isSafeInteger(amount)||amount<MPS.minDeposit||!validDate_(dateText))throw new Error('Data konfirmasi tidak valid. Periksa Application Ref, nama akun, login MT5, jenis akun, tanggal, dan minimum deposit Rp500.000.');
@@ -463,6 +491,10 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted
   const apps=getMpsApplicationsSheet_(),appRow=findMpsApplicationRow_(apps,applicationRef);if(!appRow)throw new Error('Application Ref tidak ditemukan. Periksa kembali pendaftaran MPS.');
   const app=apps.getRange(appRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0],appStatus=String(app[7]||'');
   if(!['Menunggu Deposit','Deposit Ditolak'].includes(appStatus))throw new Error('Status pendaftaran tidak mengizinkan konfirmasi deposit atau pengajuan sudah diproses.');
+  const plans=getMpsMembershipPlansSheet_(),planRow=findMpsPlanRow_(plans,applicationRef);
+  if(!planRow)throw new Error('Paket keanggotaan tidak ditemukan. Hubungi Admin MPS.');
+  const plan=String(plans.getRange(planRow,2).getDisplayValue()||'').toUpperCase();
+  if(plan!=='ACTIVE_IB')throw new Error('Form deposit Exness hanya untuk Active IB Member. Regular Member harus menggunakan pembayaran QRIS terpisah.');
   const deposits=getMpsDepositsSheet_(),linksBefore=getMpsMemberLinksSheet_(),existing=findMpsDepositRow_(deposits,applicationRef);
   if(existing){const old=deposits.getRange(existing,1,1,MPS_DEPOSITS.headers.length).getValues()[0];if(['Menunggu Telegram','Menunggu Validasi Admin','Disetujui','Menunggu Aktivasi','Berhasil'].includes(String(old[9]||'')))throw new Error('Konfirmasi deposit untuk Application Ref ini sudah tercatat.');}
   let mime=String(data.proofMimeType||'').toLowerCase().trim(),base64=String(data.proofBase64||'').trim(),match=base64.match(/^data:([^;,]+);base64,(.*)$/s);
@@ -485,6 +517,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted
     else deposits.appendRow(row);
     if(linksBefore.getLastRow()>1){const linkRows=linksBefore.getRange(2,1,linksBefore.getLastRow()-1,MPS_MEMBER_LINKS.headers.length).getValues();linkRows.forEach(function(v,i){if(String(v[5]||'').toUpperCase()===applicationRef&&String(v[3])==='Menunggu')oldLinkSnapshots.push({row:i+2,values:v.slice()});});}
     link=createMemberTelegramLink_('',applicationRef,function(prepared){link=prepared;});expireOtherApplicationLinks_(applicationRef,link.row);
+    ensurePendingMemberId_(apps,appRow);
     apps.getRange(appRow,8).setValue('Deposit Dikirim');apps.getRange(appRow,15).setValue(now);
     onProofLinked();
   }catch(err){
@@ -497,7 +530,7 @@ function saveDeposit_(sheet, data, onFileCreated, onProofLinked, onCommitStarted
     if(rollbackErrors.length){const failure=new Error('Penyimpanan deposit gagal: '+safeErrorMessage_(err)+'. Rollback tidak lengkap ('+rollbackErrors.join('; ')+'). File bukti tetap privat; lakukan rekonsiliasi sebelum percobaan ulang.');failure.preserveProofFile=true;throw failure;}
     throw err;
   }
-  return {result:{ok:true,applicationRef:applicationRef,memberId:'',status:'Konfirmasi deposit tersimpan. Member ID baru diterbitkan setelah admin menyetujui pendaftaran.',telegramUrl:link.url,telegramExpiresAt:link.expiresAt},telegramMessage:''};
+  return {result:{ok:true,applicationRef:applicationRef,memberId:String(apps.getRange(appRow,9).getDisplayValue()||''),status:'Konfirmasi deposit tersimpan. ID Member sementara telah diterbitkan; akun dan PIN tetap menunggu verifikasi Telegram serta persetujuan Admin.',telegramUrl:link.url,telegramExpiresAt:link.expiresAt},telegramMessage:''};
 }
 
 function setupMPSStorage_() {
@@ -721,7 +754,7 @@ function apiAdminList(session) {
   const deposits=[];if(depositsSheet.getLastRow()>1){depositsSheet.getRange(2,1,depositsSheet.getLastRow()-1,MPS_DEPOSITS.headers.length).getValues().forEach(d=>{
     const ref=String(d[0]||''),app=appByRef[ref];if(!app||!['Menunggu Telegram','Menunggu Validasi Admin'].includes(String(d[9]||'')))return;
     const access=accessById[ref.toUpperCase()];
-    deposits.push({applicationRef:ref,memberId:ref,issuedMemberId:'',registeredAt:app.registeredAt,nickname:app.nickname,telegram:app.telegram,country:app.country,goal:app.goal,accountName:String(d[2]||''),mt5Login:String(d[3]||''),accountType:String(d[4]||''),amount:Number(d[5]||0),depositDate:formatDateForClient_(d[6]),depositStatus:String(d[9]||''),registrationStatus:String(app.status||''),adminNote:String(d[12]||app.adminNote||''),telegramStatus:access?'Terverifikasi':'Belum Terhubung',vipStatus:access?String(access.data[6]||'Menunggu'):'Belum terhubung'});
+    deposits.push({applicationRef:ref,memberId:app.memberId||ref,issuedMemberId:app.memberId||'',registeredAt:app.registeredAt,nickname:app.nickname,telegram:app.telegram,country:app.country,goal:app.goal,accountName:String(d[2]||''),mt5Login:String(d[3]||''),accountType:String(d[4]||''),amount:Number(d[5]||0),depositDate:formatDateForClient_(d[6]),depositStatus:String(d[9]||''),registrationStatus:String(app.status||''),adminNote:String(d[12]||app.adminNote||''),telegramStatus:access?'Terverifikasi':'Belum Terhubung',vipStatus:access?String(access.data[6]||'Menunggu'):'Belum terhubung'});
   });}
   const history=[],last=sheet.getLastRow(),rows=last>1?sheet.getRange(2,1,last-1,MPS.headers.length).getValues():[];
   rows.forEach((r,i)=>{const id=String(r[MPS_COL.id-1]||'').trim();if(!/^MPS-(?:[A-F0-9]{8}|[A-F0-9]{10})$/.test(id))return;
@@ -1007,7 +1040,8 @@ function adminVerifyApplication_(session,applicationRef,action,note) {
       const proofCheck=validateProofFileForApproval_(dep[8]);if(!dep[7]||String(proofCheck.fileId)!==String(dep[7]))throw new Error('File bukti deposit tidak cocok dengan ID file yang tersimpan pada pengajuan.');
       const amount=Number(dep[5]||0);if(!Number.isSafeInteger(amount)||amount<MPS.minDeposit)throw new Error('Deposit tidak memenuhi minimum Rp500.000.');
       db=getMemberSheet_();ensureUniqueMt5_(db,String(dep[3]||''),0);
-      memberId='MPS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();if(findMemberById_(db,memberId))throw new Error('Terjadi benturan ID Member. Ulangi persetujuan.');
+      memberId=String(app[8]||'').trim().toUpperCase()||ensurePendingMemberId_(apps,appRow);
+      if(!/^MPS-[A-F0-9]{10}$/.test(memberId)||findMemberById_(db,memberId))throw new Error('ID Member sementara tidak valid atau sudah terpakai. Perlu rekonsiliasi Admin.');
       decisionIntentAttempted=true;enqueueMpsAdminDecisionIntent_(applicationRef,memberId,action,String(dep[11]||''));
       access=getTelegramAccessSheet_();accessRow=findTelegramAccessByMemberId_(access,applicationRef);if(!accessRow)throw new Error('Relasi Telegram pendaftar tidak ditemukan.');accessSnapshot=access.getRange(accessRow,1,1,11).getValues()[0];
       const now=new Date(),row=new Array(MPS.headers.length).fill('');
