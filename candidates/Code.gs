@@ -5540,7 +5540,7 @@ function apiSubmitRegularRenewal(session,data){
     proofFile.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);
     if(String(proofFile.getSharingAccess())!==String(DriveApp.Access.PRIVATE))throw new Error('Privasi bukti perpanjangan tidak dapat dipastikan.');
     renewals.appendRow([renewalRef,memberId,applicationRef,new Date(),100000,dateText,proofFile.getId(),proofFile.getUrl(),'Menunggu Validasi','','','','',null,null]);
-    renewalRow=findMpsRegularRenewalByRef_(renewals,renewalRef);
+    renewalRow=findMpsRegularRenewalByRef_(renewals,renewalRef);if(!renewalRow)throw new Error('Penyimpanan bukti perpanjangan belum dapat diverifikasi; jangan kirim ulang sebelum Admin memeriksa antrean.');
     try{recordMpsAudit_('MEMBER',memberId,'REGULAR_RENEWAL_SUBMITTED',renewalRef,'SUCCESS','Bukti perpanjangan QRIS Rp100.000 tersimpan privat; menunggu pemeriksaan Admin.');}catch(auditErr){console.warn('Regular renewal audit write deferred: '+safeErrorMessage_(auditErr));}
     return {ok:true,renewalRef:renewalRef,status:'Bukti perpanjangan tersimpan. Masa aktif hanya diperpanjang setelah Admin menyetujui pembayaran.'};
   }catch(err){
