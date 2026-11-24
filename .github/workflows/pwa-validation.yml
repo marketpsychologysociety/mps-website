@@ -22,6 +22,8 @@ jobs:
           node-version: 22
       - name: Validate PWA files and privacy rules
         run: node scripts/validate-pwa.mjs
+      - name: Validate complete MPS candidate menu coverage
+        run: node scripts/test-candidate-menu-coverage.mjs
       - name: Run synthetic database schema compatibility tests
         run: node scripts/test-schema-compatibility.mjs
       - name: Run v4.8.1 rebuild database schema access guards (synthetic only)
