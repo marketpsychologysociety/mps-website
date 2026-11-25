@@ -2546,7 +2546,7 @@ function verifyTelegramApplication_(linkRow,link,msg,update) {
       if(!replayAppRow)throw new Error('Rekonsiliasi tautan gagal: Application Ref tidak ditemukan.');
       const replayApp=replayApps.getRange(replayAppRow,1,1,MPS_APPLICATIONS.headers.length).getValues()[0];
       if(String(replayApp[0]||'')!==appRef||String(replayApp[10]||'')!=='Terverifikasi'||String(replayApp[11]||'')!==userId||String(replayApp[12]||'')!==chatId)throw new Error('Rekonsiliasi tautan gagal: pengajuan tidak terikat pada identitas Telegram yang sama.');
-      enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. ID Member sementara telah diterbitkan setelah bukti tersimpan; PIN dan aktivasi tetap menunggu persetujuan Admin.');
+      enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. ID Member sementara sudah tersedia; akses akun tetap menunggu persetujuan Admin.');
       return true;
     }
     if(String(fresh[3])!=='Menunggu'||!(fresh[2] instanceof Date)||fresh[2].getTime()<=Date.now())throw new Error('Tautan verifikasi kedaluwarsa atau sudah digunakan.');
@@ -2579,7 +2579,7 @@ function verifyTelegramApplication_(linkRow,link,msg,update) {
     linkSheet.getRange(actualLinkRow,4).setValue('Terverifikasi');linkSheet.getRange(actualLinkRow,7,1,5).setValues([[userId,chatId,sheetText_(username),sheetText_(first),now]]);
     appSheet.getRange(appRow,11,1,3).setValues([['Terverifikasi',userId,chatId]]);appSheet.getRange(appRow,8).setValue('Menunggu Validasi Admin');appSheet.getRange(appRow,15).setValue(now);
     if(planType==='ACTIVE_IB')depSheet.getRange(depRow,10,1,4).setValues([['Menunggu Validasi Admin',userId,chatId,now]]);
-    enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. ID Member sementara telah diterbitkan setelah bukti tersimpan; PIN dan aktivasi tetap menunggu persetujuan Admin.');
+    enqueueMpsTelegramLinkConfirmation_(String(fresh[0]||''),chatId,'✅ Telegram berhasil terhubung ke pengajuan MPS. Admin akan memeriksa identitas dan bukti pembayaran/deposit sesuai paket. ID Member sementara sudah tersedia; akses akun tetap menunggu persetujuan Admin.');
     committed=true;
   }catch(err){
     const rollbackErrors=[];
