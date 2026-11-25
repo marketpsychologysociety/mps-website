@@ -2015,10 +2015,11 @@ function setupTelegram_() {
   if (vipChatId && !/^-?\d+$/.test(vipChatId)) throw new Error('MPS_TELEGRAM_VIP_CHAT_ID tidak valid.');
   // Fail closed: never point Telegram at a deployment whose durable webhook/VIP stores are incomplete.
   assertMpsTelegramWebhookStorageReady_();
-  let webhookSecret = props.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET');
-  if (!webhookSecret || webhookSecret.length < 32) {
-    webhookSecret = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
-    props.setProperty('MPS_TELEGRAM_WEBHOOK_SECRET', webhookSecret);
+  // Fail closed: production operator must provision a fresh 64-character hex secret.
+  // Do not silently generate/replace credentials during webhook setup.
+  const webhookSecret = String(props.getProperty('MPS_TELEGRAM_WEBHOOK_SECRET') || '').trim();
+  if (!/^[A-Fa-f0-9]{64}$/.test(webhookSecret)) {
+    throw new Error('MPS_TELEGRAM_WEBHOOK_SECRET wajib diisi manual dengan tepat 64 karakter heksadesimal (0-9, A-F). Buat secret baru sebelum setup webhook.');
   }
   const base = 'https://api.telegram.org/bot' + token + '/';
   const meResp=UrlFetchApp.fetch(base+'getMe',{muteHttpExceptions:true}),meData=parseTelegramResponse_(meResp);
