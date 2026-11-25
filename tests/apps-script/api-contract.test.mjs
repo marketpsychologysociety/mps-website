@@ -157,7 +157,7 @@ test('public static site support routes consistently to email while Telegram rem
 
 
 test('backend, portal, and release documentation agree that pending Member ID is issued after proof and activated after approval',()=>{
-  assert.match(code,/ID Member sementara telah diterbitkan setelah bukti tersimpan/);
+  assert.match(code,/ID Member sementara sudah tersedia; akses akun tetap menunggu persetujuan Admin/);
   assert.doesNotMatch(code,/Member ID baru diterbitkan setelah persetujuan Admin/);
   assert.match(html,/ID Member sementara diterbitkan setelah bukti tersimpan/);
   assert.match(html,/ID Member sementara sudah diterbitkan setelah bukti deposit/);
