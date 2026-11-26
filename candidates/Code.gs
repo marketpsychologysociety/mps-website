@@ -138,18 +138,22 @@ function doGet(e) {
 
 /** Backward-compatible POST endpoint; frontend utama memakai apiSubmit(). */
 function doPost(e) {
-  // Apps Script mengekspos pathInfo, tetapi tidak mengekspos header Telegram.
-  // Secret ditempatkan pada path acak, bukan query string yang lebih mudah tercatat di log URL.
-  const webhookPath = String(e && e.pathInfo || '').replace(/^\/+|\/+$/g, '');
-  if (webhookPath) {
+  // Google Apps Script TEST telah diverifikasi menerima webhook melalui query
+  // ?mpsw=<64-hex>. Jalur /exec/<secret> dapat ditolak Google dengan HTTP 401.
+  // Apps Script tidak mengekspos header Telegram, sehingga query ini menjadi
+  // credential transport untuk endpoint webhook.
+  const params = (e && e.parameter) || {};
+  const webhookQuery = String(params.mpsw || '').trim();
+  const webhookPath = String(e && e.pathInfo || '').replace(/^\\/+|\\/+$/g, '');
+  const suppliedWebhookSecret = webhookQuery || webhookPath;
+  if (webhookQuery || webhookPath) {
     const expected = PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_WEBHOOK_SECRET') || '';
-    if (!expected || !constantTimeEquals_(webhookPath, expected)) {
+    if (!/^[A-Fa-f0-9]{64}$/.test(expected) || !constantTimeEquals_(suppliedWebhookSecret, expected)) {
       return HtmlService.createHtmlOutput('Forbidden');
     }
     try {
       const update = JSON.parse((e && e.postData && e.postData.contents) || '{}');
       processTelegramUpdate_(update);
-      // HtmlService dipakai khusus webhook agar tidak memakai redirect ContentService.
       return HtmlService.createHtmlOutput('OK');
     } catch (err) {
       console.error('Telegram webhook: ' + safeErrorMessage_(err));
@@ -2030,9 +2034,10 @@ function setupTelegram_() {
   if (!info.ok) throw new Error('Tidak dapat memeriksa konfigurasi webhook Telegram.');
   const webAppUrl = ScriptApp.getService().getUrl();
   if (!webAppUrl) throw new Error('Deploy Web App MPS terlebih dahulu sebelum mengaktifkan webhook Telegram.');
-  // Apps Script doPost tidak mengekspos header request Telegram.
-  // Gunakan pathInfo berisi secret acak; hindari query string agar tidak bocor lewat log query.
-  const webhookUrl = webAppUrl.replace(/\/+$/, '') + '/' + encodeURIComponent(webhookSecret);
+  // Apps Script TEST menolak pola /exec/<path> dengan HTTP 401.
+  // Gunakan endpoint query yang sudah diuji: /exec?mpsw=<64-hex>.
+  // URL webhook mengandung credential; jangan menyalin atau mencatat URL lengkap ke log publik.
+  const webhookUrl = webAppUrl.replace(/\\/+$/, '') + '?mpsw=' + encodeURIComponent(webhookSecret);
   const setResp = UrlFetchApp.fetch(base + 'setWebhook', {
     method: 'post',
     payload: {
@@ -4013,7 +4018,7 @@ function apiAdminCheckSystemConfiguration(session) {
   add('Admin MFA replay protection state',validMfaReplayState(adminMfaLastStep)&&validMfaReplayState(superMfaLastStep),
     'Status replay protection diperiksa tanpa menampilkan counter atau secret.');
 
-  add('Telegram webhook secret transport',true,'Secret webhook divalidasi melalui pathInfo Apps Script, bukan query string. Tetap lindungi URL lengkap dan rotasi secret jika pernah terekspos.');
+  add('Telegram webhook secret transport',true,'Secret 64-hex divalidasi dari parameter query mpsw; lindungi URL lengkap dan rotasi secret jika pernah terekspos.');
   add('Pemisahan kredensial Admin',!!(adminSecret&&superSecret&&adminSecret!==superSecret),'Token Admin dan Super Admin harus berbeda.');
   const botToken=String(props.getProperty('MPS_TELEGRAM_BOT_TOKEN')||'');
   add('Telegram bot token format',/^\d{5,15}:[A-Za-z0-9_-]{20,}$/.test(botToken),'Format token diperiksa tanpa menampilkan nilainya.');
