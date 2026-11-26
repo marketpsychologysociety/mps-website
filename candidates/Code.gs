@@ -144,7 +144,7 @@ function doPost(e) {
   // credential transport untuk endpoint webhook.
   const params = (e && e.parameter) || {};
   const webhookQuery = String(params.mpsw || '').trim();
-  const webhookPath = String(e && e.pathInfo || '').replace(/^\\/+|\\/+$/g, '');
+  const webhookPath = String(e && e.pathInfo || '').replace(new RegExp('^/+|/+$','g'), '');
   const suppliedWebhookSecret = webhookQuery || webhookPath;
   if (webhookQuery || webhookPath) {
     const expected = PropertiesService.getScriptProperties().getProperty('MPS_TELEGRAM_WEBHOOK_SECRET') || '';
@@ -2037,7 +2037,7 @@ function setupTelegram_() {
   // Apps Script TEST menolak pola /exec/<path> dengan HTTP 401.
   // Gunakan endpoint query yang sudah diuji: /exec?mpsw=<64-hex>.
   // URL webhook mengandung credential; jangan menyalin atau mencatat URL lengkap ke log publik.
-  const webhookUrl = webAppUrl.replace(/\\/+$/, '') + '?mpsw=' + encodeURIComponent(webhookSecret);
+  const webhookUrl = String(webAppUrl).replace(new RegExp('/+$'), '') + '?mpsw=' + encodeURIComponent(webhookSecret);
   const setResp = UrlFetchApp.fetch(base + 'setWebhook', {
     method: 'post',
     payload: {
