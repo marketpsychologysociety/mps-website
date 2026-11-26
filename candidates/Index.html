@@ -361,7 +361,7 @@
     const INITIAL_PAGE = '<?= initialPage ?>';
     const state = { adminSession: '', adminRole: '', memberSession: '', memberId: '', memberName: '', proofDataUrl: '', proofMime: '', proofName: '', pdfUrls: [], pulseData: null, intelligence: null, pulseAccessMode: '', pendingPulseUpload: null, vipCalculatorLoaded: false, vipCalculatorTimer: null, vipCalculatorLastCheck: 0, vipCalculatorBridgeNonce: '', memberSchemaPreflight: null };
     const $ = (id) => document.getElementById(id);
-    function showToast(message){const t=$('toast');t.textContent=message;t.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.classList.remove('show'),3600)}
+    function showToast(message){const t=$('toast');t.textContent=message;t.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.classList.remove('show'),30000)}
     function showNotice(el,message,type){el.textContent=message;el.className='notice '+(type||'');el.classList.remove('hidden')}
     function requestId(){if(!window.crypto||!window.crypto.getRandomValues)throw new Error('Browser tidak mendukung pembangkit ID permintaan yang aman. Perbarui browser atau aplikasi MPS.');const bytes=new Uint8Array(24);window.crypto.getRandomValues(bytes);return 'mps'+Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('')}
     const stableRequestMemory={};
