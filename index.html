@@ -395,7 +395,7 @@
 </style>
 
 <link rel="stylesheet" href="css/mps-master-visual.css?v=20261127a">
-  <link rel="stylesheet" href="css/mps-reference-exact.css?v=7534ebddc5">
+  <link rel="stylesheet" href="css/mps-reference-exact.css?v=restore-78a-20261127">
 </head>
 <body>
 <div class="mps-master-marketbar" aria-label="Informasi pasar dan waktu">
@@ -433,11 +433,6 @@
 <header class="hero mps-home-hero mps-premium-hero">
   <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1b" alt=""></div>
 
-<div class="mps-gs-head">
-    <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
-    <div class="mps-gs-brand"><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></div>
-  </div>
-
   <div class="hero-content reveal mps-premium-copy mps-master-copy">
     <div class="hero-kicker"><span></span> DISCIPLINE <b>•</b> PSYCHOLOGY <b>•</b> COMMUNITY</div>
     <div class="mps-reference-wordmark"><span>MARKET</span><span>PSYCHOLOGY</span><strong>SOCIETY</strong></div>
@@ -451,6 +446,13 @@
     <p class="hero-footnote">MPS tidak menjanjikan keuntungan. Setiap keputusan dan risiko perdagangan tetap menjadi tanggung jawab masing-masing pelaku perdagangan.</p>
   </div>
 
+</header>
+
+
+
+
+
+
 <section class="mps-home-proof mps-home-stats mps-master-stats" aria-label="Fasilitas dan ekosistem MPS">
   <div class="container mps-home-proof-grid">
     <article><span>03</span><strong>SESI PASAR GLOBAL</strong><small>Asia · Europe · New York</small></article>
@@ -461,7 +463,10 @@
   </div>
 </section>
   <section class="mps-global-sessions" id="mps-global-sessions" data-mps-session-clocks aria-labelledby="mps-gs-heading">
-  
+  <div class="mps-gs-head">
+    <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
+    <div class="mps-gs-brand"><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></div>
+  </div>
   <h2 class="mps-gs-title" id="mps-gs-heading">GLOBAL MARKET SESSIONS</h2>
   <p class="mps-gs-subtitle">Tiga pusat aktivitas pasar dunia dalam satu panel waktu global. Jam mengikuti zona waktu lokal dan perubahan daylight saving time secara otomatis.</p>
   <div class="mps-gs-grid">
@@ -550,8 +555,6 @@
     <p class="mps-free-sample-note">Deposit Rp500.000 dilakukan ke akun broker Exness milik anggota, bukan kepada MPS dan bukan biaya keanggotaan. QRIS akan ditampilkan setelah penyedia pembayaran MPS ditetapkan dan integrasinya diverifikasi. Tidak ada QRIS atau pembayaran otomatis yang aktif saat ini.</p>
   </div>
 </section>
-
-</header>
 
 <main>
 <section class="mps-intro-section">
@@ -803,51 +806,6 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{update();setInterval(update,1000);},{once:true});else{update();setInterval(update,1000);}
 })();
 </script>
-
-
-<style id="mps-final-art-anchor-fix">
-/* Restore the previous integrated hero composition. Keep artwork as a backdrop; do not turn it into a separate row. */
-body:has(.mps-home-hero) header.mps-premium-hero{
-  position:relative!important;display:block!important;isolation:isolate!important;
-  min-height:clamp(520px,44vw,680px)!important;height:auto!important;overflow:hidden!important;
-  margin-top:-18px!important;padding:0!important
-}
-body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
-  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
-  z-index:1!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;
-  overflow:hidden!important;-webkit-mask-image:none!important;mask-image:none!important
-}
-body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
-  display:block!important;width:100%!important;height:100%!important;max-width:1600px!important;max-height:none!important;
-  object-fit:contain!important;object-position:center 40%!important;transform:none!important;
-  opacity:.98!important;filter:drop-shadow(0 12px 36px rgba(0,0,0,.35))!important
-}
-body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
-  position:relative!important;z-index:3!important;width:min(760px,calc(100% - 28px))!important;
-  max-width:760px!important;min-height:clamp(520px,44vw,680px)!important;
-  margin:0 auto!important;padding:clamp(24px,4vw,42px) 24px!important;
-  text-align:center!important
-}
-@media(max-width:820px){
-  body:has(.mps-home-hero) header.mps-premium-hero{min-height:590px!important;padding:34px 16px 30px!important}
-  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{opacity:.76!important}
-  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
-    object-fit:contain!important;object-position:center 35%!important;transform:none!important
-  }
-  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
-    width:100%!important;max-width:620px!important;min-height:520px!important;
-    margin:0 auto!important;padding:30px 12px!important
-  }
-}
-@media(max-width:520px){
-  body:has(.mps-home-hero) header.mps-premium-hero{min-height:560px!important}
-  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
-    object-position:center 32%!important
-  }
-  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{padding:24px 8px!important}
-}
-</style>
 
 </body>
 </html>
