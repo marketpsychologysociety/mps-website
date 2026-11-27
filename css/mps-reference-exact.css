@@ -311,3 +311,84 @@ body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
     transform:translateY(-58px) scale(1.08)!important;
   }
 }
+
+
+/* MPS HERO — definitive unified composition, 27 Nov 2026.
+   Bull/bear artwork, MPS identity, message and proof strip share one visual hero.
+   Existing links, IDs, forms, scripts, access checks and backend integrations are untouched. */
+body:has(.mps-home-hero) .mps-home-hero.mps-premium-hero{
+  position:relative!important;isolation:isolate!important;display:flex!important;
+  flex-direction:column!important;align-items:center!important;justify-content:flex-end!important;
+  gap:0!important;width:100%!important;min-height:clamp(760px,66vw,920px)!important;
+  height:auto!important;overflow:hidden!important;padding:104px clamp(14px,3vw,42px) 26px!important;
+  background:radial-gradient(ellipse at 23% 36%,rgba(242,171,48,.16),transparent 34%),
+    radial-gradient(ellipse at 78% 37%,rgba(35,137,255,.18),transparent 36%),
+    linear-gradient(180deg,#030711 0%,#071426 58%,#030711 100%)!important;
+}
+body:has(.mps-home-hero) .mps-home-hero.mps-premium-hero:before{
+  content:""!important;position:absolute!important;inset:0!important;z-index:2!important;pointer-events:none!important;
+  background:linear-gradient(180deg,rgba(2,5,12,.05) 0%,transparent 42%,rgba(2,5,12,.72) 72%,#030711 100%)!important;
+}
+body:has(.mps-home-hero) .mps-home-hero .mps-premium-art-wrap{
+  position:absolute!important;inset:48px 0 auto!important;width:100%!important;height:clamp(390px,48vw,620px)!important;
+  max-height:none!important;z-index:1!important;display:flex!important;align-items:center!important;
+  justify-content:center!important;overflow:visible!important;opacity:1!important;pointer-events:none!important;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 8%,#000 92%,transparent 100%)!important;
+  mask-image:linear-gradient(90deg,transparent 0%,#000 8%,#000 92%,transparent 100%)!important;
+}
+body:has(.mps-home-hero) .mps-home-hero .mps-premium-art{
+  display:block!important;width:min(100%,1500px)!important;height:100%!important;max-width:1500px!important;
+  object-fit:contain!important;object-position:center center!important;transform:none!important;opacity:1!important;
+  filter:drop-shadow(0 14px 34px rgba(0,0,0,.4))!important;
+}
+body:has(.mps-home-hero) .mps-home-hero .mps-gs-head{
+  position:absolute!important;z-index:5!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;gap:12px!important;
+  width:max-content!important;max-width:calc(100% - 24px)!important;margin:0!important;padding:8px 18px!important;
+  border:1px solid rgba(83,210,255,.24)!important;border-radius:999px!important;
+  background:rgba(3,10,22,.56)!important;box-shadow:0 0 26px rgba(32,194,255,.12)!important;
+  -webkit-backdrop-filter:blur(8px)!important;backdrop-filter:blur(8px)!important;
+}
+body:has(.mps-home-hero) .mps-home-hero .mps-gs-logo{width:42px!important;height:42px!important}
+body:has(.mps-home-hero) .mps-home-hero .mps-gs-brand strong{display:block!important;color:#f7fbff!important;font-size:19px!important;letter-spacing:.18em!important}
+body:has(.mps-home-hero) .mps-home-hero .mps-gs-brand small{display:block!important;color:#73dfff!important;font-size:8px!important;letter-spacing:.14em!important}
+body:has(.mps-home-hero) .mps-home-hero .mps-premium-copy{
+  position:relative!important;z-index:4!important;display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;width:min(900px,100%)!important;max-width:900px!important;
+  min-height:0!important;margin:auto auto 0!important;padding:clamp(330px,39vw,480px) 18px 20px!important;
+  text-align:center!important;background:linear-gradient(180deg,transparent 0%,rgba(3,8,18,.30) 36%,rgba(3,8,18,.82) 100%)!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;
+}
+body:has(.mps-home-hero) .mps-home-hero .mps-reference-wordmark{display:block!important}
+body:has(.mps-home-hero) .mps-home-hero .mps-master-brandline{display:none!important}
+body:has(.mps-home-hero) .mps-home-hero .hero-kicker{margin-bottom:8px!important}
+body:has(.mps-home-hero) .mps-home-hero .mps-master-slogan{margin:8px 0!important}
+body:has(.mps-home-hero) .mps-home-hero .desc{max-width:700px!important;margin:10px auto 18px!important}
+body:has(.mps-home-hero) .mps-home-hero .hero-btns{justify-content:center!important}
+body:has(.mps-home-hero) .mps-home-hero .hero-footnote{max-width:760px!important;margin:12px auto 0!important}
+body:has(.mps-home-hero) .mps-home-hero .mps-master-stats{
+  position:relative!important;z-index:5!important;display:block!important;width:min(1540px,100%)!important;
+  margin:0 auto 2px!important;padding:0!important;
+}
+body:has(.mps-home-hero) .mps-home-hero .mps-home-proof-grid{width:100%!important}
+@media(min-width:821px){
+ body:has(.mps-home-hero) .mps-home-hero .mps-premium-copy{padding-top:clamp(360px,38vw,470px)!important}
+}
+@media(max-width:820px){
+ body:has(.mps-home-hero) .mps-home-hero.mps-premium-hero{min-height:850px!important;padding:82px 12px 18px!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-premium-art-wrap{inset:72px 0 auto!important;height:clamp(330px,76vw,470px)!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-premium-art{width:100%!important;object-fit:contain!important;object-position:center center!important;transform:none!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-gs-head{top:12px!important;padding:5px 12px!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-gs-logo{width:34px!important;height:34px!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-premium-copy{width:100%!important;max-width:650px!important;padding:clamp(300px,70vw,420px) 8px 18px!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-master-stats .mps-home-proof-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-master-stats .mps-stats-activity{grid-column:span 2!important}
+}
+@media(max-width:520px){
+ body:has(.mps-home-hero) .mps-home-hero.mps-premium-hero{min-height:900px!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-premium-art-wrap{height:clamp(300px,82vw,390px)!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-premium-copy{padding-top:clamp(280px,75vw,370px)!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-reference-wordmark{font-size:clamp(32px,9vw,48px)!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-master-slogan{font-size:clamp(25px,7.5vw,34px)!important}
+ body:has(.mps-home-hero) .mps-home-hero .mps-master-stats article{padding:12px 8px!important}
+}
