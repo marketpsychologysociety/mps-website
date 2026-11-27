@@ -395,7 +395,7 @@
 </style>
 
 <link rel="stylesheet" href="css/mps-master-visual.css?v=20261127a">
-  <link rel="stylesheet" href="css/mps-reference-exact.css?v=restore-78a-20261127">
+  <link rel="stylesheet" href="css/mps-reference-exact.css?v=approved-67fd-20261127">
 </head>
 <body>
 <div class="mps-master-marketbar" aria-label="Informasi pasar dan waktu">
@@ -806,6 +806,51 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{update();setInterval(update,1000);},{once:true});else{update();setInterval(update,1000);}
 })();
 </script>
+
+
+<style id="mps-final-art-anchor-fix">
+/* Restore the previous integrated hero composition. Keep artwork as a backdrop; do not turn it into a separate row. */
+body:has(.mps-home-hero) header.mps-premium-hero{
+  position:relative!important;display:block!important;isolation:isolate!important;
+  min-height:clamp(520px,44vw,680px)!important;height:auto!important;overflow:hidden!important;
+  padding:0!important
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  z-index:1!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;
+  overflow:hidden!important;-webkit-mask-image:none!important;mask-image:none!important
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+  display:block!important;width:100%!important;height:100%!important;max-width:1600px!important;max-height:none!important;
+  object-fit:contain!important;object-position:center 40%!important;transform:none!important;
+  opacity:.98!important;filter:drop-shadow(0 12px 36px rgba(0,0,0,.35))!important
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+  position:relative!important;z-index:3!important;width:min(760px,calc(100% - 28px))!important;
+  max-width:760px!important;min-height:clamp(520px,44vw,680px)!important;
+  margin:0 auto!important;padding:clamp(24px,4vw,42px) 24px!important;
+  text-align:center!important
+}
+@media(max-width:820px){
+  body:has(.mps-home-hero) header.mps-premium-hero{min-height:590px!important;padding:34px 16px 30px!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{opacity:.76!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+    object-fit:contain!important;object-position:center 35%!important;transform:none!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+    width:100%!important;max-width:620px!important;min-height:520px!important;
+    margin:0 auto!important;padding:30px 12px!important
+  }
+}
+@media(max-width:520px){
+  body:has(.mps-home-hero) header.mps-premium-hero{min-height:560px!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+    object-position:center 32%!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{padding:24px 8px!important}
+}
+</style>
 
 </body>
 </html>
