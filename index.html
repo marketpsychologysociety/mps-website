@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="MPS adalah ekosistem pelaku perdagangan untuk belajar, membangun disiplin, terhubung, dan bertumbuh bersama melalui edukasi, komunitas, perangkat analisis, dan manfaat keanggotaan.">
-  <meta name="theme-color" content="#070912">
+  <meta name="theme-color" content="#050914">\n  <meta name="mps-visual-build" content="master-screenshot-20261127a">
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -396,12 +396,33 @@
 <link rel="stylesheet" href="css/mps-screenshot-homepage.css?v=20261127d">
 <link rel="stylesheet" href="css/mps-home-top-correction.css?v=20261127b">
 
-</head>
+  <link rel="stylesheet" href="css/mps-master-visual.css?v=20261127a">\n</head>
 <body>
+<div class="mps-master-marketbar" aria-label="Informasi pasar dan waktu">
+  <div class="mps-master-marketbar-inner">
+    <span class="mps-marketbar-brand"><i></i> MPS MARKET WATCH</span>
+    <span class="mps-marketbar-item"><b>XAUUSD</b> GOLD MARKET</span>
+    <span class="mps-marketbar-item"><b>EURUSD</b> FOREX</span>
+    <span class="mps-marketbar-item"><b>GBPUSD</b> FOREX</span>
+    <span class="mps-marketbar-sessions">ASIA <i>·</i> EUROPE <i>·</i> NEW YORK</span>
+    <span class="mps-marketbar-time"><i class="mps-marketbar-clock"></i><span id="mpsMasterWibClock">WIB --:--:--</span></span>
+  </div>
+</div>
 <nav class="navbar mps-home-nav" aria-label="Navigasi utama">
-  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=mps-original-20261118" alt="Logo Masyarakat Psikologi Perdagangan"><span><strong>Masyarakat Psikologi Perdagangan</strong><small>MPS · EKOSISTEM PELAKU PERDAGANGAN</small></span></a>
-  <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks" type="button">☰</button>
-  <ul class="nav-links" id="navLinks"><li><a href="index.html">Beranda</a></li><li><a href="heatmap.html">Pemantauan Pasar</a></li><li><a href="member-portal.html">Pusat Sinyal</a></li><li><a href="system.html">Analisis Pasar</a></li><li><a href="news-review.html">News &amp; Review</a></li><li><a href="announcements.html">Pengumuman</a></li><li><a href="education.html">Ruang Belajar</a></li><li><a href="education.html">Psikologi Perdagangan</a></li><li><a href="prototypes/mps-trading-calculator/">Kalkulator Trading</a></li><li><a href="member-portal.html">Komunitas</a></li><li><a href="membership.html">Keanggotaan</a></li><li><a href="rebate.html">Mitra Exness &amp; Pengembalian Komisi</a></li><li><a class="mps-nav-login" href="member-portal.html">Masuk Anggota</a></li><li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button></li></ul>
+  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=mps-original-20261118" alt="Logo Masyarakat Psikologi Perdagangan"><span><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></span></a>
+  <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks" type="button">☰ MENU</button>
+  <ul class="nav-links" id="navLinks">
+    <li><a class="mps-nav-home" href="index.html">⌂ Beranda</a></li>
+    <li><a href="about.html">Tentang MPS</a></li>
+    <li class="mps-nav-group"><details><summary>Member ▾</summary><div class="mps-nav-dropdown"><a href="member-portal.html">Pusat Sinyal</a><a href="membership.html">Keanggotaan</a><a href="member-portal.html">Komunitas</a></div></details></li>
+    <li><a href="heatmap.html">Market Pulse</a></li>
+    <li class="mps-nav-group"><details><summary>Learning ▾</summary><div class="mps-nav-dropdown"><a href="education.html">Ruang Belajar</a><a href="education.html">Psikologi Perdagangan</a></div></details></li>
+    <li class="mps-nav-group"><details><summary>Community ▾</summary><div class="mps-nav-dropdown"><a href="news-review.html">News &amp; Review</a><a href="announcements.html">Pengumuman</a></div></details></li>
+    <li><a href="member-portal.html">Dashboard</a></li>
+    <li class="mps-nav-group mps-nav-more"><details><summary>Lainnya ▾</summary><div class="mps-nav-dropdown"><a href="system.html">Analisis Pasar</a><a href="prototypes/mps-trading-calculator/">Kalkulator Trading</a><a href="rebate.html">Mitra Exness &amp; Pengembalian Komisi</a></div></details></li>
+    <li><a class="mps-nav-login" href="member-portal.html">Login</a></li>
+    <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button></li>
+  </ul>
 </nav>
 
 
@@ -411,19 +432,34 @@
 <header class="hero mps-home-hero mps-premium-hero">
   <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1b" alt=""></div>
 
-  <div class="hero-content reveal mps-premium-copy">
-    <div class="hero-kicker"><span></span> MASYARAKAT PSIKOLOGI PERDAGANGAN</div>
-    <h1>SELAMA INI KAMU BERTRANSAKSI,<br><span>SUDAH DAPAT APA SAJA?</span></h1>
-    <div class="tagline">TERHUBUNG. BELAJAR. BERTUMBUH. BERPRESTASI.</div>
-    <p class="desc">Sudah berapa lama kamu mengenal pasar, membuka grafik, mencoba strategi, dan melewati berbagai pengalaman? Selain hasil transaksi, apa yang ikut bertumbuh—ilmu, pengelolaan modal, psikologi, disiplin, relasi, dan cara mengambil keputusan?</p>
-    <p class="desc">MPS bukan sekadar tempat mencari sinyal atau mengejar janji keuntungan. Kami ingin membangun satu ekosistem yang memberi nilai nyata: ilmu, pengelolaan modal, psikologi, disiplin, perangkat analisis, relasi, dan kesempatan untuk berkembang bersama.</p>
+  <div class="hero-content reveal mps-premium-copy mps-master-copy">
+    <div class="hero-kicker"><span></span> DISCIPLINE <b>•</b> PSYCHOLOGY <b>•</b> COMMUNITY</div>
+    <div class="mps-master-wordmark">MPS</div>
+    <div class="mps-master-brandline">MARKET PSYCHOLOGY <strong>SOCIETY</strong></div>
+    <h1 class="mps-master-slogan">Trade <em class="mps-green">Smarter.</em> Grow <em class="mps-magenta">Stronger.</em> <em class="mps-cyan">Together.</em></h1>
+    <p class="desc">Bersama MPS, pahami psikologi pasar, bangun disiplin, kelola risiko, dan tumbuh melalui edukasi serta komunitas pelaku perdagangan.</p>
     <div class="hero-btns">
-      <a href="join.html" class="btn btn-gold">Jelajahi Keanggotaan <span aria-hidden="true">→</span></a>
-      <a href="#mps-benefit" class="btn btn-outline">Temukan Nilai MPS <span aria-hidden="true">▷</span></a>
+      <a href="join.html" class="btn btn-gold">Gabung Komunitas <span aria-hidden="true">→</span></a>
+      <a href="#mps-benefit" class="btn btn-outline">Pelajari MPS <span aria-hidden="true">▷</span></a>
     </div>
-    <p class="hero-footnote">Belajar dari siapa saja tetap terbuka. Untuk menjadi bagian komunitas pelaku perdagangan aktif MPS, aktivitas perdagangan yang dihitung dalam keanggotaan menggunakan akun Exness yang terhubung melalui mitra MPS. Ketentuan lengkap berlaku.</p>
+    <p class="hero-footnote">MPS tidak menjanjikan keuntungan. Setiap keputusan dan risiko perdagangan tetap menjadi tanggung jawab masing-masing pelaku perdagangan.</p>
   </div>
-  <section class="mps-global-sessions" id="mps-global-sessions" data-mps-session-clocks aria-labelledby="mps-gs-heading">
+
+</header>
+
+
+
+
+
+
+<section class="mps-home-proof mps-home-stats mps-master-stats" aria-label="Fasilitas dan ekosistem MPS">
+  <div class="container mps-home-proof-grid">
+    <article><span>03</span><strong>SESI PASAR GLOBAL</strong><small>Asia · Europe · New York</small></article>
+    <article><span>02</span><strong>JALUR KEANGGOTAAN</strong><small>Regular · Active IB</small></article>
+    <article><span>01</span><strong>EKOSISTEM MPS</strong><small>Belajar · Analisis · Komunitas</small></article>
+    <article><span>VIP</span><strong>AREA ANGGOTA</strong><small>Akses sesuai status keanggotaan</small></article>
+  </div>
+</section>\n  <section class="mps-global-sessions" id="mps-global-sessions" data-mps-session-clocks aria-labelledby="mps-gs-heading">
   <div class="mps-gs-head">
     <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
     <div class="mps-gs-brand"><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></div>
@@ -452,10 +488,7 @@
   </div>
   <div class="mps-gs-overlap" id="mps-gs-overlap"> <strong>MARKET OVERLAP</strong> · Memeriksa irisan sesi London dan New York…</div>
   <p class="mps-gs-foot">Waktu ditampilkan berdasarkan zona waktu resmi masing-masing kota. Jam sesi adalah indikator jam kerja pasar FX, bukan jaminan likuiditas atau rekomendasi transaksi.</p>
-</section>
-</header>
-
-<div class="mps-ticker mps-home-ticker" aria-label="Informasi utama MPS">
+</section>\n<div class="mps-ticker mps-home-ticker" aria-label="Informasi utama MPS">
   <span class="ticker-live"><i></i> INFO MPS</span>
   <div class="ticker-window"><div class="ticker-track">
     <span>TERHUBUNG · BELAJAR · BERTUMBUH · BERPRESTASI</span><b>✦</b>
@@ -466,27 +499,6 @@
 </div>
 
 
-
-
-<section class="mps-home-proof mps-home-stats" aria-label="Ringkasan fasilitas MPS">
-  <div class="container mps-home-proof-grid">
-    <article><span>03</span><strong>FONDASI PELAKU PERDAGANGAN</strong><small>Modal · Psikologi · Disiplin</small></article>
-    <article><span>04</span><strong>RUANG BERTUMBUH</strong><small>Analisis · Belajar · Komunitas · Anggota</small></article>
-    <article><span>04</span><strong>NILAI KEANGGOTAAN</strong><small>Ilmu · Koneksi · Pengalaman · Apresiasi</small></article>
-    <article><span>01</span><strong>EKOSISTEM</strong><small>Bergerak dan tumbuh bersama</small></article>
-  </div>
-</section>
-
-<section class="mps-membership-options" aria-label="Pilihan keanggotaan MPS">
-  <div class="container">
-    <div class="mps-existing-route-heading"><span class="eyebrow">MULAI PERJALANANMU</span><h2>Pilih Keanggotaan MPS</h2><p>Ada dua jalur keanggotaan dengan fasilitas inti yang sama. Pilih jalur yang sesuai, pahami ketentuannya, lalu bertumbuh bersama komunitas.</p></div>
-    <div class="mps-route-choice">
-      <article class="mps-route-choice-card"><span class="mps-free-sample-label">ANGGOTA REGULER</span><h3>Rp100.000 / bulan</h3><p>Iuran keanggotaan MPS sebesar Rp100.000 per bulan. Pembayaran dilakukan melalui QRIS resmi setelah kanalnya tersedia dan diumumkan MPS; akses aktif setelah pembayaran diverifikasi.</p><ul><li>Bot sinyal dan analisis sebagai bahan edukasi</li><li>Pemantauan Pasar, Ruang Belajar, Berita, dan komunitas</li><li>Perpanjangan bulanan</li></ul><a class="btn btn-gold" href="join.html">Pilih Reguler</a></article>
-      <article class="mps-route-choice-card"><span class="mps-free-sample-label">ANGGOTA KEMITRAAN AKTIF</span><h3>Bebas iuran bulanan</h3><p>Untuk anggota dengan akun Exness terhubung melalui mitra MPS, deposit pertama minimal Rp500.000 ke akun sendiri, dan status kemitraan aktif yang terverifikasi.</p><ul><li>Fasilitas inti sama dengan Reguler</li><li>Tidak membayar iuran selama memenuhi syarat</li><li>Program kemitraan dan pengembalian komisi mengikuti ketentuan tersendiri</li></ul><a class="btn btn-gold" href="https://one.toexness.com/a/bdthbxwb2q?platform=mobile" target="_blank" rel="noopener noreferrer">Daftar Exness melalui mitra MPS</a></article>
-    </div>
-    <p class="mps-free-sample-note">Deposit Rp500.000 dilakukan ke akun broker Exness milik anggota, bukan kepada MPS dan bukan biaya keanggotaan. QRIS akan ditampilkan setelah penyedia pembayaran MPS ditetapkan dan integrasinya diverifikasi. Tidak ada QRIS atau pembayaran otomatis yang aktif saat ini.</p>
-  </div>
-</section>
 <section class="mps-home-features" id="mps-fasilitas" aria-label="Fasilitas utama MPS">
   <div class="container">
     <div class="mps-home-feature-grid">
@@ -498,16 +510,35 @@
   </div>
 </section>
 
-<section class="mps-home-activity mps-home-latest" aria-label="Aktivitas anggota terbaru">
+<section class="mps-home-activity mps-home-latest mps-master-latest" aria-label="Wawasan dan aktivitas komunitas MPS">
   <div class="container">
     <div class="mps-latest-heading">
-      <div><span class="eyebrow">✦ KEHIDUPAN KOMUNITAS</span><h2>Ruang Tumbuh Bersama</h2></div>
-      <a class="btn btn-outline" href="announcements.html">Lihat Semua <span aria-hidden="true">→</span></a>
+      <div><span class="eyebrow">✦ MARKET INSIGHT &amp; COMMUNITY</span><h2>Wawasan Pasar dan Kehidupan Komunitas</h2></div>
+      <a class="btn btn-outline" href="news-review.html">Lihat Semua <span aria-hidden="true">→</span></a>
     </div>
-    <div class="mps-latest-empty" role="status">
-      <span aria-hidden="true">✦</span>
-      <div><strong>Komunitas yang hidup dibangun bersama</strong><p>Ruang ini akan menampilkan aktivitas anggota yang benar-benar tersedia dan terverifikasi. Kami memilih kejujuran daripada angka atau cerita yang dibuat-buat.</p></div>
+    <div class="mps-master-latest-grid">
+      <article class="mps-master-insight">
+        <span class="mps-master-card-kicker">MARKET PSYCHOLOGY</span>
+        <h3>Keputusan yang baik dimulai sebelum membuka posisi.</h3>
+        <p>Kenali konteks pasar, tetapkan batas risiko, dan jalankan rencana. Disiplin proses lebih penting daripada mengejar setiap pergerakan harga.</p>
+        <a href="education.html">Baca materi edukasi <b>↗</b></a>
+      </article>
+      <article class="mps-master-vip">
+        <span class="mps-master-card-kicker">✦ VIP MEMBER ACTIVITY</span>
+        <h3>Komunitas yang tumbuh melalui kontribusi nyata.</h3>
+        <p>Informasi anggota VIP hanya ditampilkan setelah status keanggotaan dan konfirmasi bergabung diverifikasi oleh sistem MPS.</p>
+        <a href="member-portal.html">Masuk ke komunitas <b>↗</b></a>
+      </article>
     </div>
+  </div>
+</section>\n<section class="mps-membership-options" aria-label="Pilihan keanggotaan MPS">
+  <div class="container">
+    <div class="mps-existing-route-heading"><span class="eyebrow">MULAI PERJALANANMU</span><h2>Pilih Keanggotaan MPS</h2><p>Ada dua jalur keanggotaan dengan fasilitas inti yang sama. Pilih jalur yang sesuai, pahami ketentuannya, lalu bertumbuh bersama komunitas.</p></div>
+    <div class="mps-route-choice">
+      <article class="mps-route-choice-card"><span class="mps-free-sample-label">ANGGOTA REGULER</span><h3>Rp100.000 / bulan</h3><p>Iuran keanggotaan MPS sebesar Rp100.000 per bulan. Pembayaran dilakukan melalui QRIS resmi setelah kanalnya tersedia dan diumumkan MPS; akses aktif setelah pembayaran diverifikasi.</p><ul><li>Bot sinyal dan analisis sebagai bahan edukasi</li><li>Pemantauan Pasar, Ruang Belajar, Berita, dan komunitas</li><li>Perpanjangan bulanan</li></ul><a class="btn btn-gold" href="join.html">Pilih Reguler</a></article>
+      <article class="mps-route-choice-card"><span class="mps-free-sample-label">ANGGOTA KEMITRAAN AKTIF</span><h3>Bebas iuran bulanan</h3><p>Untuk anggota dengan akun Exness terhubung melalui mitra MPS, deposit pertama minimal Rp500.000 ke akun sendiri, dan status kemitraan aktif yang terverifikasi.</p><ul><li>Fasilitas inti sama dengan Reguler</li><li>Tidak membayar iuran selama memenuhi syarat</li><li>Program kemitraan dan pengembalian komisi mengikuti ketentuan tersendiri</li></ul><a class="btn btn-gold" href="https://one.toexness.com/a/bdthbxwb2q?platform=mobile" target="_blank" rel="noopener noreferrer">Daftar Exness melalui mitra MPS</a></article>
+    </div>
+    <p class="mps-free-sample-note">Deposit Rp500.000 dilakukan ke akun broker Exness milik anggota, bukan kepada MPS dan bukan biaya keanggotaan. QRIS akan ditampilkan setelah penyedia pembayaran MPS ditetapkan dan integrasinya diverifikasi. Tidak ada QRIS atau pembayaran otomatis yang aktif saat ini.</p>
   </div>
 </section>
 
@@ -698,7 +729,9 @@
   <div class="footer-copy" id="year">© 2026 Masyarakat Psikologi Perdagangan. Hak cipta dilindungi.</div>
 </footer>
 <div class="float-chat"><a href="mailto:ndhisolasi.music@gmail.com" aria-label="Hubungi MPS melalui Email">✉</a></div>
-<script src="config.js"></script>
+<script>
+(()=>{const el=document.getElementById('mpsMasterWibClock');if(!el)return;const fmt=new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});const tick=()=>{try{el.textContent='WIB '+fmt.format(new Date())}catch(e){el.textContent='WIB'}};tick();setInterval(tick,1000)})();
+</script>\n<script src="config.js"></script>
 <script src="js/main.js?v=mps-risk-warning-red-20261124a"></script>
 <script src="js/announcements.js"></script>
 <script src="js/public-center.js"></script>
