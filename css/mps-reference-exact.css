@@ -289,3 +289,25 @@ body:has(.mps-home-hero) .mps-global-sessions .mps-gs-face{display:block!importa
   body:has(.mps-home-hero) .mps-global-sessions .mps-gs-digital{font-size:clamp(10px,3vw,14px)!important}
   body:has(.mps-home-hero) .mps-global-sessions .mps-gs-status{font-size:7px!important;padding:4px 5px!important}
 }
+
+
+/* HERO ART POSITION FIX — move bull and bear into the upper hero composition. */
+body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art-wrap{
+  align-items:flex-start!important;
+  overflow:visible!important;
+}
+body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
+  object-position:center top!important;
+  transform:translateY(-112px)!important;
+}
+@media(max-width:820px){
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
+    object-position:center top!important;
+    transform:translateY(-74px) scale(1.04)!important;
+  }
+}
+@media(max-width:520px){
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
+    transform:translateY(-58px) scale(1.08)!important;
+  }
+}
