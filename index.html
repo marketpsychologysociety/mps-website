@@ -807,5 +807,38 @@
 })();
 </script>
 
+
+<style id="mps-final-art-anchor-fix">
+/* Hard override at document end: anchor bull and bear artwork in the UPPER hero. */
+@media (min-width:701px){
+  body:has(.mps-home-hero) header.mps-premium-hero{position:relative!important;overflow:hidden!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
+    position:absolute!important;inset:-185px 0 auto!important;width:100%!important;height:900px!important;
+    display:flex!important;align-items:flex-start!important;justify-content:center!important;
+    z-index:1!important;overflow:visible!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+    width:100%!important;height:900px!important;max-width:1500px!important;
+    object-fit:contain!important;object-position:center top!important;
+    transform:translateY(-85px) scale(1.08)!important;transform-origin:top center!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{position:relative!important;z-index:3!important}
+}
+@media (max-width:700px){
+  body:has(.mps-home-hero) header.mps-premium-hero{position:relative!important;overflow:hidden!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
+    position:absolute!important;inset:-125px -4% auto!important;width:108%!important;height:760px!important;
+    display:flex!important;align-items:flex-start!important;justify-content:center!important;
+    z-index:1!important;overflow:visible!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+    width:100%!important;height:760px!important;max-width:none!important;
+    object-fit:contain!important;object-position:center top!important;
+    transform:translateY(-65px) scale(1.08)!important;transform-origin:top center!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{position:relative!important;z-index:3!important}
+}
+</style>
+
 </body>
 </html>
