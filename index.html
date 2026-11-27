@@ -809,26 +809,42 @@
 
 
 <style id="mps-final-art-anchor-fix">
-/* Keep the complete original composition visible; no artificial zoom or vertical stretch. */
-body:has(.mps-home-hero) header.mps-premium-hero{position:relative!important;overflow:hidden!important}
+/* Structural correction: artwork is a real first row ABOVE the hero copy, not a background layer. */
+body:has(.mps-home-hero) header.mps-premium-hero{
+  position:relative!important;display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:flex-start!important;
+  min-height:0!important;height:auto!important;overflow:hidden!important;
+  padding:0 18px 34px!important;gap:0!important
+}
 body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
-  position:absolute!important;inset:-24px 0 auto!important;width:100%!important;height:auto!important;min-height:0!important;
-  display:flex!important;align-items:flex-start!important;justify-content:center!important;
-  z-index:1!important;overflow:visible!important
+  position:relative!important;inset:auto!important;order:0!important;flex:0 0 auto!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:100%!important;height:clamp(260px,34vw,430px)!important;
+  margin:0 auto!important;padding:0!important;overflow:hidden!important;
+  z-index:1!important;opacity:1!important;visibility:visible!important;
+  -webkit-mask-image:none!important;mask-image:none!important
 }
 body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
-  display:block!important;width:100%!important;height:auto!important;max-width:1180px!important;max-height:none!important;
-  object-fit:contain!important;object-position:center top!important;
-  transform:none!important;transform-origin:center top!important
+  display:block!important;width:100%!important;height:100%!important;max-width:1050px!important;max-height:none!important;
+  object-fit:contain!important;object-position:center center!important;
+  transform:none!important;opacity:1!important
 }
-body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{position:relative!important;z-index:3!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+  position:relative!important;order:1!important;z-index:3!important;
+  flex:0 0 auto!important;width:min(760px,100%)!important;max-width:760px!important;
+  min-height:0!important;margin:0 auto!important;padding:22px 18px!important;
+  text-align:center!important
+}
 @media(max-width:700px){
+  body:has(.mps-home-hero) header.mps-premium-hero{padding:0 10px 26px!important}
   body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
-    inset:-10px -2% auto!important;width:104%!important;height:auto!important
+    width:100%!important;height:clamp(205px,62vw,285px)!important
   }
   body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
-    width:100%!important;height:auto!important;max-width:560px!important;max-height:none!important;
-    object-fit:contain!important;object-position:center top!important;transform:none!important
+    width:100%!important;height:100%!important;max-width:560px!important;object-fit:contain!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+    width:100%!important;max-width:620px!important;padding:16px 8px!important
   }
 }
 </style>
