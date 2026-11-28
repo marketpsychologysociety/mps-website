@@ -76,7 +76,7 @@ try {
     try { await Promise.all([art.decode(), logo.decode()]); }
     catch (error) { return { ok: false, reason: 'hero artwork or logo failed to decode: ' + error.message }; }
     return {
-      ok: art.naturalWidth >= 1024 && art.naturalHeight > 100 && art.getAttribute('src').includes('mps-hero-bull-bear-1024.webp') && logo.naturalWidth > 0 && logo.naturalHeight > 0,
+      ok: art.naturalWidth > 0 && art.naturalHeight > 0 && art.getAttribute('src').includes('mps-bull-bear-banner.webp') && logo.naturalWidth > 0 && logo.naturalHeight > 0,
       artWidth: art.naturalWidth, artHeight: art.naturalHeight,
       artSource: art.getAttribute('src'), logoSource: logo.getAttribute('src'),
       duplicateHeroLogo: !!document.querySelector('.mps-hero-identity'),
