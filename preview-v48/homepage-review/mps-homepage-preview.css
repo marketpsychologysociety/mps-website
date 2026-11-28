@@ -46,3 +46,11 @@ html body:has(.mps-home-hero) .mps-premium-copy .desc{max-width:980px!important;
 html body:has(.mps-home-hero) .mps-premium-copy .hero-btns{justify-content:center!important;gap:14px!important;flex-wrap:wrap!important;margin:0 auto 14px!important}
 html body:has(.mps-home-hero) .mps-premium-copy .hero-footnote{position:static!important;max-width:980px!important;margin:14px auto 0!important;color:#899bb3!important;font-size:12px!important;line-height:1.7!important;text-align:center!important}
 @media(max-width:820px){html body:has(.mps-home-hero) .mps-home-hero{padding-bottom:22px!important}html body:has(.mps-home-hero) .mps-premium-art{aspect-ratio:1536/466!important;object-fit:cover!important}html body:has(.mps-home-hero) .mps-premium-copy{width:calc(100% - 24px)!important;padding:26px 4px 10px!important}html body:has(.mps-home-hero) .mps-premium-copy .mps-master-slogan{font-size:clamp(25px,7.5vw,38px)!important}html body:has(.mps-home-hero) .mps-premium-copy .desc{font-size:13px!important;line-height:1.7!important}html body:has(.mps-home-hero) .mps-premium-copy .hero-btns .btn{width:min(100%,340px)!important}}
+
+
+/* Ensure the homepage rails can be reordered as real body-level sections. */
+html body:has(.mps-home-hero){display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;min-height:100vh!important}
+html body:has(.mps-home-hero)>main{display:contents!important}
+html body:has(.mps-home-hero)>*{flex:0 0 auto!important;min-width:0!important}
+html body:has(.mps-home-hero) .mps-master-marketbar{order:0!important}
+html body:has(.mps-home-hero) .mps-home-nav{order:0!important}
