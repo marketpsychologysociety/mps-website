@@ -855,5 +855,102 @@ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
 }
 </style>
 
+
+<style id="mps-hero-copy-below-art-20261128">
+/* Keep the bull/bear artwork completely clear; place all hero messaging in a separate panel underneath. */
+body:has(.mps-home-hero) header.mps-premium-hero{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:0!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  padding:0 0 30px!important;
+  isolation:isolate!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
+  position:relative!important;
+  inset:auto!important;
+  order:0!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  height:clamp(280px,38vw,470px)!important;
+  max-height:none!important;
+  margin:0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  opacity:1!important;
+  z-index:1!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:1500px!important;
+  max-height:none!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  transform:none!important;
+  opacity:1!important;
+  filter:drop-shadow(0 12px 30px rgba(0,0,0,.32))!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+  position:relative!important;
+  inset:auto!important;
+  order:1!important;
+  z-index:2!important;
+  flex:0 0 auto!important;
+  width:min(920px,calc(100% - 36px))!important;
+  max-width:920px!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0 auto!important;
+  padding:22px clamp(14px,3vw,34px) 26px!important;
+  text-align:center!important;
+  background:linear-gradient(145deg,rgba(12,22,38,.84),rgba(5,10,20,.72))!important;
+  border:1px solid rgba(244,189,69,.20)!important;
+  border-radius:18px!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-kicker,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-btns{
+  justify-content:center!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy h1,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .desc,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-footnote{
+  text-align:center!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-footnote{
+  margin-top:16px!important;
+}
+@media(max-width:700px){
+  body:has(.mps-home-hero) header.mps-premium-hero{padding:0 0 24px!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
+    height:clamp(220px,61vw,310px)!important;
+    width:100%!important;
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+    object-position:center center!important;
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+    width:calc(100% - 24px)!important;
+    padding:18px 14px 20px!important;
+    border-radius:14px!important;
+  }
+}
+@media(max-width:380px){
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{height:220px!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{width:calc(100% - 18px)!important;padding:16px 11px 18px!important}
+}
+</style>
+
 </body>
 </html>
