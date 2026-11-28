@@ -311,3 +311,22 @@ body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
     transform:translateY(-58px) scale(1.08)!important;
   }
 }
+
+/* Global Market Sessions dipindah ke bagian paling atas (di bawah menu, sebelum hero).
+   Hanya urutan dan jarak tampilan; markup, ID, data-attribute, dan skrip jam tidak diubah. */
+body:has(.mps-home-hero) .mps-global-sessions{
+  order:1!important;
+  width:min(1100px,calc(100% - 32px))!important;
+  margin:14px auto 14px!important;
+}
+body:has(.mps-home-hero)>main{
+  order:8!important;
+  width:100%!important;
+  margin:0!important;
+}
+@media(max-width:820px){
+  body:has(.mps-home-hero) .mps-global-sessions{
+    width:calc(100% - 20px)!important;
+    margin:10px auto 10px!important;
+  }
+}
