@@ -122,3 +122,28 @@ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
   body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{padding:24px 8px!important}
 }
 
+
+
+/* MOBILE + DESKTOP HERO CLEANUP: remove the legacy dark left-side veil.
+   Keep Claude's original artwork unchanged and fully visible (no crop). */
+html body:has(.mps-home-hero) header.mps-premium-hero::before,
+html body:has(.mps-home-hero) header.mps-premium-hero:before,
+html body:has(.mps-home-hero) .mps-home-hero::before,
+html body:has(.mps-home-hero) .mps-home-hero:before {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  opacity: 0 !important;
+}
+@media (max-width: 820px) {
+  html body:has(.mps-home-hero) header.mps-premium-hero > .mps-premium-art-wrap {
+    opacity: 1 !important;
+    background: transparent !important;
+  }
+  html body:has(.mps-home-hero) header.mps-premium-hero > .mps-premium-art-wrap > .mps-premium-art {
+    object-fit: contain !important;
+    object-position: center 35% !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+}
