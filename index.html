@@ -1080,8 +1080,12 @@ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-footnot
 body:has(.mps-home-hero) .mps-home-nav .nav-links{gap:clamp(8px,1.15vw,16px)}
 body:has(.mps-home-hero) .mps-home-nav .nav-links a.mps-nav-register{background:#f4bd45!important;color:#171006!important;border:1px solid #ffdc83!important;box-shadow:0 5px 18px rgba(244,189,69,.22)!important}
 body:has(.mps-home-hero) .mps-home-nav .nav-links a.mps-nav-login{background:transparent!important;color:#62e6ff!important;border:1px solid rgba(98,230,255,.75)!important}
-body:has(.mps-home-hero) .mps-home-nav .mps-nav-group details:not([open])+.pwa-install-btn{display:none!important}
-body:has(.mps-home-hero) .mps-home-nav .mps-nav-group details[open]+.pwa-install-btn{display:block!important;width:100%;text-align:left;border:0;background:transparent;color:#d9e9f8;padding:10px 12px;font:inherit;cursor:pointer}
+body:has(.mps-home-hero) .mps-home-nav .mps-nav-group>.pwa-install-btn{
+ display:block!important;width:100%!important;text-align:left!important;
+ border:0!important;border-radius:0!important;background:transparent!important;
+ color:#d9e9f8!important;padding:10px 12px!important;font:inherit!important;
+ animation:none!important;transform:none!important;box-shadow:none!important;cursor:pointer
+}
 body:has(.mps-home-hero) .btn.btn-gold{background:#f4bd45!important;color:#171006!important;border:1px solid #ffdc83!important;box-shadow:0 7px 20px rgba(244,189,69,.18)!important}
 body:has(.mps-home-hero) .btn.btn-outline{background:transparent!important;color:#75e8ff!important;border:1px solid #48c9e8!important;box-shadow:none!important}
 body:has(.mps-home-hero) .btn.btn-outline:hover{color:#dffaff!important;border-color:#8af0ff!important;background:rgba(72,201,232,.08)!important}
