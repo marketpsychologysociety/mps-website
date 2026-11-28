@@ -23,5 +23,5 @@ This is an additive Apps Script integration candidate. It does not replace the e
 
 ## Static checks performed
 - JavaScript syntax check: passed for JournalApi.gs and the Index.html inline script.
-- Mocked backend tests: create, read isolation, idempotent retry, update, cross-member update denial, cross-member delete denial, invalid input rejection, expired-session rejection, and soft-delete all passed.
+- Mocked backend tests: create, read isolation, idempotent retry, update, cross-member update denial, cross-member delete denial, invalid input rejection, expired-session rejection, and soft-delete, formula-injection escaping, and post-write audit-failure handling all passed.
 - **Not tested:** Apps Script live runtime, real spreadsheet permissions, live member login, or Telegram delivery. No deployment was performed.
