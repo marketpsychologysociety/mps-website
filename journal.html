@@ -15,6 +15,25 @@
     .journal-panel h2{color:#27dfff;font:700 clamp(22px,4vw,34px) var(--head)}
     .journal-panel p,.journal-panel li{color:#aebbd0}
     .journal-state{display:inline-flex;padding:7px 12px;border:1px solid rgba(244,189,69,.45);border-radius:30px;color:#f4bd45;font-size:10px;font-weight:800;letter-spacing:1px}
+  
+    /* Kartu Kata-Kata Menampar — pengingat bergantian di halaman jurnal. */
+    .mps-hard-truth{position:relative;isolation:isolate;overflow:hidden;margin:0 0 22px;padding:20px;border:1px solid rgba(255,113,141,.62);border-radius:18px;background:linear-gradient(145deg,#351b30 0%,#1c2035 68%,#10283b 100%);box-shadow:0 12px 32px rgba(0,0,0,.25),0 0 24px rgba(255,82,119,.12)}
+    .mps-hard-truth:before{content:"";position:absolute;z-index:-1;top:-45%;bottom:-45%;left:-42%;width:28%;transform:rotate(22deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.19),transparent);animation:mpsTruthSweep 5.5s ease-in-out infinite;pointer-events:none}
+    .mps-hard-truth-tag{font-size:10px;font-weight:900;letter-spacing:.16em;color:#ff9bab}
+    .mps-hard-truth-copy{min-height:126px;transition:opacity .28s ease,transform .28s ease}
+    .mps-hard-truth-copy.is-switching{opacity:0;transform:translateY(7px)}
+    .mps-hard-truth h2{margin:10px 0 8px;color:#fff;font-size:clamp(19px,3vw,25px);line-height:1.3}
+    .mps-hard-truth p{margin:7px 0;color:#f1d5df;font-size:13px;line-height:1.65}
+    .mps-hard-truth .mps-truth-sting{color:#ffdc91;font-size:14px;font-weight:800;line-height:1.55}
+    .mps-hard-truth-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,190,205,.18)}
+    .mps-hard-truth-live{display:flex;align-items:center;gap:8px;color:#ffc1cc;font-size:9px;font-weight:900;letter-spacing:.12em}
+    .mps-hard-truth-live i{width:7px;height:7px;border-radius:50%;background:#ff718d;box-shadow:0 0 10px #ff718d;animation:mpsTruthBlink 1.3s infinite}
+    .mps-hard-truth button{border:1px solid rgba(255,220,145,.62);border-radius:999px;padding:9px 15px;background:rgba(244,189,69,.12);color:#ffe2a5;font:700 12px Arial,sans-serif;cursor:pointer}
+    .mps-hard-truth button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+    @keyframes mpsTruthSweep{0%,62%{left:-42%;opacity:0}72%{opacity:1}100%{left:130%;opacity:0}}
+    @keyframes mpsTruthBlink{50%{opacity:.35;transform:scale(.75)}}
+    @media(prefers-reduced-motion:reduce){.mps-hard-truth:before,.mps-hard-truth-live i{animation:none}.mps-hard-truth-copy{transition:none}}
+
   </style>
 </head>
 <body>
@@ -29,6 +48,20 @@
   <p>Ruang pencatatan proses dan evaluasi keputusan perdagangan secara disiplin.</p>
 </header>
 <main class="journal-shell">
+
+  <section class="mps-hard-truth" id="mpsHardTruth" aria-label="Kata-kata menampar untuk disiplin trading">
+    <div class="mps-hard-truth-tag">PENGINGAT TANPA BASA-BASI</div>
+    <div class="mps-hard-truth-copy" id="mpsHardTruthCopy" aria-live="polite" aria-atomic="true">
+      <h2 id="mpsHardTruthTitle">Market tidak peduli kamu sedang butuh uang.</h2>
+      <p id="mpsHardTruthBody">Market tidak tahu kamu punya cicilan, keluarga, target, atau baru saja rugi. Ia tidak punya kewajiban mengembalikan uangmu.</p>
+      <p class="mps-truth-sting" id="mpsHardTruthSting">Jangan bawa uang yang kamu kumpulkan dengan susah payah ke medan perang tanpa rencana.</p>
+    </div>
+    <div class="mps-hard-truth-foot">
+      <span class="mps-hard-truth-live"><i aria-hidden="true"></i>PENGINGAT BERGANTI OTOMATIS</span>
+      <button type="button" id="mpsNextHardTruth">Baca pengingat berikutnya</button>
+    </div>
+  </section>
+
   <section class="journal-panel">
     <span class="journal-state">MENU TELAH DITAMBAHKAN · FORMAT DALAM PERANCANGAN</span>
     <h2>Bangun kebiasaan, bukan sekadar menghitung hasil.</h2>
@@ -74,5 +107,44 @@
   window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
 })();
 </script>
+
+<script>
+(()=> {
+  const card=document.getElementById('mpsHardTruth');
+  if(!card)return;
+  const title=document.getElementById('mpsHardTruthTitle');
+  const body=document.getElementById('mpsHardTruthBody');
+  const sting=document.getElementById('mpsHardTruthSting');
+  const copy=document.getElementById('mpsHardTruthCopy');
+  const next=document.getElementById('mpsNextHardTruth');
+  const truths=[
+    {title:'Market tidak peduli kamu sedang butuh uang.',body:'Market tidak tahu kamu punya cicilan, keluarga, target, atau baru saja rugi. Ia tidak punya kewajiban mengembalikan uangmu.',sting:'Jangan paksa market membayar kebutuhan hidupmu. Trading tanpa rencana bukan jalan keluar.'},
+    {title:'Uang yang kamu pertaruhkan adalah hasil kerja nyata.',body:'Bagi pedagang kecil, buruh, petugas kebersihan, pengemudi, dan pemulung, uang dikumpulkan lewat waktu dan tenaga.',sting:'Sebelum klik, bayangkan berapa jam atau hari orang harus bekerja untuk mendapatkan nominal itu.'},
+    {title:'Kamu boleh kehilangan peluang. Jangan kehilangan kendali.',body:'Tidak semua candle harus dikejar. Tidak semua pergerakan adalah kesempatan yang layak diambil.',sting:'Peluang berikutnya masih ada. Modal yang habis tidak otomatis kembali.'},
+    {title:'Stop Loss adalah batas perlindungan, bukan musuh.',body:'Menggeser batas rugi hanya karena tidak rela salah dapat mengubah kerugian terukur menjadi kerusakan besar.',sting:'Jika batas rugi tersentuh, hormati rencanamu. Jangan bernegosiasi dengan ego.'},
+    {title:'Jangan balas kerugian dengan lot lebih besar.',body:'Dorongan untuk segera mengembalikan uang sering menyamar sebagai keyakinan atau strategi baru.',sting:'Itu alarm emosi. Berhenti, menjauh dari layar, dan jangan tambah risiko.'},
+    {title:'Bosan bukan alasan untuk membuka posisi.',body:'Trading bukan hiburan dan kamu tidak dibayar untuk menekan tombol setiap hari.',sting:'Tidak ada setup yang jelas? Tidak perlu masuk. Tidak trading juga keputusan.'},
+    {title:'Jangan remehkan nominal kecil.',body:'Rp50.000, Rp100.000, atau Rp500.000 bisa berarti kebutuhan makan, ongkos, dan hasil kerja seseorang.',sting:'Apakah analisismu benar-benar layak mempertaruhkan uang itu?'},
+    {title:'Margin call bukan kejutan tanpa sebab.',body:'Ukuran posisi berlebihan, batas rugi yang diabaikan, dan keputusan emosional dapat memperbesar risiko akun.',sting:'Pahami risikonya sebelum masuk. Jangan menunggu akun memberi pelajaran dengan cara paling mahal.'},
+    {title:'Uang kebutuhan hidup bukan modal spekulasi.',body:'Uang makan, sewa, sekolah, cicilan, dan dana darurat punya tujuan yang tidak boleh dikorbankan untuk trading.',sting:'Pisahkan kebutuhan hidup dari modal berisiko. Jika tidak bisa, jangan trading.'},
+    {title:'Kalau rencana batal, batalkan posisi.',body:'Jangan mengubah aturan di tengah jalan hanya karena kamu tidak mau mengakui analisis yang salah.',sting:'Menjaga modal dan keluar sesuai rencana lebih penting daripada membuktikan ego.'}
+  ];
+  let index=0;
+  function showNext(){
+    index=(index+1)%truths.length;
+    copy.classList.add('is-switching');
+    window.setTimeout(()=>{
+      const item=truths[index];
+      title.textContent=item.title;
+      body.textContent=item.body;
+      sting.textContent=item.sting;
+      copy.classList.remove('is-switching');
+    },260);
+  }
+  next.addEventListener('click',showNext);
+  window.setInterval(showNext,6500);
+})();
+</script>
+
 </body>
 </html>
