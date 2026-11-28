@@ -122,14 +122,3 @@ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
   body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{padding:24px 8px!important}
 }
 
-
-
-/* MOBILE: remove only the dark overlay layer; preserve original artwork styling. */
-@media (max-width: 820px) {
-  html body:has(.mps-home-hero) header.mps-premium-hero::before,
-  html body:has(.mps-home-hero) header.mps-premium-hero:before {
-    content: none !important;
-    display: none !important;
-    background: none !important;
-  }
-}
