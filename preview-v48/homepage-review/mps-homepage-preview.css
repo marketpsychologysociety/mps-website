@@ -72,3 +72,14 @@ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-prem
 /* Prevent the 640px source artwork from being enlarged and softened on wide screens. */
 body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{align-items:center!important;justify-content:center!important;opacity:1!important}
 body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{width:min(100%,640px)!important;height:auto!important;max-width:640px!important;max-height:none!important;object-fit:contain!important;object-position:center!important;transform:none!important;opacity:1!important;filter:none!important}
+
+
+/* FINAL ORDER CORRECTION: hero first, world clocks immediately beneath it.
+   Restore the intended flow; do not insert VIP rails ahead of the hero. */
+html body:has(.mps-home-hero) .mps-home-hero{order:1!important}
+html body:has(.mps-home-hero) .mps-global-sessions{order:2!important}
+html body:has(.mps-home-hero) .mps-master-stats{order:3!important}
+html body:has(.mps-home-hero) .mps-home-features{order:4!important}
+html body:has(.mps-home-hero) .mps-reference-vip{order:5!important}
+html body:has(.mps-home-hero) .mps-home-ticker{order:6!important}
+html body:has(.mps-home-hero) .mps-reference-trust{order:7!important}
