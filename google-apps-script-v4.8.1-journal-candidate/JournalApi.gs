@@ -175,8 +175,14 @@ function apiSaveTradingJournal(session, data) {
   } finally {
     lock.releaseLock();
   }
-  recordMpsAudit_('MEMBER', member.memberId, requestedId ? 'TRADING_JOURNAL_UPDATED' : 'TRADING_JOURNAL_CREATED', journalId, 'SUCCESS', 'Catatan jurnal disimpan tanpa menyalin isi privat ke audit log.');
-  return { ok: true, journalId: journalId, message: requestedId ? 'Jurnal berhasil diperbarui.' : 'Jurnal berhasil disimpan.' };
+  let auditWarning = '';
+  try {
+    recordMpsAudit_('MEMBER', member.memberId, requestedId ? 'TRADING_JOURNAL_UPDATED' : 'TRADING_JOURNAL_CREATED', journalId, 'SUCCESS', 'Catatan jurnal disimpan tanpa menyalin isi privat ke audit log.');
+  } catch (auditError) {
+    auditWarning = 'Catatan tersimpan, tetapi audit log perlu diperiksa Admin.';
+    console.error('MPS trading journal audit deferred: ' + String(auditError && auditError.message || auditError));
+  }
+  return { ok: true, journalId: journalId, message: requestedId ? 'Jurnal berhasil diperbarui.' : 'Jurnal berhasil disimpan.', auditWarning: auditWarning };
 }
 
 function apiDeleteTradingJournal(session, journalId) {
