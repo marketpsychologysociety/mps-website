@@ -54,3 +54,9 @@ html body:has(.mps-home-hero)>main{display:contents!important}
 html body:has(.mps-home-hero)>*{flex:0 0 auto!important;min-width:0!important}
 html body:has(.mps-home-hero) .mps-master-marketbar{order:0!important}
 html body:has(.mps-home-hero) .mps-home-nav{order:0!important}
+
+
+/* Clear, working registration route in the primary navigation. */
+html body:has(.mps-home-hero) .mps-home-nav .mps-nav-register{display:inline-flex!important;align-items:center!important;justify-content:center!important;margin:0 3px!important;padding:9px 16px!important;border:1px solid rgba(255,211,79,.85)!important;border-radius:999px!important;background:linear-gradient(120deg,#ffd34f,#f4bd45)!important;color:#111827!important;font-weight:900!important;letter-spacing:.04em!important;text-decoration:none!important;box-shadow:0 0 16px rgba(255,211,79,.18)!important}
+html body:has(.mps-home-hero) .mps-home-nav .mps-nav-register:hover{filter:brightness(1.08)!important;transform:translateY(-1px)!important}
+@media(max-width:820px){html body:has(.mps-home-hero) .mps-home-nav .mps-nav-register{width:100%!important;margin:5px 0!important;padding:12px 16px!important}}
