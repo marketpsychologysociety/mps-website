@@ -205,6 +205,12 @@ function apiDeleteTradingJournal(session, journalId) {
   } finally {
     lock.releaseLock();
   }
-  recordMpsAudit_('MEMBER', member.memberId, 'TRADING_JOURNAL_DELETED', id, 'SUCCESS', 'Catatan jurnal dihapus secara soft-delete.');
-  return { ok: true, message: 'Jurnal berhasil dihapus.' };
+  let auditWarning = '';
+  try {
+    recordMpsAudit_('MEMBER', member.memberId, 'TRADING_JOURNAL_DELETED', id, 'SUCCESS', 'Catatan jurnal dihapus secara soft-delete.');
+  } catch (auditError) {
+    auditWarning = 'Jurnal sudah disembunyikan, tetapi audit log perlu diperiksa Admin.';
+    console.error('MPS trading journal delete audit deferred: ' + String(auditError && auditError.message || auditError));
+  }
+  return { ok: true, message: 'Jurnal berhasil dihapus.', auditWarning: auditWarning };
 }
