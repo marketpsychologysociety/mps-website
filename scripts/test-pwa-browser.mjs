@@ -76,7 +76,7 @@ try {
     try { await Promise.all([art.decode(), logo.decode()]); }
     catch (error) { return { ok: false, reason: 'hero artwork or logo failed to decode: ' + error.message }; }
     return {
-      ok: art.naturalWidth === 320 && art.naturalHeight === 249 && logo.naturalWidth > 0 && logo.naturalHeight > 0,
+      ok: art.naturalWidth > 0 && art.naturalHeight > 0 && art.getAttribute('src').includes('mps-bull-bear-banner.webp') && logo.naturalWidth > 0 && logo.naturalHeight > 0,
       artWidth: art.naturalWidth, artHeight: art.naturalHeight,
       artSource: art.getAttribute('src'), logoSource: logo.getAttribute('src'),
       duplicateHeroLogo: !!document.querySelector('.mps-hero-identity'),
@@ -85,6 +85,30 @@ try {
   });
   if (!homeDesignAssets.ok) failures.push('Approved Design 1 hero artwork/original logo failed browser decoding or dimensions: ' + JSON.stringify(homeDesignAssets));
   if (homeDesignAssets.duplicateHeroLogo) failures.push('Duplicate logo lockup remains inside the homepage hero');
+  const approvedHeroFlow = await page.evaluate(() => {
+    const hero = document.querySelector('header.mps-premium-hero');
+    const clocks = document.querySelector('.mps-global-sessions');
+    const vip = document.querySelector('.mps-reference-vip');
+    const ticker = document.querySelector('.mps-home-ticker');
+    const copy = document.querySelector('.mps-premium-copy');
+    if (!hero || !clocks || !vip || !ticker || !copy) return { ok: false, reason: 'hero, clocks, VIP rail, ticker, or hero copy missing' };
+    const heroRect = hero.getBoundingClientRect(), clockRect = clocks.getBoundingClientRect();
+    const vipRect = vip.getBoundingClientRect(), tickerRect = ticker.getBoundingClientRect();
+    const overlay = getComputedStyle(hero, '::before');
+    return {
+      ok: clockRect.top >= heroRect.bottom - 2 &&
+          vipRect.top >= clockRect.bottom - 2 &&
+          tickerRect.top >= vipRect.bottom - 2 &&
+          getComputedStyle(hero).display === 'block' &&
+          getComputedStyle(copy).position === 'relative' &&
+          overlay.display === 'none' && overlay.content === 'none',
+      heroBottom: heroRect.bottom, clocksTop: clockRect.top, clocksBottom: clockRect.bottom,
+      vipTop: vipRect.top, tickerTop: tickerRect.top,
+      heroDisplay: getComputedStyle(hero).display, copyPosition: getComputedStyle(copy).position,
+      overlayDisplay: overlay.display, overlayContent: overlay.content
+    };
+  });
+  if (!approvedHeroFlow.ok) failures.push('Approved homepage order/desktop hero overlay is not preserved: ' + JSON.stringify(approvedHeroFlow));
   const homepageCtaSequence = await page.evaluate(() => {
     const groups = [
       '.mps-exness-section .text-center.mt-3 > a.btn',
@@ -507,8 +531,15 @@ try {
     failures.push('MPS Trading Calculator did not return HTTP 200');
   } else {
     const calculatorTabs = await page.locator('.tab').count();
-    if (calculatorTabs !== 8) failures.push('MPS Trading Calculator must expose all eight calculation modules');
-    const capitalInput = page.locator('#pCapital');
+    if (calculatorTabs !== 10) failures.push('MPS Trading Calculator must expose all ten calculation modules');
+    const calculatorTabNames = ['budget','lot','pip','rr','convert','margin','growth','recovery','daily','cost'];
+    for (const tabName of calculatorTabNames) {
+      await page.locator(`[data-tab="${tabName}"]`).click();
+      const active = await page.locator(`#${tabName}`).evaluate(el => el.classList.contains('active'));
+      if (!active) failures.push('MPS Trading Calculator tab failed to activate: ' + tabName);
+    }
+    await page.locator('[data-tab="budget"]').click();
+    const capitalInput = page.locator('#bCapital');
     await capitalInput.fill('1000000');
     const groupedCapital = await capitalInput.inputValue();
     if (groupedCapital !== '1.000.000') failures.push('Live Indonesian thousand grouping failed for 1000000: ' + groupedCapital);
@@ -516,11 +547,12 @@ try {
     const groupedDecimal = await capitalInput.inputValue();
     if (groupedDecimal !== '1.234,5') failures.push('Live Indonesian decimal-comma grouping failed for 1234,5: ' + groupedDecimal);
     await capitalInput.fill('10000000');
-    await page.locator('[data-calc="position"]').click();
-    const positionResult = await page.locator('#out-position').innerText();
+    await page.locator('[data-calc="budget"]').click();
+    const positionResult = await page.locator('#out-budget').innerText();
     if (!positionResult.includes('100.000')) failures.push('Position risk calculator did not calculate the expected Rp100.000 risk budget: ' + positionResult);
     await page.locator('[data-tab="rr"]').click();
     if (await page.locator('#rr').evaluate(el => !el.classList.contains('active'))) failures.push('Risk–Reward tab did not activate');
+    await page.locator('#qRatio').selectOption('2');
     await page.locator('[data-calc="rr"]').click();
     const rrResult = await page.locator('#out-rr').innerText();
     if (!rrResult.includes('2')) failures.push('Risk–Reward calculator did not produce the expected 2:1 ratio: ' + rrResult);
@@ -546,4 +578,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('MPS PWA browser test PASSED');
-console.log('Chromium passed 17 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, iOS Tambahkan ke Layar Utama guidance, public Market Pulse static-preview isolation, and data-only public-center CORS, malformed-payload, and inert-HTML/XSS checks.');
+console.log('Chromium passed 17 pages, SVG/PNG icons, service-worker control, CSS/JS network-first and offline fallback, session/API/HTML cache exclusion, offline navigation, mobile navigation, Android install-prompt flow, iOS Tambahkan ke Layar Utama guidance, ten Trading Calculator tabs and calculations, public Market Pulse static-preview isolation, and data-only public-center CORS, malformed-payload, and inert-HTML/XSS checks.');
