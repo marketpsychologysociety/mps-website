@@ -68,3 +68,7 @@ html body:has(.mps-home-hero) .mps-home-nav .mps-nav-register:hover{filter:brigh
   body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{opacity:1!important;filter:none!important;image-rendering:auto!important}
 }
 body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{opacity:1!important;filter:none!important;image-rendering:auto!important}
+
+/* Prevent the 640px source artwork from being enlarged and softened on wide screens. */
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{align-items:center!important;justify-content:center!important;opacity:1!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{width:min(100%,640px)!important;height:auto!important;max-width:640px!important;max-height:none!important;object-fit:contain!important;object-position:center!important;transform:none!important;opacity:1!important;filter:none!important}
