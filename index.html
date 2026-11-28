@@ -432,6 +432,24 @@
 
 
 
+
+
+<header class="hero mps-home-hero mps-premium-hero">
+  <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-hero-bull-bear-1024.webp?v=20261128-hero1024" alt=""></div>
+
+  <div class="hero-content reveal mps-premium-copy mps-master-copy">
+    <div class="hero-kicker"><span></span> PERJALANAN PERDAGANGAN TAK HARUS SENDIRIAN</div>
+    <div class="mps-reference-wordmark"><span>MARKET</span><span>PSYCHOLOGY</span><strong>SOCIETY</strong></div>
+    <div class="mps-master-brandline">MARKET PSYCHOLOGY <strong>SOCIETY</strong></div>
+    <h1 class="mps-master-slogan">Jangan Hanya Bertransaksi. Bangun Perjalanan yang Lebih Berarti Bersama MPS.</h1>
+    <p class="desc">Di sini, kamu punya ruang untuk menambah ilmu, memperkuat disiplin, membangun relasi, memanfaatkan perangkat analisis, dan ikut menumbuhkan komunitas pelaku perdagangan aktif. Kita tidak menjanjikan jalan pintas—kita membangun perjalanan bersama.</p>
+    <div class="hero-btns">
+      <a href="membership.html" class="btn btn-gold">Lihat Pilihan Keanggotaan <span aria-hidden="true">→</span></a>
+      <a href="mailto:ndhisolasi.music@gmail.com?subject=Pertanyaan%20untuk%20Admin%20MPS" class="btn btn-outline">Tanya Admin MPS</a>
+    </div>
+    <p class="hero-footnote">Bergabung dengan komunitas tidak menjamin hasil perdagangan. Setiap keputusan dan risiko transaksi tetap menjadi tanggung jawab masing-masing pelaku perdagangan.</p>
+  </div>
+
 <section class="mps-global-sessions" id="mps-global-sessions" data-mps-session-clocks aria-labelledby="mps-gs-heading">
   <div class="mps-gs-head">
     <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
@@ -462,23 +480,6 @@
   <div class="mps-gs-overlap" id="mps-gs-overlap"> <strong>MARKET OVERLAP</strong> · Memeriksa irisan sesi London dan New York…</div>
   <p class="mps-gs-foot">Waktu ditampilkan berdasarkan zona waktu resmi masing-masing kota. Jam sesi adalah indikator jam kerja pasar FX, bukan jaminan likuiditas atau rekomendasi transaksi.</p>
 </section>
-
-<header class="hero mps-home-hero mps-premium-hero">
-  <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-hero-bull-bear-1024.webp?v=20261128-hero1024" alt=""></div>
-
-  <div class="hero-content reveal mps-premium-copy mps-master-copy">
-    <div class="hero-kicker"><span></span> PERJALANAN PERDAGANGAN TAK HARUS SENDIRIAN</div>
-    <div class="mps-reference-wordmark"><span>MARKET</span><span>PSYCHOLOGY</span><strong>SOCIETY</strong></div>
-    <div class="mps-master-brandline">MARKET PSYCHOLOGY <strong>SOCIETY</strong></div>
-    <h1 class="mps-master-slogan">Jangan Hanya Bertransaksi. Bangun Perjalanan yang Lebih Berarti Bersama MPS.</h1>
-    <p class="desc">Di sini, kamu punya ruang untuk menambah ilmu, memperkuat disiplin, membangun relasi, memanfaatkan perangkat analisis, dan ikut menumbuhkan komunitas pelaku perdagangan aktif. Kita tidak menjanjikan jalan pintas—kita membangun perjalanan bersama.</p>
-    <div class="hero-btns">
-      <a href="membership.html" class="btn btn-gold">Lihat Pilihan Keanggotaan <span aria-hidden="true">→</span></a>
-      <a href="mailto:ndhisolasi.music@gmail.com?subject=Pertanyaan%20untuk%20Admin%20MPS" class="btn btn-outline">Tanya Admin MPS</a>
-    </div>
-    <p class="hero-footnote">Bergabung dengan komunitas tidak menjamin hasil perdagangan. Setiap keputusan dan risiko transaksi tetap menjadi tanggung jawab masing-masing pelaku perdagangan.</p>
-  </div>
-
 </header>
 
 
@@ -852,6 +853,127 @@ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
     object-position:center 32%!important
   }
   body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{padding:24px 8px!important}
+}
+</style>
+
+
+<style id="mps-hero-copy-clock-rebalance-20261128">
+/* Only the homepage hero composition: protect bull/bear artwork from copy and fit clocks into the artwork. */
+body:has(.mps-home-hero) header.mps-premium-hero{
+  position:relative!important;display:grid!important;
+  grid-template-columns:minmax(0,43%) minmax(0,57%)!important;
+  grid-template-rows:1fr!important;align-items:center!important;
+  min-height:760px!important;height:auto!important;max-height:none!important;
+  padding:58px clamp(22px,4vw,64px) 138px!important;
+  overflow:hidden!important;isolation:isolate!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
+  position:absolute!important;inset:0 0 0 auto!important;width:76%!important;height:100%!important;
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;
+  z-index:0!important;pointer-events:none!important;opacity:1!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+  width:100%!important;height:100%!important;max-width:1500px!important;
+  object-fit:contain!important;object-position:right center!important;transform:none!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+  grid-column:1!important;grid-row:1!important;position:relative!important;z-index:3!important;
+  justify-self:start!important;align-self:center!important;width:100%!important;max-width:610px!important;
+  min-height:0!important;margin:0!important;padding:22px 12px 22px 0!important;
+  text-align:left!important;background:linear-gradient(90deg,rgba(3,7,16,.82),rgba(3,7,16,.56) 76%,transparent)!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-kicker,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-btns{justify-content:flex-start!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy h1,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .desc,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-footnote{text-align:left!important;margin-left:0!important;margin-right:0!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions{
+  position:absolute!important;z-index:4!important;left:auto!important;right:clamp(16px,3vw,46px)!important;
+  bottom:14px!important;top:auto!important;transform:none!important;
+  width:min(690px,62%)!important;max-width:690px!important;margin:0!important;padding:8px 10px!important;
+  border:1px solid rgba(65,220,255,.24)!important;border-radius:14px!important;
+  background:linear-gradient(110deg,rgba(4,10,21,.86),rgba(7,14,27,.72))!important;
+  box-shadow:0 8px 26px rgba(0,0,0,.25)!important;overflow:hidden!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions:before,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-head,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-title,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-subtitle,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-overlap,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-foot,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-meta{display:none!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-grid{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-card{
+  display:grid!important;grid-template-columns:46px minmax(0,1fr)!important;
+  grid-template-rows:auto auto auto!important;column-gap:7px!important;align-items:center!important;
+  padding:4px 5px!important;border:0!important;border-radius:8px!important;background:transparent!important;
+  box-shadow:none!important;text-align:left!important;min-height:0!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-city{
+  grid-column:2!important;grid-row:1!important;font-size:9px!important;letter-spacing:.08em!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-location{
+  grid-column:2!important;grid-row:2!important;font-size:7px!important;margin:0!important;letter-spacing:.02em!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-face{
+  grid-column:1!important;grid-row:1/4!important;width:44px!important;margin:0!important;border-width:1px!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-tick{transform-origin:50% 17px!important;top:3px!important;height:4px!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-hour{height:23%!important;width:2px!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-minute{height:32%!important;width:1.5px!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-second{height:36%!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-pin{width:4px!important;height:4px!important}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-digital{
+  grid-column:2!important;grid-row:3!important;font-size:10px!important;line-height:1.1!important;letter-spacing:0!important;
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-date,
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-status{display:none!important}
+@media(max-width:700px){
+ body:has(.mps-home-hero) header.mps-premium-hero{
+  display:block!important;min-height:790px!important;height:auto!important;padding:0 14px 126px!important;
+ }
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
+  inset:0 0 auto!important;width:100%!important;height:340px!important;justify-content:center!important;align-items:flex-start!important;
+ }
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+  width:100%!important;height:340px!important;object-fit:contain!important;object-position:center top!important;opacity:1!important;
+ }
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+  width:100%!important;max-width:620px!important;min-height:0!important;
+  margin:285px auto 0!important;padding:18px 12px 12px!important;
+  background:linear-gradient(180deg,rgba(4,9,18,.88),rgba(4,9,18,.96))!important;
+  border:1px solid rgba(244,189,69,.16)!important;border-radius:13px!important;
+  text-align:center!important;
+ }
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-kicker,
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-btns{justify-content:center!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy h1,
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .desc,
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-footnote{
+  text-align:center!important;margin-left:auto!important;margin-right:auto!important;
+ }
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions{
+  left:10px!important;right:10px!important;bottom:10px!important;width:auto!important;max-width:none!important;
+  padding:6px 5px!important;border-radius:11px!important;
+ }
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-grid{gap:2px!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-card{
+  grid-template-columns:34px minmax(0,1fr)!important;column-gap:4px!important;padding:3px 2px!important;
+ }
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-face{width:32px!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-tick{transform-origin:50% 11px!important;top:2px!important;height:3px!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-city{font-size:7px!important;letter-spacing:0!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-location{font-size:5.5px!important;white-space:nowrap!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-digital{font-size:8px!important;white-space:nowrap!important}
+}
+@media(max-width:380px){
+ body:has(.mps-home-hero) header.mps-premium-hero{min-height:820px!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{margin-top:270px!important;padding:15px 9px 10px!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions{left:6px!important;right:6px!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-card{grid-template-columns:28px minmax(0,1fr)!important}
+ body:has(.mps-home-hero) header.mps-premium-hero>.mps-global-sessions .mps-gs-face{width:27px!important}
 }
 </style>
 
