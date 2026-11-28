@@ -397,6 +397,118 @@
 <link rel="stylesheet" href="css/mps-master-visual.css?v=20261127a">
   <link rel="stylesheet" href="css/mps-reference-exact.css?v=sessions-top-20261128">
   <link rel="stylesheet" href="css/mps-reference-final.css?v=journey-20261128b">
+
+<style id="mps-clock-below-art-final-20261128">
+/* Final layout correction: artwork first, world clocks immediately beneath it, copy after clocks. */
+body:has(.mps-home-hero) .mps-premium-hero{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  padding:24px 18px 42px!important;
+  overflow:visible!important;
+}
+body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art-wrap{
+  position:relative!important;
+  inset:auto!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  max-width:1320px!important;
+  height:clamp(300px,55vw,650px)!important;
+  margin:0 auto!important;
+  z-index:1!important;
+  pointer-events:none!important;
+}
+body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:1320px!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+}
+body:has(.mps-home-hero) .mps-premium-hero .mps-global-sessions{
+  position:relative!important;
+  inset:auto!important;
+  top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;
+  transform:none!important;
+  order:0!important;
+  flex:0 0 auto!important;
+  align-self:center!important;
+  width:min(1120px,100%)!important;
+  max-width:1120px!important;
+  margin:8px auto 0!important;
+  padding:18px 18px!important;
+  z-index:4!important;
+  border:1px solid rgba(65,220,255,.24)!important;
+  border-radius:18px!important;
+  background:linear-gradient(135deg,rgba(7,11,23,.96),rgba(10,16,32,.98))!important;
+  overflow:hidden!important;
+}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-head{display:flex!important}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-title,
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-subtitle,
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-overlap,
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-foot{display:block!important}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:clamp(7px,1.2vw,14px)!important;
+}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-card{padding:14px 8px 16px!important}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-face{
+  width:clamp(84px,9vw,108px)!important;
+  margin:0 auto 8px!important;
+}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-digital{
+  font-size:clamp(12px,1.4vw,16px)!important;
+}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-date{font-size:8px!important}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-status{font-size:8px!important}
+body:has(.mps-home-hero) .mps-premium-hero .mps-gs-meta{display:block!important}
+body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy{
+  position:relative!important;
+  inset:auto!important;
+  order:1!important;
+  z-index:3!important;
+  align-self:center!important;
+  width:min(850px,100%)!important;
+  max-width:850px!important;
+  margin:24px auto 0!important;
+}
+@media(max-width:700px){
+  body:has(.mps-home-hero) .mps-premium-hero{padding:12px 10px 32px!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art-wrap{
+    width:100%!important;
+    height:clamp(230px,70vw,390px)!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-global-sessions{
+    width:100%!important;
+    margin:8px auto 0!important;
+    padding:12px 8px!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-grid{gap:5px!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-card{padding:10px 4px 12px!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-face{
+    width:clamp(70px,23vw,90px)!important;
+    margin:0 auto 6px!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-digital{font-size:clamp(9px,3vw,12px)!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-city{font-size:8px!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-location{font-size:6px!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-date{font-size:6.5px!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-status{font-size:6.5px!important;padding:3px 4px!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-gs-meta{display:block!important;font-size:7px!important}
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy{margin:20px auto 0!important}
+}
+</style>
+
 </head>
 <body>
 <div class="mps-master-marketbar" aria-label="Informasi pasar dan waktu">
