@@ -534,8 +534,9 @@ body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy{
     </div></details></li>
     <li class="mps-nav-group"><details><summary>Wawasan ▾</summary><div class="mps-nav-dropdown">
       <a href="education.html">Edukasi</a><a href="journal.html">Jurnal Perdagangan</a><a href="announcements.html">Pengumuman</a><a href="system.html">Analisis Pasar</a><a href="rebate.html">Kemitraan &amp; Pengembalian Komisi</a>
+    </div></details>
       <button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button>
-    </div></details></li>
+    </li>
     <li><a href="member-portal.html">Komunitas</a></li>
     <li><a class="mps-nav-register" href="join.html#form-pendaftaran">Daftar</a></li>
     <li><a class="mps-nav-login" href="member-portal.html">Login</a></li>
@@ -1079,7 +1080,9 @@ body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy .hero-footnot
 body:has(.mps-home-hero) .mps-home-nav .nav-links{gap:clamp(8px,1.15vw,16px)}
 body:has(.mps-home-hero) .mps-home-nav .nav-links a.mps-nav-register{background:#f4bd45!important;color:#171006!important;border:1px solid #ffdc83!important;box-shadow:0 5px 18px rgba(244,189,69,.22)!important}
 body:has(.mps-home-hero) .mps-home-nav .nav-links a.mps-nav-login{background:transparent!important;color:#62e6ff!important;border:1px solid rgba(98,230,255,.75)!important}
-body:has(.mps-home-hero) .mps-home-nav .mps-nav-dropdown .pwa-install-btn{width:100%;text-align:left;border:0;background:transparent;color:#d9e9f8;padding:10px 12px;font:inherit;cursor:pointer}
+body:has(.mps-home-hero) .mps-home-nav .mps-nav-group details:not([open])+.pwa-install-btn{display:none!important}
+body:has(.mps-home-hero) .mps-home-nav .mps-nav-group details[open]+.pwa-install-btn{display:block!important;width:100%;text-align:left;border:0;background:transparent;color:#d9e9f8;padding:10px 12px;font:inherit;cursor:pointer}
+/*width:100%;text-align:left;border:0;background:transparent;color:#d9e9f8;padding:10px 12px;font:inherit;cursor:pointer}
 body:has(.mps-home-hero) .btn.btn-gold{background:#f4bd45!important;color:#171006!important;border:1px solid #ffdc83!important;box-shadow:0 7px 20px rgba(244,189,69,.18)!important}
 body:has(.mps-home-hero) .btn.btn-outline{background:transparent!important;color:#75e8ff!important;border:1px solid #48c9e8!important;box-shadow:none!important}
 body:has(.mps-home-hero) .btn.btn-outline:hover{color:#dffaff!important;border-color:#8af0ff!important;background:rgba(72,201,232,.08)!important}
