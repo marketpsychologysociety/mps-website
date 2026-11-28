@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base href="../../">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MPS adalah ekosistem pelaku perdagangan untuk belajar, membangun disiplin, terhubung, dan bertumbuh bersama melalui edukasi, komunitas, perangkat analisis, dan manfaat keanggotaan.">
+  <meta name="theme-color" content="#050914">
+  <meta name="mps-visual-build" content="master-screenshot-20261127a">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MPS">
+  <link rel="apple-touch-icon" href="./assets/mps-app-icon-512.png">
+  <title>Masyarakat Psikologi Perdagangan | Terhubung, Belajar, Bertumbuh, Berprestasi</title>
+  <link rel="icon" href="assets/favicon.svg?v=20261117c" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css?v=mps-home-design1-20261118e">
+  
+<style>
+.mps-route-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:0 0 34px}
+.mps-route-choice-card,.mps-free-sample-card{border:1px solid rgba(244,189,69,.3);border-radius:14px;padding:clamp(20px,3vw,30px);background:linear-gradient(145deg,#111a2a,#090d16);box-shadow:0 16px 38px rgba(0,0,0,.22)}
+.mps-route-choice-card h3,.mps-existing-route-heading h3,.mps-free-sample-card h3{color:#f4bd45;margin:10px 0}
+.mps-route-choice-card p,.mps-existing-route-heading p,.mps-free-sample-card li,.mps-free-sample-note{color:#aebbd0}
+.mps-route-choice-card .btn{margin-top:12px}
+.mps-existing-route-heading{text-align:center;margin:8px auto 24px}
+.mps-free-sample-card{max-width:820px;margin:auto}
+.mps-free-sample-label{font-size:10px;font-weight:800;letter-spacing:1.6px;color:#f4bd45}
+.mps-free-sample-card ol{padding-left:22px;line-height:1.9}
+.mps-free-sample-note{border-top:1px solid rgba(244,189,69,.2);padding-top:14px;font-size:12px}
+@media(max-width:680px){.mps-route-choice{grid-template-columns:1fr}.mps-route-choice-card .btn{width:100%}}
+
+/* MPS GLOBAL SESSIONS — neon world clocks */
+.mps-global-sessions{position:relative;isolation:isolate;overflow:hidden;padding:clamp(28px,4vw,48px) 18px;background:radial-gradient(ellipse at 50% 0%,rgba(28,104,155,.22),transparent 58%),linear-gradient(135deg,#070b17,#0a1020 55%,#090b16);border-top:1px solid rgba(65,220,255,.18);border-bottom:1px solid rgba(244,189,69,.18)}
+.mps-global-sessions:before{content:"";position:absolute;inset:0;z-index:-1;opacity:.2;background-image:linear-gradient(rgba(83,202,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(83,202,255,.08) 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(to bottom,black,transparent)}
+.mps-gs-head{display:flex;align-items:center;justify-content:center;gap:14px;text-align:left;margin:0 auto 12px}
+.mps-gs-logo{width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 0 12px rgba(69,218,255,.42))}
+.mps-gs-brand strong{display:block;color:#f7fbff;font-size:clamp(20px,3vw,30px);letter-spacing:.16em}
+.mps-gs-brand small{display:block;color:#73dfff;font-size:10px;letter-spacing:.22em;margin-top:4px}
+.mps-gs-title{text-align:center;color:#f4bd45;font-size:clamp(11px,1.5vw,14px);letter-spacing:.25em;font-weight:800;margin:20px 0 8px}
+.mps-gs-subtitle{text-align:center;color:#aabbd1;font-size:13px;margin:0 auto 20px;max-width:680px}
+.mps-gs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,24px);max-width:1050px;margin:auto}
+.mps-gs-card{--session:#43e8ff;position:relative;min-width:0;text-align:center;padding:clamp(14px,2vw,22px) 10px 18px;border:1px solid color-mix(in srgb,var(--session) 45%,transparent);border-radius:18px;background:linear-gradient(155deg,rgba(17,29,49,.92),rgba(6,11,22,.96));box-shadow:inset 0 0 24px color-mix(in srgb,var(--session) 8%,transparent),0 0 24px color-mix(in srgb,var(--session) 10%,transparent)}
+.mps-gs-card[data-session="london"]{--session:#f05bff}.mps-gs-card[data-session="newyork"]{--session:#f4bd45}
+.mps-gs-city{color:var(--session);font-size:clamp(11px,1.6vw,14px);font-weight:900;letter-spacing:.2em;text-shadow:0 0 12px color-mix(in srgb,var(--session) 70%,transparent)}
+.mps-gs-location{color:#d6e2f2;font-size:11px;letter-spacing:.16em;margin:5px 0 13px}
+.mps-gs-face{position:relative;width:min(100%,210px);aspect-ratio:1;margin:0 auto 14px;border-radius:50%;border:2px solid var(--session);background:radial-gradient(circle at center,rgba(12,28,46,.28) 0 52%,rgba(4,10,20,.42) 72%);box-shadow:0 0 9px var(--session),inset 0 0 22px color-mix(in srgb,var(--session) 22%,transparent),0 0 30px color-mix(in srgb,var(--session) 28%,transparent)}
+.mps-gs-face:before,.mps-gs-face:after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.mps-gs-face:before{inset:7px;border:1px dashed color-mix(in srgb,var(--session) 65%,transparent)}
+.mps-gs-face:after{inset:15px;border:1px solid color-mix(in srgb,var(--session) 22%,transparent)}
+.mps-gs-tick{position:absolute;left:50%;top:7px;width:2px;height:7px;background:var(--session);transform-origin:50% calc((min(100vw,210px) - 14px) / 2);opacity:.9}
+.mps-gs-hand{position:absolute;left:50%;bottom:50%;width:2px;border-radius:4px;background:#f4f8ff;transform-origin:50% 100%;transform:translateX(-50%) rotate(0deg);z-index:3;box-shadow:0 0 7px #fff}
+.mps-gs-hour{height:25%;width:4px;background:var(--session)}
+.mps-gs-minute{height:34%}
+.mps-gs-second{height:38%;width:1px;background:#fff;box-shadow:0 0 8px var(--session)}
+.mps-gs-pin{position:absolute;left:50%;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);z-index:4;box-shadow:0 0 9px var(--session)}
+.mps-gs-digital{color:#f6fbff;font:700 clamp(20px,3vw,26px)/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.06em;text-shadow:0 0 12px var(--session)}
+.mps-gs-date{color:#91a7c2;font-size:10px;margin-top:5px}
+.mps-gs-status{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:6px 11px;border-radius:99px;border:1px solid color-mix(in srgb,var(--session) 42%,transparent);color:var(--session);font-size:10px;font-weight:900;letter-spacing:.12em}
+.mps-gs-status i{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor}
+.mps-gs-status.is-closed{color:#8795a9;border-color:#465269}.mps-gs-status.is-closed i{box-shadow:none}
+.mps-gs-meta{color:#91a7c2;font-size:10px;margin-top:8px}
+.mps-gs-overlap{max-width:1050px;margin:22px auto 0;padding:13px 16px;text-align:center;border:1px solid rgba(244,189,69,.3);border-radius:12px;background:rgba(244,189,69,.06);color:#d9e3f1;font-size:12px}
+.mps-gs-overlap strong{color:#f4bd45;letter-spacing:.1em}
+.mps-gs-foot{text-align:center;color:#758ba7;font-size:10px;margin:15px 0 0}
+@media(max-width:620px){.mps-global-sessions{padding:26px 10px}.mps-gs-grid{gap:8px}.mps-gs-card{padding:13px 5px 14px;border-radius:13px}.mps-gs-face{width:min(100%,112px);margin-bottom:10px}.mps-gs-face:before{inset:5px}.mps-gs-face:after{inset:10px}.mps-gs-tick{height:5px;top:5px}.mps-gs-location{font-size:9px;letter-spacing:.1em}.mps-gs-digital{font-size:clamp(13px,4vw,18px)}.mps-gs-status{font-size:8px;padding:5px 7px;letter-spacing:.06em}.mps-gs-meta{font-size:9px}.mps-gs-brand strong{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.mps-gs-face,.mps-gs-hand{transition:none!important}}
+
+
+/* MPS compact world-clock HUD integrated into the bull/bear hero artwork. */
+.mps-premium-hero .mps-global-sessions{
+  position:absolute!important;z-index:3!important;top:clamp(230px,39%,310px)!important;left:50%!important;
+  transform:translateX(-50%)!important;width:min(720px,calc(100% - 72px))!important;
+  padding:0!important;border:0!important;background:transparent!important;overflow:visible!important;
+}
+.mps-premium-hero .mps-global-sessions:before,
+.mps-premium-hero .mps-gs-head,
+.mps-premium-hero .mps-gs-title,
+.mps-premium-hero .mps-gs-subtitle,
+.mps-premium-hero .mps-gs-overlap,
+.mps-premium-hero .mps-gs-foot{display:none!important}
+.mps-premium-hero .mps-gs-grid{max-width:none!important;gap:clamp(7px,1.3vw,15px)!important}
+.mps-premium-hero .mps-gs-card{
+  min-height:0!important;padding:0 2px!important;border:0!important;border-radius:0!important;
+  text-align:center!important;background:transparent!important;backdrop-filter:none!important;box-shadow:none!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;
+}
+.mps-premium-hero .mps-gs-card:before{display:none!important;content:none!important}
+.mps-premium-hero .mps-gs-city{font-size:10px!important;letter-spacing:.14em!important;line-height:1.15}
+.mps-premium-hero .mps-gs-location{font-size:8px!important;letter-spacing:.08em!important;margin:3px 0 5px!important}
+.mps-premium-hero .mps-gs-face{
+  position:relative!important;left:auto!important;top:auto!important;transform:none!important;
+  width:clamp(82px,10vw,108px)!important;flex:0 0 auto!important;margin:0 auto 5px!important;border-width:2px!important;
+  box-shadow:0 0 10px var(--session),inset 0 0 16px color-mix(in srgb,var(--session) 20%,transparent)!important
+}
+.mps-premium-hero .mps-gs-face:before{inset:5px!important}.mps-premium-hero .mps-gs-face:after{inset:10px!important}
+.mps-premium-hero .mps-gs-tick{top:5px!important;height:6px!important;width:1.5px!important;transform-origin:50% 45px!important}
+.mps-premium-hero .mps-gs-hour{height:23%!important;width:3px!important}
+.mps-premium-hero .mps-gs-minute{height:32%!important;width:2px!important}
+.mps-premium-hero .mps-gs-second{height:36%!important;width:1px!important}
+.mps-premium-hero .mps-gs-pin{width:6px!important;height:6px!important}
+.mps-premium-hero .mps-gs-digital{font-size:12px!important;letter-spacing:.025em!important;line-height:1.1!important}
+.mps-premium-hero .mps-gs-date{font-size:7px!important;margin-top:2px!important;white-space:nowrap}
+.mps-premium-hero .mps-gs-status{margin-top:4px!important;padding:3px 6px!important;font-size:7px!important;letter-spacing:.06em!important;gap:4px!important}
+.mps-premium-hero .mps-gs-status i{width:5px!important;height:5px!important}
+.mps-premium-hero .mps-gs-meta{display:none!important}
+/* Desktop: place the complete session panel in normal flow BELOW hero copy. */
+@media(min-width:701px){
+  .mps-premium-hero{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important}
+  .mps-premium-hero .mps-premium-art-wrap{position:absolute!important;inset:0!important;pointer-events:none!important}
+  .mps-premium-hero .mps-premium-copy{position:relative!important;z-index:2!important;width:min(850px,100%)!important}
+  .mps-premium-hero .mps-global-sessions{
+    position:relative!important;z-index:2!important;top:auto!important;left:auto!important;transform:none!important;
+    width:min(920px,calc(100% - 36px))!important;margin:18px 0 0 auto!important;padding:14px 14px!important;
+    border:1px solid rgba(65,220,255,.2)!important;border-radius:18px!important;
+    background:linear-gradient(135deg,rgba(7,11,23,.94),rgba(10,16,32,.96))!important;overflow:hidden!important;
+  }
+  .mps-premium-hero .mps-global-sessions:before{display:block!important}
+  .mps-premium-hero .mps-gs-head{display:flex!important}
+  .mps-premium-hero .mps-gs-title,.mps-premium-hero .mps-gs-subtitle,
+  .mps-premium-hero .mps-gs-overlap,.mps-premium-hero .mps-gs-foot{display:block!important}
+  .mps-premium-hero .mps-gs-title{margin:12px 0 6px!important}
+  .mps-premium-hero .mps-gs-subtitle{margin:0 auto 16px!important}
+  .mps-premium-hero .mps-gs-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:clamp(6px,1vw,12px)!important}
+  .mps-premium-hero .mps-gs-card{padding:14px 8px 16px!important;border:1px solid color-mix(in srgb,var(--session) 45%,transparent)!important;border-radius:16px!important;background:linear-gradient(155deg,rgba(17,29,49,.92),rgba(6,11,22,.96))!important;box-shadow:inset 0 0 20px color-mix(in srgb,var(--session) 8%,transparent),0 0 20px color-mix(in srgb,var(--session) 9%,transparent)!important}
+  .mps-premium-hero .mps-gs-face{width:clamp(78px,8.5vw,100px)!important}
+  .mps-premium-hero .mps-gs-tick{transform-origin:50% 39px!important}
+  .mps-premium-hero .mps-gs-meta{display:block!important}
+}
+@media(max-width:700px){
+  .mps-premium-hero .mps-global-sessions{top:clamp(165px,38vw,205px)!important;width:calc(100% - 24px)!important}
+  .mps-premium-hero .mps-gs-grid{gap:2px!important}
+  .mps-premium-hero .mps-gs-card{padding:0!important}
+  .mps-premium-hero .mps-gs-city{font-size:8px!important;letter-spacing:.045em!important}
+  .mps-premium-hero .mps-gs-location{font-size:6px!important;letter-spacing:0!important;margin:3px 0 4px!important}
+  .mps-premium-hero .mps-gs-face{width:clamp(64px,22vw,82px)!important;margin-bottom:4px!important}
+  .mps-premium-hero .mps-gs-face:before{inset:4px!important}.mps-premium-hero .mps-gs-face:after{inset:8px!important}
+  .mps-premium-hero .mps-gs-tick{top:4px!important;height:4px!important;transform-origin:50% 34px!important}
+  .mps-premium-hero .mps-gs-digital{font-size:9px!important;letter-spacing:0!important}
+  .mps-premium-hero .mps-gs-date{font-size:6px!important;white-space:normal;line-height:1.15}
+  .mps-premium-hero .mps-gs-status{font-size:5.5px!important;padding:2px 3px!important;gap:3px!important;letter-spacing:0!important;margin-top:3px!important}
+  .mps-premium-hero .mps-gs-status i{width:4px!important;height:4px!important}
+}
+@media(max-width:360px){
+  .mps-premium-hero .mps-global-sessions{width:calc(100% - 18px)!important}
+  .mps-premium-hero .mps-gs-face{width:60px!important}
+  .mps-premium-hero .mps-gs-tick{transform-origin:50% 32px!important}
+  .mps-premium-hero .mps-gs-digital{font-size:8px!important}
+}
+
+
+/* DESKTOP HERO REBALANCE — restore visible world clocks and give copy/artwork breathing room. */
+@media(min-width:701px){
+  .mps-premium-hero{
+    display:grid!important;
+    grid-template-columns:minmax(0,.96fr) minmax(0,1.04fr)!important;
+    grid-template-rows:auto auto!important;
+    align-items:center!important;
+    justify-content:stretch!important;
+    column-gap:clamp(26px,4vw,64px)!important;
+    row-gap:24px!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    padding:clamp(42px,5vw,76px) clamp(28px,5vw,82px) 48px!important;
+  }
+  .mps-premium-hero .mps-premium-art-wrap{
+    position:absolute!important;
+    inset:0 0 auto auto!important;
+    width:61%!important;
+    height:clamp(520px,52vw,700px)!important;
+    max-height:none!important;
+    z-index:0!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+  }
+  .mps-premium-hero .mps-premium-art{
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    object-position:center right!important;
+  }
+  .mps-premium-hero .mps-premium-copy{
+    grid-column:1!important;
+    grid-row:1!important;
+    align-self:center!important;
+    width:100%!important;
+    max-width:680px!important;
+    margin:0!important;
+    padding:24px 0 24px clamp(4px,1vw,16px)!important;
+    text-align:left!important;
+    background:linear-gradient(90deg,rgba(3,7,16,.34),transparent)!important;
+  }
+  .mps-premium-hero .mps-premium-copy .hero-kicker{justify-content:flex-start!important}
+  .mps-premium-hero .mps-premium-copy h1{text-align:left!important}
+  .mps-premium-hero .mps-premium-copy .desc{margin-left:0!important;margin-right:0!important}
+  .mps-premium-hero .mps-premium-copy .hero-btns{justify-content:flex-start!important}
+  .mps-premium-hero .mps-global-sessions{
+    grid-column:1/-1!important;
+    grid-row:2!important;
+    position:relative!important;
+    top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;
+    transform:none!important;
+    justify-self:center!important;
+    align-self:start!important;
+    width:min(1050px,100%)!important;
+    max-width:1050px!important;
+    margin:0 auto!important;
+    padding:14px 16px!important;
+    overflow:hidden!important;
+  }
+}
+
+</style>
+<style id="mps-desktop-hero-left-fix">
+@media (min-width:701px){
+  .mps-premium-hero .mps-premium-copy{
+    grid-column:1!important;grid-row:1!important;
+    position:relative!important;inset:auto!important;
+    justify-self:start!important;align-self:center!important;
+    transform:none!important;float:none!important;
+    width:100%!important;max-width:680px!important;
+    margin:0!important;padding-left:0!important;
+    text-align:left!important;z-index:3!important;
+  }
+  .mps-premium-hero .mps-premium-copy .hero-kicker{justify-content:flex-start!important}
+  .mps-premium-hero .mps-premium-copy h1{text-align:left!important}
+  .mps-premium-hero .mps-premium-copy .desc{margin-left:0!important;margin-right:0!important}
+  .mps-premium-hero .mps-premium-copy .hero-btns{justify-content:flex-start!important}
+  .mps-premium-hero .mps-premium-art-wrap{
+    position:absolute!important;top:0!important;right:0!important;bottom:auto!important;left:auto!important;
+    width:57%!important;max-width:none!important;z-index:1!important;
+  }
+}
+</style>
+
+<style id="mps-desktop-hero-centered-original">
+/* Restore centered desktop hero composition; keep the current clock placement and all mobile rules. */
+@media (min-width:701px){
+  .mps-premium-hero{
+    display:flex!important;flex-direction:column!important;
+    align-items:center!important;justify-content:center!important;
+    gap:0!important;width:100%!important;
+    padding:clamp(42px,5vw,76px) clamp(24px,4vw,64px) 48px!important;
+    overflow:visible!important;
+  }
+  .mps-premium-hero .mps-premium-art-wrap{
+    position:absolute!important;inset:0!important;
+    width:100%!important;max-width:none!important;
+    height:clamp(520px,52vw,700px)!important;
+    z-index:0!important;pointer-events:none!important;
+    align-items:center!important;justify-content:center!important;
+  }
+  .mps-premium-hero .mps-premium-art{
+    display:block!important;width:100%!important;height:100%!important;
+    max-width:none!important;object-fit:contain!important;
+    object-position:center center!important;
+  }
+  .mps-premium-hero .mps-premium-copy{
+    position:relative!important;inset:auto!important;
+    z-index:2!important;align-self:center!important;
+    width:min(850px,100%)!important;max-width:850px!important;
+    margin:0 auto!important;padding:24px 12px!important;
+    transform:none!important;float:none!important;
+    text-align:center!important;
+    background:linear-gradient(90deg,transparent,rgba(3,7,16,.24),transparent)!important;
+  }
+  .mps-premium-hero .mps-premium-copy .hero-kicker,
+  .mps-premium-hero .mps-premium-copy .hero-btns{justify-content:center!important}
+  .mps-premium-hero .mps-premium-copy h1{text-align:center!important}
+  .mps-premium-hero .mps-premium-copy .desc{margin-left:auto!important;margin-right:auto!important;text-align:center!important}
+  .mps-premium-hero .mps-global-sessions{
+    position:relative!important;z-index:3!important;
+    grid-column:auto!important;grid-row:auto!important;
+    top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;
+    transform:none!important;justify-self:center!important;align-self:center!important;
+    width:min(1050px,100%)!important;max-width:1050px!important;
+    margin:18px auto 0!important;
+  }
+}
+</style>
+
+<style id="mps-desktop-hero-centered-final">
+/* Desktop-only final override: center copy and restore the complete bull/bear + globe artwork.
+   Keep the already-approved mobile composition and clock rules untouched. */
+@media (min-width:701px){
+  body:has(.mps-home-hero) .mps-premium-hero{
+    position:relative!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:0!important;
+    min-height:780px!important;
+    height:auto!important;
+    padding:42px 24px 48px!important;
+    overflow:visible!important;
+    isolation:isolate!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art-wrap{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:680px!important;
+    max-height:none!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    z-index:1!important;
+    pointer-events:none!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-art{
+    display:block!important;
+    width:100%!important;
+    max-width:1500px!important;
+    height:100%!important;
+    object-fit:contain!important;
+    object-position:center center!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy{
+    position:relative!important;
+    inset:auto!important;
+    z-index:3!important;
+    align-self:center!important;
+    justify-self:center!important;
+    float:none!important;
+    transform:none!important;
+    width:min(850px,100%)!important;
+    max-width:850px!important;
+    margin:0 auto!important;
+    padding:24px 16px!important;
+    text-align:center!important;
+    background:linear-gradient(90deg,transparent,rgba(3,7,16,.30),transparent)!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy .hero-kicker,
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy .hero-btns{
+    justify-content:center!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy h1,
+  body:has(.mps-home-hero) .mps-premium-hero .mps-premium-copy .desc{
+    text-align:center!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-hero .mps-global-sessions{
+    z-index:4!important;
+  }
+}
+</style>
+
+
+<style id="mps-desktop-copy-neon-legibility">
+/* Desktop hero supporting copy: both paragraphs and footnote use the same cool cyan-blue neon. */
+@media (min-width:701px){
+  body:has(.mps-home-hero) .mps-premium-copy .desc,
+  body:has(.mps-home-hero) .mps-premium-copy .hero-footnote{
+    color:#e8fbff!important;
+    font-weight:500!important;
+    line-height:1.75!important;
+    text-shadow:
+      0 0 2px rgba(255,255,255,.82),
+      0 0 7px rgba(57,211,255,.82),
+      0 0 16px rgba(20,157,255,.58),
+      0 0 26px rgba(20,157,255,.28)!important;
+    -webkit-text-fill-color:#e8fbff!important;
+  }
+  body:has(.mps-home-hero) .mps-premium-copy .hero-footnote{
+    line-height:1.65!important;
+  }
+}
+</style>
+
+
+<style id="mps-desktop-hero-terms-red-glass">
+/* Highlight the membership eligibility note as a translucent red glass callout. */
+@media (min-width:701px){
+  body:has(.mps-home-hero) .mps-premium-copy .hero-footnote{
+    display:block!important;
+    width:min(100%,780px)!important;
+    box-sizing:border-box!important;
+    margin:24px auto 0!important;
+    padding:15px 20px!important;
+    border:1px solid rgba(255,76,92,.72)!important;
+    border-radius:12px!important;
+    background:rgba(150,18,35,.20)!important;
+    color:#f2fbff!important;
+    -webkit-text-fill-color:#f2fbff!important;
+    line-height:1.65!important;
+    text-align:center!important;
+    box-shadow:inset 0 0 18px rgba(255,42,64,.09),0 0 12px rgba(255,42,64,.18)!important;
+    text-shadow:0 0 2px rgba(255,255,255,.82),0 0 7px rgba(57,211,255,.72),0 0 14px rgba(20,157,255,.42)!important;
+  }
+}
+</style>
+
+<link rel="stylesheet" href="css/mps-master-visual.css?v=20261127a">
+  <link rel="stylesheet" href="css/mps-reference-exact.css?v=sessions-top-20261128">
+  <link rel="stylesheet" href="preview-v48/homepage-review/mps-homepage-preview.css?v=journey-20261128a">
+</head>
+<body>
+<div class="mps-master-marketbar" aria-label="Informasi pasar dan waktu">
+  <div class="mps-master-marketbar-inner">
+    <span class="mps-marketbar-brand"><i></i> MPS MARKET WATCH</span>
+    <span class="mps-marketbar-item"><b>XAUUSD</b> GOLD MARKET</span>
+    <span class="mps-marketbar-item"><b>EURUSD</b> FOREX</span>
+    <span class="mps-marketbar-item"><b>GBPUSD</b> FOREX</span>
+    <span class="mps-marketbar-sessions">ASIA <i>·</i> EUROPE <i>·</i> NEW YORK</span>
+    <span class="mps-marketbar-time"><i class="mps-marketbar-clock"></i><span id="mpsMasterWibClock">WIB --:--:--</span></span>
+  </div>
+</div>
+<nav class="navbar mps-home-nav" aria-label="Navigasi utama">
+  <a href="index.html" class="nav-brand"><img src="assets/logo.svg?v=mps-original-20261118" alt="Logo Masyarakat Psikologi Perdagangan"><span><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></span></a>
+  <button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks" type="button">☰ MENU</button>
+  <ul class="nav-links" id="navLinks">
+    <li><a class="mps-nav-home" href="index.html">⌂ Beranda</a></li>
+    <li><a href="about.html">Tentang MPS</a></li>
+    <li><a href="membership.html">Keanggotaan</a></li>
+    <li class="mps-nav-group"><details><summary>Member ▾</summary><div class="mps-nav-dropdown"><a href="member-portal.html">Pusat Sinyal</a><a href="member-portal.html">Komunitas</a></div></details></li>
+    <li><a href="heatmap.html">Market Pulse</a></li>
+    <li class="mps-nav-group"><details><summary>Learning ▾</summary><div class="mps-nav-dropdown"><a href="education.html">Ruang Belajar</a><a href="education.html">Psikologi Perdagangan</a></div></details></li>
+    <li class="mps-nav-group"><details><summary>Wawasan ▾</summary><div class="mps-nav-dropdown"><a href="news-review.html">News &amp; Review</a><a href="announcements.html">Pengumuman</a></div></details></li>
+    <li><a href="member-portal.html">Portal Anggota</a></li>
+    <li class="mps-nav-group mps-nav-more"><details><summary>Lainnya ▾</summary><div class="mps-nav-dropdown"><a href="system.html">Analisis Pasar</a><a href="prototypes/mps-trading-calculator/">Kalkulator Trading</a><a href="rebate.html">Mitra Exness &amp; Pengembalian Komisi</a></div></details></li>
+    <li><a class="mps-nav-login" href="member-portal.html">Login</a></li>
+    <li><button class="nav-join pwa-install-btn" id="installMpsApp" type="button" hidden>Pasang Aplikasi MPS</button></li>
+  </ul>
+</nav>
+
+
+
+
+
+<section class="mps-global-sessions" id="mps-global-sessions" data-mps-session-clocks aria-labelledby="mps-gs-heading">
+  <div class="mps-gs-head">
+    <img class="mps-gs-logo" src="assets/logo.svg" alt="Logo MPS">
+    <div class="mps-gs-brand"><strong>MPS</strong><small>MARKET PSYCHOLOGY SOCIETY</small></div>
+  </div>
+  <h2 class="mps-gs-title" id="mps-gs-heading">GLOBAL MARKET SESSIONS</h2>
+  <p class="mps-gs-subtitle">Tiga pusat aktivitas pasar dunia dalam satu panel waktu global. Jam mengikuti zona waktu lokal dan perubahan daylight saving time secara otomatis.</p>
+  <div class="mps-gs-grid">
+    <article class="mps-gs-card" data-session="tokyo" aria-label="Sesi Asia Tokyo">
+      <div class="mps-gs-city">ASIA</div><div class="mps-gs-location">TOKYO · UTC+9</div>
+      <div class="mps-gs-face" aria-hidden="true"><div class="mps-gs-ticks"></div><span class="mps-gs-hand mps-gs-hour"></span><span class="mps-gs-hand mps-gs-minute"></span><span class="mps-gs-hand mps-gs-second"></span><i class="mps-gs-pin"></i></div>
+      <div class="mps-gs-digital">--:--:--</div><div class="mps-gs-date">Memuat waktu lokal…</div>
+      <div class="mps-gs-status"><i></i><span>MEMUAT</span></div><div class="mps-gs-meta">Jam sesi: 09.00–18.00</div>
+    </article>
+    <article class="mps-gs-card" data-session="london" aria-label="Sesi Eropa London">
+      <div class="mps-gs-city">EUROPE</div><div class="mps-gs-location">LONDON · LOCAL TIME</div>
+      <div class="mps-gs-face" aria-hidden="true"><div class="mps-gs-ticks"></div><span class="mps-gs-hand mps-gs-hour"></span><span class="mps-gs-hand mps-gs-minute"></span><span class="mps-gs-hand mps-gs-second"></span><i class="mps-gs-pin"></i></div>
+      <div class="mps-gs-digital">--:--:--</div><div class="mps-gs-date">Memuat waktu lokal…</div>
+      <div class="mps-gs-status"><i></i><span>MEMUAT</span></div><div class="mps-gs-meta">Jam sesi: 08.00–17.00</div>
+    </article>
+    <article class="mps-gs-card" data-session="newyork" aria-label="Sesi Amerika New York">
+      <div class="mps-gs-city">NEW YORK</div><div class="mps-gs-location">NEW YORK · LOCAL TIME</div>
+      <div class="mps-gs-face" aria-hidden="true"><div class="mps-gs-ticks"></div><span class="mps-gs-hand mps-gs-hour"></span><span class="mps-gs-hand mps-gs-minute"></span><span class="mps-gs-hand mps-gs-second"></span><i class="mps-gs-pin"></i></div>
+      <div class="mps-gs-digital">--:--:--</div><div class="mps-gs-date">Memuat waktu lokal…</div>
+      <div class="mps-gs-status"><i></i><span>MEMUAT</span></div><div class="mps-gs-meta">Jam sesi: 08.00–17.00</div>
+    </article>
+  </div>
+  <div class="mps-gs-overlap" id="mps-gs-overlap"> <strong>MARKET OVERLAP</strong> · Memeriksa irisan sesi London dan New York…</div>
+  <p class="mps-gs-foot">Waktu ditampilkan berdasarkan zona waktu resmi masing-masing kota. Jam sesi adalah indikator jam kerja pasar FX, bukan jaminan likuiditas atau rekomendasi transaksi.</p>
+</section>
+
+<header class="hero mps-home-hero mps-premium-hero">
+  <div class="mps-premium-art-wrap" aria-hidden="true"><img class="mps-premium-art" src="assets/mps-design1-hero.webp?v=20261118-design1b" alt=""></div>
+
+  <div class="hero-content reveal mps-premium-copy mps-master-copy">
+    <div class="hero-kicker"><span></span> DISCIPLINE <b>•</b> PSYCHOLOGY <b>•</b> COMMUNITY</div>
+    <div class="mps-reference-wordmark"><span>MARKET</span><span>PSYCHOLOGY</span><strong>SOCIETY</strong></div>
+    <div class="mps-master-brandline">MARKET PSYCHOLOGY <strong>SOCIETY</strong></div>
+    <h1 class="mps-master-slogan">Trade <em class="mps-green">Smarter.</em> Grow <em class="mps-magenta">Stronger.</em> <em class="mps-cyan">Together.</em></h1>
+    <p class="desc">Bersama MPS, pahami psikologi pasar, bangun disiplin, kelola risiko, dan tumbuh melalui edukasi serta komunitas pelaku perdagangan.</p>
+    <div class="hero-btns">
+      <a href="membership.html" class="btn btn-gold">♛ Lihat Keanggotaan <span aria-hidden="true">→</span></a>
+      <a href="#mps-fasilitas" class="btn btn-outline">Lihat Fasilitas <span aria-hidden="true">▷</span></a>
+    </div>
+    <p class="hero-footnote">MPS tidak menjanjikan keuntungan. Setiap keputusan dan risiko perdagangan tetap menjadi tanggung jawab masing-masing pelaku perdagangan.</p>
+  </div>
+
+</header>
+
+
+
+
+
+
+<section class="mps-home-proof mps-home-stats mps-master-stats" aria-label="Fasilitas dan ekosistem MPS">
+  <div class="container mps-home-proof-grid">
+    <article><span>03</span><strong>SESI PASAR GLOBAL</strong><small>Asia · Europe · New York</small></article>
+    <article><span>02</span><strong>JALUR KEANGGOTAAN</strong><small>Regular · Active IB</small></article>
+    <article><span>01</span><strong>EKOSISTEM MPS</strong><small>Belajar · Analisis · Komunitas</small></article>
+    <article><span>VIP</span><strong>AREA ANGGOTA</strong><small>Akses sesuai status keanggotaan</small></article>
+    <article class="mps-stats-activity"><span aria-hidden="true">◉</span><strong>VERIFIKASI ANGGOTA</strong><small>Akses diberikan setelah status keanggotaan diverifikasi</small></article>
+  </div>
+</section>
+<div class="mps-ticker mps-home-ticker" aria-label="Informasi utama MPS">
+  <span class="ticker-live"><i></i> INFO MPS</span>
+  <div class="ticker-window"><div class="ticker-track">
+    <span>TERHUBUNG · BELAJAR · BERTUMBUH · BERPRESTASI</span><b>✦</b>
+    <span>Ilmu bertambah, disiplin terbangun, relasi meluas, pengalaman bertumbuh</span><b>✦</b>
+    <span>MPS membangun ekosistem pelaku perdagangan aktif yang tumbuh bersama</span><b>✦</b>
+  </div></div>
+  <button class="ticker-toggle" type="button" aria-pressed="false">Jeda</button>
+</div>
+
+
+<section class="mps-home-features" id="mps-fasilitas" aria-label="Fasilitas utama MPS">
+  <div class="container">
+    <div class="mps-home-feature-grid">
+      <a class="mps-home-feature mps-feature-pulse" href="heatmap.html"><span class="mps-feature-icon">◈</span><span class="mps-feature-kicker">01 · WAWASAN PASAR</span><strong>Market Pulse</strong><small>Pratinjau konteks pasar untuk membaca pergerakan dengan lebih terukur.</small><em>Lihat Pratinjau <b>↗</b></em></a>
+      <a class="mps-home-feature mps-feature-learning" href="education.html"><span class="mps-feature-icon">✧</span><span class="mps-feature-kicker">02 · PEMBELAJARAN</span><strong>Learning Center</strong><small>Materi untuk memperkuat psikologi, manajemen risiko, dan disiplin.</small><em>Mulai Belajar <b>↗</b></em></a>
+      <a class="mps-home-feature mps-feature-community" href="member-portal.html"><span class="mps-feature-icon">◎</span><span class="mps-feature-kicker">03 · KEBERSAMAAN</span><strong>Community</strong><small>Ruang diskusi dan berbagi pengalaman bersama pelaku perdagangan.</small><em>Jelajahi Komunitas <b>↗</b></em></a>
+      <a class="mps-home-feature mps-feature-dashboard" href="member-portal.html"><span class="mps-feature-icon">▦</span><span class="mps-feature-kicker">04 · AREA ANGGOTA</span><strong>Dasbor Anggota</strong><small>Pantau informasi dan aktivitas keanggotaan</small><em>Buka dasbor <b>↗</b></em></a>
+    </div>
+  </div>
+</section>
+
+<section class="mps-reference-vip" aria-label="Aktivitas anggota VIP MPS">
+  <div class="mps-reference-vip-mark"><span>✦</span><b>VIP</b></div>
+  <div class="mps-reference-vip-label">INFO KEANGGOTAAN VIP</div>
+  <div class="mps-reference-vip-message">Aktivitas anggota VIP ditampilkan setelah status keanggotaan dan bergabung diverifikasi oleh sistem MPS.</div>
+  <span class="mps-reference-vip-divider" aria-hidden="true"></span>
+  <div class="mps-reference-vip-motto">↗ Bersama MPS, kita tumbuh lebih kuat!</div>
+  <span class="mps-reference-live">INFO MPS</span>
+</section>
+
+<section class="mps-home-activity mps-home-latest mps-master-latest" aria-label="Wawasan dan aktivitas komunitas MPS">
+  <div class="container">
+    <div class="mps-latest-heading">
+      <div><span class="eyebrow">✦ MARKET INSIGHT &amp; COMMUNITY</span><h2>Wawasan Pasar dan Kehidupan Komunitas</h2></div>
+      <a class="btn btn-outline" href="news-review.html">Lihat Semua <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="mps-master-latest-grid">
+      <article class="mps-master-insight">
+        <span class="mps-master-card-kicker">MARKET PSYCHOLOGY</span>
+        <h3>Keputusan yang baik dimulai sebelum membuka posisi.</h3>
+        <p>Kenali konteks pasar, tetapkan batas risiko, dan jalankan rencana. Disiplin proses lebih penting daripada mengejar setiap pergerakan harga.</p>
+        <a href="education.html">Baca materi edukasi <b>↗</b></a>
+      </article>
+      <article class="mps-master-vip">
+        <span class="mps-master-card-kicker">✦ VIP MEMBER ACTIVITY</span>
+        <h3>Komunitas yang tumbuh melalui kontribusi nyata.</h3>
+        <p>Informasi anggota VIP hanya ditampilkan setelah status keanggotaan dan konfirmasi bergabung diverifikasi oleh sistem MPS.</p>
+        <a href="member-portal.html">Masuk ke komunitas <b>↗</b></a>
+      </article>
+    </div>
+  </div>
+</section>
+<section class="mps-membership-options" aria-label="Pilihan keanggotaan MPS">
+  <div class="container">
+    <div class="mps-existing-route-heading"><span class="eyebrow">MULAI PERJALANANMU</span><h2>Pilih Keanggotaan MPS</h2><p>Ada dua jalur keanggotaan dengan fasilitas inti yang sama. Pilih jalur yang sesuai, pahami ketentuannya, lalu bertumbuh bersama komunitas.</p></div>
+    <div class="mps-route-choice">
+      <article class="mps-route-choice-card"><span class="mps-free-sample-label">ANGGOTA REGULER</span><h3>Rp100.000 / bulan</h3><p>Iuran keanggotaan MPS sebesar Rp100.000 per bulan. Pembayaran dilakukan melalui QRIS resmi setelah kanalnya tersedia dan diumumkan MPS; akses aktif setelah pembayaran diverifikasi.</p><ul><li>Bot sinyal dan analisis sebagai bahan edukasi</li><li>Pemantauan Pasar, Ruang Belajar, Berita, dan komunitas</li><li>Perpanjangan bulanan</li></ul><a class="btn btn-gold" href="join.html">Pilih Reguler</a></article>
+      <article class="mps-route-choice-card"><span class="mps-free-sample-label">ANGGOTA KEMITRAAN AKTIF</span><h3>Bebas iuran bulanan</h3><p>Untuk anggota dengan akun Exness terhubung melalui mitra MPS, deposit pertama minimal Rp500.000 ke akun sendiri, dan status kemitraan aktif yang terverifikasi.</p><ul><li>Fasilitas inti sama dengan Reguler</li><li>Tidak membayar iuran selama memenuhi syarat</li><li>Program kemitraan dan pengembalian komisi mengikuti ketentuan tersendiri</li></ul><a class="btn btn-gold" href="https://one.toexness.com/a/bdthbxwb2q?platform=mobile" target="_blank" rel="noopener noreferrer">Daftar Exness melalui mitra MPS</a></article>
+    </div>
+    <p class="mps-free-sample-note">Deposit Rp500.000 dilakukan ke akun broker Exness milik anggota, bukan kepada MPS dan bukan biaya keanggotaan. QRIS akan ditampilkan setelah penyedia pembayaran MPS ditetapkan dan integrasinya diverifikasi. Tidak ada QRIS atau pembayaran otomatis yang aktif saat ini.</p>
+  </div>
+</section>
+
+<main>
+<section class="mps-intro-section">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">LEBIH DARI SEKADAR TEMPAT BERTRANSAKSI</div>
+      <h2>Jangan Biarkan Perjalanan Perdaganganmu Berhenti di Depan Grafik.</h2>
+      <p>Perdagangan memberi pengalaman. Tetapi pengalaman akan lebih berarti ketika diikuti ilmu, disiplin, relasi, dan kemauan untuk terus berkembang. MPS hadir untuk menyediakan ruang agar semua itu bisa dibangun bersama.</p>
+    </div>
+    <div class="mps-hook-grid">
+      <article class="mps-hook-card"><span class="mps-hook-icon">◎</span><h3>Ingin punya teman seperjalanan?</h3><p>Temukan ruang untuk berdiskusi, berbagi pengalaman, dan saling menguatkan. Tidak harus selalu benar untuk bisa belajar bersama.</p></article>
+      <article class="mps-hook-card"><span class="mps-hook-icon">⌁</span><h3>Ingin lebih tenang mengambil keputusan?</h3><p>Pelajari psikologi perdagangan, kenali rasa takut tertinggal peluang dan keputusan impulsif, lalu bangun kebiasaan yang lebih sadar risiko dan terukur.</p></article>
+      <article class="mps-hook-card"><span class="mps-hook-icon">↗</span><h3>Ingin pengalamanmu punya arah?</h3><p>Bangun proses melalui materi belajar, jurnal, daftar periksa, evaluasi, dan perangkat analisis yang membantu memahami pasar.</p></article>
+    </div>
+    <div class="mps-quote-band"><p>“Kita tidak harus memulai sebagai pelaku perdagangan yang hebat. Kita hanya perlu terus belajar, berani mengevaluasi diri, dan bertumbuh bersama.”</p><span>— MASYARAKAT PSIKOLOGI PERDAGANGAN</span></div>
+  </div>
+</section>
+
+<section class="mps-pillars-section">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">FONDASI PERJALANAN PELAKU PERDAGANGAN</div><h2>Tiga Hal yang Perlu Tumbuh Bersama</h2><p>Hasil perdagangan tidak bisa dijanjikan. Namun, ilmu, pengelolaan risiko, psikologi, dan disiplin dapat terus dilatih dan diperbaiki.</p></div>
+    <div class="grid grid-3 mps-pillar-grid">
+      <article class="card"><div class="card-num">01</div><h3>MANAJEMEN MODAL</h3><p>Memahami alokasi modal, penentuan ukuran posisi, batas risiko, dan perlindungan modal sebelum memikirkan hasil.</p></article>
+      <article class="card"><div class="card-num">02</div><h3>PSIKOLOGI PERDAGANGAN</h3><p>Mengenali emosi, bias, rasa takut tertinggal peluang, dan perdagangan balas dendam agar keputusan tidak dikuasai impuls sesaat.</p></article>
+      <article class="card"><div class="card-num">03</div><h3>DISIPLIN PERDAGANGAN</h3><p>Menyusun rencana, menjalankan daftar periksa, mencatat jurnal, dan mengevaluasi keputusan secara berkala.</p></article>
+    </div>
+    <div class="text-center mt-4"><a href="system.html" class="btn btn-outline">Lihat Kerangka MPS</a></div>
+  </div>
+</section>
+
+<section class="mps-exness-section" id="panduan-exness">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">SATU KOMUNITAS, SATU ARAH PERTUMBUHAN</div><h2>Belajar Boleh dari Mana Saja. Aktivitas Komunitas Terhubung dengan mitra MPS.</h2><p>Kamu bebas mencari ilmu, belajar, dan berdiskusi dengan siapa pun—termasuk dengan mitra atau komunitas lain. Namun, untuk menjadi bagian dari komunitas pelaku perdagangan aktif MPS, aktivitas perdagangan yang dihitung dalam keanggotaan harus menggunakan akun Exness yang terhubung melalui mitra MPS. Dengan begitu, aktivitas anggota ikut mendukung ekosistem yang sedang kita bangun bersama. Persetujuan perubahan mitra akun lama tetap menjadi keputusan Exness.</p></div>
+    <div class="mps-route-choice">
+      <article class="mps-route-choice-card"><span class="eyebrow">BELUM PUNYA AKUN EXNESS</span><h3>Mulai dari tautan mitra MPS</h3><p>Buka akun melalui tautan rujukan resmi MPS. Periksa seluruh ketentuan Exness, lalu lanjutkan pendaftaran MPS setelah akun dan setoran memenuhi persyaratan.</p><a class="btn btn-gold" href="https://one.toexness.com/a/bdthbxwb2q?platform=mobile" target="_blank" rel="noopener noreferrer">Buka akun melalui mitra MPS</a></article>
+      <article class="mps-route-choice-card"><span class="eyebrow">SUDAH PUNYA AKUN EXNESS</span><h3>Tanyakan opsi perubahan mitra</h3><p>Masuk ke Area Pribadi dan hubungi Dukungan Exness untuk menanyakan apakah akunmu memenuhi syarat perubahan mitra ke MPS. Exness mencantumkan penggantian mitra sebagai tindakan yang memerlukan konfirmasi kepemilikan akun; persetujuan tetap berada pada Exness. Jangan membuat akun duplikat atau menutup akun lama tanpa arahan resmi.</p><a class="btn btn-outline" href="https://get.exness.help/hc/id/articles/15086487960988-Pusat-dukungan" target="_blank" rel="noopener noreferrer">Cara menghubungi Dukungan Exness</a></article>
+    </div>
+    <div class="mps-existing-route-heading"><span class="eyebrow">JALUR UNTUK PEMILIK AKUN LAMA</span><h3>Jika ingin mengajukan perubahan mitra</h3><p>Empat langkah berikut hanya berlaku jika Exness mengizinkan proses perubahan untuk akunmu.</p></div>
+    <div class="mps-route" aria-label="Alur bergabung MPS melalui Exness">
+      <article class="mps-route-step"><span class="route-number">01</span><div class="route-symbol">⌂</div><h3>Periksa akunmu</h3><p>Masuk ke Area Pribadi Exness. Pastikan kamu masih memiliki akses ke email dan metode keamanan akun.</p></article>
+      <div class="mps-route-arrow" aria-hidden="true">→</div>
+      <article class="mps-route-step"><span class="route-number">02</span><div class="route-symbol">⇄</div><h3>Ajukan perubahan mitra</h3><p>Jika akun sudah terdaftar di mitra lain, hubungi Dukungan Exness melalui Area Pribadi untuk menanyakan permintaan ganti mitra ke mitra MPS. Ikuti verifikasi yang diminta.</p></article>
+      <div class="mps-route-arrow" aria-hidden="true">→</div>
+      <article class="mps-route-step"><span class="route-number">03</span><div class="route-symbol">✓</div><h3>Konfirmasi status</h3><p>Tunggu konfirmasi resmi dari Exness. Perubahan mitra tidak otomatis disetujui dan dapat bergantung pada kebijakan serta pemeriksaan Exness.</p></article>
+      <div class="mps-route-arrow" aria-hidden="true">→</div>
+      <article class="mps-route-step"><span class="route-number">04</span><div class="route-symbol">◎</div><h3>Lanjutkan registrasi MPS</h3><p>Setelah status akun sesuai, isi pendaftaran melalui Portal Anggota MPS dan ikuti instruksi verifikasi admin.</p></article>
+    </div>
+    <div class="mps-ib-card">
+      <div><span class="eyebrow">KEMITRAAN RESMI EXNESS</span><h3>Daftar Exness melalui mitra MPS</h3><p>Gunakan tautan rujukan resmi MPS. Kode rujukan MPS: <strong>bdthbxwb2q</strong>. Pastikan kamu memahami risiko perdagangan dan ketentuan Exness sebelum membuka akun.</p></div>
+      <a class="btn btn-gold" href="https://one.toexness.com/a/bdthbxwb2q?platform=mobile" target="_blank" rel="noopener noreferrer">Daftar akun Exness</a>
+    </div>
+    <div class="mps-soft-alert"><span class="alert-icon">⚠</span><div><strong>Jika belum memiliki akun Exness</strong><p>Gunakan tautan rujukan resmi MPS dan masukkan kode rujukan bdthbxwb2q apabila diminta. Jika akun Exness sudah terdaftar di bawah mitra lain, tanyakan prosedur perubahan mitra langsung kepada Dukungan Exness.</p></div></div>
+    <div class="mps-critical-alert"><span class="alert-icon">!</span><div><strong>Penting — jangan membuat akun baru tanpa arahan Exness.</strong><p>Jangan menutup Area Pribadi lama, membuat akun ganda, atau memindahkan dana hanya untuk mengganti mitra. Minta petunjuk langsung dari Dukungan Exness terlebih dahulu. Jangan pernah memberikan kata sandi, kode OTP, atau akses akun kepada admin maupun pihak lain.</p></div></div>
+    <div class="text-center mt-3"><a href="https://get.exness.help/hc/id/articles/360004039971-Mendaftar-akun-Exness" class="btn btn-outline" target="_blank" rel="noopener noreferrer">Panduan Resmi Exness</a> <a href="member-portal.html" class="btn btn-gold">Lanjut ke Portal MPS</a></div>
+    <p class="mps-source-note">Panduan ini merupakan ringkasan edukatif. Tampilan dan tata cara dapat berubah; keputusan akhir terkait akun dan perubahan mitra berada pada Exness.</p>
+  </div>
+</section>
+
+<section class="mps-benefits-section" id="mps-benefit">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">SAATNYA PERJALANAN PERDAGANGAN MEMBERI NILAI LEBIH</div><h2>Apa Saja yang Sudah Kamu Dapat Selama Ini Bertransaksi?</h2><p>Jangan hanya hitung berapa lama kamu berada di depan grafik. Lihat juga apa yang sudah kamu pelajari, kebiasaan yang berhasil kamu bangun, relasi yang kamu temukan, dan pengalaman yang membuatmu berkembang. MPS ingin menghadirkan lebih banyak ruang untuk semua itu.</p></div>
+    <div class="grid grid-2 mps-benefit-grid">
+      <article class="card"><div class="card-num">01</div><h3>Teman Seperjalanan</h3><p>Ruang untuk bertanya, bertukar sudut pandang, berbagi pengalaman, dan membangun pertemanan dengan pelaku perdagangan yang sama-sama ingin berkembang.</p></article>
+      <article class="card"><div class="card-num">02</div><h3>Ilmu yang Bisa Dipraktikkan</h3><p>Materi psikologi perdagangan, manajemen modal, pengelolaan risiko, jurnal, dan latihan disiplin untuk membantu membangun proses yang lebih terarah.</p></article>
+      <article class="card"><div class="card-num">03</div><h3>Perangkat Analisis</h3><p>Kenali fasilitas seperti Pemantauan Pasar, wawasan pasar, dan perangkat analisis yang tersedia untuk membantu proses pengamatan dan evaluasi—bukan sebagai jaminan sinyal atau keuntungan.</p></article>
+      <article class="card"><div class="card-num">04</div><h3>Manfaat Program Kemitraan & Pengembalian Komisi</h3><p>Anggota yang memenuhi ketentuan dapat memperoleh manfaat pengembalian komisi berdasarkan komisi kemitraan aktual yang diterima MPS. Besaran, perhitungan, dan ketentuan disampaikan secara transparan; bukan janji keuntungan dari perdagangan.</p></article>
+      <article class="card"><div class="card-num">05</div><h3>Pengalaman, Kompetisi & Apresiasi</h3><p>Kegiatan komunitas, tantangan, kompetisi, hadiah undian, dan cendera mata dapat dihadirkan sesuai program, kriteria, dan kuota yang berlaku.</p></article>
+    </div>
+    <div class="mps-soft-alert"><span class="alert-icon">⚠</span><div><strong>Transparansi persyaratan keanggotaan</strong><p>MPS menyediakan jalur Anggota Reguler Rp100.000/bulan dengan pembayaran melalui QRIS resmi setelah kanalnya tersedia dan diumumkan MPS, serta jalur Anggota Mitra Aktif Exness tanpa iuran bulanan selama status kemitraan aktif serta memenuhi ketentuan. Jalur kemitraan memerlukan deposit pertama minimal Rp500.000 ke akun Exness milik anggota. Deposit bukan biaya MPS.</p></div></div>
+    <div class="mps-critical-alert"><span class="alert-icon">!</span><div><strong>Risiko perdagangan — baca sebelum mengambil keputusan</strong><p>Perdagangan valuta asing dan emas berisiko tinggi. Kamu dapat kehilangan sebagian atau seluruh modal. Pengembalian Komisi bukan penggantian kerugian, perlindungan modal, atau jaminan keuntungan. Jangan melakukan deposit atau transaksi hanya untuk mengejar pengembalian komisi, apresiasi, atau komisi mitra.</p></div></div>
+    <div class="text-center mt-3"><a href="membership.html" class="btn btn-outline">Pelajari Keanggotaan & Ketentuan</a> <a href="member-portal.html" class="btn btn-gold">Buka Portal Anggota</a></div>
+  </div>
+</section> 
+
+<section class="mps-gallery">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">MANFAAT KHUSUS MPS</div><h2>Program & Aktivitas Komunitas</h2><p>Kenali program dan manfaat MPS yang tersedia sesuai syarat dan ketentuan.</p></div>
+    <div class="mps-slider" id="mpsSlider">
+      <div class="mps-slides">
+        <img src="assets/MPS_logo_baru_1.png" alt="Program dan cendera mata MPS">
+        <img src="assets/MPS_logo_baru_2.png" alt="Program dan cendera mata MPS">
+        <img src="assets/MPS_logo_baru_3.png" alt="Program dan cendera mata MPS">
+        <img src="assets/MPS_logo_baru_4.png" alt="Program dan cendera mata MPS">
+        <img src="assets/MPS_logo_baru_5.png" alt="Voucher dan hadiah program MPS">
+      </div>
+      <button class="mps-arrow mps-prev" type="button" aria-label="Gambar sebelumnya">&#10094;</button>
+      <button class="mps-arrow mps-next" type="button" aria-label="Gambar berikutnya">&#10095;</button>
+      <div class="mps-dots"></div>
+    </div>
+    <p class="mps-gallery-note">*Program, hadiah, dan manfaat mengikuti syarat, ketentuan, dan kuota yang berlaku.</p>
+    <div class="text-center"><a href="membership.html" class="btn btn-outline">Lihat Semua Manfaat</a></div>
+  </div>
+</section>
+
+<section class="mps-free-sample" aria-labelledby="mpsSampleTitle">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">CONTOH MATERI GRATIS</div>
+      <h2 id="mpsSampleTitle">Coba Rasakan Cara Belajar MPS.</h2>
+      <p>Calon anggota dapat menilai pendekatan edukasi MPS melalui contoh singkat ini, tanpa harus membuka materi khusus anggota.</p>
+    </div>
+    <article class="mps-free-sample-card">
+      <div class="mps-free-sample-label">LEMBAR LATIHAN · 5 MENIT</div>
+      <h3>Daftar Periksa Sebelum Membuka Posisi</h3>
+      <ol>
+        <li>Apakah alasan transaksi sudah tertulis dalam rencana?</li>
+        <li>Di mana batas risiko dan titik pembatalan ide transaksi?</li>
+        <li>Apakah ukuran posisi sesuai batas risiko yang sanggup diterima?</li>
+        <li>Apakah keputusan ini dipengaruhi rasa takut tertinggal peluang, emosi, atau keinginan membalas kerugian?</li>
+        <li>Jika transaksi berakhir rugi, apakah kerugian tersebut masih sesuai rencana?</li>
+      </ol>
+      <p class="mps-free-sample-note">Contoh skenario ini bersifat edukatif dan referensi, bukan instruksi transaksi atau saran investasi. Tidak ada metode yang menjamin hasil.</p>
+      <a href="education.html" class="btn btn-outline">Lihat Topik Pembelajaran</a>
+    </article>
+  </div>
+</section>
+
+<section class="mps-pulse-section">
+  <style>
+    .mps-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:28px;text-align:left}
+    .mps-preview-card{overflow:hidden;border:1px solid rgba(39,223,255,.35);border-radius:14px;background:linear-gradient(145deg,#171b24,#0b0e14);box-shadow:0 18px 45px rgba(0,0,0,.28)}
+    .mps-preview-card img{display:block;width:100%;height:220px;object-fit:cover}
+    .mps-preview-copy{padding:22px}
+    .mps-preview-label{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(39,223,255,.4);border-radius:30px;padding:6px 11px;color:var(--gold2);font-size:10px;font-weight:800;letter-spacing:1.4px}
+    .mps-preview-copy h3{margin:13px 0 7px;color:#ff4fd8;font-size:21px}
+    .mps-preview-copy p{color:#a6abb7;line-height:1.7;font-size:13px;min-height:66px}
+    .mps-preview-copy .btn{margin-top:8px}
+    @media(max-width:680px){.mps-preview-grid{grid-template-columns:1fr}.mps-preview-card img{height:190px}.mps-preview-copy p{min-height:0}}
+  </style>
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">PENGALAMAN ANGGOTA</div>
+      <h2>Kenali Fasilitas Khusus MPS.</h2>
+      <p>Lihat sekilas fasilitas yang tersedia bagi anggota resmi. Halaman publik hanya menampilkan pratinjau—konten dan data lengkap tetap terlindungi.</p>
+    </div>
+    <div class="mps-preview-grid">
+      <article class="mps-preview-card">
+        <img src="assets/market-pulse-preview.svg?v=20261106-1" alt="Ilustrasi Pemantauan Pasar MPS dengan grafik pasar dan globe digital" loading="lazy">
+        <div class="mps-preview-copy">
+          <span class="mps-preview-label">🔒 KHUSUS ANGGOTA</span>
+          <h3>Pemantauan Pasar</h3>
+          <p>Akses Pemantauan Pasar MPS melalui Portal Anggota. Label XAUUSD menggunakan data Binance Spot PAXGUSDT sebagai proksi pasar emas pada kerangka waktu M5 zona WIB, bukan umpan XAUUSD dari perusahaan pialang valuta asing.</p>
+          <a href="member-portal.html" class="btn btn-gold">Buka Portal Anggota</a>
+        </div>
+      </article>
+      <article class="mps-preview-card">
+        <img src="assets/learning-preview.svg?v=20261106-1" alt="Ilustrasi materi Edukasi MPS tentang psikologi perdagangan dan manajemen risiko" loading="lazy">
+        <div class="mps-preview-copy">
+          <span class="mps-preview-label">🔒 KHUSUS ANGGOTA</span>
+          <h3>Ruang Belajar</h3>
+          <p>Kenali materi psikologi perdagangan, manajemen risiko, analisis pasar, dan disiplin untuk mendukung proses belajar yang berkelanjutan.</p>
+          <a href="education.html" class="btn btn-gold">Lihat Pratinjau Edukasi</a>
+        </div>
+      </article>
+      <article class="mps-preview-card mps-community-card">
+        <div class="mps-community-art" aria-hidden="true"><span>✦</span><b>MPS</b><i>KOMUNITAS</i></div>
+        <div class="mps-preview-copy">
+          <span class="mps-preview-label">✦ RUANG BERTUMBUH</span>
+          <h3>Komunitas</h3>
+          <p>Diskusi, berbagi pengalaman, dan saling menguatkan dalam membangun disiplin serta psikologi perdagangan yang lebih sehat.</p>
+          <a href="member-portal.html" class="btn btn-gold">Jelajahi Komunitas</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="mps-final-cta">
+  <div class="container text-center">
+    <div class="eyebrow">PERJALANAN PERDAGANGAN TAK HARUS SENDIRIAN</div>
+    <h2>Jangan Hanya Bertransaksi. Bangun Perjalanan yang Lebih Berarti Bersama MPS.</h2>
+    <p>Di sini, kamu punya ruang untuk menambah ilmu, memperkuat disiplin, membangun relasi, memanfaatkan perangkat analisis, dan ikut menumbuhkan komunitas pelaku perdagangan aktif. Kita tidak menjanjikan jalan pintas—kita membangun perjalanan bersama.</p>
+    <div class="hero-btns"><a href="membership.html" class="btn btn-gold">Lihat Pilihan Keanggotaan <span aria-hidden="true">→</span></a><a href="contact.html" class="btn btn-outline">Tanya Admin MPS</a></div>
+    <p class="mps-source-note">Bergabung dengan komunitas tidak menjamin hasil perdagangan. Setiap keputusan dan risiko transaksi tetap menjadi tanggung jawab masing-masing pelaku perdagangan.</p>
+  </div>
+</section>
+</main>
+
+<section class="mps-reference-trust" aria-label="Komitmen MPS">
+  <div class="mps-reference-trust-item"><span>✓</span><div><b>Verifikasi Admin</b><small>Data diperiksa sebelum akses diberikan</small></div></div>
+  <div class="mps-reference-trust-item"><span>▣</span><div><b>Akses Bertingkat</b><small>Fasilitas mengikuti status keanggotaan</small></div></div>
+  <div class="mps-reference-trust-item"><span>i</span><div><b>Informasi Terbuka</b><small>Ketentuan dan risiko dijelaskan</small></div></div>
+  <div class="mps-reference-quote">“Together We Build a Better Trader”</div>
+  <div class="mps-reference-brand"><b>MPS</b><small>Market Psychology Society</small><em>Discipline · Psychology · Community</em></div>
+  <div class="mps-reference-social"><a href="https://t.me/MPS_Notificationnew_bot" aria-label="Telegram MPS">➤</a><a href="contact.html" aria-label="Kontak MPS">✉</a><a href="index.html" aria-label="Website MPS">◎</a></div>
+</section>
+<footer class="footer">
+  <div class="footer-brand" data-brand="name">Masyarakat Psikologi Perdagangan</div>
+  <div class="footer-tag" data-brand="tagline">TERHUBUNG. BELAJAR. BERTUMBUH. BERPRESTASI.</div>
+  <div class="footer-quote">“Terhubung. Belajar. Bertumbuh. Berprestasi.”</div>
+  <div class="footer-copy">Pendiri &amp; Pengelola: Ndhi Solasi</div>
+  <div class="footer-links"><a href="index.html">Beranda</a><a href="about.html">Tentang MPS</a><a href="membership.html">Manfaat &amp; Ketentuan</a><a href="join.html">Daftar</a><a href="member-portal.html">Portal Anggota</a><a href="contact.html">Kontak</a></div>
+  <p class="footer-disclaimer">MPS adalah komunitas edukasi perdagangan. Sinyal dan analisis yang dibagikan, termasuk melalui Bot Sinyal Telegram, merupakan materi edukasi dan referensi, bukan ajakan atau saran investasi personal. Setiap keputusan dan risiko perdagangan sepenuhnya menjadi tanggung jawab masing-masing pelaku perdagangan. MPS tidak menjamin keuntungan atau hasil tertentu. MPS bukan pialang atau penasihat keuangan. MPS dapat menerima komisi kemitraan dari akun yang terhubung melalui MPS; hubungan komersial ini diungkapkan secara transparan. Perdagangan berisiko tinggi dan dapat menyebabkan kehilangan sebagian atau seluruh modal.</p>
+  <div class="footer-copy" id="year">© 2026 Masyarakat Psikologi Perdagangan. Hak cipta dilindungi.</div>
+</footer>
+<div class="float-chat"><a href="mailto:ndhisolasi.music@gmail.com" aria-label="Hubungi MPS melalui Email">✉</a></div>
+<script>
+(()=>{const el=document.getElementById('mpsMasterWibClock');if(!el)return;const fmt=new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});const tick=()=>{try{el.textContent='WIB '+fmt.format(new Date())}catch(e){el.textContent='WIB'}};tick();setInterval(tick,1000)})();
+</script>
+<script src="config.js"></script>
+<script src="js/main.js?v=mps-risk-warning-red-20261124a"></script>
+<script src="js/announcements.js"></script>
+<script src="js/public-center.js"></script>
+
+<script>
+(()=>{
+  const btn=document.getElementById('installMpsApp');
+  const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(!('serviceWorker' in navigator))return;
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
+  if(!btn||isStandalone())return;
+  let installPrompt=null;
+  const ua=navigator.userAgent||'';
+  const isAppleMobile=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(isAppleMobile){btn.hidden=false;btn.addEventListener('click',()=>alert('Untuk memasang MPS di iPhone/iPad:\n1. Buka MPS melalui Safari.\n2. Tekan tombol Bagikan.\n3. Pilih “Tambahkan ke Layar Utama”.\n4. Tekan “Tambahkan”.'));}
+  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;btn.hidden=false;});
+  btn.addEventListener('click',async()=>{
+    if(isAppleMobile)return;
+    if(!installPrompt){alert('Jika opsi instalasi belum muncul, buka menu browser lalu pilih “Pasang aplikasi” atau “Tambahkan ke layar utama”.');return;}
+    installPrompt.prompt();
+    try{const choice=await installPrompt.userChoice;if(choice&&choice.outcome==='accepted')btn.hidden=true;}catch(_){}
+    installPrompt=null;
+  });
+  window.addEventListener('appinstalled',()=>{btn.hidden=true;installPrompt=null;});
+})();
+</script>
+
+<script>
+(function(){
+  const zones={tokyo:{zone:'Asia/Tokyo',open:9,close:18},london:{zone:'Europe/London',open:8,close:17},newyork:{zone:'America/New_York',open:8,close:17}};
+  const two=n=>String(n).padStart(2,'0');
+  function parts(date,zone){const p=new Intl.DateTimeFormat('en-GB',{timeZone:zone,hour:'2-digit',minute:'2-digit',second:'2-digit',year:'numeric',month:'short',day:'2-digit',weekday:'short',hourCycle:'h23'}).formatToParts(date);return Object.fromEntries(p.map(x=>[x.type,x.value]));}
+  function buildTicks(card){const host=card.querySelector('.mps-gs-ticks');if(host.dataset.ready)return;host.dataset.ready='1';for(let i=0;i<12;i++){const tick=document.createElement('i');tick.className='mps-gs-tick';tick.style.transform='translateX(-50%) rotate('+i*30+'deg)';tick.style.transformOrigin='50% '+(card.querySelector('.mps-gs-face').clientWidth/2-7)+'px';host.appendChild(tick);}}
+  function update(){const now=new Date();let londonOpen=false,nyOpen=false;
+    Object.entries(zones).forEach(([key,cfg])=>{const card=document.querySelector('.mps-gs-card[data-session="'+key+'"]');if(!card)return;buildTicks(card);const p=parts(now,cfg.zone),h=Number(p.hour),m=Number(p.minute),s=Number(p.second),hour24=h%24;
+      card.querySelector('.mps-gs-digital').textContent=two(h)+':'+two(m)+':'+two(s);
+      card.querySelector('.mps-gs-date').textContent=p.weekday+', '+p.day+' '+p.month+' '+p.year;
+      const hourAngle=((hour24%12)+m/60+s/3600)*30,minuteAngle=(m+s/60)*6,secondAngle=s*6;
+      card.querySelector('.mps-gs-hour').style.transform='translateX(-50%) rotate('+hourAngle+'deg)';
+      card.querySelector('.mps-gs-minute').style.transform='translateX(-50%) rotate('+minuteAngle+'deg)';
+      card.querySelector('.mps-gs-second').style.transform='translateX(-50%) rotate('+secondAngle+'deg)';
+      const weekday=now.toLocaleDateString('en-US',{timeZone:cfg.zone,weekday:'short'});
+      const open=weekday!=='Sat'&&weekday!=='Sun'&&h>=cfg.open&&h<cfg.close;
+      const status=card.querySelector('.mps-gs-status');status.classList.toggle('is-closed',!open);status.querySelector('span').textContent=open?'SESSION OPEN':'SESSION CLOSED';
+      if(key==='london')londonOpen=open;if(key==='newyork')nyOpen=open;
+    });
+    const overlap=document.getElementById('mps-gs-overlap');if(overlap){overlap.innerHTML='<strong>MARKET OVERLAP</strong> · '+(londonOpen&&nyOpen?'LONDON × NEW YORK SEDANG BERSAMAAN OPEN':'Irisan London–New York belum berlangsung saat ini')+' · Waktu acuan WIB: '+new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now);}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{update();setInterval(update,1000);},{once:true});else{update();setInterval(update,1000);}
+})();
+</script>
+
+
+<style id="mps-final-art-anchor-fix">
+/* Restore the previous integrated hero composition. Keep artwork as a backdrop; do not turn it into a separate row. */
+body:has(.mps-home-hero) header.mps-premium-hero{
+  position:relative!important;display:block!important;isolation:isolate!important;
+  min-height:clamp(520px,44vw,680px)!important;height:auto!important;overflow:hidden!important;
+  padding:0!important
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  z-index:1!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;
+  overflow:hidden!important;-webkit-mask-image:none!important;mask-image:none!important
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+  display:block!important;width:100%!important;height:100%!important;max-width:1600px!important;max-height:none!important;
+  object-fit:contain!important;object-position:center 40%!important;transform:none!important;
+  opacity:.98!important;filter:drop-shadow(0 12px 36px rgba(0,0,0,.35))!important
+}
+body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+  position:relative!important;z-index:3!important;width:min(760px,calc(100% - 28px))!important;
+  max-width:760px!important;min-height:clamp(520px,44vw,680px)!important;
+  margin:0 auto!important;padding:clamp(24px,4vw,42px) 24px!important;
+  text-align:center!important
+}
+@media(max-width:820px){
+  body:has(.mps-home-hero) header.mps-premium-hero{min-height:590px!important;padding:34px 16px 30px!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap{opacity:.76!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+    object-fit:contain!important;object-position:center 35%!important;transform:none!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{
+    width:100%!important;max-width:620px!important;min-height:520px!important;
+    margin:0 auto!important;padding:30px 12px!important
+  }
+}
+@media(max-width:520px){
+  body:has(.mps-home-hero) header.mps-premium-hero{min-height:560px!important}
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-art-wrap>.mps-premium-art{
+    object-position:center 32%!important
+  }
+  body:has(.mps-home-hero) header.mps-premium-hero>.mps-premium-copy{padding:24px 8px!important}
+}
+</style>
+
+</body>
+</html>
