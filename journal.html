@@ -88,39 +88,18 @@
   <section class="journal-panel" aria-labelledby="journalFormTitle">
     <div class="mps-journal-head">
       <div><div class="mps-journal-kicker">MPS DISCIPLINE WORKSPACE</div><span class="journal-state">KATA-KATA MENAMPAR · JURNAL PERDAGANGAN</span></div>
-      <span class="mps-journal-lock" id="mpsJournalAccessState">🔒 Akses member terkunci</span>
+      <span class="mps-journal-lock">🔒 KHUSUS MEMBER AKTIF</span>
     </div>
     <h2 id="journalFormTitle">Bangun kebiasaan, bukan sekadar menghitung hasil.</h2>
-    <p class="mps-journal-intro">Satu ruang untuk mengingat risiko, mencatat alasan masuk, menjaga disiplin, dan mengevaluasi keputusan. Catatan yang jujur lebih berguna daripada hasil yang hanya terlihat bagus.</p>
-    <div class="mps-journal-block-title">01 · IDENTITAS TRANSAKSI</div>
-    <form id="mpsTradingJournalForm" autocomplete="off" aria-describedby="mpsJournalAccessNote">
-      <div class="mps-journal-grid">
-        <div class="mps-journal-field"><label for="journalDate">Tanggal transaksi</label><input id="journalDate" name="tradeDate" type="date" disabled></div>
-        <div class="mps-journal-field"><label for="journalInstrument">Instrumen</label><input id="journalInstrument" name="instrument" placeholder="Contoh: XAUUSD" maxlength="30" disabled></div>
-        <div class="mps-journal-field"><label for="journalDirection">Arah posisi</label><select id="journalDirection" name="direction" disabled><option value="">Pilih arah</option><option>BUY</option><option>SELL</option></select></div>
-        <div class="mps-journal-field"><label for="journalSession">Sesi pasar</label><select id="journalSession" name="session" disabled><option value="">Pilih sesi</option><option>Asia</option><option>London</option><option>New York</option><option>Overlap</option></select></div>
-      </div>
-      <div class="mps-journal-block-title">02 · RENCANA DAN RISIKO</div>
-      <div class="mps-journal-grid">
-        <div class="mps-journal-field"><label for="journalEntry">Harga masuk</label><input id="journalEntry" name="entryPrice" inputmode="decimal" placeholder="Harga entry" disabled></div>
-        <div class="mps-journal-field"><label for="journalStop">Stop Loss</label><input id="journalStop" name="stopLoss" inputmode="decimal" placeholder="Batas risiko" disabled></div>
-        <div class="mps-journal-field"><label for="journalTarget">Take Profit</label><input id="journalTarget" name="takeProfit" inputmode="decimal" placeholder="Target harga" disabled></div>
-        <div class="mps-journal-field"><label for="journalRisk">Risiko rencana (%)</label><input id="journalRisk" name="riskPercent" type="number" min="0" max="100" step="0.01" placeholder="Contoh: 1" disabled></div>
-        <div class="mps-journal-field full"><label for="journalReason">Alasan dan konfirmasi setup</label><textarea id="journalReason" name="setupReason" maxlength="2000" placeholder="Tuliskan alasan objektif sebelum membuka posisi..." disabled></textarea></div>
-      </div>
-      <div class="mps-journal-block-title">03 · PSIKOLOGI DAN EVALUASI</div>
-      <div class="mps-journal-grid">
-        <div class="mps-journal-field"><label for="journalEmotion">Kondisi emosi sebelum entry</label><select id="journalEmotion" name="emotion" disabled><option value="">Pilih kondisi</option><option>Tenang dan fokus</option><option>Ragu</option><option>Takut tertinggal (FOMO)</option><option>Ingin balas kerugian</option><option>Lelah atau terganggu</option></select></div>
-        <div class="mps-journal-field"><label for="journalResult">Hasil transaksi</label><select id="journalResult" name="result" disabled><option value="">Pilih hasil</option><option>Profit</option><option>Loss</option><option>Break Even</option><option>Belum ditutup</option></select></div>
-        <div class="mps-journal-field full"><label for="journalLesson">Evaluasi: apa yang berjalan baik dan apa yang harus diperbaiki?</label><textarea id="journalLesson" name="lesson" maxlength="3000" placeholder="Evaluasi proses, kepatuhan pada rencana, dan pelajaran..." disabled></textarea></div>
-      </div>
-      <button class="mps-journal-submit" type="submit" disabled>Simpan Jurnal (belum aktif)</button>
-    </form>
-    <div class="mps-journal-access" id="mpsJournalAccessNote" role="status">
-      <strong>Fitur jurnal sengaja dikunci sementara.</strong>
-      <p>Repositori saat ini belum menyediakan endpoint jurnal yang memverifikasi sesi member dan menyimpan catatan ke server. Form ini hanya pratinjau desain; tidak menerima atau menyimpan data. Tidak ada localStorage/sessionStorage yang dipakai. Akses baru dibuka setelah API server-side terpasang dan lolos uji autentikasi serta otorisasi.</p>
+    <p class="mps-journal-intro">Kata-Kata Menampar dan Jurnal Perdagangan digabung dalam satu ruang anggota. Catatan transaksi disimpan di spreadsheet privat MPS melalui sesi server, bukan penyimpanan browser. Setiap baca, simpan, ubah, dan hapus diperiksa kembali berdasarkan sesi dan kepemilikan Member ID.</p>
+    <div class="mps-journal-access" role="status">
+      <strong>Masuk melalui Portal Anggota MPS.</strong>
+      <p>Jurnal hanya dapat digunakan setelah login Member ID + PIN dan setelah Code.gs serta Index.html kandidat v4.8.1 dipasang pada Apps Script dan Web App diperbarui. Jika deployment belum diperbarui, fitur tetap terkunci.</p>
     </div>
-    <div class="text-center"><a class="btn btn-gold" href="member-portal.html">Kembali ke Portal Anggota</a></div>
+    <div class="text-center" style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:20px">
+      <a class="btn btn-gold" href="https://script.google.com/macros/s/AKfycbxTv22eh7ZMxhWDU9_9MLsvsnw0lAg0cNdB8zy2BsHaLg5s3yxvBItkPHLhRZQVD_It/exec?page=journal" target="_top" rel="noopener noreferrer">BUKA JURNAL ANGGOTA</a>
+      <a class="btn btn-outline" href="member-portal.html">PORTAL ANGGOTA</a>
+    </div>
   </section>
 </main>
 <footer class="footer">
