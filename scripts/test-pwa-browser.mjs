@@ -85,6 +85,30 @@ try {
   });
   if (!homeDesignAssets.ok) failures.push('Approved Design 1 hero artwork/original logo failed browser decoding or dimensions: ' + JSON.stringify(homeDesignAssets));
   if (homeDesignAssets.duplicateHeroLogo) failures.push('Duplicate logo lockup remains inside the homepage hero');
+  const approvedHeroFlow = await page.evaluate(() => {
+    const hero = document.querySelector('header.mps-premium-hero');
+    const clocks = document.querySelector('.mps-global-sessions');
+    const vip = document.querySelector('.mps-reference-vip');
+    const ticker = document.querySelector('.mps-home-ticker');
+    const copy = document.querySelector('.mps-premium-copy');
+    if (!hero || !clocks || !vip || !ticker || !copy) return { ok: false, reason: 'hero, clocks, VIP rail, ticker, or hero copy missing' };
+    const heroRect = hero.getBoundingClientRect(), clockRect = clocks.getBoundingClientRect();
+    const vipRect = vip.getBoundingClientRect(), tickerRect = ticker.getBoundingClientRect();
+    const overlay = getComputedStyle(hero, '::before');
+    return {
+      ok: clockRect.top >= heroRect.bottom - 2 &&
+          vipRect.top >= clockRect.bottom - 2 &&
+          tickerRect.top >= vipRect.bottom - 2 &&
+          getComputedStyle(hero).display === 'block' &&
+          getComputedStyle(copy).position === 'relative' &&
+          overlay.display === 'none' && overlay.content === 'none',
+      heroBottom: heroRect.bottom, clocksTop: clockRect.top, clocksBottom: clockRect.bottom,
+      vipTop: vipRect.top, tickerTop: tickerRect.top,
+      heroDisplay: getComputedStyle(hero).display, copyPosition: getComputedStyle(copy).position,
+      overlayDisplay: overlay.display, overlayContent: overlay.content
+    };
+  });
+  if (!approvedHeroFlow.ok) failures.push('Approved homepage order/desktop hero overlay is not preserved: ' + JSON.stringify(approvedHeroFlow));
   const homepageCtaSequence = await page.evaluate(() => {
     const groups = [
       '.mps-exness-section .text-center.mt-3 > a.btn',
