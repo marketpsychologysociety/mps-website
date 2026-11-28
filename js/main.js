@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", function () {
   'use strict';
   const page = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
   if (page !== 'index.html' && page !== '') return;
-  const storageKey = 'mpsTradingAwarenessAcknowledgedV1';
+  const storageKey = 'mpsTradingAwarenessAcknowledgedV2';
   try { if (window.sessionStorage.getItem(storageKey) === 'yes') return; } catch (_) {}
 
   const mount = () => {
