@@ -1,0 +1,90 @@
+name: MPS homepage preview visual QA
+
+on:
+  workflow_run:
+    workflows: ["Deploy MPS public website to GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  homepage-preview:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out deployed source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
+      - name: Verify published MPS homepage preview
+        run: |
+          mkdir -p artifacts
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const target = 'https://marketpsychologysociety.github.io/mps-website/preview-v48/homepage-review/';
+          let response;
+          for (let attempt = 0; attempt < 12; attempt++) {
+            try {
+              response = await fetch(target, { cache: 'no-store' });
+              if (response.ok) break;
+            } catch {}
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          if (!response?.ok) throw new Error('Preview URL did not return HTTP 200');
+          const browser = await chromium.launch({ headless: true });
+          const errors = [];
+          try {
+            const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+            page.on('pageerror', error => errors.push(error.message));
+            await page.goto(target, { waitUntil: 'networkidle', timeout: 90000 });
+            await page.locator('.mps-premium-art').waitFor({ state: 'visible', timeout: 20000 });
+            const image = await page.locator('.mps-premium-art').evaluate(img => ({src: img.currentSrc, width: img.naturalWidth, height: img.naturalHeight, complete: img.complete}));
+            if (!image.complete || image.width < 500) throw new Error('Approved bull-bear hero image did not load: ' + JSON.stringify(image));
+            const desktop = await page.evaluate(() => {
+              const y = selector => document.querySelector(selector)?.getBoundingClientRect().top ?? -1;
+              return {
+                vipY: y('.mps-reference-vip'),
+                tickerY: y('.mps-home-ticker'),
+                heroY: y('.mps-home-hero'),
+                heading: document.querySelector('.mps-master-slogan')?.textContent?.trim(),
+                daftarHref: document.querySelector('a[href="join.html#form-pendaftaran"]')?.getAttribute('href') ?? null
+              };
+            });
+            if (!(desktop.vipY >= 0 && desktop.tickerY > desktop.vipY && desktop.heroY > desktop.tickerY)) {
+              throw new Error('Top information bars are not positioned above hero: ' + JSON.stringify(desktop));
+            }
+            if (!desktop.heading?.includes('Jangan Hanya Bertransaksi')) throw new Error('Approved MPS intro heading is missing');
+            if (!desktop.daftarHref) throw new Error('Daftar button does not point to registration steps');
+            await page.screenshot({ path: 'artifacts/mps-homepage-desktop.png', fullPage: true });
+            await page.setViewportSize({ width: 390, height: 844 });
+            await page.reload({ waitUntil: 'networkidle' });
+            const mobile = await page.evaluate(() => ({
+              viewport: document.documentElement.clientWidth,
+              page: document.documentElement.scrollWidth,
+              imageWidth: document.querySelector('.mps-premium-art')?.getBoundingClientRect().width ?? 0
+            }));
+            if (mobile.page > mobile.viewport + 2) throw new Error('Mobile horizontal overflow: ' + JSON.stringify(mobile));
+            await page.screenshot({ path: 'artifacts/mps-homepage-mobile.png', fullPage: true });
+            if (errors.length) throw new Error('Browser runtime errors: ' + errors.join(' | '));
+            console.log(JSON.stringify({httpStatus: response.status, image, desktop, mobile, browserErrors: errors}, null, 2));
+          } finally {
+            await browser.close();
+          }
+          NODE
+      - name: Upload visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mps-homepage-preview-visual-qa
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
