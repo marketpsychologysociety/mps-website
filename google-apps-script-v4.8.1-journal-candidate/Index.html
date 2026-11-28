@@ -908,7 +908,7 @@
     const today=new Date();const localDate=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);const dateInput=document.querySelector('[name="depositDate"]');if(dateInput)dateInput.value=localDate;
     loadDashboard();
     loadPublicCenter();
-    if(['register','deposit','dashboard','learning','journal','pulse','calculator','news','advertise','admin'].includes(INITIAL_PAGE))go(INITIAL_PAGE);
+    if(window.location.hash==='#journal')go('journal');else if(['register','deposit','dashboard','learning','pulse','calculator','news','advertise','admin'].includes(INITIAL_PAGE))go(INITIAL_PAGE);
   </script>
 </body>
 </html>
